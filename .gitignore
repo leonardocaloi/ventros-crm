@@ -1,0 +1,62 @@
+# Binaries
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+/ventros-crm
+cmd/api/api
+/api
+/main
+/bin/
+
+# Test binary
+*.test
+*.out
+
+# Go workspace file
+go.work
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Swagger docs
+docs/swagger/
+
+# Docker
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Coverage
+coverage.txt
+coverage.html
+*.out
+
+# Profiling
+*.prof
+*.pprof
+
+# Temporary files
+/tmp/
+.tmp/
+
+# Build artifacts
+dist/
+build/
