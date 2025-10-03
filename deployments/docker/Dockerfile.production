@@ -1,0 +1,57 @@
+# Multi-stage build for production
+FROM golang:1.21-alpine AS builder
+
+WORKDIR /app
+
+# Install build dependencies
+RUN apk add --no-cache git
+
+# Copy dependency files
+COPY go.mod go.sum ./
+RUN go mod download
+
+# Copy source code
+COPY . .
+
+# Build application
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o api ./cmd/api
+
+# =======================
+# Runtime stage
+# =======================
+FROM alpine:latest
+
+WORKDIR /app
+
+# Install runtime dependencies
+RUN apk add --no-cache \
+    ca-certificates \
+    bash \
+    postgresql-client \
+    curl
+
+# Install Atlas CLI for migrations
+RUN curl -sSf https://atlasgo.sh | sh
+
+# Copy binary from builder
+COPY --from=builder /app/api .
+
+# Copy migrations directory
+COPY --from=builder /app/ent/migrate/migrations ./migrations
+
+# Copy entrypoint script
+COPY docker-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
+# Expose port
+EXPOSE 8080
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://localhost:8080/health || exit 1
+
+# Use entrypoint for migrations
+ENTRYPOINT ["docker-entrypoint.sh"]
+
+# Start API
+CMD ["./api"]

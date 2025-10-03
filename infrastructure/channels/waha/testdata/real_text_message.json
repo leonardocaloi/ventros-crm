@@ -1,0 +1,46 @@
+{
+  "id": "evt_01k5vejyxtvtrn6vkwh10317pc",
+  "timestamp": 1758636637114,
+  "event": "message",
+  "session": "ask-dermato-imersao",
+  "metadata": {
+    "number": "imersao",
+    "customer": "ASK Dermatologia"
+  },
+  "me": {
+    "id": "554488332934@c.us",
+    "pushName": "Ask dermatologia",
+    "lid": "50006975324345@lid",
+    "jid": "554488332934:3@s.whatsapp.net"
+  },
+  "payload": {
+    "id": "3A3CE2C5C341306326CF",
+    "timestamp": 1758636637,
+    "from": "554498699850@s.whatsapp.net",
+    "fromMe": false,
+    "source": "app",
+    "body": "No momento não vou poder",
+    "_data": {
+      "Info": {
+        "Chat": "554498699850@s.whatsapp.net",
+        "Sender": "554498699850@s.whatsapp.net",
+        "IsFromMe": false,
+        "IsGroup": false,
+        "SenderAlt": "24597411926230@lid",
+        "ID": "3A3CE2C5C341306326CF",
+        "Type": "text",
+        "PushName": "Ana Alves",
+        "MediaType": ""
+      },
+      "Message": {
+        "conversation": "No momento não vou poder"
+      }
+    }
+  },
+  "environment": {
+    "version": "2025.9.5",
+    "engine": "GOWS",
+    "tier": "PLUS",
+    "browser": null
+  }
+}

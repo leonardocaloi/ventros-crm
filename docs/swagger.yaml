@@ -1,0 +1,2509 @@
+basePath: /
+definitions:
+  Contact:
+    properties:
+      created_at:
+        type: string
+      email:
+        example: joao@example.com
+        type: string
+      external_id:
+        example: ext-123
+        type: string
+      first_interaction_at:
+        type: string
+      id:
+        example: 550e8400-e29b-41d4-a716-446655440000
+        type: string
+      language:
+        example: pt-BR
+        type: string
+      last_interaction_at:
+        type: string
+      name:
+        example: João Silva
+        type: string
+      phone:
+        example: "5511999999999"
+        type: string
+      project_id:
+        example: 11111111-1111-1111-1111-111111111111
+        type: string
+      source_channel:
+        example: whatsapp
+        type: string
+      tags:
+        example:
+        - vip
+        - lead
+        items:
+          type: string
+        type: array
+      tenant_id:
+        example: default
+        type: string
+      timezone:
+        example: America/Sao_Paulo
+        type: string
+      updated_at:
+        type: string
+    type: object
+  CreateContactRequest:
+    properties:
+      email:
+        example: joao@example.com
+        type: string
+      external_id:
+        example: ext-123
+        type: string
+      language:
+        example: pt-BR
+        type: string
+      metadata:
+        additionalProperties: true
+        type: object
+      name:
+        example: João Silva
+        type: string
+      phone:
+        example: "5511999999999"
+        type: string
+      source_channel:
+        example: whatsapp
+        type: string
+      tags:
+        example:
+        - vip
+        - lead
+        items:
+          type: string
+        type: array
+      timezone:
+        example: America/Sao_Paulo
+        type: string
+    required:
+    - name
+    type: object
+  Error:
+    properties:
+      details:
+        additionalProperties: true
+        type: object
+      error:
+        example: Validation failed
+        type: string
+      message:
+        example: Invalid email format
+        type: string
+    type: object
+  List:
+    properties:
+      data: {}
+      page:
+        example: 1
+        type: integer
+      page_size:
+        example: 20
+        type: integer
+      total:
+        example: 100
+        type: integer
+      total_pages:
+        example: 5
+        type: integer
+    type: object
+  github_com_caloi_ventros-crm_infrastructure_channels_waha.WAHAContextInfo:
+    properties:
+      conversionData:
+        type: string
+      conversionSource:
+        description: Tracking de conversão (ads, etc)
+        type: string
+      entryPointConversionApp:
+        type: string
+      entryPointConversionExternalMedium:
+        type: string
+      entryPointConversionExternalSource:
+        type: string
+      entryPointConversionSource:
+        type: string
+      externalAdReply:
+        $ref: '#/definitions/github_com_caloi_ventros-crm_infrastructure_channels_waha.WAHAExternalAdReply'
+    type: object
+  github_com_caloi_ventros-crm_infrastructure_channels_waha.WAHAData:
+    properties:
+      Info:
+        $ref: '#/definitions/github_com_caloi_ventros-crm_infrastructure_channels_waha.WAHAInfo'
+      Message:
+        $ref: '#/definitions/github_com_caloi_ventros-crm_infrastructure_channels_waha.WAHAMessage'
+    type: object
+  github_com_caloi_ventros-crm_infrastructure_channels_waha.WAHAEnvironment:
+    properties:
+      browser:
+        type: string
+      engine:
+        type: string
+      tier:
+        type: string
+      version:
+        type: string
+    type: object
+  github_com_caloi_ventros-crm_infrastructure_channels_waha.WAHAExtendedText:
+    properties:
+      contextInfo:
+        $ref: '#/definitions/github_com_caloi_ventros-crm_infrastructure_channels_waha.WAHAContextInfo'
+      text:
+        type: string
+    type: object
+  github_com_caloi_ventros-crm_infrastructure_channels_waha.WAHAExternalAdReply:
+    properties:
+      ctwaClid:
+        description: Click ID do Click-to-WhatsApp Ad
+        type: string
+      sourceApp:
+        type: string
+      sourceID:
+        type: string
+      sourceType:
+        type: string
+      sourceURL:
+        type: string
+    type: object
+  github_com_caloi_ventros-crm_infrastructure_channels_waha.WAHAInfo:
+    properties:
+      Chat:
+        type: string
+      ID:
+        type: string
+      IsFromMe:
+        type: boolean
+      IsGroup:
+        type: boolean
+      MediaType:
+        description: '"image", "video", "audio", etc'
+        type: string
+      PushName:
+        type: string
+      Sender:
+        type: string
+      SenderAlt:
+        description: LID alternativo
+        type: string
+      Type:
+        description: '"text", "media"'
+        type: string
+    type: object
+  github_com_caloi_ventros-crm_infrastructure_channels_waha.WAHAMe:
+    properties:
+      id:
+        type: string
+      jid:
+        type: string
+      lid:
+        type: string
+      pushName:
+        type: string
+    type: object
+  github_com_caloi_ventros-crm_infrastructure_channels_waha.WAHAMedia:
+    properties:
+      mimetype:
+        type: string
+      s3:
+        $ref: '#/definitions/github_com_caloi_ventros-crm_infrastructure_channels_waha.WAHAS3'
+      url:
+        type: string
+    type: object
+  github_com_caloi_ventros-crm_infrastructure_channels_waha.WAHAMediaMessage:
+    properties:
+      URL:
+        type: string
+      caption:
+        type: string
+      mimetype:
+        type: string
+    type: object
+  github_com_caloi_ventros-crm_infrastructure_channels_waha.WAHAMessage:
+    properties:
+      audioMessage:
+        $ref: '#/definitions/github_com_caloi_ventros-crm_infrastructure_channels_waha.WAHAMediaMessage'
+      conversation:
+        description: Diferentes tipos de mensagens
+        type: string
+      documentMessage:
+        $ref: '#/definitions/github_com_caloi_ventros-crm_infrastructure_channels_waha.WAHAMediaMessage'
+      extendedTextMessage:
+        $ref: '#/definitions/github_com_caloi_ventros-crm_infrastructure_channels_waha.WAHAExtendedText'
+      imageMessage:
+        $ref: '#/definitions/github_com_caloi_ventros-crm_infrastructure_channels_waha.WAHAMediaMessage'
+      stickerMessage:
+        $ref: '#/definitions/github_com_caloi_ventros-crm_infrastructure_channels_waha.WAHAMediaMessage'
+      videoMessage:
+        $ref: '#/definitions/github_com_caloi_ventros-crm_infrastructure_channels_waha.WAHAMediaMessage'
+    type: object
+  github_com_caloi_ventros-crm_infrastructure_channels_waha.WAHAMessageEvent:
+    properties:
+      environment:
+        $ref: '#/definitions/github_com_caloi_ventros-crm_infrastructure_channels_waha.WAHAEnvironment'
+      event:
+        description: '"message", "message.any", "message.ack", etc'
+        type: string
+      id:
+        type: string
+      me:
+        $ref: '#/definitions/github_com_caloi_ventros-crm_infrastructure_channels_waha.WAHAMe'
+      metadata:
+        additionalProperties:
+          type: string
+        type: object
+      payload:
+        $ref: '#/definitions/github_com_caloi_ventros-crm_infrastructure_channels_waha.WAHAPayload'
+      session:
+        type: string
+      timestamp:
+        type: integer
+    type: object
+  github_com_caloi_ventros-crm_infrastructure_channels_waha.WAHAPayload:
+    properties:
+      _data:
+        $ref: '#/definitions/github_com_caloi_ventros-crm_infrastructure_channels_waha.WAHAData'
+      body:
+        description: Texto da mensagem
+        type: string
+      from:
+        type: string
+      fromMe:
+        type: boolean
+      hasMedia:
+        type: boolean
+      id:
+        type: string
+      media:
+        $ref: '#/definitions/github_com_caloi_ventros-crm_infrastructure_channels_waha.WAHAMedia'
+      participant:
+        description: Para grupos
+        type: string
+      replyTo:
+        type: string
+      source:
+        description: '"app", "web", etc'
+        type: string
+      timestamp:
+        type: integer
+      to:
+        type: string
+    type: object
+  github_com_caloi_ventros-crm_infrastructure_channels_waha.WAHAS3:
+    properties:
+      Bucket:
+        type: string
+      Key:
+        type: string
+    type: object
+  github_com_caloi_ventros-crm_infrastructure_health.CheckResult:
+    properties:
+      duration_ms:
+        example: 15
+        type: integer
+      message:
+        example: database is operational
+        type: string
+      metadata:
+        additionalProperties: true
+        type: object
+      status:
+        allOf:
+        - $ref: '#/definitions/github_com_caloi_ventros-crm_infrastructure_health.Status'
+        example: healthy
+      timestamp:
+        example: "2024-01-01T00:00:00Z"
+        type: string
+    type: object
+  github_com_caloi_ventros-crm_infrastructure_health.Status:
+    enum:
+    - healthy
+    - degraded
+    - unhealthy
+    type: string
+    x-enum-varnames:
+    - StatusHealthy
+    - StatusDegraded
+    - StatusUnhealthy
+  github_com_caloi_ventros-crm_internal_domain_pipeline.StatusType:
+    enum:
+    - open
+    - active
+    - closed
+    type: string
+    x-enum-comments:
+      StatusTypeActive: Status ativo/em progresso
+      StatusTypeClosed: Status fechado/finalizado
+      StatusTypeOpen: Status inicial/aberto
+    x-enum-descriptions:
+    - Status inicial/aberto
+    - Status ativo/em progresso
+    - Status fechado/finalizado
+    x-enum-varnames:
+    - StatusTypeOpen
+    - StatusTypeActive
+    - StatusTypeClosed
+  infrastructure_http_handlers.ChangeContactStatusRequest:
+    properties:
+      notes:
+        example: Cliente interessado no produto X
+        type: string
+      reason:
+        example: Contato respondeu
+        type: string
+      status_id:
+        type: string
+    required:
+    - status_id
+    type: object
+  infrastructure_http_handlers.CreateAgentRequest:
+    properties:
+      department:
+        example: vendas
+        type: string
+      email:
+        example: joao@empresa.com
+        type: string
+      languages:
+        example:
+        - pt
+        - en
+        items:
+          type: string
+        type: array
+      max_sessions:
+        example: 5
+        type: integer
+      name:
+        example: João Silva
+        type: string
+      phone:
+        example: "+5511999999999"
+        type: string
+      role:
+        example: agent
+        type: string
+      skills:
+        example:
+        - vendas
+        - suporte
+        items:
+          type: string
+        type: array
+      tenant_id:
+        example: tenant_123
+        type: string
+    required:
+    - email
+    - name
+    - tenant_id
+    type: object
+  infrastructure_http_handlers.CreateMessageRequest:
+    properties:
+      channel_type_id:
+        type: string
+      contact_id:
+        type: string
+      content:
+        example: Olá, como posso ajudar?
+        type: string
+      direction:
+        example: inbound
+        type: string
+      external_id:
+        example: msg_123
+        type: string
+      media_type:
+        type: string
+      media_url:
+        type: string
+      message_type:
+        example: text
+        type: string
+      metadata:
+        additionalProperties: true
+        type: object
+      reply_to_id:
+        type: string
+      session_id:
+        type: string
+    required:
+    - channel_type_id
+    - contact_id
+    - content
+    - session_id
+    type: object
+  infrastructure_http_handlers.CreatePipelineRequest:
+    properties:
+      color:
+        example: '#3B82F6'
+        type: string
+      description:
+        example: Pipeline de vendas principal
+        type: string
+      name:
+        example: Vendas
+        type: string
+      position:
+        example: 0
+        type: integer
+    required:
+    - name
+    type: object
+  infrastructure_http_handlers.CreateProjectRequest:
+    properties:
+      description:
+        example: Projeto principal de vendas
+        type: string
+      name:
+        example: Projeto Vendas
+        type: string
+      tenant_id:
+        example: tenant_123
+        type: string
+    required:
+    - name
+    - tenant_id
+    type: object
+  infrastructure_http_handlers.CreateStatusRequest:
+    properties:
+      color:
+        example: '#10B981'
+        type: string
+      description:
+        example: Lead recém chegado
+        type: string
+      name:
+        example: Novo Lead
+        type: string
+      position:
+        example: 0
+        type: integer
+      status_type:
+        allOf:
+        - $ref: '#/definitions/github_com_caloi_ventros-crm_internal_domain_pipeline.StatusType'
+        example: open
+    required:
+    - name
+    - status_type
+    type: object
+  infrastructure_http_handlers.CreateUserRequest:
+    properties:
+      email:
+        example: joao@empresa.com
+        type: string
+      name:
+        example: João Silva
+        type: string
+      password:
+        example: senha123
+        type: string
+      role:
+        example: user
+        type: string
+    required:
+    - email
+    - name
+    - password
+    type: object
+  infrastructure_http_handlers.CreateWebhookRequest:
+    properties:
+      events:
+        example:
+        - message
+        - ack
+        - call.received
+        items:
+          type: string
+        type: array
+      headers:
+        additionalProperties:
+          type: string
+        example:
+          Authorization: Bearer token123
+        type: object
+      name:
+        example: N8N Webhook
+        type: string
+      retry_count:
+        example: 3
+        type: integer
+      secret:
+        example: my-secret-key
+        type: string
+      timeout_seconds:
+        example: 30
+        type: integer
+      url:
+        example: https://n8n.example.com/webhook/waha-events
+        type: string
+    required:
+    - events
+    - name
+    - url
+    type: object
+  infrastructure_http_handlers.GenerateAPIKeyRequest:
+    properties:
+      name:
+        example: Minha API Key
+        type: string
+    type: object
+  infrastructure_http_handlers.HealthResponse:
+    properties:
+      dependencies:
+        additionalProperties:
+          $ref: '#/definitions/github_com_caloi_ventros-crm_infrastructure_health.CheckResult'
+        type: object
+      service:
+        example: ventros-crm
+        type: string
+      status:
+        example: healthy
+        type: string
+      timestamp:
+        example: "2024-01-01T00:00:00Z"
+        type: string
+      version:
+        example: 1.0.0
+        type: string
+    type: object
+  infrastructure_http_handlers.LoginRequest:
+    properties:
+      email:
+        example: joao@empresa.com
+        type: string
+      password:
+        example: senha123
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  infrastructure_http_handlers.UpdateAgentRequest:
+    properties:
+      active:
+        type: boolean
+      department:
+        type: string
+      email:
+        type: string
+      languages:
+        items:
+          type: string
+        type: array
+      max_sessions:
+        type: integer
+      name:
+        type: string
+      phone:
+        type: string
+      role:
+        type: string
+      skills:
+        items:
+          type: string
+        type: array
+    type: object
+  infrastructure_http_handlers.UpdateContactRequest:
+    properties:
+      custom_fields:
+        additionalProperties:
+          type: string
+        type: object
+      email:
+        type: string
+      external_id:
+        type: string
+      language:
+        type: string
+      name:
+        type: string
+      phone:
+        type: string
+      source_channel:
+        type: string
+      tags:
+        items:
+          type: string
+        type: array
+      timezone:
+        type: string
+    type: object
+  infrastructure_http_handlers.UpdateMessageRequest:
+    properties:
+      content:
+        type: string
+      delivered_at:
+        type: string
+      metadata:
+        additionalProperties: true
+        type: object
+      read_at:
+        type: string
+      status:
+        type: string
+    type: object
+  infrastructure_http_handlers.UpdateProjectRequest:
+    properties:
+      active:
+        type: boolean
+      description:
+        type: string
+      name:
+        type: string
+    type: object
+  infrastructure_http_handlers.UpdateWebhookRequest:
+    properties:
+      active:
+        type: boolean
+      events:
+        items:
+          type: string
+        type: array
+      headers:
+        additionalProperties:
+          type: string
+        type: object
+      name:
+        type: string
+      retry_count:
+        type: integer
+      secret:
+        type: string
+      timeout_seconds:
+        type: integer
+      url:
+        type: string
+    type: object
+info:
+  contact:
+    email: support@ventros.com
+    name: API Support
+  description: API para gerenciamento de CRM com eventos e workflows
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+  termsOfService: http://swagger.io/terms/
+  title: Ventros CRM API
+  version: "1.0"
+paths:
+  /api/v1/agents:
+    get:
+      description: Lista todos os agentes com filtros opcionais
+      parameters:
+      - description: Filter by tenant ID
+        in: query
+        name: tenant_id
+        type: string
+      - description: Filter by active status
+        in: query
+        name: active
+        type: boolean
+      - description: Filter by role
+        in: query
+        name: role
+        type: string
+      - description: Filter by department
+        in: query
+        name: department
+        type: string
+      - default: 50
+        description: Limit results
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Offset for pagination
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of agents
+          schema:
+            items:
+              additionalProperties: true
+              type: object
+            type: array
+        "400":
+          description: Invalid parameters
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: List agents
+      tags:
+      - agents
+    post:
+      consumes:
+      - application/json
+      description: Cria um novo agente
+      parameters:
+      - description: Agent data
+        in: body
+        name: agent
+        required: true
+        schema:
+          $ref: '#/definitions/infrastructure_http_handlers.CreateAgentRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Agent created successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Create agent
+      tags:
+      - agents
+  /api/v1/agents/{id}:
+    delete:
+      description: Remove um agente (soft delete)
+      parameters:
+      - description: Agent ID (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Agent deleted successfully
+        "400":
+          description: Invalid agent ID
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Agent not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Delete agent
+      tags:
+      - agents
+    get:
+      description: Obtém detalhes de um agente específico
+      parameters:
+      - description: Agent ID (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Agent details
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid agent ID
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Agent not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get agent by ID
+      tags:
+      - agents
+    put:
+      consumes:
+      - application/json
+      description: Atualiza um agente existente
+      parameters:
+      - description: Agent ID (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Agent update data
+        in: body
+        name: agent
+        required: true
+        schema:
+          $ref: '#/definitions/infrastructure_http_handlers.UpdateAgentRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Agent updated successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Agent not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Update agent
+      tags:
+      - agents
+  /api/v1/agents/{id}/stats:
+    get:
+      description: Obtém estatísticas de um agente
+      parameters:
+      - description: Agent ID (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Agent statistics
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid agent ID
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Agent not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get agent statistics
+      tags:
+      - agents
+  /api/v1/auth/api-key:
+    post:
+      consumes:
+      - application/json
+      description: Gera uma nova API key para o usuário
+      parameters:
+      - description: API key request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/infrastructure_http_handlers.GenerateAPIKeyRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: API key generated
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Not authenticated
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Generate API key
+      tags:
+      - auth
+  /api/v1/auth/info:
+    get:
+      description: Informações sobre autenticação para desenvolvimento
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Auth information
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get auth info
+      tags:
+      - auth
+  /api/v1/auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Autentica um usuário e retorna API key
+      parameters:
+      - description: Login credentials
+        in: body
+        name: credentials
+        required: true
+        schema:
+          $ref: '#/definitions/infrastructure_http_handlers.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Login successful
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid credentials
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Authentication failed
+          schema:
+            additionalProperties: true
+            type: object
+      summary: User login
+      tags:
+      - auth
+  /api/v1/auth/profile:
+    get:
+      description: Obtém o perfil do usuário autenticado
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User profile
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Not authenticated
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Get user profile
+      tags:
+      - auth
+  /api/v1/auth/register:
+    post:
+      consumes:
+      - application/json
+      description: Cria um novo usuário no sistema
+      parameters:
+      - description: User data
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/infrastructure_http_handlers.CreateUserRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: User created successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Create user
+      tags:
+      - auth
+  /api/v1/contacts:
+    get:
+      consumes:
+      - application/json
+      description: Lista todos os contatos com filtros opcionais (apenas do usuário
+        autenticado)
+      parameters:
+      - description: Project ID
+        in: query
+        name: project_id
+        required: true
+        type: string
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 20
+        description: Page size
+        in: query
+        name: page_size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of contacts
+          schema:
+            allOf:
+            - $ref: '#/definitions/List'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/Contact'
+                  type: array
+              type: object
+        "400":
+          description: Invalid parameters
+          schema:
+            $ref: '#/definitions/Error'
+        "401":
+          description: Not authenticated
+          schema:
+            $ref: '#/definitions/Error'
+        "403":
+          description: Project not owned by user
+          schema:
+            $ref: '#/definitions/Error'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/Error'
+      summary: List contacts
+      tags:
+      - contacts
+    post:
+      consumes:
+      - application/json
+      description: Create a new contact in the system
+      parameters:
+      - description: Project ID
+        in: query
+        name: project_id
+        required: true
+        type: string
+      - description: Contact data
+        in: body
+        name: contact
+        required: true
+        schema:
+          $ref: '#/definitions/CreateContactRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Contact created successfully
+          schema:
+            $ref: '#/definitions/Contact'
+        "400":
+          description: Invalid request
+          schema:
+            $ref: '#/definitions/Error'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/Error'
+      summary: Create a new contact
+      tags:
+      - contacts
+  /api/v1/contacts/{id}:
+    delete:
+      description: Remove um contato (soft delete)
+      parameters:
+      - description: Contact ID (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Contact deleted successfully
+        "400":
+          description: Invalid contact ID
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Contact not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Delete contact
+      tags:
+      - contacts
+    get:
+      consumes:
+      - application/json
+      description: Get detailed information about a specific contact
+      parameters:
+      - description: Contact ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Contact details
+          schema:
+            $ref: '#/definitions/Contact'
+        "400":
+          description: Invalid contact ID
+          schema:
+            $ref: '#/definitions/Error'
+        "404":
+          description: Contact not found
+          schema:
+            $ref: '#/definitions/Error'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/Error'
+      summary: Get contact by ID
+      tags:
+      - contacts
+    put:
+      consumes:
+      - application/json
+      description: Atualiza um contato existente
+      parameters:
+      - description: Contact ID (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Contact update data
+        in: body
+        name: contact
+        required: true
+        schema:
+          $ref: '#/definitions/infrastructure_http_handlers.UpdateContactRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Contact updated successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Contact not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Update contact
+      tags:
+      - contacts
+  /api/v1/messages:
+    get:
+      description: Lista mensagens com filtros opcionais
+      parameters:
+      - description: Filter by session ID (UUID)
+        in: query
+        name: session_id
+        type: string
+      - description: Filter by contact ID (UUID)
+        in: query
+        name: contact_id
+        type: string
+      - description: Filter by direction (inbound, outbound)
+        in: query
+        name: direction
+        type: string
+      - description: Filter by message type
+        in: query
+        name: message_type
+        type: string
+      - description: Filter by status
+        in: query
+        name: status
+        type: string
+      - default: 50
+        description: Limit results
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Offset for pagination
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of messages
+          schema:
+            items:
+              additionalProperties: true
+              type: object
+            type: array
+        "400":
+          description: Invalid parameters
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: List messages
+      tags:
+      - messages
+    post:
+      consumes:
+      - application/json
+      description: Cria uma nova mensagem
+      parameters:
+      - description: Message data
+        in: body
+        name: message
+        required: true
+        schema:
+          $ref: '#/definitions/infrastructure_http_handlers.CreateMessageRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Message created successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Create message
+      tags:
+      - messages
+  /api/v1/messages/{id}:
+    delete:
+      description: Remove uma mensagem (soft delete)
+      parameters:
+      - description: Message ID (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Message deleted successfully
+        "400":
+          description: Invalid message ID
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Message not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Delete message
+      tags:
+      - messages
+    get:
+      description: Obtém detalhes de uma mensagem específica
+      parameters:
+      - description: Message ID (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Message details
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid message ID
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Message not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get message by ID
+      tags:
+      - messages
+    put:
+      consumes:
+      - application/json
+      description: Atualiza uma mensagem existente
+      parameters:
+      - description: Message ID (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Message update data
+        in: body
+        name: message
+        required: true
+        schema:
+          $ref: '#/definitions/infrastructure_http_handlers.UpdateMessageRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Message updated successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Message not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Update message
+      tags:
+      - messages
+  /api/v1/pipelines:
+    get:
+      description: Lista todos os pipelines de um projeto (apenas do usuário autenticado)
+      parameters:
+      - description: Project ID (UUID)
+        in: query
+        name: project_id
+        required: true
+        type: string
+      - description: Filter by active status
+        in: query
+        name: active
+        type: boolean
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of pipelines
+          schema:
+            items:
+              additionalProperties: true
+              type: object
+            type: array
+        "400":
+          description: Invalid parameters
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Not authenticated
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Project not owned by user
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: List pipelines
+      tags:
+      - pipelines
+    post:
+      consumes:
+      - application/json
+      description: Cria um novo pipeline
+      parameters:
+      - description: Project ID (UUID)
+        in: query
+        name: project_id
+        required: true
+        type: string
+      - description: Pipeline data
+        in: body
+        name: pipeline
+        required: true
+        schema:
+          $ref: '#/definitions/infrastructure_http_handlers.CreatePipelineRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Pipeline created successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Create pipeline
+      tags:
+      - pipelines
+  /api/v1/pipelines/{id}:
+    get:
+      description: Obtém detalhes de um pipeline específico com seus status
+      parameters:
+      - description: Pipeline ID (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Pipeline details with statuses
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid pipeline ID
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Pipeline not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get pipeline by ID
+      tags:
+      - pipelines
+  /api/v1/pipelines/{id}/statuses:
+    post:
+      consumes:
+      - application/json
+      description: Cria um novo status em um pipeline
+      parameters:
+      - description: Pipeline ID (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Status data
+        in: body
+        name: status
+        required: true
+        schema:
+          $ref: '#/definitions/infrastructure_http_handlers.CreateStatusRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Status created successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Pipeline not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Create status
+      tags:
+      - pipelines
+  /api/v1/pipelines/{pipeline_id}/contacts/{contact_id}/status:
+    get:
+      description: Obtém o status atual de um contato em um pipeline
+      parameters:
+      - description: Pipeline ID (UUID)
+        in: path
+        name: pipeline_id
+        required: true
+        type: string
+      - description: Contact ID (UUID)
+        in: path
+        name: contact_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Contact status
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid parameters
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Status not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get contact status
+      tags:
+      - pipelines
+    put:
+      consumes:
+      - application/json
+      description: Altera o status de um contato em um pipeline
+      parameters:
+      - description: Pipeline ID (UUID)
+        in: path
+        name: pipeline_id
+        required: true
+        type: string
+      - description: Contact ID (UUID)
+        in: path
+        name: contact_id
+        required: true
+        type: string
+      - description: Status change data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/infrastructure_http_handlers.ChangeContactStatusRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Status changed successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Pipeline or contact not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Change contact status
+      tags:
+      - pipelines
+  /api/v1/projects:
+    get:
+      description: Lista todos os projetos do usuário autenticado
+      parameters:
+      - description: Filter by tenant ID
+        in: query
+        name: tenant_id
+        type: string
+      - description: Filter by active status
+        in: query
+        name: active
+        type: boolean
+      - default: 50
+        description: Limit results
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Offset for pagination
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of projects
+          schema:
+            items:
+              additionalProperties: true
+              type: object
+            type: array
+        "400":
+          description: Invalid parameters
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Not authenticated
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: List projects
+      tags:
+      - projects
+    post:
+      consumes:
+      - application/json
+      description: Cria um novo projeto
+      parameters:
+      - description: Project data
+        in: body
+        name: project
+        required: true
+        schema:
+          $ref: '#/definitions/infrastructure_http_handlers.CreateProjectRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Project created successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Create project
+      tags:
+      - projects
+  /api/v1/projects/{id}:
+    delete:
+      description: Remove um projeto (soft delete)
+      parameters:
+      - description: Project ID (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Project deleted successfully
+        "400":
+          description: Invalid project ID
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Project not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Delete project
+      tags:
+      - projects
+    get:
+      description: Obtém detalhes de um projeto específico
+      parameters:
+      - description: Project ID (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Project details
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid project ID
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Project not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get project by ID
+      tags:
+      - projects
+    put:
+      consumes:
+      - application/json
+      description: Atualiza um projeto existente
+      parameters:
+      - description: Project ID (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Project update data
+        in: body
+        name: project
+        required: true
+        schema:
+          $ref: '#/definitions/infrastructure_http_handlers.UpdateProjectRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Project updated successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Project not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Update project
+      tags:
+      - projects
+  /api/v1/queues:
+    get:
+      description: Lista todas as filas do RabbitMQ com número de mensagens e consumers
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Queue statistics
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: List RabbitMQ queues
+      tags:
+      - queues
+  /api/v1/sessions:
+    get:
+      description: Lista todas as sessões com filtros opcionais
+      parameters:
+      - description: Filter by tenant ID
+        in: query
+        name: tenant_id
+        type: string
+      - description: Filter by contact ID (UUID)
+        in: query
+        name: contact_id
+        type: string
+      - description: Filter by status (active, ended)
+        in: query
+        name: status
+        type: string
+      - default: 50
+        description: Limit results
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Offset for pagination
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of sessions
+          schema:
+            items:
+              additionalProperties: true
+              type: object
+            type: array
+        "400":
+          description: Invalid parameters
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: List sessions
+      tags:
+      - sessions
+  /api/v1/sessions/{id}:
+    get:
+      description: Obtém detalhes de uma sessão específica
+      parameters:
+      - description: Session ID (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Session details
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid session ID
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Session not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get session by ID
+      tags:
+      - sessions
+  /api/v1/sessions/{session_id}/messages:
+    get:
+      description: Obtém todas as mensagens de uma sessão específica
+      parameters:
+      - description: Session ID (UUID)
+        in: path
+        name: session_id
+        required: true
+        type: string
+      - default: 100
+        description: Limit results
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Offset for pagination
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of messages
+          schema:
+            items:
+              additionalProperties: true
+              type: object
+            type: array
+        "400":
+          description: Invalid session ID
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get messages by session
+      tags:
+      - messages
+  /api/v1/sessions/stats:
+    get:
+      description: Obtém estatísticas das sessões por tenant
+      parameters:
+      - description: Tenant ID
+        in: query
+        name: tenant_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Session statistics
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Missing tenant ID
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get session statistics
+      tags:
+      - sessions
+  /api/v1/webhook-subscriptions:
+    get:
+      description: Lista todas as inscrições de webhooks
+      parameters:
+      - description: Filter by active status
+        in: query
+        name: active
+        type: boolean
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of webhooks
+          schema:
+            items:
+              additionalProperties: true
+              type: object
+            type: array
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: List webhook subscriptions
+      tags:
+      - webhooks
+    post:
+      consumes:
+      - application/json
+      description: Cria uma nova inscrição de webhook para receber eventos do WAHA
+      parameters:
+      - description: Webhook subscription data
+        in: body
+        name: webhook
+        required: true
+        schema:
+          $ref: '#/definitions/infrastructure_http_handlers.CreateWebhookRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Webhook created successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Create webhook subscription
+      tags:
+      - webhooks
+  /api/v1/webhook-subscriptions/{id}:
+    delete:
+      description: Remove uma inscrição de webhook
+      parameters:
+      - description: Webhook ID (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Webhook deleted successfully
+        "404":
+          description: Webhook not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Delete webhook subscription
+      tags:
+      - webhooks
+    get:
+      description: Obtém detalhes de uma inscrição de webhook
+      parameters:
+      - description: Webhook ID (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Webhook details
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Webhook not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get webhook subscription
+      tags:
+      - webhooks
+    put:
+      consumes:
+      - application/json
+      description: Atualiza uma inscrição de webhook
+      parameters:
+      - description: Webhook ID (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Webhook update data
+        in: body
+        name: webhook
+        required: true
+        schema:
+          $ref: '#/definitions/infrastructure_http_handlers.UpdateWebhookRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Webhook updated successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Webhook not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Update webhook subscription
+      tags:
+      - webhooks
+  /api/v1/webhook-subscriptions/available-events:
+    get:
+      description: Lista todos os eventos WAHA disponíveis para inscrição
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Available events
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get available WAHA events
+      tags:
+      - webhooks
+  /health:
+    get:
+      consumes:
+      - application/json
+      description: Check if the API is running (basic liveness check)
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/infrastructure_http_handlers.HealthResponse'
+      summary: Health check
+      tags:
+      - health
+  /health/database:
+    get:
+      consumes:
+      - application/json
+      description: Check database connectivity and connection pool status
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_caloi_ventros-crm_infrastructure_health.CheckResult'
+        "503":
+          description: Service Unavailable
+          schema:
+            $ref: '#/definitions/github_com_caloi_ventros-crm_infrastructure_health.CheckResult'
+      summary: Database health check
+      tags:
+      - health
+  /health/migrations:
+    get:
+      consumes:
+      - application/json
+      description: Check database migration status
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_caloi_ventros-crm_infrastructure_health.CheckResult'
+        "503":
+          description: Service Unavailable
+          schema:
+            $ref: '#/definitions/github_com_caloi_ventros-crm_infrastructure_health.CheckResult'
+      summary: Database migrations health check
+      tags:
+      - health
+  /health/rabbitmq:
+    get:
+      consumes:
+      - application/json
+      description: Check RabbitMQ connectivity
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_caloi_ventros-crm_infrastructure_health.CheckResult'
+        "503":
+          description: Service Unavailable
+          schema:
+            $ref: '#/definitions/github_com_caloi_ventros-crm_infrastructure_health.CheckResult'
+      summary: RabbitMQ health check
+      tags:
+      - health
+  /health/redis:
+    get:
+      consumes:
+      - application/json
+      description: Check Redis connectivity and status
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_caloi_ventros-crm_infrastructure_health.CheckResult'
+        "503":
+          description: Service Unavailable
+          schema:
+            $ref: '#/definitions/github_com_caloi_ventros-crm_infrastructure_health.CheckResult'
+      summary: Redis health check
+      tags:
+      - health
+  /health/temporal:
+    get:
+      consumes:
+      - application/json
+      description: Check Temporal workflow engine connectivity
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_caloi_ventros-crm_infrastructure_health.CheckResult'
+        "503":
+          description: Service Unavailable
+          schema:
+            $ref: '#/definitions/github_com_caloi_ventros-crm_infrastructure_health.CheckResult'
+      summary: Temporal health check
+      tags:
+      - health
+  /live:
+    get:
+      consumes:
+      - application/json
+      description: Check if the API is alive (always returns 200 if service is running)
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/infrastructure_http_handlers.HealthResponse'
+      summary: Liveness check
+      tags:
+      - health
+  /ready:
+    get:
+      consumes:
+      - application/json
+      description: Check if the API is ready to serve requests (includes all dependency
+        checks)
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/infrastructure_http_handlers.HealthResponse'
+        "503":
+          description: Service Unavailable
+          schema:
+            $ref: '#/definitions/infrastructure_http_handlers.HealthResponse'
+      summary: Readiness check
+      tags:
+      - health
+  /test/cleanup:
+    post:
+      description: Remove todos os dados de teste criados
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Cleanup test environment
+      tags:
+      - test
+  /test/send-waha-message:
+    post:
+      description: Envia mensagem WAHA automaticamente para o webhook interno
+      parameters:
+      - description: 'Message type: fb_ads, text, image (default: fb_ads)'
+        in: query
+        name: type
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Send WAHA message automatically
+      tags:
+      - test
+  /test/setup:
+    post:
+      description: Limpa e cria project, pipeline, channel types e webhook para testes
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Setup test environment
+      tags:
+      - test
+  /test/waha-message:
+    post:
+      description: Envia mensagem WAHA de teste com dados de tracking do Facebook/Instagram
+      parameters:
+      - description: 'Message type: fb_ads, text, image (default: fb_ads)'
+        in: query
+        name: type
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Test WAHA message with tracking
+      tags:
+      - test
+  /webhooks/waha/events:
+    post:
+      consumes:
+      - application/json
+      description: Endpoint único para todos os eventos WAHA (message, ack, session,
+        etc)
+      parameters:
+      - description: WAHA Event
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_caloi_ventros-crm_infrastructure_channels_waha.WAHAMessageEvent'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Event queued successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid payload
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Receive WAHA webhook
+      tags:
+      - webhooks
+  /webhooks/waha/health:
+    get:
+      description: Verifica se o endpoint de webhook está funcionando
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Webhook health check
+      tags:
+      - webhooks
+  /webhooks/waha/status:
+    post:
+      consumes:
+      - application/json
+      description: Endpoint para receber confirmações de entrega da WAHA
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Receive WAHA message status
+      tags:
+      - webhooks
+schemes:
+- http
+- https
+swagger: "2.0"
