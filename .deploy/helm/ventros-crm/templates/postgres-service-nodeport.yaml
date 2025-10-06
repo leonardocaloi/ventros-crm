@@ -1,4 +1,4 @@
-{{- if and .Values.postgresOperator.enabled .Values.postgresOperator.nodePort.enabled -}}
+{{- if and .Values.postgresOperator.enabled (hasKey .Values.postgresOperator "nodePort") .Values.postgresOperator.nodePort.enabled -}}
 apiVersion: v1
 kind: Service
 metadata:

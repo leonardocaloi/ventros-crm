@@ -28,7 +28,7 @@ dependencies:
   - name: postgres-operator
     version: "1.14.0"
     repository: https://opensource.zalando.com/postgres-operator/charts/postgres-operator
-    condition: postgresOperator.enabled
+    condition: postgresOperator.installOperator
     tags:
       - operators
       - database

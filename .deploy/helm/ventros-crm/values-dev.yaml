@@ -26,7 +26,7 @@ revisionHistoryLimit: 3
 image:
   repository: ventros-crm
   pullPolicy: Never  # Use local images in Minikube (never pull from registry)
-  tag: "v2"  # Latest: No entrypoint, direct CMD
+  tag: "0.1.0"  # Matches release version
 
 imagePullSecrets: []
 
@@ -126,6 +126,7 @@ env:
 # PostgreSQL Operator (Zalando) - instalado como dependência
 postgresOperator:
   enabled: true
+  installOperator: true  # Instala o operator (dev local)
   createCluster: true
   # Desabilita CRDs do subchart (usamos nossos CRDs customizados)
   crd:
@@ -185,6 +186,7 @@ redis:
 # ✅ HABILITADO - Message broker para eventos WAHA
 rabbitmqOperator:
   enabled: true
+  installOperator: false  # Operator instalado manualmente (não via Helm)
   createCluster: true
   # Imagem oficial do RabbitMQ Cluster Operator
   image: "rabbitmqoperator/cluster-operator:2.11.0"

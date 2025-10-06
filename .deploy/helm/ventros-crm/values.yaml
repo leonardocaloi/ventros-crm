@@ -42,7 +42,7 @@ image:
   # -- Image pull policy (Always, Never, IfNotPresent)
   pullPolicy: Always
   # -- Overrides the image tag whose default is the chart appVersion
-  tag: "dev-v8"
+  tag: "0.1.0"
 
 imagePullSecrets: []
 nameOverride: ""
@@ -239,17 +239,22 @@ startupProbe:
 
 # PostgreSQL Configuration
 # Opção 1: Usar Zalando Postgres Operator (instala operador + cluster)
-# Opção 2: Usar PostgreSQL externo (configure externalPostgresql)
+# Opção 2: Usar operator já instalado no cluster (installOperator=false, createCluster=true)
+# Opção 3: Usar PostgreSQL externo (configure externalPostgresql)
 
 postgresOperator:
-  # Se enabled=true, instala o operador Zalando e cria cluster PostgreSQL
+  # Se enabled=true, usa o Postgres Operator (instala ou usa existente)
   enabled: true
+  
+  # -- Se false, assume que o operator já está instalado no cluster (cluster-wide)
+  # -- Se true, instala o operator via subchart
+  installOperator: true
   
   # Desabilita CRDs do subchart (usamos nossos CRDs customizados no diretório crds/)
   crd:
     create: false
   
-  # Criar cluster PostgreSQL automaticamente
+  # Criar cluster PostgreSQL automaticamente (mesmo se operator já existir)
   createCluster: true
   
   cluster:
@@ -311,6 +316,7 @@ redis:
     persistence:
       enabled: true
       size: 8Gi
+      storageClass: ""  # deixe vazio para usar default
     resources:
       requests:
         cpu: 100m
@@ -324,6 +330,7 @@ redis:
     persistence:
       enabled: true
       size: 8Gi
+      storageClass: ""  # deixe vazio para usar default
     resources:
       requests:
         cpu: 100m
@@ -346,11 +353,17 @@ externalRedis:
 # ============================================================================
 
 # Opção 1: Usar RabbitMQ Cluster Operator (RECOMENDADO PARA PRODUÇÃO)
+# Opção 1a: Instalar operator + cluster (installOperator=true, createCluster=true)
+# Opção 1b: Usar operator já instalado (installOperator=false, createCluster=true)
 rabbitmqOperator:
-  # Se enabled=true, instala o operador e cria cluster RabbitMQ
+  # Se enabled=true, usa o RabbitMQ Cluster Operator (instala ou usa existente)
   enabled: false
   
-  # Criar cluster RabbitMQ automaticamente
+  # -- Se false, assume que o operator já está instalado no cluster (cluster-wide)
+  # -- Se true, instala o operator (não implementado ainda - use installação manual)
+  installOperator: false
+  
+  # Criar cluster RabbitMQ automaticamente (mesmo se operator já existir)
   createCluster: true
   
   cluster:
@@ -416,6 +429,7 @@ rabbitmq:
   persistence:
     enabled: true
     size: 10Gi
+    storageClass: ""  # deixe vazio para usar default
   
   resources:
     requests:
@@ -742,6 +756,56 @@ serviceMonitor:
   scrapeTimeout: 10s
   labels: {}
   annotations: {}
+
+# ============================================================================
+# Infrastructure Ingress (RabbitMQ, Temporal, PostgreSQL)
+# ============================================================================
+
+infrastructure:
+  ingress:
+    enabled: false  # Set to true to enable Ingress for infrastructure services
+    className: nginx  # Ingress class (nginx, traefik, etc.)
+    namespace: ""  # Leave empty to use same namespace as release
+    
+    # PostgreSQL Ingress (requires TCP ConfigMap for nginx-ingress)
+    postgresql:
+      enabled: false
+      # Note: PostgreSQL requires TCP stream, configure nginx-ingress tcp-services ConfigMap
+    
+    # RabbitMQ Management UI Ingress
+    rabbitmq:
+      enabled: false
+      host: ""  # e.g., rabbitmq.example.com
+      path: /
+      pathType: Prefix
+      tls: false
+      tlsSecret: ""  # e.g., rabbitmq-tls
+      annotations: {}
+        # cert-manager.io/cluster-issuer: letsencrypt-prod
+        # nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    
+    # Temporal Web UI Ingress
+    temporal:
+      enabled: false
+      host: ""  # e.g., temporal.example.com
+      path: /
+      pathType: Prefix
+      tls: false
+      tlsSecret: ""  # e.g., temporal-tls
+      annotations: {}
+        # cert-manager.io/cluster-issuer: letsencrypt-prod
+    
+    # Ventros CRM API Ingress (additional to main ingress)
+    api:
+      enabled: false
+      host: ""  # e.g., api.example.com
+      path: /
+      pathType: Prefix
+      tls: false
+      tlsSecret: ""  # e.g., api-tls
+      annotations: {}
+        # cert-manager.io/cluster-issuer: letsencrypt-prod
+        # nginx.ingress.kubernetes.io/rate-limit: "100"
 
 # ============================================================================
 # Network Policy

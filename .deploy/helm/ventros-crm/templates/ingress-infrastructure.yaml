@@ -1,4 +1,4 @@
-{{- if .Values.infrastructure.ingress.enabled -}}
+{{- if and (hasKey .Values "infrastructure") (hasKey .Values.infrastructure "ingress") .Values.infrastructure.ingress.enabled -}}
 ---
 # PostgreSQL Ingress (TCP - requer nginx-ingress com tcp-services ConfigMap)
 {{- if and .Values.postgresOperator.enabled .Values.infrastructure.ingress.postgresql.enabled }}
