@@ -37,9 +37,11 @@ jobs:
       - name: Build Helm dependencies
         run: |
           cd .deploy/helm/ventros-crm
-          helm dependency build
+          helm dependency update
           echo "✅ Dependencies downloaded:"
           ls -la charts/
+          echo "✅ Chart.lock created:"
+          cat Chart.lock
           cd ../../..
 
       - name: Check for chart changes
