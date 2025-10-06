@@ -117,9 +117,10 @@ docker-compose.override.yml
 .kube/
 
 # Helm
-*.tgz
-charts/
-Chart.lock
+# Note: Chart.lock and charts/ are needed for CI/CD packaging
+# *.tgz files in chart directories are also needed
+# Only ignore packaged charts at root level
+/*.tgz
 
 # ====================
 # Database
