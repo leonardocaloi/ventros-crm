@@ -2,8 +2,8 @@ apiVersion: v2
 name: ventros-crm
 description: Ventros CRM - Sistema de Gestão de Relacionamento com Cliente com WhatsApp Integration
 type: application
-version: 0.1.1
-appVersion: "0.1.1"
+version: 0.1.0
+appVersion: "0.1.0"
 
 keywords:
   - crm
