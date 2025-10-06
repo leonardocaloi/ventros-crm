@@ -66,3 +66,4 @@ dependencies:
     tags:
       - workflow
     # Temporal precisa aguardar PostgreSQL estar pronto
+
