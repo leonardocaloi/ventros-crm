@@ -1,0 +1,137 @@
+# Compose file for Ventros CRM - API Local Development
+# Sobe infraestrutura + API Go rodando no host (não containerizada)
+# 
+# A API roda diretamente no host para:
+#   - Hot reload com air/nodemon
+#   - Debug fácil com delve
+#   - Desenvolvimento rápido
+#
+# Usage:
+#   make dev                                                    (recomendado)
+#   docker compose -f .deploy/container/compose.api.yaml up -d        (manual)
+
+services:
+  # ============================================
+  # INFRAESTRUTURA (PostgreSQL, RabbitMQ, Redis, Temporal)
+  # ============================================
+  
+  postgres:
+    image: ${POSTGRES_IMAGE}
+    container_name: ${POSTGRES_CONTAINER_NAME}
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - "${POSTGRES_PORT_HOST}:${POSTGRES_PORT_CONTAINER}"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ventros"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - ventros-network
+
+  rabbitmq:
+    image: ${RABBITMQ_IMAGE}
+    container_name: ${RABBITMQ_CONTAINER_NAME}
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS}
+    ports:
+      - "${RABBITMQ_PORT_HOST}:${RABBITMQ_PORT_CONTAINER}"
+      - "${RABBITMQ_MANAGEMENT_PORT_HOST}:${RABBITMQ_MANAGEMENT_PORT_CONTAINER}"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - ventros-network
+
+  redis:
+    image: ${REDIS_IMAGE}
+    container_name: ${REDIS_CONTAINER_NAME}
+    ports:
+      - "${REDIS_PORT_HOST}:${REDIS_PORT_CONTAINER}"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - ventros-network
+
+  temporal:
+    image: ${TEMPORAL_IMAGE}
+    container_name: ${TEMPORAL_CONTAINER_NAME}
+    environment:
+      - DB=${DB}
+      - DB_PORT=${DB_PORT}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PWD=${POSTGRES_PASSWORD}
+      - POSTGRES_SEEDS=${POSTGRES_SEEDS}
+    ports:
+      - "${TEMPORAL_PORT_HOST}:${TEMPORAL_PORT_CONTAINER}"
+    volumes:
+      - temporal_data:/etc/temporal
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "tctl", "--address", "temporal:7233", "cluster", "health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - ventros-network
+
+  temporal-ui:
+    image: ${TEMPORAL_UI_IMAGE}
+    container_name: ${TEMPORAL_UI_CONTAINER_NAME}
+    environment:
+      - TEMPORAL_ADDRESS=${TEMPORAL_ADDRESS}
+      - TEMPORAL_CORS_ORIGINS=${TEMPORAL_CORS_ORIGINS}
+    ports:
+      - "${TEMPORAL_UI_PORT_HOST}:${TEMPORAL_UI_PORT_CONTAINER}"
+    depends_on:
+      - temporal
+    networks:
+      - ventros-network
+
+  # ============================================
+  # API (rodando no HOST via Makefile)
+  # ============================================
+  # A API NÃO é containerizada aqui!
+  # Use: make api (em outro terminal)
+  # 
+  # Isso permite:
+  #   - Hot reload instantâneo
+  #   - Debug com breakpoints
+  #   - Logs diretos no terminal
+  #
+  # A API conecta na infra via localhost:
+  #   - PostgreSQL: localhost:5432
+  #   - RabbitMQ:   localhost:5672
+  #   - Redis:      localhost:6379
+  #   - Temporal:   localhost:7233
+
+volumes:
+  postgres_data:
+    driver: local
+  rabbitmq_data:
+    driver: local
+  redis_data:
+    driver: local
+  temporal_data:
+    driver: local
+
+networks:
+  ventros-network:
+    driver: bridge

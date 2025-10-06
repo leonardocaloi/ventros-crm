@@ -1,0 +1,152 @@
+name: Release Charts
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure Git
+        run: |
+          git config user.name "$GITHUB_ACTOR"
+          git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.14.0
+
+      - name: Add Helm repositories
+        run: |
+          helm repo add postgres-operator https://opensource.zalando.com/postgres-operator/charts/postgres-operator
+          helm repo add bitnami https://charts.bitnami.com/bitnami
+          helm repo add temporal https://go.temporal.io/helm-charts
+          helm repo update
+
+      - name: Build Helm dependencies
+        run: |
+          cd .deploy/helm/ventros-crm
+          helm dependency update
+          echo "✅ Dependencies downloaded:"
+          ls -la charts/
+          echo "✅ Chart.lock created:"
+          cat Chart.lock
+          cd ../../..
+
+      - name: Check for chart changes
+        id: check_changes
+        run: |
+          cd .deploy/helm/ventros-crm
+          CHART_VERSION=$(grep '^version:' Chart.yaml | awk '{print $2}')
+          echo "chart_version=$CHART_VERSION" >> $GITHUB_OUTPUT
+          
+          # Check if this version already exists as a release
+          if gh release view "v$CHART_VERSION" >/dev/null 2>&1; then
+            echo "version_exists=true" >> $GITHUB_OUTPUT
+            echo "⚠️  Release v$CHART_VERSION already exists"
+          else
+            echo "version_exists=false" >> $GITHUB_OUTPUT
+            echo "✅ New version: v$CHART_VERSION"
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Package Helm chart
+        if: steps.check_changes.outputs.version_exists == 'false'
+        run: |
+          cd .deploy/helm/ventros-crm
+          # Verificar se dependências existem
+          if [ -d "charts" ]; then
+            echo "✅ Dependencies found:"
+            ls -la charts/
+          fi
+          # Empacotar chart diretamente do diretório
+          cd ..
+          helm package ventros-crm
+          echo "✅ Chart packaged:"
+          ls -la ventros-crm-*.tgz
+
+      - name: Create GitHub Release
+        if: steps.check_changes.outputs.version_exists == 'false'
+        run: |
+          CHART_VERSION="${{ steps.check_changes.outputs.chart_version }}"
+          CHART_FILE=".deploy/helm/ventros-crm-${CHART_VERSION}.tgz"
+          
+          gh release create "v${CHART_VERSION}" \
+            "$CHART_FILE" \
+            --title "ventros-crm-${CHART_VERSION}" \
+            --notes "Release of ventros-crm chart version ${CHART_VERSION}"
+          
+          echo "✅ Release v${CHART_VERSION} created"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update Helm repository index
+        if: steps.check_changes.outputs.version_exists == 'false'
+        run: |
+          # Checkout gh-pages branch
+          git fetch origin gh-pages || git checkout --orphan gh-pages
+          git checkout gh-pages || git checkout --orphan gh-pages
+          
+          # Download all release assets
+          mkdir -p charts
+          gh release list --limit 100 | while read -r line; do
+            tag=$(echo "$line" | awk '{print $1}')
+            echo "Processing release: $tag"
+            gh release download "$tag" -D charts/ --skip-existing 2>/dev/null || true
+          done
+          
+          # Generate index
+          helm repo index charts/ --url https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/charts/
+          
+          # Create index.html
+          cat > charts/index.html << 'EOF'
+          <!DOCTYPE html>
+          <html>
+          <head>
+              <title>Ventros CRM Helm Charts</title>
+              <meta charset="utf-8">
+              <style>
+                  body { font-family: Arial, sans-serif; max-width: 800px; margin: 50px auto; padding: 20px; }
+                  h1 { color: #333; }
+                  pre { background: #f4f4f4; padding: 15px; border-radius: 5px; overflow-x: auto; }
+              </style>
+          </head>
+          <body>
+              <h1>🚀 Ventros CRM Helm Charts</h1>
+              <p>Official Helm repository for Ventros CRM</p>
+              <h2>📦 Quick Start</h2>
+              <pre>
+          helm repo add ventros https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/charts/
+          helm repo update
+          helm install ventros-crm ventros/ventros-crm --namespace ventros-crm --create-namespace
+              </pre>
+              <h2>🔗 Links</h2>
+              <ul>
+                  <li><a href="https://github.com/${{ github.repository }}">GitHub Repository</a></li>
+                  <li><a href="https://github.com/${{ github.repository }}/releases">Releases</a></li>
+                  <li><a href="index.yaml">Repository Index</a></li>
+              </ul>
+          </body>
+          </html>
+          EOF
+          
+          # Commit and push
+          git add charts/
+          git commit -m "Release ventros-crm-${{ steps.check_changes.outputs.chart_version }}"
+          git push origin gh-pages --force
+          
+          echo "✅ Helm repository updated"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

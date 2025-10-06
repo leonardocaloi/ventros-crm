@@ -1,0 +1,22 @@
+{{- if and .Values.temporal.enabled (hasKey .Values.temporal "nodePort") .Values.temporal.nodePort.enabled -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "ventros-crm.fullname" . }}-temporal-web-nodeport
+  labels:
+    {{- include "ventros-crm.labels" . | nindent 4 }}
+    app.kubernetes.io/component: workflow
+spec:
+  type: NodePort
+  ports:
+    - port: 8080
+      targetPort: 8080
+      protocol: TCP
+      name: http
+      {{- if .Values.temporal.nodePort.port }}
+      nodePort: {{ .Values.temporal.nodePort.port }}
+      {{- end }}
+  selector:
+    app.kubernetes.io/name: {{ .Release.Name }}-temporal-web
+    app.kubernetes.io/instance: {{ .Release.Name }}
+{{- end }}

@@ -1,0 +1,54 @@
+{{- if .Values.configMap.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "ventros-crm.configMapName" . }}
+  labels:
+    {{- include "ventros-crm.labels" . | nindent 4 }}
+data:
+  # Server Configuration
+  PORT: {{ .Values.env.PORT | quote }}
+  ENV: {{ .Values.env.ENV | quote }}
+  LOG_LEVEL: {{ .Values.env.LOG_LEVEL | quote }}
+  
+  # PostgreSQL Configuration
+  DB_HOST: {{ include "ventros-crm.postgresql.host" . | quote }}
+  DB_PORT: {{ include "ventros-crm.postgresql.port" . | quote }}
+  DB_NAME: {{ include "ventros-crm.postgresql.database" . | quote }}
+  DB_USER: {{ include "ventros-crm.postgresql.username" . | quote }}
+  DB_SSLMODE: {{ include "ventros-crm.postgresql.sslMode" . | quote }}
+  DB_MAX_OPEN_CONNS: {{ .Values.env.DB_MAX_OPEN_CONNS | quote }}
+  DB_MAX_IDLE_CONNS: {{ .Values.env.DB_MAX_IDLE_CONNS | quote }}
+  DB_CONN_MAX_LIFETIME: {{ .Values.env.DB_CONN_MAX_LIFETIME | quote }}
+  
+  # Redis Configuration
+  REDIS_HOST: {{ include "ventros-crm.redis.host" . | quote }}
+  REDIS_PORT: {{ include "ventros-crm.redis.port" . | quote }}
+  REDIS_DB: {{ include "ventros-crm.redis.database" . | quote }}
+  REDIS_POOL_SIZE: {{ .Values.env.REDIS_POOL_SIZE | quote }}
+  REDIS_MIN_IDLE_CONNS: {{ .Values.env.REDIS_MIN_IDLE_CONNS | quote }}
+  
+  # RabbitMQ Configuration
+  RABBITMQ_HOST: {{ include "ventros-crm.rabbitmq.host" . | quote }}
+  RABBITMQ_PORT: {{ include "ventros-crm.rabbitmq.port" . | quote }}
+  RABBITMQ_USER: {{ include "ventros-crm.rabbitmq.username" . | quote }}
+  RABBITMQ_PREFETCH_COUNT: {{ .Values.env.RABBITMQ_PREFETCH_COUNT | quote }}
+  RABBITMQ_RECONNECT_DELAY: {{ .Values.env.RABBITMQ_RECONNECT_DELAY | quote }}
+  
+  # Temporal Configuration
+  TEMPORAL_HOST: {{ include "ventros-crm.temporal.hostPort" . | quote }}
+  TEMPORAL_NAMESPACE: "ventros-crm"
+  TEMPORAL_TASK_QUEUE: {{ .Values.env.TEMPORAL_TASK_QUEUE | quote }}
+  
+  # WAHA Configuration
+  WAHA_BASE_URL: {{ .Values.env.WAHA_BASE_URL | quote }}
+  WAHA_TIMEOUT: {{ .Values.env.WAHA_TIMEOUT | quote }}
+  
+  {{- if .Values.configMap.data }}
+  # Additional custom configuration files
+  {{- range $key, $value := .Values.configMap.data }}
+  {{ $key }}: |
+    {{- $value | nindent 4 }}
+  {{- end }}
+  {{- end }}
+{{- end }}

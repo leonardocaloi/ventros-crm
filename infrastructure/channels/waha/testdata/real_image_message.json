@@ -1,0 +1,73 @@
+{
+  "id": "evt_01k68v8fnape65p4h8jk1jgh16",
+  "timestamp": 1759086132906,
+  "event": "message",
+  "session": "ask-dermato-imersao",
+  "metadata": {
+    "number": "imersao",
+    "customer": "ASK Dermatologia"
+  },
+  "me": {
+    "id": "554488332934@c.us",
+    "pushName": "Imersão Gabriela Aseka",
+    "lid": "50006975324345@lid",
+    "jid": "554488332934:3@s.whatsapp.net"
+  },
+  "payload": {
+    "id": "false_status@broadcast_AC94411C453CBE7D20F5EC3EB01DF066_554499223925@c.us",
+    "timestamp": 1759086131,
+    "from": "554499223925@c.us",
+    "fromMe": false,
+    "source": "app",
+    "to": "554488332934@c.us",
+    "participant": "554499223925@c.us",
+    "hasMedia": true,
+    "media": {
+      "url": "https://storage.googleapis.com/waha-ventros/ask-dermato-imersao/AC94411C453CBE7D20F5EC3EB01DF066.jpeg",
+      "mimetype": "image/jpeg",
+      "s3": {
+        "Bucket": "waha-ventros",
+        "Key": "ask-dermato-imersao/AC94411C453CBE7D20F5EC3EB01DF066.jpeg"
+      }
+    },
+    "ack": 2,
+    "ackName": "DEVICE",
+    "replyTo": null,
+    "_data": {
+      "Info": {
+        "Chat": "status@broadcast",
+        "Sender": "554499223925@s.whatsapp.net",
+        "IsFromMe": false,
+        "IsGroup": true,
+        "AddressingMode": "",
+        "SenderAlt": "150160680169627@lid",
+        "RecipientAlt": "",
+        "BroadcastListOwner": "",
+        "ID": "AC94411C453CBE7D20F5EC3EB01DF066",
+        "ServerID": 0,
+        "Type": "media",
+        "PushName": "Aline Fatobene",
+        "Timestamp": "2025-09-28T16:02:11-03:00",
+        "Category": "",
+        "Multicast": false,
+        "MediaType": "image"
+      },
+      "Message": {
+        "imageMessage": {
+          "URL": "https://mmg.whatsapp.net/v/t62.7118-24/556931304_817254327645152_9024974062648041308_n.enc",
+          "mimetype": "image/jpeg",
+          "fileSHA256": "EPZkvPiLMVH05WMGO4uPSlZxFbkth0QbUIdoY7sy4qU=",
+          "fileLength": 95267,
+          "height": 1280,
+          "width": 720
+        }
+      }
+    }
+  },
+  "environment": {
+    "version": "2025.9.5",
+    "engine": "GOWS",
+    "tier": "PLUS",
+    "browser": null
+  }
+}

@@ -1,0 +1,167 @@
+# values-use-existing-operators.yaml
+# Use este arquivo quando os operators JÁ estiverem instalados no cluster
+
+# ============================================================================
+# PostgreSQL - Usa operator existente
+# ============================================================================
+postgresOperator:
+  enabled: true
+  installOperator: false  # Operator já instalado no cluster
+  createCluster: true     # Cria apenas o cluster PostgreSQL
+  
+  cluster:
+    teamId: "ventros"
+    numberOfInstances: 2
+    volumeSize: 100Gi
+    storageClass: ""  # Deixe vazio ou especifique (ex: "gp3", "io2")
+    version: "16"
+    database: "ventros_crm"
+    username: "ventros"
+    
+    parameters:
+      shared_buffers: "512MB"
+      max_connections: "200"
+      work_mem: "16MB"
+    
+    resources:
+      requests:
+        cpu: 1000m
+        memory: 1Gi
+      limits:
+        cpu: 2000m
+        memory: 2Gi
+
+# ============================================================================
+# RabbitMQ - Usa operator existente
+# ============================================================================
+rabbitmqOperator:
+  enabled: true
+  installOperator: false  # Operator já instalado no cluster
+  createCluster: true     # Cria apenas o cluster RabbitMQ
+  
+  cluster:
+    replicas: 3
+    image: "rabbitmq:3.13-management-alpine"
+    serviceType: ClusterIP
+    volumeSize: 50Gi
+    storageClass: ""  # Deixe vazio ou especifique
+    
+    auth:
+      username: "ventros"
+      password: "ventros123"  # MUDE EM PRODUÇÃO!
+      erlangCookie: "ventros-secret-cookie"  # MUDE EM PRODUÇÃO!
+    
+    plugins:
+      - rabbitmq_management
+      - rabbitmq_peer_discovery_k8s
+      - rabbitmq_shovel
+      - rabbitmq_shovel_management
+    
+    resources:
+      requests:
+        cpu: 500m
+        memory: 512Mi
+      limits:
+        cpu: 2000m
+        memory: 2Gi
+
+# Desabilita RabbitMQ Bitnami (usando operator)
+rabbitmq:
+  enabled: false
+
+# ============================================================================
+# Redis - Não precisa de operator
+# ============================================================================
+redis:
+  enabled: true
+  
+  master:
+    persistence:
+      enabled: true
+      size: 20Gi
+      storageClass: ""
+    resources:
+      requests:
+        cpu: 200m
+        memory: 256Mi
+      limits:
+        cpu: 1000m
+        memory: 1Gi
+  
+  replica:
+    replicaCount: 2
+    persistence:
+      enabled: true
+      size: 20Gi
+      storageClass: ""
+    resources:
+      requests:
+        cpu: 200m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+
+# ============================================================================
+# Temporal - Opcional
+# ============================================================================
+temporal:
+  enabled: true
+  useInternalPostgres: true
+  
+  server:
+    replicaCount: 1
+    resources:
+      requests:
+        cpu: 500m
+        memory: 512Mi
+      limits:
+        cpu: 1000m
+        memory: 1Gi
+  
+  web:
+    enabled: true
+    replicaCount: 1
+
+# ============================================================================
+# Aplicação
+# ============================================================================
+replicaCount: 2
+
+image:
+  repository: leonardocaloi/ventros-crm
+  tag: "0.1.0"
+  pullPolicy: IfNotPresent
+
+resources:
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+  requests:
+    cpu: 500m
+    memory: 512Mi
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+
+# ============================================================================
+# Ingress
+# ============================================================================
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+  hosts:
+    - host: api.ventros.cloud
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: ventros-crm-tls
+      hosts:
+        - api.ventros.cloud

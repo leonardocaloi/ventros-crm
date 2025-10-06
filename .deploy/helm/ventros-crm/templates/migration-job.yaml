@@ -1,0 +1,78 @@
+{{- if gt (int .Values.replicaCount) 0 }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "ventros-crm.fullname" . }}-migration
+  labels:
+    {{- include "ventros-crm.labels" . | nindent 4 }}
+    app.kubernetes.io/component: migration
+  annotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-weight": "5"
+    "helm.sh/hook-delete-policy": before-hook-creation
+spec:
+  backoffLimit: 3
+  template:
+    metadata:
+      labels:
+        {{- include "ventros-crm.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: migration
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "ventros-crm.serviceAccountName" . }}
+      restartPolicy: OnFailure
+      initContainers:
+        {{- if or .Values.postgresOperator.enabled .Values.externalPostgresql.host }}
+        {{- if .Values.initContainers.waitForPostgres.enabled }}
+        - name: wait-for-postgres
+          image: {{ .Values.initContainers.waitForPostgres.image }}
+          command: 
+            - sh
+            - -c
+            - |
+              echo "Waiting for PostgreSQL cluster to be ready..."
+              TIMEOUT=300
+              ELAPSED=0
+              until nc -z -w1 {{ include "ventros-crm.postgresql.host" . }} {{ include "ventros-crm.postgresql.port" . }} 2>/dev/null; do
+                if [ $ELAPSED -ge $TIMEOUT ]; then
+                  echo "Timeout waiting for PostgreSQL after ${TIMEOUT}s"
+                  exit 1
+                fi
+                echo "PostgreSQL is unavailable - sleeping (${ELAPSED}s/${TIMEOUT}s)"
+                sleep 5
+                ELAPSED=$((ELAPSED + 5))
+              done
+              echo "PostgreSQL is ready!"
+              sleep 5
+          resources:
+            {{- toYaml .Values.initContainers.waitForPostgres.resources | nindent 12 }}
+        {{- end }}
+        {{- end }}
+      containers:
+        - name: migrate
+          image: {{ include "ventros-crm.image" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["./migrate-auth"]
+          {{- if .Values.configMap.enabled }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "ventros-crm.configMapName" . }}
+          {{- end }}
+          env:
+            # Secrets - PostgreSQL
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "ventros-crm.postgresql.secretName" . }}
+                  key: {{ include "ventros-crm.postgresql.secretKey" . }}
+          resources:
+            limits:
+              cpu: 500m
+              memory: 256Mi
+            requests:
+              cpu: 100m
+              memory: 128Mi
+{{- end }}

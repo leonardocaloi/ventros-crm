@@ -1,0 +1,77 @@
+# Patterns to ignore when building packages.
+# This supports shell glob matching, relative path matching, and
+# negation (prefixed with !). Only one pattern per line.
+.DS_Store
+# Common VCS dirs
+.git/
+.gitignore
+.bzr/
+.bzrignore
+.hg/
+.hgignore
+.svn/
+# Common backup files
+*.swp
+*.bak
+*.tmp
+*.orig
+*~
+# Various IDEs
+.project
+.idea/
+*.tmproj
+.vscode/
+
+# Development and testing files
+*.test
+*.log
+.env*
+.local
+node_modules/
+coverage/
+.nyc_output/
+.pytest_cache/
+__pycache__/
+*.pyc
+*.pyo
+
+# Documentation build files
+docs/_build/
+site/
+
+# Helm specific
+*.tgz
+charts/*.tgz
+requirements.lock
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+.travis.yml
+Jenkinsfile
+.circleci/
+
+# Development tools
+Makefile.local
+docker-compose.override.yml
+.dockerignore
+
+# Temporary files
+NOTES-*.txt
+values-*.yaml.bak
+*.draft
+
+# OS specific
+Thumbs.db
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+
+# Phase documentation (keep README.md in chart)
+FASE1-POSTGRESQL.md
+HELM_WARNINGS.md
+
+# Binary files (compiled Go binaries)
+api
+bin/
+*.exe

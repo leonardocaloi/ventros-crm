@@ -1,0 +1,514 @@
+# Development values for Ventros CRM
+# Override default values for development/testing environment
+
+# Global settings
+global:
+  # Permitir imagens do ECR Public (Bitnami migrou para lá)
+  security:
+    allowInsecureImages: true
+
+# ✅ APLICAÇÃO HABILITADA - Fase Final: Infraestrutura + Aplicação
+# Todos os serviços estão rodando (PostgreSQL, Redis, RabbitMQ, Temporal)
+replicaCount: 1
+
+# Deployment strategy - RollingUpdate com zero downtime
+deploymentStrategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxSurge: 1
+    maxUnavailable: 0  # Zero downtime
+
+# Progress deadline - tempo máximo para deployment completar
+progressDeadlineSeconds: 600  # 10 minutos
+# Revision history - quantas versões antigas manter para rollback
+revisionHistoryLimit: 3
+
+image:
+  repository: ventros-crm
+  pullPolicy: Never  # Use local images in Minikube (never pull from registry)
+  tag: "0.1.0"  # Matches release version
+
+imagePullSecrets: []
+
+podAnnotations: {}
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  fsGroup: 1000
+
+securityContext:
+  capabilities:
+    drop:
+    - ALL
+  readOnlyRootFilesystem: true
+  allowPrivilegeEscalation: false
+
+service:
+  type: ClusterIP
+  port: 8080
+  targetPort: 8080
+
+ingress:
+  enabled: false  # Disabled for local development
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 250m
+    memory: 256Mi
+
+autoscaling:
+  enabled: false  # Disabled for local development
+
+podDisruptionBudget:
+  enabled: false  # Disabled for local development
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+livenessProbe:
+  httpGet:
+    path: /health
+    port: 8080
+  initialDelaySeconds: 15
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+readinessProbe:
+  httpGet:
+    path: /health
+    port: 8080
+  initialDelaySeconds: 5
+  periodSeconds: 5
+  timeoutSeconds: 3
+  failureThreshold: 3
+
+startupProbe:
+  httpGet:
+    path: /health
+    port: 8080
+  initialDelaySeconds: 0
+  periodSeconds: 5
+  timeoutSeconds: 3
+  failureThreshold: 30
+
+env:
+  PORT: "8080"
+  ENV: "development"
+  LOG_LEVEL: "debug"
+  DB_MAX_OPEN_CONNS: "10"
+  DB_MAX_IDLE_CONNS: "5"
+  DB_CONN_MAX_LIFETIME: "5m"
+  REDIS_POOL_SIZE: "5"
+  REDIS_MIN_IDLE_CONNS: "2"
+  WAHA_BASE_URL: "https://waha.ventros.cloud"
+  WAHA_TIMEOUT: "30s"
+  WAHA_MAX_RETRIES: "3"
+
+# ============================================================================
+# ✅ FASE FINAL: Infraestrutura Completa + Aplicação
+# ============================================================================
+# Todos os componentes habilitados:
+# - PostgreSQL (Zalando Operator)
+# - Redis (Bitnami)
+# - RabbitMQ (Cluster Operator)
+# - Temporal (Workflow Engine)
+# - Aplicação Ventros CRM
+# ============================================================================
+
+# PostgreSQL Operator (Zalando) - instalado como dependência
+postgresOperator:
+  enabled: true
+  installOperator: true  # Instala o operator (dev local)
+  createCluster: true
+  # Desabilita CRDs do subchart (usamos nossos CRDs customizados)
+  crd:
+    create: false
+  cluster:
+    name: "ventros-db"  # Nome do cluster PostgreSQL
+    teamId: "ventros"
+    numberOfInstances: 1  # Apenas 1 para dev
+    volumeSize: 5Gi
+    version: "16"
+    database: "ventros_crm"
+    username: "ventros"
+    parameters:
+      max_connections: "100"
+      shared_buffers: "128MB"
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+  # NodePort para acesso externo ao PostgreSQL
+  nodePort:
+    enabled: false  # Set to true to expose PostgreSQL via NodePort
+    port: 30432     # NodePort (30000-32767)
+
+# Redis (Bitnami) - instalado como dependência
+# ✅ HABILITADO - Cache para sessões e dados temporários
+redis:
+  enabled: true
+  # Override: Usar ECR Public (Bitnami migrou de docker.io para public.ecr.aws)
+  image:
+    registry: public.ecr.aws
+    repository: bitnami/redis
+    tag: "8.2.1"
+  auth:
+    enabled: false
+  master:
+    persistence:
+      enabled: false  # Sem persistência em dev
+    service:
+      sessionAffinity: ""  # Disable para evitar warning em headless services
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        cpu: 200m
+        memory: 128Mi
+  replica:
+    replicaCount: 0  # Sem réplicas em dev
+    service:
+      sessionAffinity: ""  # Disable para evitar warning em headless services
+
+# RabbitMQ Operator
+# ✅ HABILITADO - Message broker para eventos WAHA
+rabbitmqOperator:
+  enabled: true
+  installOperator: false  # Operator instalado manualmente (não via Helm)
+  createCluster: true
+  # Imagem oficial do RabbitMQ Cluster Operator
+  image: "rabbitmqoperator/cluster-operator:2.11.0"
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  cluster:
+    replicas: 1  # Apenas 1 para dev
+    image: "rabbitmq:3.13-management-alpine"
+    serviceType: ClusterIP
+    volumeSize: 5Gi
+    auth:
+      username: "ventros"
+      password: "ventros123"
+      erlangCookie: "ventros-dev-cookie"
+    plugins:
+      - rabbitmq_management
+      - rabbitmq_peer_discovery_k8s
+      - rabbitmq_shovel
+      - rabbitmq_shovel_management
+    additionalConfig: |
+      cluster_formation.peer_discovery_backend = rabbit_peer_discovery_k8s
+      cluster_formation.k8s.host = kubernetes.default.svc.cluster.local
+      cluster_formation.k8s.address_type = hostname
+      vm_memory_high_watermark.relative = 0.8
+      disk_free_limit.absolute = 1GB
+      log.console.level = info
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 500m
+        memory: 256Mi
+  # NodePort para acesso externo ao RabbitMQ
+  nodePort:
+    enabled: false        # Set to true to expose RabbitMQ via NodePort
+    managementPort: 30672 # NodePort para Management UI (30000-32767)
+    amqpPort: 30567       # NodePort para AMQP (30000-32767)
+
+# RabbitMQ Bitnami (Alternativa - não usado)
+# 🔒 DESABILITADO - Usando RabbitMQ Operator ao invés do Bitnami
+rabbitmq:
+  enabled: false
+  # Override: Usar ECR Public (Bitnami migrou de docker.io para public.ecr.aws)
+  image:
+    registry: public.ecr.aws
+    repository: bitnami/rabbitmq
+    tag: "3.13.7"
+  auth:
+    username: ventros
+    password: ventros123
+  replicaCount: 1
+  persistence:
+    enabled: false
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
+
+# Temporal
+# ✅ HABILITADO - Configuração MÍNIMA para desenvolvimento
+# Apenas 3 pods essenciais: frontend, history, matching
+temporal:
+  enabled: true
+  useInternalPostgres: true  # Usa o PostgreSQL do Operator automaticamente
+  
+  # NodePort para acesso externo ao Temporal Web UI
+  nodePort:
+    enabled: false  # Set to true to expose Temporal Web UI via NodePort
+    port: 30808     # NodePort (30000-32767)
+  
+  # Desabilitar componentes opcionais para reduzir recursos
+  admintools:
+    enabled: false  # ❌ Ferramentas de admin (não necessário)
+    # Init container para esperar o secret do PostgreSQL ser criado
+    additionalInitContainers:
+      - name: wait-for-postgres-secret
+        image: busybox:1.36
+        command:
+          - sh
+          - -c
+          - |
+            echo "Waiting for PostgreSQL secret to be created..."
+            while [ ! -f /var/run/secrets/kubernetes.io/serviceaccount/token ]; do
+              echo "Waiting for service account..."
+              sleep 2
+            done
+            # Espera 10 segundos para o PostgreSQL Operator criar o secret
+            echo "Waiting 10s for PostgreSQL Operator to create secret..."
+            sleep 10
+            echo "✅ Init complete!"
+  
+  web:
+    enabled: true   # ✅ Web UI para debug e monitoramento
+    replicaCount: 1
+  
+  worker:
+    enabled: false  # ❌ Workers customizados (não estamos usando)
+  
+  # Configuração do PostgreSQL (usa databases separados - padrão oficial)
+  server:
+    # Init container para esperar o secret do PostgreSQL nos servidores
+    additionalInitContainers:
+      - name: wait-for-postgres-secret
+        image: busybox:1.36
+        command:
+          - sh
+          - -c
+          - |
+            echo "Waiting for PostgreSQL secret to be created..."
+            while [ ! -f /var/run/secrets/kubernetes.io/serviceaccount/token ]; do
+              echo "Waiting for service account..."
+              sleep 2
+            done
+            # Espera 10 segundos para o PostgreSQL Operator criar o secret
+            echo "Waiting 10s for PostgreSQL Operator to create secret..."
+            sleep 10
+            echo "✅ Init complete!"
+    
+    # Apenas os 3 serviços essenciais
+    frontend:
+      replicaCount: 1  # ✅ Essencial
+    history:
+      replicaCount: 1  # ✅ Essencial
+    matching:
+      replicaCount: 1  # ✅ Essencial
+    
+    config:
+      persistence:
+        default:
+          sql:
+            host: "ventros-crm-postgres"
+            user: "ventros"
+            database: "temporal"  # Database separado (criado automaticamente)
+            existingSecret: "ventros.ventros-crm-postgres.credentials.postgresql.acid.zalan.do"
+            secretKey: "password"
+        visibility:
+          sql:
+            host: "ventros-crm-postgres"
+            user: "ventros"
+            database: "temporal_visibility"  # Database separado (criado automaticamente)
+            existingSecret: "ventros.ventros-crm-postgres.credentials.postgresql.acid.zalan.do"
+            secretKey: "password"
+  
+  # Schema setup - Temporal cria databases E tabelas automaticamente
+  schema:
+    createDatabase:
+      enabled: true   # ✅ Temporal cria os databases automaticamente
+      database:
+        connectAddr: "ventros-crm-postgres:5432"
+        user: "ventros"
+        existingSecret: "ventros.ventros-crm-postgres.credentials.postgresql.acid.zalan.do"
+        secretKey: "password"
+    setup:
+      enabled: true   # ✅ Cria estrutura inicial (tabelas)
+      backoffLimit: 10
+      annotations:
+        "helm.sh/hook": "pre-install,pre-upgrade"  # Roda ANTES dos pods
+        "helm.sh/hook-weight": "-5"
+        "helm.sh/hook-delete-policy": "before-hook-creation"
+    update:
+      enabled: true   # ✅ Aplica migrações
+      backoffLimit: 10
+      annotations:
+        "helm.sh/hook": "pre-install,pre-upgrade"  # Roda ANTES dos pods
+        "helm.sh/hook-weight": "-4"
+        "helm.sh/hook-delete-policy": "before-hook-creation"
+
+# Configuração de acesso externo via Ingress
+infrastructure:
+  ingress:
+    enabled: false  # Set to true to enable Ingress for all services
+    className: nginx  # Ingress class (nginx, traefik, etc.)
+    namespace: ventros-crm  # Namespace where ingress controller is installed
+    
+    # PostgreSQL Ingress (requires TCP ConfigMap for nginx-ingress)
+    postgresql:
+      enabled: false
+      # Note: PostgreSQL requires TCP stream, configure nginx-ingress tcp-services ConfigMap
+    
+    # RabbitMQ Management UI Ingress
+    rabbitmq:
+      enabled: false
+      host: rabbitmq.ventros.local
+      path: /
+      pathType: Prefix
+      tls: false
+      # tlsSecret: rabbitmq-tls
+      annotations: {}
+        # cert-manager.io/cluster-issuer: letsencrypt-prod
+        # nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    
+    # Temporal Web UI Ingress
+    temporal:
+      enabled: false
+      host: temporal.ventros.local
+      path: /
+      pathType: Prefix
+      tls: false
+      # tlsSecret: temporal-tls
+      annotations: {}
+        # cert-manager.io/cluster-issuer: letsencrypt-prod
+    
+    # Ventros CRM API Ingress
+    api:
+      enabled: false
+      host: api.ventros.local
+      path: /
+      pathType: Prefix
+      tls: false
+      # tlsSecret: api-tls
+      annotations: {}
+        # cert-manager.io/cluster-issuer: letsencrypt-prod
+        # nginx.ingress.kubernetes.io/rate-limit: "100"
+
+# Secrets da aplicação
+secrets:
+  wahaApiKey: "dev-api-key-4bffec302d5f4312b8b73700da3ff3cb"
+  adminEmail: "admin@ventros.local"
+  adminPassword: "admin123"
+  adminName: "Admin Dev"
+
+migrations:
+  enabled: false  # Desabilitado - migrations rodam no entrypoint da API
+  image:
+    repository: ventros-crm
+    tag: "latest"
+  resources:
+    limits:
+      cpu: 250m
+      memory: 256Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+
+initContainers:
+  waitForPostgres:
+    enabled: true
+    image: busybox:1.36
+    resources:
+      limits:
+        cpu: 50m
+        memory: 64Mi
+      requests:
+        cpu: 25m
+        memory: 32Mi
+  
+  waitForRedis:
+    enabled: true
+    image: busybox:1.36
+    resources:
+      limits:
+        cpu: 50m
+        memory: 64Mi
+      requests:
+        cpu: 25m
+        memory: 32Mi
+  
+  waitForRabbitmq:
+    enabled: true
+    image: busybox:1.36
+    resources:
+      limits:
+        cpu: 50m
+        memory: 64Mi
+      requests:
+        cpu: 25m
+        memory: 32Mi
+  
+  waitForTemporal:
+    enabled: true
+    image: busybox:1.36
+    resources:
+      limits:
+        cpu: 50m
+        memory: 64Mi
+      requests:
+        cpu: 25m
+        memory: 32Mi
+
+configMap:
+  enabled: true
+  data:
+    app.yaml: |
+      server:
+        port: 8080
+        timeout: 30s
+        max_header_bytes: 1048576
+      
+      cors:
+        allowed_origins:
+          - "*"
+        allowed_methods:
+          - GET
+          - POST
+          - PUT
+          - DELETE
+          - PATCH
+          - OPTIONS
+        allowed_headers:
+          - "*"
+        allow_credentials: true
+        max_age: 3600
+      
+      rate_limit:
+        enabled: false
+      
+      logging:
+        format: "text"
+        level: "debug"
+        output: "stdout"
+
+serviceMonitor:
+  enabled: false
+
+networkPolicy:
+  enabled: false

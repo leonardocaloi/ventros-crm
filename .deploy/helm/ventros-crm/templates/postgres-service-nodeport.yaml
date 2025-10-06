@@ -1,0 +1,22 @@
+{{- if and .Values.postgresOperator.enabled (hasKey .Values.postgresOperator "nodePort") .Values.postgresOperator.nodePort.enabled -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "ventros-crm.fullname" . }}-postgres-nodeport
+  labels:
+    {{- include "ventros-crm.labels" . | nindent 4 }}
+    app.kubernetes.io/component: database
+spec:
+  type: NodePort
+  ports:
+    - port: 5432
+      targetPort: 5432
+      protocol: TCP
+      name: postgresql
+      {{- if .Values.postgresOperator.nodePort.port }}
+      nodePort: {{ .Values.postgresOperator.nodePort.port }}
+      {{- end }}
+  selector:
+    application: ventros-crm
+    cluster-name: ventros-crm-postgres
+{{- end }}

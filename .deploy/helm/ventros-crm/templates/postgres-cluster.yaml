@@ -1,0 +1,52 @@
+{{- if .Values.postgresOperator.enabled }}
+{{- if .Values.postgresOperator.createCluster }}
+apiVersion: "acid.zalan.do/v1"
+kind: "postgresql"
+metadata:
+  name: {{ include "ventros-crm.fullname" . }}-postgres
+  labels:
+    {{- include "ventros-crm.labels" . | nindent 4 }}
+spec:
+  teamId: {{ .Values.postgresOperator.cluster.teamId | quote }}
+  volume:
+    size: {{ .Values.postgresOperator.cluster.volumeSize }}
+    {{- if .Values.postgresOperator.cluster.storageClass }}
+    storageClass: {{ .Values.postgresOperator.cluster.storageClass }}
+    {{- end }}
+  numberOfInstances: {{ .Values.postgresOperator.cluster.numberOfInstances }}
+  users:
+    # Usuário principal (usado pela aplicação e pelo Temporal)
+    {{ .Values.postgresOperator.cluster.username }}:
+      - superuser
+      - createdb
+
+  databases:
+    # Database da aplicação (Temporal cria os dele automaticamente)
+    {{ .Values.postgresOperator.cluster.database }}: {{ .Values.postgresOperator.cluster.username }}
+  postgresql:
+    version: {{ .Values.postgresOperator.cluster.version | quote }}
+    parameters:
+      {{- toYaml .Values.postgresOperator.cluster.parameters | nindent 6 }}
+  {{- with .Values.postgresOperator.cluster.resources }}
+  resources:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  patroni:
+    initdb:
+      encoding: "UTF8"
+      locale: "en_US.UTF-8"
+      data-checksums: "true"
+    pg_hba:
+      - local all all trust
+      - host all all 0.0.0.0/0 md5
+      - hostssl all all 0.0.0.0/0 md5
+  {{- with .Values.postgresOperator.cluster.nodeAffinity }}
+  nodeAffinity:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- with .Values.postgresOperator.cluster.tolerations }}
+  tolerations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+{{- end }}
+{{- end }}
