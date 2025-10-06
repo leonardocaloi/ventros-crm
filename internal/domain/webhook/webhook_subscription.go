@@ -9,6 +9,9 @@ import (
 // WebhookSubscription é a entidade de domínio para inscrições de webhook
 type WebhookSubscription struct {
 	ID              uuid.UUID
+	UserID          uuid.UUID
+	ProjectID       uuid.UUID
+	TenantID        string
 	Name            string
 	URL             string
 	Events          []string
@@ -27,7 +30,7 @@ type WebhookSubscription struct {
 }
 
 // NewWebhookSubscription cria uma nova inscrição de webhook
-func NewWebhookSubscription(name, url string, events []string) (*WebhookSubscription, error) {
+func NewWebhookSubscription(userID, projectID uuid.UUID, tenantID, name, url string, events []string) (*WebhookSubscription, error) {
 	if name == "" {
 		return nil, ErrInvalidName
 	}
@@ -41,6 +44,9 @@ func NewWebhookSubscription(name, url string, events []string) (*WebhookSubscrip
 	now := time.Now()
 	return &WebhookSubscription{
 		ID:             uuid.New(),
+		UserID:         userID,
+		ProjectID:      projectID,
+		TenantID:       tenantID,
 		Name:           name,
 		URL:            url,
 		Events:         events,

@@ -12,11 +12,12 @@ type DomainEvent interface {
 }
 
 type ProjectCreatedEvent struct {
-	ProjectID  uuid.UUID
-	CustomerID uuid.UUID
-	TenantID   string
-	Name       string
-	CreatedAt  time.Time
+	ProjectID        uuid.UUID
+	CustomerID       uuid.UUID
+	BillingAccountID uuid.UUID
+	TenantID         string
+	Name             string
+	CreatedAt        time.Time
 }
 
 func (e ProjectCreatedEvent) EventName() string     { return "project.created" }

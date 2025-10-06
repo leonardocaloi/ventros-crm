@@ -1,6 +1,9 @@
 package config
 
-import "os"
+import (
+	"fmt"
+	"os"
+)
 
 // Config holds all application configuration
 type Config struct {
@@ -68,14 +71,13 @@ func Load() *Config {
 			DB:       0,
 		},
 		RabbitMQ: RabbitMQConfig{
-			URL: getEnv("RABBITMQ_URL", "amqp://guest:guest@localhost:5672/"),
+			URL: getRabbitMQURL(),
 		},
 		Temporal: TemporalConfig{
 			Host:      getEnv("TEMPORAL_HOST", "localhost:7233"),
-			Namespace: getEnv("TEMPORAL_NAMESPACE", "default"),
+			Namespace: getEnv("TEMPORAL_NAMESPACE", "ventros-crm"),
 		},
 		Log: LogConfig{
-			Level: getEnv("LOG_LEVEL", "info"),
 		},
 	}
 }
@@ -85,4 +87,21 @@ func getEnv(key, defaultValue string) string {
 		return value
 	}
 	return defaultValue
+}
+
+// getRabbitMQURL constrói a URL do RabbitMQ usando variáveis de ambiente separadas
+// ou retorna RABBITMQ_URL se estiver definida (para compatibilidade)
+func getRabbitMQURL() string {
+	// Se RABBITMQ_URL já está definida, usa ela
+	if url := os.Getenv("RABBITMQ_URL"); url != "" {
+		return url
+	}
+	
+	// Caso contrário, constrói a URL usando variáveis separadas
+	host := getEnv("RABBITMQ_HOST", "localhost")
+	port := getEnv("RABBITMQ_PORT", "5672")
+	user := getEnv("RABBITMQ_USER", "guest")
+	password := getEnv("RABBITMQ_PASSWORD", "guest")
+	
+	return fmt.Sprintf("amqp://%s:%s@%s:%s/", user, password, host, port)
 }

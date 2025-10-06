@@ -1,0 +1,176 @@
+# Production values for Ventros CRM
+# Override default values for production environment
+
+replicaCount: 3
+
+image:
+  repository: your-registry/ventros-crm
+  pullPolicy: IfNotPresent
+  tag: "stable"
+
+imagePullSecrets:
+  - name: registry-credentials
+
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "8080"
+  prometheus.io/path: "/metrics"
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  fsGroup: 1000
+
+securityContext:
+  capabilities:
+    drop:
+    - ALL
+  readOnlyRootFilesystem: true
+  allowPrivilegeEscalation: false
+
+service:
+  type: ClusterIP
+  port: 8080
+  targetPort: 8080
+
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/rate-limit: "100"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+  hosts:
+    - host: api.ventros.cloud
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: ventros-crm-tls
+      hosts:
+        - api.ventros.cloud
+
+resources:
+  limits:
+    cpu: 2000m
+    memory: 2Gi
+  requests:
+    cpu: 1000m
+    memory: 1Gi
+
+autoscaling:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 20
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+
+nodeSelector:
+  workload: application
+
+tolerations:
+  - key: "workload"
+    operator: "Equal"
+    value: "application"
+    effect: "NoSchedule"
+
+affinity:
+  podAntiAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      - labelSelector:
+          matchExpressions:
+            - key: app.kubernetes.io/name
+              operator: In
+              values:
+                - ventros-crm
+        topologyKey: kubernetes.io/hostname
+  nodeAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        preference:
+          matchExpressions:
+            - key: workload
+              operator: In
+              values:
+                - application
+
+livenessProbe:
+  httpGet:
+    path: /health
+    port: 8080
+  initialDelaySeconds: 60
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+readinessProbe:
+  httpGet:
+    path: /health
+    port: 8080
+  initialDelaySeconds: 30
+  periodSeconds: 5
+  timeoutSeconds: 3
+  failureThreshold: 3
+
+env:
+  PORT: "8080"
+  ENV: "production"
+  LOG_LEVEL: "info"
+  
+  # PostgreSQL (Zalando Operator)
+  DB_HOST: "ventros-postgres.ventros-crm.svc.cluster.local"
+  DB_PORT: "5432"
+  DB_NAME: "ventros_crm"
+  DB_USER: "ventros"
+  DB_SSL_MODE: "require"
+  
+  # Redis (Bitnami Chart)
+  REDIS_HOST: "ventros-redis-master.ventros-crm.svc.cluster.local"
+  REDIS_PORT: "6379"
+  REDIS_DB: "0"
+  
+  # RabbitMQ (Cluster Operator)
+  RABBITMQ_HOST: "ventros-rabbitmq.ventros-crm.svc.cluster.local"
+  RABBITMQ_PORT: "5672"
+  
+  # Temporal
+  TEMPORAL_HOST_PORT: "ventros-temporal-frontend.ventros-crm.svc.cluster.local:7233"
+  TEMPORAL_NAMESPACE: "default"
+  
+  # WAHA
+  WAHA_BASE_URL: "https://waha.ventros.cloud"
+
+secrets:
+  dbPasswordSecret:
+    name: "ventros.ventros-postgres.credentials.postgresql.acid.zalan.do"
+    key: "password"
+  
+  rabbitmqPasswordSecret:
+    name: "ventros-rabbitmq-default-user"
+    key: "password"
+  
+  rabbitmqUserSecret:
+    name: "ventros-rabbitmq-default-user"
+    key: "username"
+  
+  wahaApiKeySecret:
+    name: "ventros-crm-secrets"
+    key: "waha-api-key"
+  
+  adminPasswordSecret:
+    name: "ventros-crm-secrets"
+    key: "admin-password"
+
+migrations:
+  enabled: false  # Desabilitado - migrations rodam no entrypoint da API
+  image:
+    repository: your-registry/ventros-crm
+    tag: "stable"
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 500m
+      memory: 512Mi

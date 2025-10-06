@@ -107,18 +107,73 @@ func (r *RabbitMQConnection) IsConnected() bool {
 }
 
 // DeclareQueue declara uma fila com configurações padrão.
+// A declaração é idempotente - se a fila já existe com os mesmos argumentos, não faz nada.
+// Se existir com argumentos diferentes, retorna erro (comportamento padrão do RabbitMQ).
 func (r *RabbitMQConnection) DeclareQueue(name string) error {
+	args := amqp.Table{
+		"x-queue-type": "quorum", // Alta disponibilidade
+	}
+	
+	// Declaração idempotente - RabbitMQ aceita se a fila já existe com mesmos args
 	_, err := r.channel.QueueDeclare(
 		name,  // name
 		true,  // durable
 		false, // delete when unused
 		false, // exclusive
 		false, // no-wait
-		amqp.Table{
-			"x-queue-type": "quorum", // Alta disponibilidade
-		},
+		args,
 	)
-	return err
+	
+	if err != nil {
+		// Se falhar por incompatibilidade de argumentos, loga mas não falha
+		// Isso permite usar filas legadas que foram criadas sem quorum
+		if isQueuePreconditionError(err) {
+			fmt.Printf("⚠️  Queue %s exists with different args (legacy queue), using it anyway\n", name)
+			
+			// Reabre o canal (PRECONDITION_FAILED fecha o canal)
+			if reopenErr := r.reopenChannel(); reopenErr != nil {
+				return fmt.Errorf("failed to reopen channel: %w", reopenErr)
+			}
+			
+			return nil // Aceita a fila legada
+		}
+		
+		return fmt.Errorf("failed to declare queue: %w", err)
+	}
+	
+	return nil
+}
+
+// isQueuePreconditionError verifica se o erro é de incompatibilidade de argumentos de fila
+func isQueuePreconditionError(err error) bool {
+	if err == nil {
+		return false
+	}
+	
+	// Verifica se é um erro AMQP 406 (PRECONDITION_FAILED)
+	if amqpErr, ok := err.(*amqp.Error); ok {
+		return amqpErr.Code == 406
+	}
+	
+	return false
+}
+
+// reopenChannel reabre o canal após um erro que o fechou
+func (r *RabbitMQConnection) reopenChannel() error {
+	if r.conn == nil || r.conn.IsClosed() {
+		return fmt.Errorf("connection is closed")
+	}
+	
+	ch, err := r.conn.Channel()
+	if err != nil {
+		return fmt.Errorf("failed to reopen channel: %w", err)
+	}
+	
+	r.channel = ch
+	r.notifyClose = make(chan *amqp.Error)
+	r.channel.NotifyClose(r.notifyClose)
+	
+	return nil
 }
 
 // DeclareQueueWithDLQ declara fila com Dead Letter Queue.
@@ -126,18 +181,33 @@ func (r *RabbitMQConnection) DeclareQueue(name string) error {
 func (r *RabbitMQConnection) DeclareQueueWithDLQ(name string, maxRetries int) error {
 	// Cria DLQ primeiro
 	dlqName := name + ".dlq"
+	dlqArgs := amqp.Table{
+		"x-queue-type": "quorum",
+	}
+	
+	// Declaração idempotente da DLQ
 	_, err := r.channel.QueueDeclare(
 		dlqName,
 		true,
 		false,
 		false,
 		false,
-		amqp.Table{
-			"x-queue-type": "quorum",
-		},
+		dlqArgs,
 	)
+	
 	if err != nil {
-		return fmt.Errorf("failed to declare DLQ: %w", err)
+		// Se falhar por incompatibilidade, aceita a fila legada
+		if isQueuePreconditionError(err) {
+			fmt.Printf("⚠️  DLQ %s exists with different args (legacy), using it anyway\n", dlqName)
+			
+			if reopenErr := r.reopenChannel(); reopenErr != nil {
+				return fmt.Errorf("failed to reopen channel: %w", reopenErr)
+			}
+			
+			err = nil // Aceita a DLQ legada
+		} else {
+			return fmt.Errorf("failed to declare DLQ: %w", err)
+		}
 	}
 	
 	// Cria fila principal com DLQ configurada
@@ -154,6 +224,7 @@ func (r *RabbitMQConnection) DeclareQueueWithDLQ(name string, maxRetries int) er
 		queueArgs["x-delivery-limit"] = maxRetries
 	}
 	
+	// Declaração idempotente da fila principal
 	_, err = r.channel.QueueDeclare(
 		name,
 		true,
@@ -162,7 +233,23 @@ func (r *RabbitMQConnection) DeclareQueueWithDLQ(name string, maxRetries int) er
 		false,
 		queueArgs,
 	)
-	return err
+	
+	if err != nil {
+		// Se falhar por incompatibilidade, aceita a fila legada
+		if isQueuePreconditionError(err) {
+			fmt.Printf("⚠️  Queue %s exists with different args (legacy), using it anyway\n", name)
+			
+			if reopenErr := r.reopenChannel(); reopenErr != nil {
+				return fmt.Errorf("failed to reopen channel: %w", reopenErr)
+			}
+			
+			return nil // Aceita a fila legada
+		}
+		
+		return fmt.Errorf("failed to declare queue: %w", err)
+	}
+	
+	return nil
 }
 
 // Publish publica uma mensagem.

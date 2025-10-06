@@ -1,0 +1,115 @@
+{{- if gt (int .Values.replicaCount) 0 }}
+🚀 Ventros CRM has been deployed successfully!
+
+📋 Release Information:
+   Name:      {{ .Release.Name }}
+   Namespace: {{ .Release.Namespace }}
+   Revision:  {{ .Release.Revision }}
+
+🔗 Access Information:
+   Service: {{ include "ventros-crm.fullname" . }}:{{ .Values.service.port }}
+   
+   To access the application locally:
+   kubectl port-forward -n {{ .Release.Namespace }} svc/{{ include "ventros-crm.fullname" . }} {{ .Values.service.port }}:{{ .Values.service.port }}
+   
+   Then visit: http://localhost:{{ .Values.service.port }}
+
+📊 Deployment Status:
+   kubectl get pods -n {{ .Release.Namespace }} -l app.kubernetes.io/name={{ include "ventros-crm.name" . }}
+
+📝 View Logs:
+   kubectl logs -n {{ .Release.Namespace }} -l app.kubernetes.io/name={{ include "ventros-crm.name" . }} -f
+
+🔍 Check Health:
+   kubectl exec -n {{ .Release.Namespace }} -it deployment/{{ include "ventros-crm.fullname" . }} -- wget -qO- http://localhost:{{ .Values.service.targetPort }}/health
+
+⚙️  Configuration:
+   - Replicas: {{ .Values.replicaCount }}
+   - Image: {{ include "ventros-crm.image" . }}
+   - Autoscaling: {{ if .Values.autoscaling.enabled }}Enabled{{ else }}Disabled{{ end }}
+
+🔐 Secrets:
+{{- if .Values.postgresOperator.enabled }}
+   - PostgreSQL: {{ .Values.postgresOperator.cluster.username }}.{{ include "ventros-crm.fullname" . }}-{{ .Values.postgresOperator.cluster.name | default "postgres" }}.credentials.postgresql.acid.zalan.do
+{{- end }}
+{{- if or .Values.rabbitmqOperator.enabled .Values.rabbitmq.enabled }}
+   - RabbitMQ: {{ include "ventros-crm.fullname" . }}-rabbitmq
+{{- end }}
+   - Application: {{ include "ventros-crm.fullname" . }}-secrets
+
+🗄️  Dependencies:
+{{- if .Values.postgresOperator.enabled }}
+   - PostgreSQL: {{ include "ventros-crm.fullname" . }}-{{ .Values.postgresOperator.cluster.name | default "postgres" }}:5432
+{{- end }}
+{{- if .Values.redis.enabled }}
+   - Redis: {{ .Release.Name }}-redis-master:6379
+{{- end }}
+{{- if or .Values.rabbitmqOperator.enabled .Values.rabbitmq.enabled }}
+   - RabbitMQ: {{ include "ventros-crm.fullname" . }}-rabbitmq:5672
+{{- end }}
+{{- else }}
+🔒 Ventros CRM - FASE 1: PostgreSQL Only
+
+📋 Release Information:
+   Name:      {{ .Release.Name }}
+   Namespace: {{ .Release.Namespace }}
+   Revision:  {{ .Release.Revision }}
+
+⚠️  Application Status: DISABLED (replicaCount: 0)
+   
+   This is Phase 1 installation - only PostgreSQL infrastructure is deployed.
+   The main application is intentionally disabled for gradual deployment.
+
+🗄️  What's Installed:
+{{- if .Values.postgresOperator.enabled }}
+   ✅ PostgreSQL Operator (Zalando)
+   ✅ PostgreSQL Cluster: {{ include "ventros-crm.fullname" . }}-{{ .Values.postgresOperator.cluster.name | default "postgres" }}
+{{- end }}
+{{- if .Values.redis.enabled }}
+   ✅ Redis: {{ .Release.Name }}-redis-master
+{{- else }}
+   ❌ Redis: Disabled
+{{- end }}
+{{- if or .Values.rabbitmqOperator.enabled .Values.rabbitmq.enabled }}
+   ✅ RabbitMQ: {{ include "ventros-crm.fullname" . }}-rabbitmq
+{{- else }}
+   ❌ RabbitMQ: Disabled
+{{- end }}
+   ❌ Ventros CRM Application: Disabled
+
+📊 Check Infrastructure Status:
+   kubectl get pods -n {{ .Release.Namespace }}
+   kubectl get postgresql -n {{ .Release.Namespace }}
+{{- if or .Values.rabbitmqOperator.enabled .Values.rabbitmq.enabled }}
+   kubectl get rabbitmqcluster -n {{ .Release.Namespace }}
+{{- end }}
+
+🔐 PostgreSQL Access:
+{{- if .Values.postgresOperator.enabled }}
+   # Get password
+   kubectl get secret -n {{ .Release.Namespace }} \
+     {{ .Values.postgresOperator.cluster.username }}.{{ include "ventros-crm.fullname" . }}-{{ .Values.postgresOperator.cluster.name | default "postgres" }}.credentials.postgresql.acid.zalan.do \
+     -o jsonpath='{.data.password}' | base64 -d
+   
+   # Port forward
+   kubectl port-forward -n {{ .Release.Namespace }} svc/{{ include "ventros-crm.fullname" . }}-{{ .Values.postgresOperator.cluster.name | default "postgres" }} 5432:5432
+   
+   # Connect: psql -h localhost -p 5432 -U {{ .Values.postgresOperator.cluster.username }} -d {{ .Values.postgresOperator.cluster.database }}
+{{- end }}
+
+🚀 Next Steps (Enable Full Application):
+   1. Edit values-dev.yaml:
+      replicaCount: 1
+      redis.enabled: true
+      rabbitmq.enabled: true
+   
+   2. Upgrade:
+      helm upgrade {{ .Release.Name }} ./ventros-crm -n {{ .Release.Namespace }} -f values-dev.yaml
+
+📖 Documentation: See README.md for complete configuration guide
+{{- end }}
+   
+   # Scale deployment
+   kubectl scale deployment {{ include "ventros-crm.fullname" . }} -n {{ .Release.Namespace }} --replicas=5
+
+🎉 Happy CRM-ing!

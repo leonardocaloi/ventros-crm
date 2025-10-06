@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/caloi/ventros-crm/infrastructure/http/middleware"
 	"github.com/caloi/ventros-crm/internal/domain/contact"
@@ -85,18 +86,52 @@ func (h *ContactHandler) ListContacts(c *gin.Context) {
 		return
 	}
 
-	// TODO: Verificar se o projeto pertence ao usuário autenticado
-	// if !h.projectRepo.BelongsToUser(ctx, projectID, authCtx.UserID) {
-	//     c.JSON(http.StatusForbidden, gin.H{"error": "Project not found or access denied"})
-	//     return
-	// }
+	// Parse pagination parameters
+	page := 1
+	pageSize := 20
+	
+	if pageStr := c.Query("page"); pageStr != "" {
+		if p, err := strconv.Atoi(pageStr); err == nil && p > 0 {
+			page = p
+		}
+	}
+	
+	if pageSizeStr := c.Query("page_size"); pageSizeStr != "" {
+		if ps, err := strconv.Atoi(pageSizeStr); err == nil && ps > 0 && ps <= 100 {
+			pageSize = ps
+		}
+	}
 
-	// For now, return a simple message since we need to implement pagination
-	// TODO: Implement proper contact listing with filters
+	// Calculate offset
+	offset := (page - 1) * pageSize
+
+	// Get total count
+	total, err := h.contactRepo.CountByProject(c.Request.Context(), projectID)
+	if err != nil {
+		h.logger.Error("Failed to count contacts", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve contacts"})
+		return
+	}
+
+	// Get contacts
+	contacts, err := h.contactRepo.FindByProject(c.Request.Context(), projectID, pageSize, offset)
+	if err != nil {
+		h.logger.Error("Failed to list contacts", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve contacts"})
+		return
+	}
+
+	// Convert to response
+	contactResponses := make([]map[string]interface{}, len(contacts))
+	for i, contact := range contacts {
+		contactResponses[i] = h.contactToResponse(contact)
+	}
+
 	c.JSON(http.StatusOK, gin.H{
-		"message":    "Contact listing not yet implemented",
-		"project_id": projectID,
-		"note":       "Use GET /api/v1/contacts/{id} to get specific contact",
+		"contacts": contactResponses,
+		"total":    total,
+		"page":     page,
+		"page_size": pageSize,
 	})
 }
 

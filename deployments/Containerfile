@@ -1,0 +1,61 @@
+# Build stage
+FROM docker.io/library/golang:1.25.1-alpine AS builder
+
+WORKDIR /app
+
+# Install build dependencies
+RUN apk add --no-cache git
+
+# Copy go mod files
+COPY go.mod go.sum ./
+RUN go mod download
+
+# Install swag CLI for Swagger generation
+RUN go install github.com/swaggo/swag/cmd/swag@latest
+
+# Copy source code
+COPY . .
+
+# Generate Swagger documentation
+RUN swag init -g cmd/api/main.go -o docs --parseDependency --parseInternal
+
+# Build the application
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main cmd/api/main.go
+
+# Build the migration tool
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o migrate-auth cmd/migrate-auth/main.go
+
+# Final stage
+FROM docker.io/library/alpine:3.22
+
+RUN apk --no-cache add ca-certificates tzdata wget
+
+# Create non-root user
+RUN addgroup -g 1000 appuser && adduser -D -u 1000 -G appuser appuser
+
+WORKDIR /app
+
+# Copy the binary from builder
+COPY --from=builder /app/main .
+COPY --from=builder /app/migrate-auth .
+COPY --from=builder /app/docs ./docs
+
+# Copy entrypoint script
+COPY deployments/entrypoint.sh .
+
+# Set executable permissions and ownership
+RUN chmod +x main migrate-auth entrypoint.sh && \
+    chown -R appuser:appuser /app
+
+# Switch to non-root user
+USER appuser
+
+# Expose port
+EXPOSE 8080
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://localhost:8080/health || exit 1
+
+# Run the binary via entrypoint
+ENTRYPOINT ["./entrypoint.sh"]

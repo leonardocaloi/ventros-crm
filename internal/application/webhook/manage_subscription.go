@@ -26,7 +26,7 @@ func NewManageSubscriptionUseCase(repo webhook.Repository, logger *zap.Logger) *
 // CreateWebhook cria uma nova inscrição de webhook
 func (uc *ManageSubscriptionUseCase) CreateWebhook(ctx context.Context, dto CreateWebhookDTO) (*WebhookDTO, error) {
 	// Cria entidade de domínio
-	sub, err := webhook.NewWebhookSubscription(dto.Name, dto.URL, dto.Events)
+	sub, err := webhook.NewWebhookSubscription(dto.UserID, dto.ProjectID, dto.TenantID, dto.Name, dto.URL, dto.Events)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create webhook: %w", err)
 	}

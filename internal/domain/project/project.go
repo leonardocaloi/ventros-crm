@@ -9,23 +9,27 @@ import (
 
 // Project é o Aggregate Root para workspaces/projetos (multi-tenancy).
 type Project struct {
-	id            uuid.UUID
-	customerID    uuid.UUID
-	tenantID      string
-	name          string
-	description   string
-	configuration map[string]interface{}
-	active        bool
-	createdAt     time.Time
-	updatedAt     time.Time
+	id               uuid.UUID
+	customerID       uuid.UUID
+	billingAccountID uuid.UUID
+	tenantID         string
+	name             string
+	description      string
+	configuration    map[string]interface{}
+	active           bool
+	createdAt        time.Time
+	updatedAt        time.Time
 	
 	events []DomainEvent
 }
 
 // NewProject cria um novo projeto.
-func NewProject(customerID uuid.UUID, tenantID, name string) (*Project, error) {
+func NewProject(customerID, billingAccountID uuid.UUID, tenantID, name string) (*Project, error) {
 	if customerID == uuid.Nil {
 		return nil, errors.New("customerID cannot be nil")
+	}
+	if billingAccountID == uuid.Nil {
+		return nil, errors.New("billingAccountID cannot be nil")
 	}
 	if tenantID == "" {
 		return nil, errors.New("tenantID cannot be empty")
@@ -36,23 +40,25 @@ func NewProject(customerID uuid.UUID, tenantID, name string) (*Project, error) {
 
 	now := time.Now()
 	project := &Project{
-		id:            uuid.New(),
-		customerID:    customerID,
-		tenantID:      tenantID,
-		name:          name,
-		configuration: make(map[string]interface{}),
-		active:        true,
-		createdAt:     now,
-		updatedAt:     now,
-		events:        []DomainEvent{},
+		id:               uuid.New(),
+		customerID:       customerID,
+		billingAccountID: billingAccountID,
+		tenantID:         tenantID,
+		name:             name,
+		configuration:    make(map[string]interface{}),
+		active:           true,
+		createdAt:        now,
+		updatedAt:        now,
+		events:           []DomainEvent{},
 	}
 
 	project.addEvent(ProjectCreatedEvent{
-		ProjectID:  project.id,
-		CustomerID: customerID,
-		TenantID:   tenantID,
-		Name:       name,
-		CreatedAt:  now,
+		ProjectID:        project.id,
+		CustomerID:       customerID,
+		BillingAccountID: billingAccountID,
+		TenantID:         tenantID,
+		Name:             name,
+		CreatedAt:        now,
 	})
 
 	return project, nil
@@ -62,6 +68,7 @@ func NewProject(customerID uuid.UUID, tenantID, name string) (*Project, error) {
 func ReconstructProject(
 	id uuid.UUID,
 	customerID uuid.UUID,
+	billingAccountID uuid.UUID,
 	tenantID string,
 	name string,
 	description string,
@@ -75,16 +82,17 @@ func ReconstructProject(
 	}
 
 	return &Project{
-		id:            id,
-		customerID:    customerID,
-		tenantID:      tenantID,
-		name:          name,
-		description:   description,
-		configuration: configuration,
-		active:        active,
-		createdAt:     createdAt,
-		updatedAt:     updatedAt,
-		events:        []DomainEvent{},
+		id:               id,
+		customerID:       customerID,
+		billingAccountID: billingAccountID,
+		tenantID:         tenantID,
+		name:             name,
+		description:      description,
+		configuration:    configuration,
+		active:           active,
+		createdAt:        createdAt,
+		updatedAt:        updatedAt,
+		events:           []DomainEvent{},
 	}
 }
 
@@ -138,6 +146,7 @@ func (p *Project) GetSessionTimeout() int {
 // Getters
 func (p *Project) ID() uuid.UUID                    { return p.id }
 func (p *Project) CustomerID() uuid.UUID            { return p.customerID }
+func (p *Project) BillingAccountID() uuid.UUID      { return p.billingAccountID }
 func (p *Project) TenantID() string                 { return p.tenantID }
 func (p *Project) Name() string                     { return p.name }
 func (p *Project) Description() string              { return p.description }

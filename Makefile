@@ -1,358 +1,336 @@
-.PHONY: help run build test clean docker-up docker-down migrate seedr-logs clean test dev-up dev-down dev-restart dev-logs dev-clean
+# Ventros CRM - Makefile
+# Container runtime (docker ou podman)
+CONTAINER_RUNTIME ?= docker
+COMPOSE = $(CONTAINER_RUNTIME) compose
 
-# Load asdf
-SHELL := /bin/bash
-.SHELLFLAGS := -c '. $$HOME/.asdf/asdf.sh && exec bash -c "$$@"' --
+.PHONY: help
 
-run:
-	@echo "🔄 Checking if Ent code is up to date..."
-	@make -s ent-generate
-	@echo "Starting API server..."
-	go run cmd/api/main.go
+##@ Ajuda
+help: ## Mostra esta ajuda
+	@awk 'BEGIN {FS = ":.*##"; printf "\n\033[1mVentros CRM - Comandos Disponíveis\033[0m\n\n"} /^[a-zA-Z_-]+:.*?##/ { printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
 
-dev-run:
-	@echo "🔄 Preparing dev environment..."
-	@echo "🔄 Running GORM database migrations..."
-	@go run cmd/migrate-gorm/main.go
-	@echo "🔒 Setting up RLS (Row Level Security)..."
-	@PGPASSWORD=ventros123 psql -h localhost -U ventros -d ventros_crm -f scripts/setup-rls.sql -q
-	@echo "📚 Generating Swagger documentation..."
+##@ 🚀 Workflows Principais
+
+infra: ## [INFRA] Sobe APENAS infraestrutura (PostgreSQL, RabbitMQ, Redis, Temporal)
+	@echo "📦 Subindo Infraestrutura"
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@echo ""
+	@echo "🚀 Subindo serviços..."
+	@$(COMPOSE) -f deployments/compose.dev.yaml up -d
+	@echo ""
+	@echo "⏳ Aguardando serviços (15s)..."
+	@sleep 15
+	@echo ""
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@echo "✅ Infraestrutura pronta!"
+	@echo ""
+	@echo "🌐 Serviços disponíveis:"
+	@echo "   • PostgreSQL:  localhost:5432 (ventros/ventros123)"
+	@echo "   • RabbitMQ:    localhost:5672 (UI: http://localhost:15672)"
+	@echo "   • Redis:       localhost:6379"
+	@echo "   • Temporal:    localhost:7233 (UI: http://localhost:8088)"
+	@echo ""
+	@echo "💡 Migrations e RLS são automáticos (na inicialização da API)"
+	@echo ""
+	@echo "🎯 Próximo passo:"
+	@echo "   make api    # Roda a API (faz migrations + RLS automaticamente)"
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+api: ## [API] Roda APENAS a API (requer infra rodando)
+	@echo "🎯 Rodando API"
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@echo ""
+	@echo "📚 Gerando Swagger docs..."
 	@swag init -g cmd/api/main.go -o docs --parseDependency --parseInternal
-	@echo "✅ Ready! Starting API server..."
-	@echo "   Swagger UI: http://localhost:8080/swagger/index.html"
 	@echo ""
-	go run cmd/api/main.go
-
-swagger:
-	@echo "Generating Swagger documentation..."
-	swag init -g cmd/api/main.go -o docs
-	@echo "✅ Swagger docs available at http://localhost:8080/swagger/index.html"
-
-swagger-install:
-	@echo "Installing Swagger CLI..."
-	go install github.com/swaggo/swag/cmd/swag@latest
-
-# Development environment (without API)
-dev-down:
-	@echo "Stopping dev services..."
-	docker-compose -f deployments/docker/docker-compose.dev.yml down
-
-dev-up:
-	@echo "Starting dev services (postgres, rabbitmq, redis, temporal)..."
-	docker-compose -f deployments/docker/docker-compose.dev.yml up -d
+	@echo "🌐 Endpoints:"
+	@echo "   • API:     http://localhost:8080"
+	@echo "   • Swagger: http://localhost:8080/swagger/index.html"
+	@echo "   • Health:  http://localhost:8080/health"
 	@echo ""
-	@echo "✓ Dev services started!"
-	@echo "  - PostgreSQL: localhost:5432"
-	@echo "  - RabbitMQ: localhost:5672 (Management UI: http://localhost:15672)"
-	@echo "  - Redis: localhost:6379"
-	@echo "  - Temporal: localhost:7233 (UI: http://localhost:8088)"
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 	@echo ""
-	@echo "Run 'make run' to start the API locally"
-	@echo "Run 'make health' to check service health"
+	@go run cmd/api/main.go
 
-dev-restart:
-	@echo "Restarting dev services..."
-	docker-compose -f deployments/docker/docker-compose.dev.yml restart
-
-dev-logs:
-	docker-compose -f deployments/docker/docker-compose.dev.yml logs -f
-
-dev-clean:
-	@echo "Stopping and removing dev containers and volumes..."
-	docker-compose -f deployments/docker/docker-compose.dev.yml down -v
-
-# Production environment (with API)
-docker-up:
-	@echo "Starting Docker containers..."
-	docker-compose -f deployments/docker/docker-compose.yml up -d
-
-docker-rebuild:
-	@echo "Rebuilding and starting Docker containers..."
-	docker-compose -f deployments/docker/docker-compose.yml up -d --build
-
-docker-down:
-	@echo "Stopping Docker containers..."
-	docker-compose -f deployments/docker/docker-compose.yml down
-
-docker-clean:
-	@echo "Stopping and removing Docker containers, volumes..."
-	docker-compose -f deployments/docker/docker-compose.yml down -v
-
-docker-logs:
-	docker-compose -f deployments/docker/docker-compose.yml logs -f
-
-docker-restart:
-	@echo "Restarting Docker containers..."
-	docker-compose -f deployments/docker/docker-compose.yml restart
-
-clean:
-	@echo "Cleaning build artifacts..."
-	rm -rf docs/swagger
-	rm -f cmd/api/api
-
-test:
-	@echo "Running tests..."
-	go test -v ./...
-
-build:
-	@echo "Building binary..."
-	go build -o ventros-crm cmd/api/main.go
-
-deps:
-	@echo "Installing dependencies..."
-	go mod download
-	go mod tidy
-
-# Install development tools (containerized approach)
-install-tools: ## Install development tools locally
-	@echo "🔧 Installing development tools..."
-	@mkdir -p bin/
-	@GOBIN=$(PWD)/bin go install ariga.io/entimport/cmd/entimport@latest
-	@GOBIN=$(PWD)/bin go install entgo.io/ent/cmd/ent@latest
-	@GOBIN=$(PWD)/bin go install github.com/swaggo/swag/cmd/swag@latest
-	@echo "✅ Tools installed in ./bin/"
-	@echo "💡 Add ./bin to your PATH or use make commands"
-
-# Ent Code Generation
-ent-init:
-	@echo "Initializing Ent..."
-	@mkdir -p ent/schema
-	@go run -mod=mod entgo.io/ent/cmd/ent init --target ent/schema User
-
-ent-generate:
-	@echo "Generating Ent code..."
-	@go generate ./ent/schema
-
-ent-new:
-	@echo "Creating new Ent schema..."
-	@echo "Usage: make ent-new SCHEMA=Contact"
-	@if [ -z "$(SCHEMA)" ]; then \
-		echo "Error: SCHEMA is required. Example: make ent-new SCHEMA=Contact"; \
-		exit 1; \
-	fi
-	@go run -mod=mod entgo.io/ent/cmd/ent init --target ent/schema $(SCHEMA)
-
-# Database migrations
-migrate: ## Run database migrations
-	@echo "🔄 Running database migrations..."
-	@make -s ent-generate
-	@go run cmd/migrate/main.go
-
-# RLS Setup
-setup-rls: ## Setup Row Level Security
-	@echo "🔒 Setting up RLS (Row Level Security)..."
-	@PGPASSWORD=ventros123 psql -h localhost -U ventros -d ventros_crm -f scripts/setup-rls.sql
-	@echo "✅ RLS configured successfully!"
-
-# Import schemas from existing database
-import-schemas: ## Import Ent schemas from existing database
-	@echo "📥 Importing schemas from database..."
-	@if [ -f "./bin/entimport" ]; then \
-		./bin/entimport \
-			-dsn "postgres://ventros:ventros123@localhost:5432/ventros_crm?sslmode=disable" \
-			-schema-path "./ent/schema"; \
-	else \
-		go run ariga.io/entimport/cmd/entimport@latest \
-			-dsn "postgres://ventros:ventros123@localhost:5432/ventros_crm?sslmode=disable" \
-			-schema-path "./ent/schema"; \
-	fi
-	@echo "✅ Schemas imported successfully!"
-
-# Database Sync (overrides DB with Domain schema)
-db-sync:
-	@echo "⚠️  This will DROP tables not declared in Ent schema!"
+dev: ## [DEV] Sobe infra + API (via compose.api.yaml)
+	@echo "🚀 Modo Desenvolvimento Completo"
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 	@echo ""
-	@echo "Press Ctrl+C to cancel, or wait 5 seconds to continue..."
-	@sleep 5
+	@echo "📦 Subindo infraestrutura..."
+	@$(COMPOSE) -f deployments/compose.api.yaml up -d
 	@echo ""
-	@echo "🔄 Running database sync..."
-	@make -s ent-generate
-	@go run cmd/migrate/main.go
-
-seed: ## Run database seeds
-	@echo "Running database seeds..."
-	@chmod +x scripts/run-seeds.sh
-	@./scripts/run-seeds.sh
-	@echo "✅ Database seeded successfully!"
-
-# Atlas Installation
-atlas-install:
-	@echo "Installing Atlas CLI..."
-	@atlas version
-
-# Database migrations
-migrate-create:
-	@echo "Creating new migration..."
-	@if [ -z "$(NAME)" ]; then \
-		echo "Error: NAME is required. Example: make migrate-create NAME=add_users"; \
-		exit 1; \
-	fi
-	@atlas migrate diff $(NAME) \
-		--dir "file://ent/migrate/migrations" \
-		--to "ent://ent/schema" \
-		--dev-url "docker://postgres/15/test?search_path=public"
-
-migrate-apply:
-	@echo "Applying migrations..."
-	@atlas migrate apply \
-		--dir "file://ent/migrate/migrations" \
-		--url "postgres://ventros:ventros123@localhost:5432/ventros_crm?sslmode=disable"
-
-migrate-status:
-	@echo "Checking migration status..."
-	@atlas migrate status \
-		--dir "file://ent/migrate/migrations" \
-		--url "postgres://ventros:ventros123@localhost:5432/ventros_crm?sslmode=disable"
-
-migrate-down:
-	@echo "Rolling back last migration..."
-	@atlas migrate down \
-		--dir "file://ent/migrate/migrations" \
-		--url "postgres://ventros:ventros123@localhost:5432/ventros_crm?sslmode=disable"
-
-health:
-	@echo "Checking service health..."
-	@curl -s http://localhost:8080/ready | jq . || echo "Service not running or unhealthy"
-
-health-live:
-	@curl -s http://localhost:8080/live | jq .
-
-health-basic:
-	@curl -s http://localhost:8080/health | jq .
-
-health-db:
-	@echo "Checking database health..."
-	@curl -s http://localhost:8080/health/database | jq .
-
-health-migrations:
-	@echo "Checking migrations status..."
-	@curl -s http://localhost:8080/health/migrations | jq .
-
-health-redis:
-	@echo "Checking Redis health..."
-	@curl -s http://localhost:8080/health/redis | jq .
-
-health-rabbitmq:
-	@echo "Checking RabbitMQ health..."
-	@curl -s http://localhost:8080/health/rabbitmq | jq .
-
-health-temporal:
-	@echo "Checking Temporal health..."
-	@curl -s http://localhost:8080/health/temporal | jq .
-
-# Webhook management
-webhook-events:
-	@echo "Available WAHA events for webhook subscription:"
-	@curl -s http://localhost:8080/api/v1/webhook-subscriptions/available-events | jq .
-
-webhook-list:
-	@echo "Listing webhook subscriptions:"
-	@curl -s http://localhost:8080/api/v1/webhook-subscriptions | jq .
-
-webhook-list-active:
-	@echo "Listing active webhook subscriptions:"
-	@curl -s http://localhost:8080/api/v1/webhook-subscriptions?active=true | jq .
-
-webhook-create:
-	@echo "Creating webhook subscription..."
-	@if [ -z "$(URL)" ]; then \
-		echo "Error: URL is required. Example: make webhook-create URL=https://n8n.example.com/webhook/waha EVENTS=message,call.received"; \
-		exit 1; \
-	fi
-	@EVENTS_JSON=$$(echo "$(EVENTS)" | sed 's/,/","/g' | sed 's/^/"/' | sed 's/$$/"/'); \
-	curl -X POST http://localhost:8080/api/v1/webhook-subscriptions \
-		-H "Content-Type: application/json" \
-		-d "{ \
-			\"name\": \"$(NAME)\", \
-			\"url\": \"$(URL)\", \
-			\"events\": [$$EVENTS_JSON] \
-		}" | jq .
-
-webhook-get:
-	@echo "Getting webhook subscription..."
-	@if [ -z "$(ID)" ]; then \
-		echo "Error: ID is required. Example: make webhook-get ID=uuid-here"; \
-		exit 1; \
-	fi
-	@curl -s http://localhost:8080/api/v1/webhook-subscriptions/$(ID) | jq .
-
-webhook-delete:
-	@echo "Deleting webhook subscription..."
-	@if [ -z "$(ID)" ]; then \
-		echo "Error: ID is required. Example: make webhook-delete ID=uuid-here"; \
-		exit 1; \
-	fi
-	@curl -X DELETE http://localhost:8080/api/v1/webhook-subscriptions/$(ID)
-	@echo "✅ Webhook deleted"
-
-webhook-test-n8n:
-	@echo "Creating test N8N webhook subscription..."
-	@curl -X POST http://localhost:8080/api/v1/webhook-subscriptions \
-		-H "Content-Type: application/json" \
-		-d '{ \
-			"name": "N8N Test Webhook", \
-			"url": "http://localhost:5678/webhook-test/waha", \
-			"events": ["message", "message.ack", "call.received"], \
-			"retry_count": 3, \
-			"timeout_seconds": 30 \
-		}' | jq .
-
-# Queue management
-queues:
-	@echo "Listing RabbitMQ queues:"
-	@curl -s http://localhost:8080/api/v1/queues | jq .
-
-help:
-	@echo "Available targets:"
+	@echo "⏳ Aguardando serviços (15s)..."
+	@sleep 15
 	@echo ""
-	@echo "Development:"
-	@echo "  dev-down        - Stop dev services (first step)"
-	@echo "  dev-up          - Start dev services: postgres, rabbitmq, redis, temporal (without API)"
-	@echo "  dev-restart     - Restart dev services"
-	@echo "  dev-logs        - View dev services logs"
-	@echo "  dev-clean       - Stop and remove dev containers + volumes"
-	@echo "  run             - Run the API server locally (with ent-generate)"
-	@echo "  dev-run         - Full dev setup: ent-generate + migrate + swagger + run"
+	@echo "✅ Infraestrutura pronta!"
 	@echo ""
-	@echo "Production:"
-	@echo "  docker-up       - Start all Docker containers (including API)"
-	@echo "  docker-rebuild  - Rebuild and start Docker containers"
-	@echo "  docker-down     - Stop Docker containers"
-	@echo "  docker-clean    - Stop and remove containers + volumes"
-	@echo "  docker-restart  - Restart Docker containers"
-	@echo "  docker-logs     - View Docker logs"
+	@echo "🎯 Agora rode a API em outro terminal:"
+	@echo "   make api"
 	@echo ""
-	@echo "Ent & Migrations:"
-	@echo "  ent-init        - Initialize Ent (first time only)"
-	@echo "  ent-new SCHEMA=Name - Create new Ent schema"
-	@echo "  ent-generate    - Generate Ent code from schemas"
-	@echo "  migrate         - Run database migrations (ent-generate + migrate)"
-	@echo "  setup-rls       - Setup Row Level Security (RLS) policies"
-	@echo "  import-schemas  - Import Ent schemas from existing database"
-	@echo "  db-sync         - ⚠️  Sync DB with domain (drops non-declared tables!)"
-	@echo "  atlas-install   - Install Atlas CLI"
-	@echo "  migrate-create NAME=name - Create new migration"
-	@echo "  migrate-apply   - Apply pending migrations"
-	@echo "  migrate-status  - Check migration status"
-	@echo "  migrate-down    - Rollback last migration"
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+infra-stop: ## Para infraestrutura
+	@echo "🛑 Parando infraestrutura..."
+	@$(COMPOSE) -f deployments/compose.dev.yaml down
+
+infra-clean: ## Para e remove volumes (DESTRUTIVO - apaga TODOS os dados)
+	@echo "⚠️  ATENÇÃO: Isso vai APAGAR todos os dados!"
+	@echo "   • API (se estiver rodando)"
+	@echo "   • PostgreSQL (tabelas, dados)"
+	@echo "   • RabbitMQ (filas, mensagens)"
+	@echo "   • Redis (cache)"
+	@echo "   • Temporal (workflows)"
 	@echo ""
-	@echo "Health Checks:"
-	@echo "  health          - Check all dependencies (aggregated)"
-	@echo "  health-live     - Liveness check (is service running?)"
-	@echo "  health-basic    - Basic health check"
-	@echo "  health-db       - Check database only"
-	@echo "  health-migrations - Check migration status"
-	@echo "  health-redis    - Check Redis only"
-	@echo "  health-rabbitmq - Check RabbitMQ only"
-	@echo "  health-temporal - Check Temporal only"
+	@echo "Pressione Ctrl+C para cancelar, ou Enter para continuar..."
+	@read confirm
 	@echo ""
-	@echo "Queue Management:"
-	@echo "  queues          - List all RabbitMQ queues with stats"
+	@echo "🛑 Parando API (se estiver rodando)..."
+	@-pkill -f "go run cmd/api/main.go" 2>/dev/null || true
+	@-pkill -f "ventros-crm" 2>/dev/null || true
+	@-lsof -ti:8080 | xargs kill -9 2>/dev/null || true
+	@sleep 1
+	@echo "🗑️  Removendo containers e volumes..."
+	@$(COMPOSE) -f deployments/compose.dev.yaml down -v
+	@echo "✅ Tudo limpo!"
+
+infra-reset: infra-clean infra ## Para, limpa volumes e sobe infra novamente (FRESH START)
+
+infra-logs: ## Mostra logs da infra
+	@$(COMPOSE) -f deployments/compose.dev.yaml logs -f
+
+infra-ps: ## Lista containers da infra
+	@$(COMPOSE) -f deployments/compose.dev.yaml ps
+
+# Aliases
+dev-stop: infra-stop ## Alias para infra-stop
+dev-clean: infra-clean ## Alias para infra-clean
+dev-logs: infra-logs ## Alias para infra-logs
+
+container: ## [CONTAINER] Sobe tudo containerizado (infra + API)
+	@echo "🐳 Modo Containerizado"
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 	@echo ""
-	@echo "Other:"
-	@echo "  swagger         - Generate Swagger docs"
-	@echo "  build           - Build binary"
-	@echo "  test            - Run tests"
-	@echo "  clean           - Clean build artifacts"
-	@echo "  deps            - Install dependencies"
-	@echo "  install-tools   - Install dev tools locally (containerized approach)"
+	@echo "🔨 1. Building imagem..."
+	@$(CONTAINER_RUNTIME) build -f deployments/Containerfile -t ventros-crm:latest .
+	@echo ""
+	@echo "🚀 2. Subindo full stack..."
+	@$(COMPOSE) -f deployments/compose.yaml up -d
+	@echo ""
+	@echo "⏳ 3. Aguardando API (30s)..."
+	@sleep 30
+	@echo ""
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@echo "✅ Stack completo rodando!"
+	@echo ""
+	@echo "🌐 Endpoints:"
+	@echo "   • API:         http://localhost:8080"
+	@echo "   • Health:      http://localhost:8080/health"
+	@echo "   • Swagger:     http://localhost:8080/swagger/index.html"
+	@echo "   • RabbitMQ UI: http://localhost:15672 (guest/guest)"
+	@echo "   • Temporal UI: http://localhost:8088"
+	@echo ""
+	@echo "🔍 Testar health:"
+	@echo "   curl http://localhost:8080/health"
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+container-stop: ## Para containers
+	@echo "🛑 Parando containers..."
+	@$(COMPOSE) -f deployments/compose.yaml down
+
+container-clean: ## Para e remove volumes (DESTRUTIVO)
+	@echo "⚠️  Removendo containers e volumes..."
+	@$(COMPOSE) -f deployments/compose.yaml down -v
+	@echo "✅ Limpo!"
+
+container-logs: ## Mostra logs dos containers
+	@$(COMPOSE) -f deployments/compose.yaml logs -f
+
+k8s: ## [K8S] Deploy no Minikube com Helm
+	@echo "☸️  Deploy Kubernetes com Helm"
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@echo ""
+	@echo "🔍 1. Verificando Minikube..."
+	@minikube status || (echo "❌ Minikube não está rodando. Execute: minikube start" && exit 1)
+	@echo ""
+	@echo "📦 2. Instalando Helm chart..."
+	@helm install ventros-crm ./deployments/helm/ventros-crm \
+		-n ventros-crm \
+		--create-namespace \
+		-f deployments/helm/ventros-crm/values-dev.yaml
+	@echo ""
+	@echo "⏳ 3. Aguardando pods (30s)..."
+	@sleep 30
+	@echo ""
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@echo "✅ Deploy concluído!"
+	@echo ""
+	@echo "🔍 Ver status:"
+	@echo "   kubectl get pods -n ventros-crm"
+	@echo ""
+	@echo "🌐 Acessar API:"
+	@echo "   kubectl port-forward -n ventros-crm svc/ventros-crm 8080:8080"
+	@echo "   Depois: http://localhost:8080"
+	@echo ""
+	@echo "📋 Ver logs:"
+	@echo "   kubectl logs -n ventros-crm -l app.kubernetes.io/name=ventros-crm -f"
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+k8s-upgrade: ## Atualiza deploy no K8s
+	@echo "🔄 Atualizando Helm release..."
+	@helm upgrade ventros-crm ./deployments/helm/ventros-crm \
+		-n ventros-crm \
+		-f deployments/helm/ventros-crm/values-dev.yaml
+
+k8s-delete: ## Remove do K8s
+	@echo "🗑️  Removendo do Kubernetes..."
+	@helm uninstall ventros-crm -n ventros-crm || true
+	@echo "⏳ Aguardando namespace ser removido..."
+	@kubectl delete namespace ventros-crm --force --grace-period=0 2>/dev/null || true
+	@echo "✅ Removido!"
+
+k8s-logs: ## Mostra logs do K8s
+	@kubectl logs -n ventros-crm -l app.kubernetes.io/name=ventros-crm -f
+
+k8s-pods: ## Lista pods do K8s
+	@kubectl get pods -n ventros-crm
+
+k8s-status: ## Status completo do K8s
+	@kubectl get all -n ventros-crm
+
+##@ 🛠️  Utilitários
+
+run: api ## Alias para 'make api'
+
+build: ## Compila binário
+	@echo "🔨 Compilando..."
+	@go build -o ventros-crm cmd/api/main.go
+	@echo "✅ Binário: ./ventros-crm"
+
+test: ## Roda testes unitários
+	@echo "🧪 Rodando testes unitários..."
+	@go test -v -race ./internal/... ./infrastructure/...
+
+test-e2e: ## Roda testes E2E (requer API rodando)
+	@echo "🧪 Rodando testes E2E"
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@echo ""
+	@echo "⚠️  Certifique-se que a API está rodando:"
+	@echo "   Terminal 1: make infra"
+	@echo "   Terminal 2: make api"
+	@echo ""
+	@echo "🔍 Testando conexão com API..."
+	@curl -f -s http://localhost:8080/health > /dev/null || (echo "❌ API não está rodando!" && exit 1)
+	@echo "✅ API respondendo!"
+	@echo ""
+	@echo "🚀 Executando testes E2E..."
+	@echo ""
+	@go test -v -timeout 5m ./tests/e2e/...
+	@echo ""
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@echo "✅ Testes E2E concluídos!"
+
+test-all: test test-e2e ## Roda todos os testes (unit + E2E)
+
+test-coverage: ## Testes com coverage
+	@echo "🧪 Rodando testes com coverage..."
+	@go test -v -race -coverprofile=coverage.out ./...
+	@go tool cover -html=coverage.out -o coverage.html
+	@echo "✅ Coverage: coverage.html"
+
+lint: ## Roda linters
+	@echo "🔍 Rodando golangci-lint..."
+	@golangci-lint run
+
+swagger: ## Gera documentação Swagger
+	@echo "📚 Gerando Swagger..."
+	@swag init -g cmd/api/main.go -o docs --parseDependency --parseInternal
+	@echo "✅ Docs: http://localhost:8080/swagger/index.html"
+
+migrate: ## Roda migrations GORM (manual)
+	@echo "🔄 Rodando migrations manualmente..."
+	@echo "⚠️  Normalmente não é necessário - a API faz AutoMigrate"
+	@go run cmd/migrate-gorm/main.go
+	@echo "✅ Migrations concluídas!"
+
+migrate-force: infra-clean infra api ## Força fresh start (limpa DB + sobe + migrations automáticas)
+
+db-seed: ## Popula banco com dados de teste
+	@echo "🌱 Seeding database..."
+	@PGPASSWORD=ventros123 psql -h localhost -U ventros -d ventros_crm -f deployments/docker/seeds/seed.sql 2>/dev/null
+	@echo "✅ Seed completo!"
+
+db-clean: ## Limpa database (DESTRUTIVO)
+	@echo "⚠️  Isso vai limpar TODOS os dados!"
+	@echo "Pressione Ctrl+C para cancelar, ou Enter para continuar..."
+	@read confirm
+	@PGPASSWORD=ventros123 psql -h localhost -U ventros -d ventros_crm -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;" 2>/dev/null
+	@$(MAKE) migrate
+	@echo "✅ Database limpo!"
+
+clean: ## Remove arquivos gerados
+	@echo "🧹 Limpando..."
+	@rm -rf docs/swagger/
+	@rm -f ventros-crm coverage.out coverage.html
+	@rm -f cmd/api/api
+	@echo "✅ Limpo!"
+
+deps: ## Atualiza dependências Go
+	@echo "📦 Atualizando dependências..."
+	@go mod download
+	@go mod tidy
+
+##@ 📊 Debug e Health
+
+health: ## Checa saúde da API
+	@curl -s http://localhost:8080/health | jq . || echo "❌ API não responde"
+
+logs-infra: ## Logs da infraestrutura
+	@$(MAKE) dev-logs
+
+logs-api: ## Logs da API (se containerizada)
+	@$(MAKE) container-logs
+
+ps: ## Lista containers rodando
+	@$(CONTAINER_RUNTIME) ps --filter "name=ventros"
+
+##@ 🔧 Setup Inicial
+
+setup: ## Setup inicial completo (primeira vez)
+	@echo "🎬 Setup Inicial do Ventros CRM"
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@echo ""
+	@echo "1. Verificando dependências..."
+	@command -v go >/dev/null 2>&1 || (echo "❌ Go não instalado" && exit 1)
+	@command -v $(CONTAINER_RUNTIME) >/dev/null 2>&1 || (echo "❌ $(CONTAINER_RUNTIME) não instalado" && exit 1)
+	@command -v swag >/dev/null 2>&1 || (echo "⚠️  Swagger não instalado. Instalando..." && go install github.com/swaggo/swag/cmd/swag@latest)
+	@echo "✅ Dependências OK"
+	@echo ""
+	@echo "2. Criando .env..."
+	@if [ ! -f .env ]; then cp .env.example .env && echo "✅ .env criado"; else echo "✅ .env já existe"; fi
+	@echo ""
+	@echo "3. Baixando dependências Go..."
+	@go mod download
+	@echo ""
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@echo "✅ Setup completo!"
+	@echo ""
+	@echo "🚀 Próximos passos:"
+	@echo "   make dev       # Sobe infra + API (modo desenvolvimento)"
+	@echo "   make container # Sobe tudo containerizado"
+	@echo "   make k8s       # Deploy no Minikube"
+	@echo ""
+	@echo "📚 Ajuda completa: make help"
+
+##@ 🔄 Atalhos Rápidos
+
+restart-infra: infra-stop infra ## Reinicia infraestrutura (mantém dados)
+
+restart-dev: infra-stop dev ## Reinicia modo dev completo
+
+restart-container: container-stop container ## Reinicia container
+
+restart-k8s: k8s-delete k8s ## Reinicia K8s
+
+fresh-start: infra-reset ## Alias para infra-reset (limpa tudo e começa do zero)
+
+.DEFAULT_GOAL := help

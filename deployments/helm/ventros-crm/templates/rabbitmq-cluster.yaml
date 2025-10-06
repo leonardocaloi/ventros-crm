@@ -1,0 +1,64 @@
+{{- if .Values.rabbitmqOperator.enabled }}
+{{- if .Values.rabbitmqOperator.createCluster }}
+apiVersion: rabbitmq.com/v1beta1
+kind: RabbitmqCluster
+metadata:
+  name: {{ include "ventros-crm.fullname" . }}-rabbitmq
+  labels:
+    {{- include "ventros-crm.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.rabbitmqOperator.cluster.replicas }}
+  image: {{ .Values.rabbitmqOperator.cluster.image }}
+  service:
+    type: {{ .Values.rabbitmqOperator.cluster.serviceType }}
+  persistence:
+    {{- if .Values.rabbitmqOperator.cluster.storageClass }}
+    storageClassName: {{ .Values.rabbitmqOperator.cluster.storageClass }}
+    {{- end }}
+    storage: {{ .Values.rabbitmqOperator.cluster.volumeSize }}
+  {{- with .Values.rabbitmqOperator.cluster.resources }}
+  resources:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  rabbitmq:
+    additionalPlugins:
+      {{- toYaml .Values.rabbitmqOperator.cluster.plugins | nindent 6 }}
+    additionalConfig: |
+      {{- .Values.rabbitmqOperator.cluster.additionalConfig | nindent 6 }}
+  {{- if .Values.rabbitmqOperator.cluster.tls.enabled }}
+  tls:
+    secretName: {{ .Values.rabbitmqOperator.cluster.tls.secretName }}
+  {{- end }}
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            labelSelector:
+              matchExpressions:
+                - key: app.kubernetes.io/name
+                  operator: In
+                  values:
+                    - {{ include "ventros-crm.fullname" . }}-rabbitmq
+            topologyKey: kubernetes.io/hostname
+  {{- with .Values.rabbitmqOperator.cluster.tolerations }}
+  tolerations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  override:
+    statefulSet:
+      spec:
+        template:
+          spec:
+            containers:
+              - name: rabbitmq
+                env:
+                  - name: RABBITMQ_DEFAULT_USER
+                    value: {{ .Values.rabbitmqOperator.cluster.auth.username | quote }}
+                  - name: RABBITMQ_DEFAULT_PASS
+                    valueFrom:
+                      secretKeyRef:
+                        name: {{ include "ventros-crm.fullname" . }}-rabbitmq-credentials
+                        key: password
+{{- end }}
+{{- end }}

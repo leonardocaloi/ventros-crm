@@ -1,0 +1,129 @@
+{{- if .Values.infrastructure.ingress.enabled -}}
+---
+# PostgreSQL Ingress (TCP - requer nginx-ingress com tcp-services ConfigMap)
+{{- if and .Values.postgresOperator.enabled .Values.infrastructure.ingress.postgresql.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "ventros-crm.fullname" . }}-tcp-services
+  namespace: {{ .Values.infrastructure.ingress.namespace | default .Release.Namespace }}
+  labels:
+    {{- include "ventros-crm.labels" . | nindent 4 }}
+data:
+  "5432": "{{ .Release.Namespace }}/ventros-crm-postgres:5432"
+{{- end }}
+---
+# RabbitMQ Management UI Ingress
+{{- if and .Values.rabbitmqOperator.enabled .Values.infrastructure.ingress.rabbitmq.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "ventros-crm.fullname" . }}-rabbitmq
+  labels:
+    {{- include "ventros-crm.labels" . | nindent 4 }}
+    app.kubernetes.io/component: messaging
+  {{- with .Values.infrastructure.ingress.rabbitmq.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- if .Values.infrastructure.ingress.className }}
+  ingressClassName: {{ .Values.infrastructure.ingress.className }}
+  {{- end }}
+  {{- if .Values.infrastructure.ingress.rabbitmq.tls }}
+  tls:
+    - hosts:
+        - {{ .Values.infrastructure.ingress.rabbitmq.host | quote }}
+      {{- if .Values.infrastructure.ingress.rabbitmq.tlsSecret }}
+      secretName: {{ .Values.infrastructure.ingress.rabbitmq.tlsSecret }}
+      {{- end }}
+  {{- end }}
+  rules:
+    - host: {{ .Values.infrastructure.ingress.rabbitmq.host | quote }}
+      http:
+        paths:
+          - path: {{ .Values.infrastructure.ingress.rabbitmq.path | default "/" }}
+            pathType: {{ .Values.infrastructure.ingress.rabbitmq.pathType | default "Prefix" }}
+            backend:
+              service:
+                name: {{ include "ventros-crm.fullname" . }}-rabbitmq
+                port:
+                  number: 15672
+{{- end }}
+---
+# Temporal Web UI Ingress
+{{- if and .Values.temporal.enabled .Values.infrastructure.ingress.temporal.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "ventros-crm.fullname" . }}-temporal
+  labels:
+    {{- include "ventros-crm.labels" . | nindent 4 }}
+    app.kubernetes.io/component: workflow
+  {{- with .Values.infrastructure.ingress.temporal.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- if .Values.infrastructure.ingress.className }}
+  ingressClassName: {{ .Values.infrastructure.ingress.className }}
+  {{- end }}
+  {{- if .Values.infrastructure.ingress.temporal.tls }}
+  tls:
+    - hosts:
+        - {{ .Values.infrastructure.ingress.temporal.host | quote }}
+      {{- if .Values.infrastructure.ingress.temporal.tlsSecret }}
+      secretName: {{ .Values.infrastructure.ingress.temporal.tlsSecret }}
+      {{- end }}
+  {{- end }}
+  rules:
+    - host: {{ .Values.infrastructure.ingress.temporal.host | quote }}
+      http:
+        paths:
+          - path: {{ .Values.infrastructure.ingress.temporal.path | default "/" }}
+            pathType: {{ .Values.infrastructure.ingress.temporal.pathType | default "Prefix" }}
+            backend:
+              service:
+                name: {{ .Release.Name }}-temporal-web
+                port:
+                  number: 8080
+{{- end }}
+---
+# Ventros CRM API Ingress
+{{- if .Values.infrastructure.ingress.api.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "ventros-crm.fullname" . }}-api
+  labels:
+    {{- include "ventros-crm.labels" . | nindent 4 }}
+    app.kubernetes.io/component: api
+  {{- with .Values.infrastructure.ingress.api.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- if .Values.infrastructure.ingress.className }}
+  ingressClassName: {{ .Values.infrastructure.ingress.className }}
+  {{- end }}
+  {{- if .Values.infrastructure.ingress.api.tls }}
+  tls:
+    - hosts:
+        - {{ .Values.infrastructure.ingress.api.host | quote }}
+      {{- if .Values.infrastructure.ingress.api.tlsSecret }}
+      secretName: {{ .Values.infrastructure.ingress.api.tlsSecret }}
+      {{- end }}
+  {{- end }}
+  rules:
+    - host: {{ .Values.infrastructure.ingress.api.host | quote }}
+      http:
+        paths:
+          - path: {{ .Values.infrastructure.ingress.api.path | default "/" }}
+            pathType: {{ .Values.infrastructure.ingress.api.pathType | default "Prefix" }}
+            backend:
+              service:
+                name: {{ include "ventros-crm.fullname" . }}
+                port:
+                  number: {{ .Values.service.port }}
+{{- end }}
+{{- end }}

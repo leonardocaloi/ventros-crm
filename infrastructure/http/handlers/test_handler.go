@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/caloi/ventros-crm/infrastructure/persistence/entities"
@@ -318,7 +319,7 @@ func (h *TestHandler) TestWAHAMessage(c *gin.Context) {
 		"data": map[string]interface{}{
 			"message_type":   messageType,
 			"description":    description,
-			"webhook_url":    "/webhooks/waha/message",
+			"webhook_url":    "/api/v1/webhooks/waha",
 			"expected_events": []string{"contact.created", "session.started", "ad_campaign.tracked"},
 		},
 		"message": "Use the curl command below to test WAHA webhook",
@@ -370,7 +371,7 @@ func (h *TestHandler) SendWAHAMessage(c *gin.Context) {
 	}
 
 	// Fazer request interno para o webhook WAHA
-	req, err := http.NewRequest("POST", "http://localhost:8080/webhooks/waha/message", bytes.NewBuffer(jsonData))
+	req, err := http.NewRequest("POST", "http://localhost:8080/api/v1/webhooks/waha", bytes.NewBuffer(jsonData))
 	if err != nil {
 		h.logger.Error("Failed to create request", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create request"})
@@ -393,7 +394,7 @@ func (h *TestHandler) SendWAHAMessage(c *gin.Context) {
 			"message_type":    messageType,
 			"description":     description,
 			"webhook_status":  resp.StatusCode,
-			"webhook_url":     "/webhooks/waha/message",
+			"webhook_url":     "/api/v1/webhooks/waha",
 			"expected_events": []string{"contact.created", "session.started", "ad_campaign.tracked"},
 		},
 		"message": fmt.Sprintf("WAHA message sent successfully! Webhook returned status: %d", resp.StatusCode),
@@ -409,13 +410,13 @@ func (h *TestHandler) SendWAHAMessage(c *gin.Context) {
 
 // getFBAdsMessageCurl retorna curl para mensagem com tracking do Facebook/Instagram
 func (h *TestHandler) getFBAdsMessageCurl() string {
-	return `curl -X POST http://localhost:8080/webhooks/waha/message \
+	return `curl -X POST http://localhost:8080/api/v1/webhooks/waha \
   -H "Content-Type: application/json" \
   -d '{
     "id": "evt_01k6jymfk5s69jmpjq30n7pgd2",
     "timestamp": 1759425216101,
     "event": "message",
-    "session": "ask-dermato-imersao",
+    "session": "test_session_e2e",
     "payload": {
       "id": "false_554498211518@c.us_2AF14CD157D1CF76DC78",
       "from": "554498211518@c.us",
@@ -442,13 +443,13 @@ func (h *TestHandler) getFBAdsMessageCurl() string {
 
 // getTextMessageCurl retorna curl para mensagem de texto simples
 func (h *TestHandler) getTextMessageCurl() string {
-	return `curl -X POST http://localhost:8080/webhooks/waha/message \
+	return `curl -X POST http://localhost:8080/api/v1/webhooks/waha \
   -H "Content-Type: application/json" \
   -d '{
     "id": "evt_01k5vejyxtvtrn6vkwh10317pc",
     "timestamp": 1758636637114,
     "event": "message",
-    "session": "ask-dermato-imersao",
+    "session": "test_session_e2e",
     "payload": {
       "id": "3A3CE2C5C341306326CF",
       "from": "554498699850@c.us",
@@ -468,13 +469,13 @@ func (h *TestHandler) getTextMessageCurl() string {
 
 // getImageMessageCurl retorna curl para mensagem com imagem
 func (h *TestHandler) getImageMessageCurl() string {
-	return `curl -X POST http://localhost:8080/webhooks/waha/message \
+	return `curl -X POST http://localhost:8080/api/v1/webhooks/waha \
   -H "Content-Type: application/json" \
   -d '{
     "id": "evt_01k68v8fnape65p4h8jk1jgh16",
     "timestamp": 1759086132906,
     "event": "message",
-    "session": "ask-dermato-imersao",
+    "session": "test_session_e2e",
     "payload": {
       "id": "false_status@broadcast_AC94411C453CBE7D20F5EC3EB01DF066_554499223925@c.us",
       "from": "554499223925@c.us",
@@ -506,7 +507,7 @@ func (h *TestHandler) getFBAdsMessagePayload() map[string]interface{} {
 		"id":        "evt_01k6jymfk5s69jmpjq30n7pgd2",
 		"timestamp": 1759425216101,
 		"event":     "message",
-		"session":   "ask-dermato-imersao",
+		"session":   "test_session_e2e",
 		"payload": map[string]interface{}{
 			"id":     "false_554498211518@c.us_2AF14CD157D1CF76DC78",
 			"from":   "554498211518@c.us",
@@ -536,7 +537,7 @@ func (h *TestHandler) getTextMessagePayload() map[string]interface{} {
 		"id":        "evt_01k5vejyxtvtrn6vkwh10317pc",
 		"timestamp": 1758636637114,
 		"event":     "message",
-		"session":   "ask-dermato-imersao",
+		"session":   "test_session_e2e",
 		"payload": map[string]interface{}{
 			"id":     "3A3CE2C5C341306326CF",
 			"from":   "554498699850@c.us",
@@ -559,7 +560,7 @@ func (h *TestHandler) getImageMessagePayload() map[string]interface{} {
 		"id":        "evt_01k68v8fnape65p4h8jk1jgh16",
 		"timestamp": 1759086132906,
 		"event":     "message",
-		"session":   "ask-dermato-imersao",
+		"session":   "test_session_e2e",
 		"payload": map[string]interface{}{
 			"id":       "false_status@broadcast_AC94411C453CBE7D20F5EC3EB01DF066_554499223925@c.us",
 			"from":     "554499223925@c.us",
@@ -583,4 +584,144 @@ func (h *TestHandler) getImageMessagePayload() map[string]interface{} {
 			},
 		},
 	}
+}
+
+// TestWAHAConnection testa a conexão com a WAHA
+// @Summary Test WAHA connection
+// @Description Testa a conexão com a API WAHA usando token e base URL
+// @Tags test
+// @Accept json
+// @Produce json
+// @Param request body TestWAHARequest true "WAHA connection data"
+// @Success 200 {object} map[string]interface{} "Connection test result"
+// @Router /api/v1/test/waha-connection [post]
+func (h *TestHandler) TestWAHAConnection(c *gin.Context) {
+	var req TestWAHARequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request: " + err.Error()})
+		return
+	}
+
+	h.logger.Info("Testing WAHA connection", 
+		zap.String("base_url", req.BaseURL),
+		zap.String("token", "***masked***"))
+
+	// Teste básico de conectividade
+	client := &http.Client{Timeout: 10 * time.Second}
+	
+	// Testa endpoint de health/status da WAHA
+	healthURL := fmt.Sprintf("%s/api/sessions", req.BaseURL)
+	httpReq, err := http.NewRequest("GET", healthURL, nil)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to create request",
+			"details": err.Error(),
+		})
+		return
+	}
+
+	// Adiciona token se fornecido
+	if req.Token != "" {
+		httpReq.Header.Set("Authorization", "Bearer "+req.Token)
+	}
+
+	resp, err := client.Do(httpReq)
+	if err != nil {
+		h.logger.Error("WAHA connection failed", zap.Error(err))
+		c.JSON(http.StatusServiceUnavailable, gin.H{
+			"error": "Failed to connect to WAHA",
+			"details": err.Error(),
+			"base_url": req.BaseURL,
+		})
+		return
+	}
+	defer resp.Body.Close()
+
+	h.logger.Info("WAHA connection successful", 
+		zap.Int("status_code", resp.StatusCode),
+		zap.String("status", resp.Status))
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "WAHA connection successful",
+		"base_url": req.BaseURL,
+		"status_code": resp.StatusCode,
+		"status": resp.Status,
+		"timestamp": time.Now().Format(time.RFC3339),
+	})
+}
+
+// TestWAHAQRCode simula recebimento de QR code da WAHA
+// @Summary Test WAHA QR code
+// @Description Simula recebimento de um QR code da WAHA para teste
+// @Tags test
+// @Accept json
+// @Produce json
+// @Param request body TestQRCodeRequest true "QR code test data"
+// @Success 200 {object} map[string]interface{} "QR code test result"
+// @Router /api/v1/test/waha-qr [post]
+func (h *TestHandler) TestWAHAQRCode(c *gin.Context) {
+	var req TestQRCodeRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request: " + err.Error()})
+		return
+	}
+
+	// Simula um QR code da WAHA (formato típico)
+	mockQRCode := fmt.Sprintf("2@%s,null,null,%s", 
+		generateMockQRData(), 
+		time.Now().Format("20060102150405"))
+
+	h.logger.Info("Simulating WAHA QR code", 
+		zap.String("session_id", req.SessionID),
+		zap.String("channel_name", req.ChannelName))
+
+	// Log do QR code no console
+	separator := strings.Repeat("=", 80)
+	fmt.Printf("\n%s\n", separator)
+	fmt.Printf("📱 [TESTE WAHA QR CODE] Canal: %s | Session: %s\n", req.ChannelName, req.SessionID)
+	fmt.Printf("🕒 Gerado em: %s\n", time.Now().Format("15:04:05"))
+	fmt.Printf("⏰ Expira em: %s\n", time.Now().Add(45*time.Second).Format("15:04:05"))
+	fmt.Printf("📋 QR Code (simulado):\n%s\n", mockQRCode)
+	fmt.Printf("🔗 Para testar: Use um leitor de QR code ou WhatsApp Web\n")
+	fmt.Printf("%s\n\n", separator)
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "QR code generated successfully",
+		"session_id": req.SessionID,
+		"channel_name": req.ChannelName,
+		"qr_code": mockQRCode,
+		"generated_at": time.Now().Unix(),
+		"expires_at": time.Now().Add(45 * time.Second).Unix(),
+		"status": "SCAN_QR_CODE",
+		"instructions": "Use WhatsApp mobile app to scan this QR code",
+	})
+}
+
+// Estruturas para requests de teste
+type TestWAHARequest struct {
+	BaseURL string `json:"base_url" binding:"required" example:"http://localhost:3000"`
+	Token   string `json:"token" example:"your-waha-token"`
+}
+
+type TestQRCodeRequest struct {
+	SessionID   string `json:"session_id" binding:"required" example:"default"`
+	ChannelName string `json:"channel_name" binding:"required" example:"WhatsApp Teste"`
+}
+
+// generateMockQRData gera dados simulados para QR code
+func generateMockQRData() string {
+	return fmt.Sprintf("1@%s@%s@%s", 
+		generateRandomString(25),
+		generateRandomString(88), 
+		generateRandomString(43))
+}
+
+// generateRandomString gera string aleatória para simulação
+func generateRandomString(length int) string {
+	const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789+/="
+	result := make([]byte, length)
+	for i := range result {
+		result[i] = charset[time.Now().UnixNano()%int64(len(charset))]
+	}
+	return string(result)
 }

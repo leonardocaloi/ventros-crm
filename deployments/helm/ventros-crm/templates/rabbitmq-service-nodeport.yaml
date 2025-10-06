@@ -1,0 +1,28 @@
+{{- if and .Values.rabbitmqOperator.enabled .Values.rabbitmqOperator.nodePort.enabled -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "ventros-crm.fullname" . }}-rabbitmq-nodeport
+  labels:
+    {{- include "ventros-crm.labels" . | nindent 4 }}
+    app.kubernetes.io/component: messaging
+spec:
+  type: NodePort
+  ports:
+    - port: 15672
+      targetPort: 15672
+      protocol: TCP
+      name: management
+      {{- if .Values.rabbitmqOperator.nodePort.managementPort }}
+      nodePort: {{ .Values.rabbitmqOperator.nodePort.managementPort }}
+      {{- end }}
+    - port: 5672
+      targetPort: 5672
+      protocol: TCP
+      name: amqp
+      {{- if .Values.rabbitmqOperator.nodePort.amqpPort }}
+      nodePort: {{ .Values.rabbitmqOperator.nodePort.amqpPort }}
+      {{- end }}
+  selector:
+    app.kubernetes.io/name: {{ include "ventros-crm.fullname" . }}-rabbitmq
+{{- end }}

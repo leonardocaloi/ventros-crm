@@ -508,7 +508,7 @@ const docTemplate = `{
         },
         "/api/v1/auth/register": {
             "post": {
-                "description": "Cria um novo usuário no sistema",
+                "description": "Cria um novo usuário no sistema com projeto e pipeline default",
                 "consumes": [
                     "application/json"
                 ],
@@ -540,6 +540,487 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "Invalid request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/channels": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Lista todos os canais do usuário autenticado",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "channels"
+                ],
+                "summary": "List channels",
+                "responses": {
+                    "200": {
+                        "description": "Channels list",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Authentication required",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Cria um novo canal de comunicação (WAHA, WhatsApp, etc.)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "channels"
+                ],
+                "summary": "Create channel",
+                "parameters": [
+                    {
+                        "description": "Channel data",
+                        "name": "channel",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/infrastructure_http_handlers.CreateChannelRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Channel created successfully",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Authentication required",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "403": {
+                        "description": "Access denied",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/channels/{channel_id}/sessions": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Lista todas as sessões. Quando usado no endpoint global /sessions, requer contact_id ou channel_id",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "sessions"
+                ],
+                "summary": "List sessions",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Filter by contact ID (UUID) - required for global endpoint",
+                        "name": "contact_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by channel ID (UUID) - required for global endpoint",
+                        "name": "channel_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by status (active, ended)",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 50,
+                        "description": "Limit results",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 0,
+                        "description": "Offset for pagination",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of sessions",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid parameters",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/channels/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Obtém detalhes de um canal específico",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "channels"
+                ],
+                "summary": "Get channel",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Channel ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Channel details",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid channel ID",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Authentication required",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Channel not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Deleta um canal de comunicação",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "channels"
+                ],
+                "summary": "Delete channel",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Channel ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Channel deleted",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid channel ID",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Authentication required",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Channel not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/channels/{id}/activate": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Ativa um canal de comunicação",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "channels"
+                ],
+                "summary": "Activate channel",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Channel ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Channel activated",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid channel ID",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Authentication required",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Channel not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/channels/{id}/deactivate": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Desativa um canal de comunicação",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "channels"
+                ],
+                "summary": "Deactivate channel",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Channel ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Channel deactivated",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid channel ID",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Authentication required",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Channel not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/channels/{id}/sessions/{session_id}": {
+            "get": {
+                "description": "Obtém detalhes de uma sessão específica",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "sessions"
+                ],
+                "summary": "Get session by ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Session ID (UUID)",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Session details",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid session ID",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Session not found",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -691,6 +1172,80 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/contacts/{contact_id}/sessions": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Lista todas as sessões. Quando usado no endpoint global /sessions, requer contact_id ou channel_id",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "sessions"
+                ],
+                "summary": "List sessions",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Filter by contact ID (UUID) - required for global endpoint",
+                        "name": "contact_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by channel ID (UUID) - required for global endpoint",
+                        "name": "channel_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by status (active, ended)",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 50,
+                        "description": "Limit results",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 0,
+                        "description": "Offset for pagination",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of sessions",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid parameters",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/contacts/{id}": {
             "get": {
                 "description": "Get detailed information about a specific contact",
@@ -832,6 +1387,57 @@ const docTemplate = `{
                     },
                     "404": {
                         "description": "Contact not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/contacts/{id}/sessions/{session_id}": {
+            "get": {
+                "description": "Obtém detalhes de uma sessão específica",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "sessions"
+                ],
+                "summary": "Get session by ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Session ID (UUID)",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Session details",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid session ID",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Session not found",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -1813,7 +2419,12 @@ const docTemplate = `{
         },
         "/api/v1/sessions": {
             "get": {
-                "description": "Lista todas as sessões com filtros opcionais",
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Lista todas as sessões. Quando usado no endpoint global /sessions, requer contact_id ou channel_id",
                 "produces": [
                     "application/json"
                 ],
@@ -1824,14 +2435,14 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Filter by tenant ID",
-                        "name": "tenant_id",
+                        "description": "Filter by contact ID (UUID) - required for global endpoint",
+                        "name": "contact_id",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "Filter by contact ID (UUID)",
-                        "name": "contact_id",
+                        "description": "Filter by channel ID (UUID) - required for global endpoint",
+                        "name": "channel_id",
                         "in": "query"
                     },
                     {
@@ -1859,11 +2470,8 @@ const docTemplate = `{
                     "200": {
                         "description": "List of sessions",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "type": "object",
-                                "additionalProperties": true
-                            }
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     },
                     "400": {
@@ -2031,6 +2639,76 @@ const docTemplate = `{
                     },
                     "500": {
                         "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/test/waha-connection": {
+            "post": {
+                "description": "Testa a conexão com a API WAHA usando token e base URL",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "test"
+                ],
+                "summary": "Test WAHA connection",
+                "parameters": [
+                    {
+                        "description": "WAHA connection data",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/infrastructure_http_handlers.TestWAHARequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Connection test result",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/test/waha-qr": {
+            "post": {
+                "description": "Simula recebimento de um QR code da WAHA para teste",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "test"
+                ],
+                "summary": "Test WAHA QR code",
+                "parameters": [
+                    {
+                        "description": "QR code test data",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/infrastructure_http_handlers.TestQRCodeRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "QR code test result",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -2274,6 +2952,71 @@ const docTemplate = `{
                     },
                     "404": {
                         "description": "Webhook not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/webhooks/waha": {
+            "get": {
+                "description": "Retorna informações sobre o endpoint de webhook WAHA",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "webhooks"
+                ],
+                "summary": "Get webhook info",
+                "responses": {
+                    "200": {
+                        "description": "Webhook info",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Recebe eventos de webhook do WAHA (mensagens, chamadas, etc.)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "webhooks"
+                ],
+                "summary": "Receive WAHA webhook",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Session ID",
+                        "name": "session",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Event processed",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -2608,100 +3351,6 @@ const docTemplate = `{
                     }
                 }
             }
-        },
-        "/webhooks/waha/events": {
-            "post": {
-                "description": "Endpoint único para todos os eventos WAHA (message, ack, session, etc)",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "webhooks"
-                ],
-                "summary": "Receive WAHA webhook",
-                "parameters": [
-                    {
-                        "description": "WAHA Event",
-                        "name": "payload",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/github_com_caloi_ventros-crm_infrastructure_channels_waha.WAHAMessageEvent"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Event queued successfully",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "400": {
-                        "description": "Invalid payload",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "500": {
-                        "description": "Internal server error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            }
-        },
-        "/webhooks/waha/health": {
-            "get": {
-                "description": "Verifica se o endpoint de webhook está funcionando",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "webhooks"
-                ],
-                "summary": "Webhook health check",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            }
-        },
-        "/webhooks/waha/status": {
-            "post": {
-                "description": "Endpoint para receber confirmações de entrega da WAHA",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "webhooks"
-                ],
-                "summary": "Receive WAHA message status",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            }
         }
     },
     "definitions": {
@@ -2861,288 +3510,6 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_caloi_ventros-crm_infrastructure_channels_waha.WAHAContextInfo": {
-            "type": "object",
-            "properties": {
-                "conversionData": {
-                    "type": "string"
-                },
-                "conversionSource": {
-                    "description": "Tracking de conversão (ads, etc)",
-                    "type": "string"
-                },
-                "entryPointConversionApp": {
-                    "type": "string"
-                },
-                "entryPointConversionExternalMedium": {
-                    "type": "string"
-                },
-                "entryPointConversionExternalSource": {
-                    "type": "string"
-                },
-                "entryPointConversionSource": {
-                    "type": "string"
-                },
-                "externalAdReply": {
-                    "$ref": "#/definitions/github_com_caloi_ventros-crm_infrastructure_channels_waha.WAHAExternalAdReply"
-                }
-            }
-        },
-        "github_com_caloi_ventros-crm_infrastructure_channels_waha.WAHAData": {
-            "type": "object",
-            "properties": {
-                "Info": {
-                    "$ref": "#/definitions/github_com_caloi_ventros-crm_infrastructure_channels_waha.WAHAInfo"
-                },
-                "Message": {
-                    "$ref": "#/definitions/github_com_caloi_ventros-crm_infrastructure_channels_waha.WAHAMessage"
-                }
-            }
-        },
-        "github_com_caloi_ventros-crm_infrastructure_channels_waha.WAHAEnvironment": {
-            "type": "object",
-            "properties": {
-                "browser": {
-                    "type": "string"
-                },
-                "engine": {
-                    "type": "string"
-                },
-                "tier": {
-                    "type": "string"
-                },
-                "version": {
-                    "type": "string"
-                }
-            }
-        },
-        "github_com_caloi_ventros-crm_infrastructure_channels_waha.WAHAExtendedText": {
-            "type": "object",
-            "properties": {
-                "contextInfo": {
-                    "$ref": "#/definitions/github_com_caloi_ventros-crm_infrastructure_channels_waha.WAHAContextInfo"
-                },
-                "text": {
-                    "type": "string"
-                }
-            }
-        },
-        "github_com_caloi_ventros-crm_infrastructure_channels_waha.WAHAExternalAdReply": {
-            "type": "object",
-            "properties": {
-                "ctwaClid": {
-                    "description": "Click ID do Click-to-WhatsApp Ad",
-                    "type": "string"
-                },
-                "sourceApp": {
-                    "type": "string"
-                },
-                "sourceID": {
-                    "type": "string"
-                },
-                "sourceType": {
-                    "type": "string"
-                },
-                "sourceURL": {
-                    "type": "string"
-                }
-            }
-        },
-        "github_com_caloi_ventros-crm_infrastructure_channels_waha.WAHAInfo": {
-            "type": "object",
-            "properties": {
-                "Chat": {
-                    "type": "string"
-                },
-                "ID": {
-                    "type": "string"
-                },
-                "IsFromMe": {
-                    "type": "boolean"
-                },
-                "IsGroup": {
-                    "type": "boolean"
-                },
-                "MediaType": {
-                    "description": "\"image\", \"video\", \"audio\", etc",
-                    "type": "string"
-                },
-                "PushName": {
-                    "type": "string"
-                },
-                "Sender": {
-                    "type": "string"
-                },
-                "SenderAlt": {
-                    "description": "LID alternativo",
-                    "type": "string"
-                },
-                "Type": {
-                    "description": "\"text\", \"media\"",
-                    "type": "string"
-                }
-            }
-        },
-        "github_com_caloi_ventros-crm_infrastructure_channels_waha.WAHAMe": {
-            "type": "object",
-            "properties": {
-                "id": {
-                    "type": "string"
-                },
-                "jid": {
-                    "type": "string"
-                },
-                "lid": {
-                    "type": "string"
-                },
-                "pushName": {
-                    "type": "string"
-                }
-            }
-        },
-        "github_com_caloi_ventros-crm_infrastructure_channels_waha.WAHAMedia": {
-            "type": "object",
-            "properties": {
-                "mimetype": {
-                    "type": "string"
-                },
-                "s3": {
-                    "$ref": "#/definitions/github_com_caloi_ventros-crm_infrastructure_channels_waha.WAHAS3"
-                },
-                "url": {
-                    "type": "string"
-                }
-            }
-        },
-        "github_com_caloi_ventros-crm_infrastructure_channels_waha.WAHAMediaMessage": {
-            "type": "object",
-            "properties": {
-                "URL": {
-                    "type": "string"
-                },
-                "caption": {
-                    "type": "string"
-                },
-                "mimetype": {
-                    "type": "string"
-                }
-            }
-        },
-        "github_com_caloi_ventros-crm_infrastructure_channels_waha.WAHAMessage": {
-            "type": "object",
-            "properties": {
-                "audioMessage": {
-                    "$ref": "#/definitions/github_com_caloi_ventros-crm_infrastructure_channels_waha.WAHAMediaMessage"
-                },
-                "conversation": {
-                    "description": "Diferentes tipos de mensagens",
-                    "type": "string"
-                },
-                "documentMessage": {
-                    "$ref": "#/definitions/github_com_caloi_ventros-crm_infrastructure_channels_waha.WAHAMediaMessage"
-                },
-                "extendedTextMessage": {
-                    "$ref": "#/definitions/github_com_caloi_ventros-crm_infrastructure_channels_waha.WAHAExtendedText"
-                },
-                "imageMessage": {
-                    "$ref": "#/definitions/github_com_caloi_ventros-crm_infrastructure_channels_waha.WAHAMediaMessage"
-                },
-                "stickerMessage": {
-                    "$ref": "#/definitions/github_com_caloi_ventros-crm_infrastructure_channels_waha.WAHAMediaMessage"
-                },
-                "videoMessage": {
-                    "$ref": "#/definitions/github_com_caloi_ventros-crm_infrastructure_channels_waha.WAHAMediaMessage"
-                }
-            }
-        },
-        "github_com_caloi_ventros-crm_infrastructure_channels_waha.WAHAMessageEvent": {
-            "type": "object",
-            "properties": {
-                "environment": {
-                    "$ref": "#/definitions/github_com_caloi_ventros-crm_infrastructure_channels_waha.WAHAEnvironment"
-                },
-                "event": {
-                    "description": "\"message\", \"message.any\", \"message.ack\", etc",
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "me": {
-                    "$ref": "#/definitions/github_com_caloi_ventros-crm_infrastructure_channels_waha.WAHAMe"
-                },
-                "metadata": {
-                    "type": "object",
-                    "additionalProperties": {
-                        "type": "string"
-                    }
-                },
-                "payload": {
-                    "$ref": "#/definitions/github_com_caloi_ventros-crm_infrastructure_channels_waha.WAHAPayload"
-                },
-                "session": {
-                    "type": "string"
-                },
-                "timestamp": {
-                    "type": "integer"
-                }
-            }
-        },
-        "github_com_caloi_ventros-crm_infrastructure_channels_waha.WAHAPayload": {
-            "type": "object",
-            "properties": {
-                "_data": {
-                    "$ref": "#/definitions/github_com_caloi_ventros-crm_infrastructure_channels_waha.WAHAData"
-                },
-                "body": {
-                    "description": "Texto da mensagem",
-                    "type": "string"
-                },
-                "from": {
-                    "type": "string"
-                },
-                "fromMe": {
-                    "type": "boolean"
-                },
-                "hasMedia": {
-                    "type": "boolean"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "media": {
-                    "$ref": "#/definitions/github_com_caloi_ventros-crm_infrastructure_channels_waha.WAHAMedia"
-                },
-                "participant": {
-                    "description": "Para grupos",
-                    "type": "string"
-                },
-                "replyTo": {
-                    "type": "string"
-                },
-                "source": {
-                    "description": "\"app\", \"web\", etc",
-                    "type": "string"
-                },
-                "timestamp": {
-                    "type": "integer"
-                },
-                "to": {
-                    "type": "string"
-                }
-            }
-        },
-        "github_com_caloi_ventros-crm_infrastructure_channels_waha.WAHAS3": {
-            "type": "object",
-            "properties": {
-                "Bucket": {
-                    "type": "string"
-                },
-                "Key": {
-                    "type": "string"
-                }
-            }
-        },
         "github_com_caloi_ventros-crm_infrastructure_health.CheckResult": {
             "type": "object",
             "properties": {
@@ -3282,6 +3649,26 @@ const docTemplate = `{
                 "tenant_id": {
                     "type": "string",
                     "example": "tenant_123"
+                }
+            }
+        },
+        "infrastructure_http_handlers.CreateChannelRequest": {
+            "type": "object",
+            "required": [
+                "name",
+                "type"
+            ],
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "example": "WhatsApp Principal"
+                },
+                "type": {
+                    "type": "string",
+                    "example": "waha"
+                },
+                "waha_config": {
+                    "$ref": "#/definitions/infrastructure_http_handlers.CreateWAHAConfigRequest"
                 }
             }
         },
@@ -3438,6 +3825,37 @@ const docTemplate = `{
                 }
             }
         },
+        "infrastructure_http_handlers.CreateWAHAConfigRequest": {
+            "type": "object",
+            "required": [
+                "base_url"
+            ],
+            "properties": {
+                "api_key": {
+                    "description": "Chave da API para autenticação",
+                    "type": "string",
+                    "example": "your-waha-api-key"
+                },
+                "base_url": {
+                    "type": "string",
+                    "example": "http://localhost:3000"
+                },
+                "session_id": {
+                    "description": "ID da sessão (equivale ao ExternalID)",
+                    "type": "string",
+                    "example": "default"
+                },
+                "token": {
+                    "description": "Token de acesso (alternativo)",
+                    "type": "string",
+                    "example": "your-waha-token"
+                },
+                "webhook_url": {
+                    "type": "string",
+                    "example": "http://localhost:8080/api/v1/webhooks/waha"
+                }
+            }
+        },
         "infrastructure_http_handlers.CreateWebhookRequest": {
             "type": "object",
             "required": [
@@ -3538,6 +3956,39 @@ const docTemplate = `{
                 "password": {
                     "type": "string",
                     "example": "senha123"
+                }
+            }
+        },
+        "infrastructure_http_handlers.TestQRCodeRequest": {
+            "type": "object",
+            "required": [
+                "channel_name",
+                "session_id"
+            ],
+            "properties": {
+                "channel_name": {
+                    "type": "string",
+                    "example": "WhatsApp Teste"
+                },
+                "session_id": {
+                    "type": "string",
+                    "example": "default"
+                }
+            }
+        },
+        "infrastructure_http_handlers.TestWAHARequest": {
+            "type": "object",
+            "required": [
+                "base_url"
+            ],
+            "properties": {
+                "base_url": {
+                    "type": "string",
+                    "example": "http://localhost:3000"
+                },
+                "token": {
+                    "type": "string",
+                    "example": "your-waha-token"
                 }
             }
         },

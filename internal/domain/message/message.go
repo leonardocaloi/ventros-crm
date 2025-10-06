@@ -15,7 +15,7 @@ type Message struct {
 	projectID        uuid.UUID
 	channelTypeID    *int
 	fromMe           bool
-	channelID        *uuid.UUID
+	channelID        uuid.UUID    // OBRIGATÓRIO - toda mensagem vem de um canal
 	contactID        uuid.UUID
 	sessionID        *uuid.UUID
 	contentType      ContentType
@@ -86,7 +86,7 @@ func ReconstructMessage(
 	projectID uuid.UUID,
 	channelTypeID *int,
 	fromMe bool,
-	channelID *uuid.UUID,
+	channelID uuid.UUID,
 	contactID uuid.UUID,
 	sessionID *uuid.UUID,
 	contentType ContentType,
@@ -157,6 +157,13 @@ func (m *Message) HasMediaURL() bool {
 	return m.contentType.IsMedia() && m.mediaURL != nil
 }
 
+// AssignToChannel atribui a mensagem a um canal.
+// DEVE ser chamado imediatamente após criar a mensagem.
+func (m *Message) AssignToChannel(channelID uuid.UUID, channelTypeID *int) {
+	m.channelID = channelID
+	m.channelTypeID = channelTypeID
+}
+
 // AssignToSession atribui a mensagem a uma sessão.
 func (m *Message) AssignToSession(sessionID uuid.UUID) {
 	m.sessionID = &sessionID
@@ -208,7 +215,7 @@ func (m *Message) CustomerID() uuid.UUID      { return m.customerID }
 func (m *Message) ProjectID() uuid.UUID       { return m.projectID }
 func (m *Message) ChannelTypeID() *int        { return m.channelTypeID }
 func (m *Message) FromMe() bool               { return m.fromMe }
-func (m *Message) ChannelID() *uuid.UUID      { return m.channelID }
+func (m *Message) ChannelID() uuid.UUID       { return m.channelID }
 func (m *Message) ContactID() uuid.UUID       { return m.contactID }
 func (m *Message) SessionID() *uuid.UUID      { return m.sessionID }
 func (m *Message) ContentType() ContentType   { return m.contentType }

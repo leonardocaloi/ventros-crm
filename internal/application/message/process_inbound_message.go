@@ -7,9 +7,8 @@ import (
 
 	"github.com/caloi/ventros-crm/internal/domain/contact"
 	domaincontact "github.com/caloi/ventros-crm/internal/domain/contact"
-	"github.com/caloi/ventros-crm/internal/domain/contact_event"
+	contact_event "github.com/caloi/ventros-crm/internal/domain/contact_event"
 	domainmessage "github.com/caloi/ventros-crm/internal/domain/message"
-	"github.com/caloi/ventros-crm/internal/domain/session"
 	domainsession "github.com/caloi/ventros-crm/internal/domain/session"
 	"github.com/caloi/ventros-crm/internal/domain/shared"
 	sessionworkflow "github.com/caloi/ventros-crm/internal/workflows/session"
@@ -17,19 +16,32 @@ import (
 )
 
 // ProcessInboundMessageCommand represents the command to process an inbound message
+// IMPORTANTE: SessionID aqui refere-se à SESSÃO DO CRM (conversa com timeout gerenciado pelo Temporal),
+// NÃO ao session_id do WAHA (que é o ExternalID do canal). Não confundir os dois conceitos!
 type ProcessInboundMessageCommand struct {
-	ExternalID     string
-	Session        string
-	ContactPhone   string
-	ContactName    string
-	ChannelTypeID  int    // ID do canal (waha, whatsapp, etc)
-	ContentType    string
-	Text           string
-	MediaURL       string
-	MediaMimetype  string
-	TrackingData   map[string]interface{}
-	ReceivedAt     time.Time
-	Metadata       map[string]interface{}
+	MessageID     string
+	FromPhone     string
+	MessageText   string
+	Timestamp     time.Time
+	MessageType   string
+	MediaURL      string
+	MediaType     string
+	// Channel context (OBRIGATÓRIO - toda mensagem vem de um canal)
+	ChannelID     uuid.UUID // UUID do canal de onde a mensagem veio
+	// User context (obtido do canal)
+	ProjectID     uuid.UUID
+	CustomerID    uuid.UUID
+	TenantID      string
+	// Additional fields
+	ContactPhone  string
+	ContactName   string
+	ChannelTypeID int
+	ContentType   string
+	Text          string
+	MediaMimetype string
+	TrackingData  map[string]interface{}
+	ReceivedAt    time.Time
+	Metadata      map[string]interface{} // Pode conter "waha_session" (ExternalID do canal), "channel_name", etc.
 }
 
 // EventBus é a interface para publicar eventos de domínio.
@@ -41,29 +53,21 @@ type EventBus interface {
 // ProcessInboundMessageUseCase handles processing of inbound messages
 type ProcessInboundMessageUseCase struct {
 	contactRepo      contact.Repository
-	sessionRepo      session.Repository
+	sessionRepo      domainsession.Repository
 	messageRepo      domainmessage.Repository
 	contactEventRepo contact_event.Repository
 	eventBus         EventBus
 	sessionManager   *sessionworkflow.SessionManager
-	
-	// Configuração (carregada do banco)
-	projectID  uuid.UUID
-	customerID uuid.UUID
-	tenantID   string
 }
 
 // NewProcessInboundMessageUseCase creates a new use case instance
 func NewProcessInboundMessageUseCase(
 	contactRepo contact.Repository,
-	sessionRepo session.Repository,
+	sessionRepo domainsession.Repository,
 	messageRepo domainmessage.Repository,
 	contactEventRepo contact_event.Repository,
 	eventBus EventBus,
 	sessionManager *sessionworkflow.SessionManager,
-	projectID uuid.UUID,
-	customerID uuid.UUID,
-	tenantID string,
 ) *ProcessInboundMessageUseCase {
 	return &ProcessInboundMessageUseCase{
 		contactRepo:      contactRepo,
@@ -72,9 +76,6 @@ func NewProcessInboundMessageUseCase(
 		contactEventRepo: contactEventRepo,
 		eventBus:         eventBus,
 		sessionManager:   sessionManager,
-		projectID:        projectID,
-		customerID:       customerID,
-		tenantID:         tenantID,
 	}
 }
 
@@ -142,7 +143,7 @@ func (uc *ProcessInboundMessageUseCase) Execute(ctx context.Context, cmd Process
 // findOrCreateContact busca contato por telefone ou cria novo
 func (uc *ProcessInboundMessageUseCase) findOrCreateContact(ctx context.Context, cmd ProcessInboundMessageCommand) (*domaincontact.Contact, error) {
 	// Busca por telefone
-	existing, err := uc.contactRepo.FindByPhone(ctx, uc.projectID, cmd.ContactPhone)
+	existing, err := uc.contactRepo.FindByPhone(ctx, cmd.ProjectID, cmd.ContactPhone)
 	if err != nil && err != domaincontact.ErrContactNotFound {
 		return nil, err
 	}
@@ -161,7 +162,7 @@ func (uc *ProcessInboundMessageUseCase) findOrCreateContact(ctx context.Context,
 		name = cmd.ContactPhone // Fallback
 	}
 	
-	c, err := domaincontact.NewContact(uc.projectID, uc.tenantID, name)
+	c, err := domaincontact.NewContact(cmd.ProjectID, cmd.TenantID, name)
 	if err != nil {
 		return nil, err
 	}
@@ -216,7 +217,7 @@ func (uc *ProcessInboundMessageUseCase) findOrCreateSession(ctx context.Context,
 	
 	// Cria nova sessão (1 min timeout para teste)
 	timeoutDuration := 1 * time.Minute
-	s, err := domainsession.NewSession(c.ID(), uc.tenantID, channelTypeID, timeoutDuration)
+	s, err := domainsession.NewSession(c.ID(), cmd.TenantID, channelTypeID, timeoutDuration)
 	if err != nil {
 		return nil, err
 	}
@@ -232,7 +233,7 @@ func (uc *ProcessInboundMessageUseCase) findOrCreateSession(ctx context.Context,
 			ctx,
 			s.ID(),
 			c.ID(),
-			uc.tenantID,
+			cmd.TenantID,
 			channelTypeID,
 			timeoutDuration,
 		)
@@ -254,10 +255,13 @@ func (uc *ProcessInboundMessageUseCase) createMessage(ctx context.Context, c *do
 	}
 	
 	// Cria mensagem (inbound, fromMe=false)
-	m, err := domainmessage.NewMessage(c.ID(), uc.projectID, uc.customerID, contentType, false)
+	m, err := domainmessage.NewMessage(c.ID(), cmd.ProjectID, cmd.CustomerID, contentType, false)
 	if err != nil {
 		return nil, err
 	}
+	
+	// Associa ao canal (OBRIGATÓRIO)
+	m.AssignToChannel(cmd.ChannelID, &cmd.ChannelTypeID)
 	
 	// Associa à sessão
 	m.AssignToSession(s.ID())
@@ -289,7 +293,7 @@ func (uc *ProcessInboundMessageUseCase) createContactEvent(ctx context.Context, 
 	// Cria evento básico
 	event, err := contact_event.NewContactEvent(
 		c.ID(),
-		uc.tenantID,
+		cmd.TenantID,
 		"message.received",
 		contact_event.CategoryMessage,
 		contact_event.PriorityNormal,
@@ -396,7 +400,7 @@ func (uc *ProcessInboundMessageUseCase) trackAdConversion(ctx context.Context, c
 	conversionEvent := domaincontact.NewAdConversionTrackedEvent(
 		c.ID(),
 		s.ID(),
-		uc.tenantID,
+		cmd.TenantID,
 		trackingDataStr,
 	)
 	

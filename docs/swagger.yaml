@@ -112,193 +112,6 @@ definitions:
         example: 5
         type: integer
     type: object
-  github_com_caloi_ventros-crm_infrastructure_channels_waha.WAHAContextInfo:
-    properties:
-      conversionData:
-        type: string
-      conversionSource:
-        description: Tracking de conversão (ads, etc)
-        type: string
-      entryPointConversionApp:
-        type: string
-      entryPointConversionExternalMedium:
-        type: string
-      entryPointConversionExternalSource:
-        type: string
-      entryPointConversionSource:
-        type: string
-      externalAdReply:
-        $ref: '#/definitions/github_com_caloi_ventros-crm_infrastructure_channels_waha.WAHAExternalAdReply'
-    type: object
-  github_com_caloi_ventros-crm_infrastructure_channels_waha.WAHAData:
-    properties:
-      Info:
-        $ref: '#/definitions/github_com_caloi_ventros-crm_infrastructure_channels_waha.WAHAInfo'
-      Message:
-        $ref: '#/definitions/github_com_caloi_ventros-crm_infrastructure_channels_waha.WAHAMessage'
-    type: object
-  github_com_caloi_ventros-crm_infrastructure_channels_waha.WAHAEnvironment:
-    properties:
-      browser:
-        type: string
-      engine:
-        type: string
-      tier:
-        type: string
-      version:
-        type: string
-    type: object
-  github_com_caloi_ventros-crm_infrastructure_channels_waha.WAHAExtendedText:
-    properties:
-      contextInfo:
-        $ref: '#/definitions/github_com_caloi_ventros-crm_infrastructure_channels_waha.WAHAContextInfo'
-      text:
-        type: string
-    type: object
-  github_com_caloi_ventros-crm_infrastructure_channels_waha.WAHAExternalAdReply:
-    properties:
-      ctwaClid:
-        description: Click ID do Click-to-WhatsApp Ad
-        type: string
-      sourceApp:
-        type: string
-      sourceID:
-        type: string
-      sourceType:
-        type: string
-      sourceURL:
-        type: string
-    type: object
-  github_com_caloi_ventros-crm_infrastructure_channels_waha.WAHAInfo:
-    properties:
-      Chat:
-        type: string
-      ID:
-        type: string
-      IsFromMe:
-        type: boolean
-      IsGroup:
-        type: boolean
-      MediaType:
-        description: '"image", "video", "audio", etc'
-        type: string
-      PushName:
-        type: string
-      Sender:
-        type: string
-      SenderAlt:
-        description: LID alternativo
-        type: string
-      Type:
-        description: '"text", "media"'
-        type: string
-    type: object
-  github_com_caloi_ventros-crm_infrastructure_channels_waha.WAHAMe:
-    properties:
-      id:
-        type: string
-      jid:
-        type: string
-      lid:
-        type: string
-      pushName:
-        type: string
-    type: object
-  github_com_caloi_ventros-crm_infrastructure_channels_waha.WAHAMedia:
-    properties:
-      mimetype:
-        type: string
-      s3:
-        $ref: '#/definitions/github_com_caloi_ventros-crm_infrastructure_channels_waha.WAHAS3'
-      url:
-        type: string
-    type: object
-  github_com_caloi_ventros-crm_infrastructure_channels_waha.WAHAMediaMessage:
-    properties:
-      URL:
-        type: string
-      caption:
-        type: string
-      mimetype:
-        type: string
-    type: object
-  github_com_caloi_ventros-crm_infrastructure_channels_waha.WAHAMessage:
-    properties:
-      audioMessage:
-        $ref: '#/definitions/github_com_caloi_ventros-crm_infrastructure_channels_waha.WAHAMediaMessage'
-      conversation:
-        description: Diferentes tipos de mensagens
-        type: string
-      documentMessage:
-        $ref: '#/definitions/github_com_caloi_ventros-crm_infrastructure_channels_waha.WAHAMediaMessage'
-      extendedTextMessage:
-        $ref: '#/definitions/github_com_caloi_ventros-crm_infrastructure_channels_waha.WAHAExtendedText'
-      imageMessage:
-        $ref: '#/definitions/github_com_caloi_ventros-crm_infrastructure_channels_waha.WAHAMediaMessage'
-      stickerMessage:
-        $ref: '#/definitions/github_com_caloi_ventros-crm_infrastructure_channels_waha.WAHAMediaMessage'
-      videoMessage:
-        $ref: '#/definitions/github_com_caloi_ventros-crm_infrastructure_channels_waha.WAHAMediaMessage'
-    type: object
-  github_com_caloi_ventros-crm_infrastructure_channels_waha.WAHAMessageEvent:
-    properties:
-      environment:
-        $ref: '#/definitions/github_com_caloi_ventros-crm_infrastructure_channels_waha.WAHAEnvironment'
-      event:
-        description: '"message", "message.any", "message.ack", etc'
-        type: string
-      id:
-        type: string
-      me:
-        $ref: '#/definitions/github_com_caloi_ventros-crm_infrastructure_channels_waha.WAHAMe'
-      metadata:
-        additionalProperties:
-          type: string
-        type: object
-      payload:
-        $ref: '#/definitions/github_com_caloi_ventros-crm_infrastructure_channels_waha.WAHAPayload'
-      session:
-        type: string
-      timestamp:
-        type: integer
-    type: object
-  github_com_caloi_ventros-crm_infrastructure_channels_waha.WAHAPayload:
-    properties:
-      _data:
-        $ref: '#/definitions/github_com_caloi_ventros-crm_infrastructure_channels_waha.WAHAData'
-      body:
-        description: Texto da mensagem
-        type: string
-      from:
-        type: string
-      fromMe:
-        type: boolean
-      hasMedia:
-        type: boolean
-      id:
-        type: string
-      media:
-        $ref: '#/definitions/github_com_caloi_ventros-crm_infrastructure_channels_waha.WAHAMedia'
-      participant:
-        description: Para grupos
-        type: string
-      replyTo:
-        type: string
-      source:
-        description: '"app", "web", etc'
-        type: string
-      timestamp:
-        type: integer
-      to:
-        type: string
-    type: object
-  github_com_caloi_ventros-crm_infrastructure_channels_waha.WAHAS3:
-    properties:
-      Bucket:
-        type: string
-      Key:
-        type: string
-    type: object
   github_com_caloi_ventros-crm_infrastructure_health.CheckResult:
     properties:
       duration_ms:
@@ -400,6 +213,20 @@ definitions:
     - email
     - name
     - tenant_id
+    type: object
+  infrastructure_http_handlers.CreateChannelRequest:
+    properties:
+      name:
+        example: WhatsApp Principal
+        type: string
+      type:
+        example: waha
+        type: string
+      waha_config:
+        $ref: '#/definitions/infrastructure_http_handlers.CreateWAHAConfigRequest'
+    required:
+    - name
+    - type
     type: object
   infrastructure_http_handlers.CreateMessageRequest:
     properties:
@@ -509,6 +336,29 @@ definitions:
     - name
     - password
     type: object
+  infrastructure_http_handlers.CreateWAHAConfigRequest:
+    properties:
+      api_key:
+        description: Chave da API para autenticação
+        example: your-waha-api-key
+        type: string
+      base_url:
+        example: http://localhost:3000
+        type: string
+      session_id:
+        description: ID da sessão (equivale ao ExternalID)
+        example: default
+        type: string
+      token:
+        description: Token de acesso (alternativo)
+        example: your-waha-token
+        type: string
+      webhook_url:
+        example: http://localhost:8080/api/v1/webhooks/waha
+        type: string
+    required:
+    - base_url
+    type: object
   infrastructure_http_handlers.CreateWebhookRequest:
     properties:
       events:
@@ -581,6 +431,29 @@ definitions:
     required:
     - email
     - password
+    type: object
+  infrastructure_http_handlers.TestQRCodeRequest:
+    properties:
+      channel_name:
+        example: WhatsApp Teste
+        type: string
+      session_id:
+        example: default
+        type: string
+    required:
+    - channel_name
+    - session_id
+    type: object
+  infrastructure_http_handlers.TestWAHARequest:
+    properties:
+      base_url:
+        example: http://localhost:3000
+        type: string
+      token:
+        example: your-waha-token
+        type: string
+    required:
+    - base_url
     type: object
   infrastructure_http_handlers.UpdateAgentRequest:
     properties:
@@ -1020,7 +893,7 @@ paths:
     post:
       consumes:
       - application/json
-      description: Cria um novo usuário no sistema
+      description: Cria um novo usuário no sistema com projeto e pipeline default
       parameters:
       - description: User data
         in: body
@@ -1049,6 +922,328 @@ paths:
       summary: Create user
       tags:
       - auth
+  /api/v1/channels:
+    get:
+      description: Lista todos os canais do usuário autenticado
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Channels list
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Authentication required
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: List channels
+      tags:
+      - channels
+    post:
+      consumes:
+      - application/json
+      description: Cria um novo canal de comunicação (WAHA, WhatsApp, etc.)
+      parameters:
+      - description: Channel data
+        in: body
+        name: channel
+        required: true
+        schema:
+          $ref: '#/definitions/infrastructure_http_handlers.CreateChannelRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Channel created successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Authentication required
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Access denied
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Create channel
+      tags:
+      - channels
+  /api/v1/channels/{channel_id}/sessions:
+    get:
+      description: Lista todas as sessões. Quando usado no endpoint global /sessions,
+        requer contact_id ou channel_id
+      parameters:
+      - description: Filter by contact ID (UUID) - required for global endpoint
+        in: query
+        name: contact_id
+        type: string
+      - description: Filter by channel ID (UUID) - required for global endpoint
+        in: query
+        name: channel_id
+        type: string
+      - description: Filter by status (active, ended)
+        in: query
+        name: status
+        type: string
+      - default: 50
+        description: Limit results
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Offset for pagination
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of sessions
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid parameters
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: List sessions
+      tags:
+      - sessions
+  /api/v1/channels/{id}:
+    delete:
+      description: Deleta um canal de comunicação
+      parameters:
+      - description: Channel ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Channel deleted
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid channel ID
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Authentication required
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Channel not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Delete channel
+      tags:
+      - channels
+    get:
+      description: Obtém detalhes de um canal específico
+      parameters:
+      - description: Channel ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Channel details
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid channel ID
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Authentication required
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Channel not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Get channel
+      tags:
+      - channels
+  /api/v1/channels/{id}/activate:
+    post:
+      description: Ativa um canal de comunicação
+      parameters:
+      - description: Channel ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Channel activated
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid channel ID
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Authentication required
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Channel not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Activate channel
+      tags:
+      - channels
+  /api/v1/channels/{id}/deactivate:
+    post:
+      description: Desativa um canal de comunicação
+      parameters:
+      - description: Channel ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Channel deactivated
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid channel ID
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Authentication required
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Channel not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Deactivate channel
+      tags:
+      - channels
+  /api/v1/channels/{id}/sessions/{session_id}:
+    get:
+      description: Obtém detalhes de uma sessão específica
+      parameters:
+      - description: Session ID (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Session details
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid session ID
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Session not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get session by ID
+      tags:
+      - sessions
   /api/v1/contacts:
     get:
       consumes:
@@ -1138,6 +1333,56 @@ paths:
       summary: Create a new contact
       tags:
       - contacts
+  /api/v1/contacts/{contact_id}/sessions:
+    get:
+      description: Lista todas as sessões. Quando usado no endpoint global /sessions,
+        requer contact_id ou channel_id
+      parameters:
+      - description: Filter by contact ID (UUID) - required for global endpoint
+        in: query
+        name: contact_id
+        type: string
+      - description: Filter by channel ID (UUID) - required for global endpoint
+        in: query
+        name: channel_id
+        type: string
+      - description: Filter by status (active, ended)
+        in: query
+        name: status
+        type: string
+      - default: 50
+        description: Limit results
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Offset for pagination
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of sessions
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid parameters
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: List sessions
+      tags:
+      - sessions
   /api/v1/contacts/{id}:
     delete:
       description: Remove um contato (soft delete)
@@ -1244,6 +1489,41 @@ paths:
       summary: Update contact
       tags:
       - contacts
+  /api/v1/contacts/{id}/sessions/{session_id}:
+    get:
+      description: Obtém detalhes de uma sessão específica
+      parameters:
+      - description: Session ID (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Session details
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid session ID
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Session not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get session by ID
+      tags:
+      - sessions
   /api/v1/messages:
     get:
       description: Lista mensagens com filtros opcionais
@@ -1904,15 +2184,16 @@ paths:
       - queues
   /api/v1/sessions:
     get:
-      description: Lista todas as sessões com filtros opcionais
+      description: Lista todas as sessões. Quando usado no endpoint global /sessions,
+        requer contact_id ou channel_id
       parameters:
-      - description: Filter by tenant ID
-        in: query
-        name: tenant_id
-        type: string
-      - description: Filter by contact ID (UUID)
+      - description: Filter by contact ID (UUID) - required for global endpoint
         in: query
         name: contact_id
+        type: string
+      - description: Filter by channel ID (UUID) - required for global endpoint
+        in: query
+        name: channel_id
         type: string
       - description: Filter by status (active, ended)
         in: query
@@ -1934,10 +2215,8 @@ paths:
         "200":
           description: List of sessions
           schema:
-            items:
-              additionalProperties: true
-              type: object
-            type: array
+            additionalProperties: true
+            type: object
         "400":
           description: Invalid parameters
           schema:
@@ -1948,6 +2227,8 @@ paths:
           schema:
             additionalProperties: true
             type: object
+      security:
+      - ApiKeyAuth: []
       summary: List sessions
       tags:
       - sessions
@@ -2058,6 +2339,52 @@ paths:
       summary: Get session statistics
       tags:
       - sessions
+  /api/v1/test/waha-connection:
+    post:
+      consumes:
+      - application/json
+      description: Testa a conexão com a API WAHA usando token e base URL
+      parameters:
+      - description: WAHA connection data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/infrastructure_http_handlers.TestWAHARequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Connection test result
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Test WAHA connection
+      tags:
+      - test
+  /api/v1/test/waha-qr:
+    post:
+      consumes:
+      - application/json
+      description: Simula recebimento de um QR code da WAHA para teste
+      parameters:
+      - description: QR code test data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/infrastructure_http_handlers.TestQRCodeRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: QR code test result
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Test WAHA QR code
+      tags:
+      - test
   /api/v1/webhook-subscriptions:
     get:
       description: Lista todas as inscrições de webhooks
@@ -2226,6 +2553,50 @@ paths:
             additionalProperties: true
             type: object
       summary: Get available WAHA events
+      tags:
+      - webhooks
+  /api/v1/webhooks/waha:
+    get:
+      description: Retorna informações sobre o endpoint de webhook WAHA
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Webhook info
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get webhook info
+      tags:
+      - webhooks
+    post:
+      consumes:
+      - application/json
+      description: Recebe eventos de webhook do WAHA (mensagens, chamadas, etc.)
+      parameters:
+      - description: Session ID
+        in: query
+        name: session
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Event processed
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Receive WAHA webhook
       tags:
       - webhooks
   /health:
@@ -2439,70 +2810,6 @@ paths:
       summary: Test WAHA message with tracking
       tags:
       - test
-  /webhooks/waha/events:
-    post:
-      consumes:
-      - application/json
-      description: Endpoint único para todos os eventos WAHA (message, ack, session,
-        etc)
-      parameters:
-      - description: WAHA Event
-        in: body
-        name: payload
-        required: true
-        schema:
-          $ref: '#/definitions/github_com_caloi_ventros-crm_infrastructure_channels_waha.WAHAMessageEvent'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Event queued successfully
-          schema:
-            additionalProperties: true
-            type: object
-        "400":
-          description: Invalid payload
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: Internal server error
-          schema:
-            additionalProperties: true
-            type: object
-      summary: Receive WAHA webhook
-      tags:
-      - webhooks
-  /webhooks/waha/health:
-    get:
-      description: Verifica se o endpoint de webhook está funcionando
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties: true
-            type: object
-      summary: Webhook health check
-      tags:
-      - webhooks
-  /webhooks/waha/status:
-    post:
-      consumes:
-      - application/json
-      description: Endpoint para receber confirmações de entrega da WAHA
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties: true
-            type: object
-      summary: Receive WAHA message status
-      tags:
-      - webhooks
 schemes:
 - http
 - https

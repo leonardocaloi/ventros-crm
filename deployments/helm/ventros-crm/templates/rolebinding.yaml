@@ -1,0 +1,16 @@
+{{- if .Values.rbac.create }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ include "ventros-crm.fullname" . }}
+  labels:
+    {{- include "ventros-crm.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ include "ventros-crm.fullname" . }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "ventros-crm.serviceAccountName" . }}
+    namespace: {{ .Release.Namespace }}
+{{- end }}

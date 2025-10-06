@@ -4,18 +4,21 @@ import (
 	"net/http"
 
 	"github.com/caloi/ventros-crm/infrastructure/http/middleware"
+	"github.com/caloi/ventros-crm/internal/application/user"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 )
 
 type AuthHandler struct {
-	logger *zap.Logger
+	logger      *zap.Logger
+	userService *user.UserService
 }
 
-func NewAuthHandler(logger *zap.Logger) *AuthHandler {
+func NewAuthHandler(logger *zap.Logger, userService *user.UserService) *AuthHandler {
 	return &AuthHandler{
-		logger: logger,
+		logger:      logger,
+		userService: userService,
 	}
 }
 
@@ -40,7 +43,7 @@ type GenerateAPIKeyRequest struct {
 
 // CreateUser creates a new user
 // @Summary Create user
-// @Description Cria um novo usuário no sistema
+// @Description Cria um novo usuário no sistema com projeto e pipeline default
 // @Tags auth
 // @Accept json
 // @Produce json
@@ -57,18 +60,31 @@ func (h *AuthHandler) CreateUser(c *gin.Context) {
 		return
 	}
 
-	// TODO: Implementar criação real de usuário
-	userID := uuid.New()
-	apiKey := uuid.New().String()
+	// Converte para o request do service
+	serviceReq := user.CreateUserRequest{
+		Name:     req.Name,
+		Email:    req.Email,
+		Password: req.Password,
+		Role:     req.Role,
+	}
+
+	response, err := h.userService.CreateUser(serviceReq)
+	if err != nil {
+		h.logger.Error("Failed to create user", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create user: " + err.Error()})
+		return
+	}
 
 	c.JSON(http.StatusCreated, gin.H{
-		"message":  "User created successfully (mock)",
-		"user_id":  userID,
-		"name":     req.Name,
-		"email":    req.Email,
-		"role":     req.Role,
-		"api_key":  apiKey,
-		"note":     "Save this API key - it won't be shown again",
+		"message":             "User created successfully",
+		"user_id":             response.UserID,
+		"name":                response.Name,
+		"email":               response.Email,
+		"role":                response.Role,
+		"api_key":             response.APIKey,
+		"default_project_id":  response.ProjectID,
+		"default_pipeline_id": response.PipelineID,
+		"note":                "Save this API key - it won't be shown again",
 	})
 }
 
@@ -90,33 +106,28 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
-	// TODO: Implementar validação real de credenciais
-	// Mock para desenvolvimento
-	if req.Email == "admin@dev.com" && req.Password == "admin123" {
-		c.JSON(http.StatusOK, gin.H{
-			"message":  "Login successful",
-			"api_key":  "dev-admin-key",
-			"user_id":  "00000000-0000-0000-0000-000000000001",
-			"role":     "admin",
-			"email":    req.Email,
+	// Converte para o request do service
+	serviceReq := user.LoginRequest{
+		Email:    req.Email,
+		Password: req.Password,
+	}
+
+	response, err := h.userService.Login(serviceReq)
+	if err != nil {
+		h.logger.Error("Login failed", zap.Error(err))
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "Invalid credentials",
 		})
 		return
 	}
 
-	if req.Email == "user@dev.com" && req.Password == "user123" {
-		c.JSON(http.StatusOK, gin.H{
-			"message":  "Login successful",
-			"api_key":  "dev-user-key",
-			"user_id":  "00000000-0000-0000-0000-000000000002",
-			"role":     "user",
-			"email":    req.Email,
-		})
-		return
-	}
-
-	c.JSON(http.StatusUnauthorized, gin.H{
-		"error": "Invalid credentials",
-		"hint":  "Try admin@dev.com/admin123 or user@dev.com/user123",
+	c.JSON(http.StatusOK, gin.H{
+		"message":            "Login successful",
+		"user_id":            response.UserID,
+		"email":              response.Email,
+		"role":               response.Role,
+		"api_key":            response.APIKey,
+		"default_project_id": response.ProjectID,
 	})
 }
 

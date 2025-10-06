@@ -3,6 +3,7 @@ package handlers
 import (
 	"net/http"
 
+	"github.com/caloi/ventros-crm/infrastructure/http/middleware"
 	webhookapp "github.com/caloi/ventros-crm/internal/application/webhook"
 	"github.com/caloi/ventros-crm/internal/domain/webhook"
 	"github.com/gin-gonic/gin"
@@ -55,6 +56,13 @@ type UpdateWebhookRequest struct {
 // @Failure 500 {object} map[string]interface{} "Internal server error"
 // @Router /api/v1/webhook-subscriptions [post]
 func (h *WebhookSubscriptionHandler) CreateWebhook(c *gin.Context) {
+	// Obter contexto do usuário autenticado
+	authCtx, exists := middleware.GetAuthContext(c)
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Authentication required"})
+		return
+	}
+
 	var req CreateWebhookRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		h.logger.Error("Failed to parse webhook request", zap.Error(err))
@@ -73,6 +81,9 @@ func (h *WebhookSubscriptionHandler) CreateWebhook(c *gin.Context) {
 	}
 
 	dto := webhookapp.CreateWebhookDTO{
+		UserID:         authCtx.UserID,
+		ProjectID:      authCtx.ProjectID,
+		TenantID:       authCtx.TenantID,
 		Name:           req.Name,
 		URL:            req.URL,
 		Events:         req.Events,

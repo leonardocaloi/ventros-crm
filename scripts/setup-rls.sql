@@ -45,6 +45,12 @@ ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
 -- Sessions - usuário só vê sessões de seus contatos
 ALTER TABLE sessions ENABLE ROW LEVEL SECURITY;
 
+-- Webhook Subscriptions - usuário só vê seus próprios webhooks
+ALTER TABLE webhook_subscriptions ENABLE ROW LEVEL SECURITY;
+
+-- Channels - usuário só vê seus próprios canais
+ALTER TABLE channels ENABLE ROW LEVEL SECURITY;
+
 -- =====================================================
 -- POLÍTICAS RLS
 -- =====================================================
@@ -137,6 +143,18 @@ CREATE POLICY user_sessions_policy ON sessions
         )
     );
 
+-- Webhook Subscriptions: usuário só vê seus próprios webhooks
+DROP POLICY IF EXISTS user_webhook_subscriptions_policy ON webhook_subscriptions;
+CREATE POLICY user_webhook_subscriptions_policy ON webhook_subscriptions
+    FOR ALL TO app_user
+    USING (user_id = current_setting('app.current_user_id', true)::uuid);
+
+-- Channels: usuário só vê seus próprios canais
+DROP POLICY IF EXISTS user_channels_policy ON channels;
+CREATE POLICY user_channels_policy ON channels
+    FOR ALL TO app_user
+    USING (user_id = current_setting('app.current_user_id', true)::uuid);
+
 -- =====================================================
 -- PERMISSÕES PARA APP_USER
 -- =====================================================
@@ -190,7 +208,7 @@ BEGIN
     RAISE NOTICE '📋 Tabelas com RLS habilitado:';
     RAISE NOTICE '   - projects, pipelines, pipeline_statuses';
     RAISE NOTICE '   - contacts, contact_pipeline_statuses, contact_status_histories';
-    RAISE NOTICE '   - messages, sessions';
+    RAISE NOTICE '   - messages, sessions, webhook_subscriptions, channels';
     RAISE NOTICE '🔒 Políticas criadas para isolamento por user_id';
     RAISE NOTICE '⚡ Índices criados para performance';
 END

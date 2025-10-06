@@ -243,7 +243,7 @@ func (hc *HealthChecker) CheckRabbitMQ(ctx context.Context) CheckResult {
 		// Check if critical queues exist
 		criticalQueues := []string{
 			"waha.events.message",
-			"waha.events.ack", 
+			"waha.events.message.ack", 
 			"domain.events.contact.created",
 			"domain.events.session.started",
 		}

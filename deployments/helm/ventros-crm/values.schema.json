@@ -1,0 +1,396 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "title": "Ventros CRM Helm Chart Values Schema",
+  "description": "Schema validation for Ventros CRM Helm chart values",
+  "properties": {
+    "replicaCount": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100,
+      "description": "Number of replicas for the application deployment"
+    },
+    "image": {
+      "type": "object",
+      "properties": {
+        "repository": {
+          "type": "string",
+          "pattern": "^[a-z0-9._/-]+$",
+          "description": "Container image repository"
+        },
+        "tag": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9._-]*$",
+          "description": "Container image tag"
+        },
+        "pullPolicy": {
+          "type": "string",
+          "enum": ["Always", "Never", "IfNotPresent"],
+          "description": "Image pull policy"
+        }
+      },
+      "required": ["repository", "pullPolicy"],
+      "additionalProperties": false
+    },
+    "service": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["ClusterIP", "NodePort", "LoadBalancer", "ExternalName"],
+          "description": "Kubernetes service type"
+        },
+        "port": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65535,
+          "description": "Service port"
+        },
+        "targetPort": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65535,
+          "description": "Container target port"
+        },
+        "annotations": {
+          "type": "object",
+          "description": "Service annotations"
+        }
+      },
+      "required": ["type", "port", "targetPort"],
+      "additionalProperties": false
+    },
+    "ingress": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Enable ingress"
+        },
+        "className": {
+          "type": "string",
+          "description": "Ingress class name"
+        },
+        "hosts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "host": {
+                "type": "string",
+                "format": "hostname",
+                "description": "Hostname for the ingress rule"
+              },
+              "paths": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "path": {
+                      "type": "string",
+                      "description": "Path for the ingress rule"
+                    },
+                    "pathType": {
+                      "type": "string",
+                      "enum": ["Exact", "Prefix", "ImplementationSpecific"],
+                      "description": "Path type for the ingress rule"
+                    }
+                  },
+                  "required": ["path", "pathType"]
+                }
+              }
+            },
+            "required": ["host", "paths"]
+          }
+        }
+      },
+      "required": ["enabled"],
+      "additionalProperties": true
+    },
+    "resources": {
+      "type": "object",
+      "properties": {
+        "limits": {
+          "type": "object",
+          "properties": {
+            "cpu": {
+              "type": "string",
+              "pattern": "^[0-9]+m?$|^[0-9]*\\.?[0-9]+$",
+              "description": "CPU limit"
+            },
+            "memory": {
+              "type": "string",
+              "pattern": "^[0-9]+[KMGT]?i?$",
+              "description": "Memory limit"
+            }
+          },
+          "additionalProperties": false
+        },
+        "requests": {
+          "type": "object",
+          "properties": {
+            "cpu": {
+              "type": "string",
+              "pattern": "^[0-9]+m?$|^[0-9]*\\.?[0-9]+$",
+              "description": "CPU request"
+            },
+            "memory": {
+              "type": "string",
+              "pattern": "^[0-9]+[KMGT]?i?$",
+              "description": "Memory request"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "autoscaling": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Enable horizontal pod autoscaling"
+        },
+        "minReplicas": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "description": "Minimum number of replicas"
+        },
+        "maxReplicas": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000,
+          "description": "Maximum number of replicas"
+        },
+        "targetCPUUtilizationPercentage": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "description": "Target CPU utilization percentage"
+        },
+        "targetMemoryUtilizationPercentage": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "description": "Target memory utilization percentage"
+        }
+      },
+      "required": ["enabled"],
+      "additionalProperties": false
+    },
+    "postgresOperator": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Enable PostgreSQL operator"
+        },
+        "createCluster": {
+          "type": "boolean",
+          "description": "Create PostgreSQL cluster"
+        },
+        "crd": {
+          "type": "object",
+          "properties": {
+            "create": {
+              "type": "boolean",
+              "description": "Create CRDs from subchart"
+            }
+          },
+          "additionalProperties": false
+        },
+        "cluster": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string",
+              "pattern": "^[a-z0-9-]+$",
+              "description": "PostgreSQL cluster name"
+            },
+            "teamId": {
+              "type": "string",
+              "pattern": "^[a-z0-9-]+$",
+              "description": "Team ID for the cluster"
+            },
+            "numberOfInstances": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 10,
+              "description": "Number of PostgreSQL instances"
+            },
+            "volumeSize": {
+              "type": "string",
+              "pattern": "^[0-9]+[KMGT]?i?$",
+              "description": "Volume size for PostgreSQL"
+            },
+            "version": {
+              "type": "string",
+              "pattern": "^[0-9]+$",
+              "description": "PostgreSQL version"
+            },
+            "database": {
+              "type": "string",
+              "pattern": "^[a-zA-Z_][a-zA-Z0-9_]*$",
+              "description": "Database name"
+            },
+            "username": {
+              "type": "string",
+              "pattern": "^[a-zA-Z_][a-zA-Z0-9_]*$",
+              "description": "Database username"
+            }
+          },
+          "additionalProperties": true
+        }
+      },
+      "required": ["enabled"],
+      "additionalProperties": true
+    },
+    "redis": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Enable Redis subchart"
+        }
+      },
+      "required": ["enabled"],
+      "additionalProperties": true
+    },
+    "rabbitmq": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Enable RabbitMQ subchart"
+        }
+      },
+      "required": ["enabled"],
+      "additionalProperties": true
+    },
+    "rabbitmqOperator": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Enable RabbitMQ operator"
+        },
+        "createCluster": {
+          "type": "boolean",
+          "description": "Create RabbitMQ cluster"
+        }
+      },
+      "required": ["enabled"],
+      "additionalProperties": true
+    },
+    "temporal": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Enable Temporal subchart"
+        }
+      },
+      "required": ["enabled"],
+      "additionalProperties": true
+    },
+    "serviceAccount": {
+      "type": "object",
+      "properties": {
+        "create": {
+          "type": "boolean",
+          "description": "Create service account"
+        },
+        "name": {
+          "type": "string",
+          "description": "Service account name"
+        },
+        "annotations": {
+          "type": "object",
+          "description": "Service account annotations"
+        }
+      },
+      "required": ["create"],
+      "additionalProperties": false
+    },
+    "rbac": {
+      "type": "object",
+      "properties": {
+        "create": {
+          "type": "boolean",
+          "description": "Create RBAC resources"
+        }
+      },
+      "required": ["create"],
+      "additionalProperties": false
+    },
+    "podSecurityContext": {
+      "type": "object",
+      "properties": {
+        "runAsNonRoot": {
+          "type": "boolean",
+          "description": "Run as non-root user"
+        },
+        "runAsUser": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "User ID to run as"
+        },
+        "fsGroup": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "File system group ID"
+        }
+      },
+      "additionalProperties": true
+    },
+    "securityContext": {
+      "type": "object",
+      "properties": {
+        "readOnlyRootFilesystem": {
+          "type": "boolean",
+          "description": "Mount root filesystem as read-only"
+        },
+        "allowPrivilegeEscalation": {
+          "type": "boolean",
+          "description": "Allow privilege escalation"
+        }
+      },
+      "additionalProperties": true
+    },
+    "networkPolicy": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Enable network policy"
+        }
+      },
+      "required": ["enabled"],
+      "additionalProperties": true
+    },
+    "serviceMonitor": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Enable Prometheus ServiceMonitor"
+        }
+      },
+      "required": ["enabled"],
+      "additionalProperties": true
+    }
+  },
+  "required": [
+    "replicaCount",
+    "image",
+    "service",
+    "postgresOperator",
+    "redis",
+    "rabbitmq",
+    "serviceAccount",
+    "rbac"
+  ],
+  "additionalProperties": true
+}

@@ -103,7 +103,6 @@ func (r *GormMessageRepository) CountBySession(ctx context.Context, sessionID uu
 // Mappers: Domain → Entity
 func (r *GormMessageRepository) domainToEntity(m *message.Message) *entities.MessageEntity {
 	entity := &entities.MessageEntity{
-		ID:               m.ID(),
 		Timestamp:        m.Timestamp(),
 		UserID:           m.CustomerID(),
 		ProjectID:        m.ProjectID(),
@@ -115,7 +114,6 @@ func (r *GormMessageRepository) domainToEntity(m *message.Message) *entities.Mes
 		ContentType:      m.ContentType().String(),
 		Text:             m.Text(),
 		MediaURL:         m.MediaURL(),
-		MediaMimetype:    m.MediaMimetype(),
 		ChannelMessageID: m.ChannelMessageID(),
 		ReplyToID:        m.ReplyToID(),
 		Status:           m.Status().String(),

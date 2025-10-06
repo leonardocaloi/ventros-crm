@@ -161,12 +161,13 @@ func (a *WebhookRepositoryAdapter) domainToEntity(w *webhook.WebhookSubscription
 
 	// Converter []string para pq.StringArray
 	events := make(pq.StringArray, len(w.Events))
-	for i, event := range w.Events {
-		events[i] = event
-	}
+	copy(events, w.Events)
 
 	return &entities.WebhookSubscriptionEntity{
 		ID:              w.ID,
+		UserID:          w.UserID,
+		ProjectID:       w.ProjectID,
+		TenantID:        w.TenantID,
 		Name:            w.Name,
 		URL:             w.URL,
 		Events:          events,
@@ -198,12 +199,13 @@ func (a *WebhookRepositoryAdapter) entityToDomain(e *entities.WebhookSubscriptio
 
 	// Converter pq.StringArray para []string
 	events := make([]string, len(e.Events))
-	for i, event := range e.Events {
-		events[i] = event
-	}
+	copy(events, e.Events)
 
 	return &webhook.WebhookSubscription{
 		ID:              e.ID,
+		UserID:          e.UserID,
+		ProjectID:       e.ProjectID,
+		TenantID:        e.TenantID,
 		Name:            e.Name,
 		URL:             e.URL,
 		Events:          events,

@@ -1,0 +1,32 @@
+{{- if .Values.rbac.create }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ include "ventros-crm.fullname" . }}
+  labels:
+    {{- include "ventros-crm.labels" . | nindent 4 }}
+rules:
+  # Allow reading ConfigMaps
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["get", "list", "watch"]
+  
+  # Allow reading Secrets (for PostgreSQL, RabbitMQ credentials)
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get", "list"]
+  
+  {{- if .Values.postgresOperator.enabled }}
+  # Permissions for Zalando Postgres Operator
+  - apiGroups: ["acid.zalan.do"]
+    resources: ["postgresqls"]
+    verbs: ["get", "list", "watch"]
+  {{- end }}
+  
+  {{- if .Values.rabbitmqOperator.enabled }}
+  # Permissions for RabbitMQ Cluster Operator
+  - apiGroups: ["rabbitmq.com"]
+    resources: ["rabbitmqclusters"]
+    verbs: ["get", "list", "watch"]
+  {{- end }}
+{{- end }}

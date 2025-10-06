@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/caloi/ventros-crm/internal/application/user"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
@@ -11,22 +12,25 @@ import (
 
 // AuthContext representa o contexto de autenticação
 type AuthContext struct {
-	UserID   uuid.UUID `json:"user_id"`
-	Email    string    `json:"email"`
-	Role     string    `json:"role"`
-	TenantID string    `json:"tenant_id"`
+	UserID    uuid.UUID `json:"user_id"`
+	Email     string    `json:"email"`
+	Role      string    `json:"role"`
+	TenantID  string    `json:"tenant_id"`
+	ProjectID uuid.UUID `json:"project_id"`
 }
 
 // AuthMiddleware é um middleware flexível para desenvolvimento
 type AuthMiddleware struct {
-	logger *zap.Logger
-	devMode bool
+	logger      *zap.Logger
+	devMode     bool
+	userService *user.UserService
 }
 
-func NewAuthMiddleware(logger *zap.Logger, devMode bool) *AuthMiddleware {
+func NewAuthMiddleware(logger *zap.Logger, devMode bool, userService *user.UserService) *AuthMiddleware {
 	return &AuthMiddleware{
-		logger:  logger,
-		devMode: devMode,
+		logger:      logger,
+		devMode:     devMode,
+		userService: userService,
 	}
 }
 
@@ -118,39 +122,48 @@ func (a *AuthMiddleware) handleAPIKeyAuth(c *gin.Context) *AuthContext {
 	return a.validateAPIKey(authHeader)
 }
 
-// validateAPIKey valida a API key (implementação simplificada para dev)
+// validateAPIKey valida a API key usando o UserService
 func (a *AuthMiddleware) validateAPIKey(apiKey string) *AuthContext {
-	// TODO: Implementar validação real no banco
-	// Por enquanto, aceita qualquer key que pareça um UUID
 	if len(apiKey) < 10 {
 		return nil
 	}
 
-	// Mock para desenvolvimento - aceita keys específicas
-	switch apiKey {
-	case "dev-admin-key":
-		return &AuthContext{
-			UserID:   uuid.MustParse("00000000-0000-0000-0000-000000000001"),
-			Email:    "admin@dev.com",
-			Role:     "admin",
-			TenantID: "dev-tenant",
-		}
-	case "dev-user-key":
-		return &AuthContext{
-			UserID:   uuid.MustParse("00000000-0000-0000-0000-000000000002"),
-			Email:    "user@dev.com",
-			Role:     "user",
-			TenantID: "dev-tenant",
-		}
-	default:
-		// Tenta parsear como UUID para keys customizadas
-		if userID, err := uuid.Parse(apiKey); err == nil {
+	// Em modo dev, mantém keys de desenvolvimento para facilitar testes
+	if a.devMode {
+		switch apiKey {
+		case "dev-admin-key":
 			return &AuthContext{
-				UserID:   userID,
-				Email:    "custom@dev.com",
-				Role:     "user",
-				TenantID: "dev-tenant",
+				UserID:    uuid.MustParse("00000000-0000-0000-0000-000000000001"),
+				Email:     "admin@dev.com",
+				Role:      "admin",
+				TenantID:  "dev-tenant",
+				ProjectID: uuid.MustParse("11111111-1111-1111-1111-111111111111"),
 			}
+		case "dev-user-key":
+			return &AuthContext{
+				UserID:    uuid.MustParse("00000000-0000-0000-0000-000000000002"),
+				Email:     "user@dev.com",
+				Role:      "user",
+				TenantID:  "dev-tenant",
+				ProjectID: uuid.MustParse("11111111-1111-1111-1111-111111111111"),
+			}
+		}
+	}
+
+	// Validação real usando UserService
+	if a.userService != nil {
+		userEntity, projectEntity, err := a.userService.ValidateAPIKey(apiKey)
+		if err != nil {
+			a.logger.Debug("API key validation failed", zap.Error(err))
+			return nil
+		}
+
+		return &AuthContext{
+			UserID:    userEntity.ID,
+			Email:     userEntity.Email,
+			Role:      userEntity.Role,
+			TenantID:  projectEntity.TenantID,
+			ProjectID: projectEntity.ID,
 		}
 	}
 

@@ -15,7 +15,7 @@ type MessageEntity struct {
 	ProjectID        uuid.UUID              `gorm:"type:uuid;not null;index"`
 	ChannelTypeID    *int                   `gorm:"index"`
 	FromMe           bool                   `gorm:"default:false;index"`
-	ChannelID        *uuid.UUID             `gorm:"type:uuid"`
+	ChannelID        uuid.UUID              `gorm:"type:uuid;not null;index"` // OBRIGATÓRIO
 	ContactID        uuid.UUID              `gorm:"type:uuid;not null;index"`
 	SessionID        *uuid.UUID             `gorm:"type:uuid;index"`
 	ContentType      string                 `gorm:"default:'text';not null;index"`
@@ -39,9 +39,10 @@ type MessageEntity struct {
 	DeletedAt        gorm.DeletedAt         `gorm:"index"`
 
 	// Relacionamentos
-	Contact ContactEntity `gorm:"foreignKey:ContactID"`
+	Contact ContactEntity  `gorm:"foreignKey:ContactID"`
 	Session *SessionEntity `gorm:"foreignKey:SessionID"`
-	Project ProjectEntity `gorm:"foreignKey:ProjectID"`
+	Project ProjectEntity  `gorm:"foreignKey:ProjectID"`
+	Channel ChannelEntity `gorm:"foreignKey:ChannelID;constraint:OnDelete:RESTRICT"`
 }
 
 func (MessageEntity) TableName() string {

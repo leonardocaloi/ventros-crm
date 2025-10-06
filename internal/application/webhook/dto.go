@@ -9,6 +9,9 @@ import (
 
 // CreateWebhookDTO representa os dados para criar um webhook
 type CreateWebhookDTO struct {
+	UserID         uuid.UUID
+	ProjectID      uuid.UUID
+	TenantID       string
 	Name           string
 	URL            string
 	Events         []string
@@ -33,6 +36,9 @@ type UpdateWebhookDTO struct {
 // WebhookDTO representa um webhook para resposta
 type WebhookDTO struct {
 	ID              uuid.UUID         `json:"id" example:"550e8400-e29b-41d4-a716-446655440000"`
+	UserID          uuid.UUID         `json:"user_id" example:"550e8400-e29b-41d4-a716-446655440001"`
+	ProjectID       uuid.UUID         `json:"project_id" example:"550e8400-e29b-41d4-a716-446655440002"`
+	TenantID        string            `json:"tenant_id" example:"user-12345678"`
 	Name            string            `json:"name" example:"N8N Webhook"`
 	URL             string            `json:"url" example:"https://n8n.example.com/webhook/waha-events"`
 	Events          []string          `json:"events" example:"message,ack,call.received"`
@@ -53,6 +59,9 @@ type WebhookDTO struct {
 func ToDTO(w *webhook.WebhookSubscription) WebhookDTO {
 	return WebhookDTO{
 		ID:              w.ID,
+		UserID:          w.UserID,
+		ProjectID:       w.ProjectID,
+		TenantID:        w.TenantID,
 		Name:            w.Name,
 		URL:             w.URL,
 		Events:          w.Events,

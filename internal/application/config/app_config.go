@@ -10,10 +10,14 @@ import (
 
 // AppConfig contém configurações da aplicação carregadas do banco.
 type AppConfig struct {
-	DefaultProjectID  uuid.UUID
-	DefaultCustomerID uuid.UUID
-	DefaultTenantID   string
-	ChannelTypes      map[string]int // name -> id
+	ChannelTypes map[string]int // name -> id
+}
+
+// UserConfig contém configurações específicas do usuário
+type UserConfig struct {
+	UserID    uuid.UUID
+	ProjectID uuid.UUID
+	TenantID  string
 }
 
 // AppConfigService carrega configurações do banco.
@@ -30,12 +34,7 @@ func NewAppConfigService(db *gorm.DB) *AppConfigService {
 
 // LoadConfig carrega as configurações iniciais do banco.
 func (s *AppConfigService) LoadConfig(ctx context.Context) (*AppConfig, error) {
-	// TODO: Implementar busca no banco com GORM
-	// Por enquanto, usar valores hardcoded para permitir compilação
 	cfg := &AppConfig{
-		DefaultProjectID:  uuid.MustParse("00000000-0000-0000-0000-000000000001"),
-		DefaultCustomerID: uuid.MustParse("00000000-0000-0000-0000-000000000001"),
-		DefaultTenantID:   "default",
 		ChannelTypes: map[string]int{
 			"waha":      1,
 			"whatsapp":  2,
@@ -46,6 +45,15 @@ func (s *AppConfigService) LoadConfig(ctx context.Context) (*AppConfig, error) {
 	}
 	
 	return cfg, nil
+}
+
+// GetUserConfig retorna configurações específicas do usuário
+func (s *AppConfigService) GetUserConfig(userID, projectID uuid.UUID, tenantID string) *UserConfig {
+	return &UserConfig{
+		UserID:    userID,
+		ProjectID: projectID,
+		TenantID:  tenantID,
+	}
 }
 
 // GetChannelTypeID retorna o ID de um channel type por nome.
