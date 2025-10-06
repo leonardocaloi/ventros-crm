@@ -62,10 +62,10 @@ helm uninstall ventros-crm -n ventros-crm
 kubectl delete all -l app.kubernetes.io/instance=ventros-crm -n ventros-crm
 
 # 3. Reinstalar
-helm install ventros-crm ./deployments/helm/ventros-crm \
+helm install ventros-crm ./.deploy/helm/ventros-crm \
   --namespace ventros-crm \
   --create-namespace \
-  --values deployments/helm/ventros-crm/values-dev.yaml \
+  --values .deploy/helm/ventros-crm/values-dev.yaml \
   --timeout 15m
 ```
 
@@ -123,11 +123,11 @@ Antes de instalar/atualizar, verifique:
 ### Desenvolvimento (Minikube)
 
 ```bash
-helm upgrade ventros-crm ./deployments/helm/ventros-crm \
+helm upgrade ventros-crm ./.deploy/helm/ventros-crm \
   --install \
   --namespace ventros-crm \
   --create-namespace \
-  --values deployments/helm/ventros-crm/values-dev.yaml \
+  --values .deploy/helm/ventros-crm/values-dev.yaml \
   --timeout 15m \
   --wait \
   --debug
@@ -136,11 +136,11 @@ helm upgrade ventros-crm ./deployments/helm/ventros-crm \
 ### Produção
 
 ```bash
-helm upgrade ventros-crm ./deployments/helm/ventros-crm \
+helm upgrade ventros-crm ./.deploy/helm/ventros-crm \
   --install \
   --namespace ventros-crm \
   --create-namespace \
-  --values deployments/helm/ventros-crm/values.yaml \
+  --values .deploy/helm/ventros-crm/values.yaml \
   --timeout 15m \
   --wait \
   --atomic

@@ -38,11 +38,11 @@ revisionHistoryLimit: 3
 
 image:
   # -- Container image repository
-  repository: ventros-crm
+  repository: leonardocaloi/ventros-crm
   # -- Image pull policy (Always, Never, IfNotPresent)
-  pullPolicy: IfNotPresent
+  pullPolicy: Always
   # -- Overrides the image tag whose default is the chart appVersion
-  tag: ""
+  tag: "dev-v8"
 
 imagePullSecrets: []
 nameOverride: ""

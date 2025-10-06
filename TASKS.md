@@ -8,6 +8,10 @@ Arquivo de tarefas organizadas para preparação do projeto para lançamento e r
 
 ---
 
+
+prepara base de testes para preparar pra tudo isso q vai entrar antes
+
+
 ## 📊 RESUMO EXECUTIVO
 
 | Grupo | Nome | Tarefas | Prioridade | Tempo Estimado |

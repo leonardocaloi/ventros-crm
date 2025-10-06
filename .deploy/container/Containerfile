@@ -40,11 +40,8 @@ COPY --from=builder /app/main .
 COPY --from=builder /app/migrate-auth .
 COPY --from=builder /app/docs ./docs
 
-# Copy entrypoint script
-COPY deployments/entrypoint.sh .
-
 # Set executable permissions and ownership
-RUN chmod +x main migrate-auth entrypoint.sh && \
+RUN chmod +x main migrate-auth && \
     chown -R appuser:appuser /app
 
 # Switch to non-root user
@@ -57,5 +54,5 @@ EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD wget --no-verbose --tries=1 --spider http://localhost:8080/health || exit 1
 
-# Run the binary via entrypoint
-ENTRYPOINT ["./entrypoint.sh"]
+# Run the binary directly (no entrypoint)
+CMD ["./main"]

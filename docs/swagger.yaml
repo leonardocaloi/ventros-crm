@@ -172,6 +172,12 @@ definitions:
     required:
     - status_id
     type: object
+  infrastructure_http_handlers.ConfigureWebhookRequest:
+    properties:
+      base_url:
+        example: https://api.ventros.com
+        type: string
+    type: object
   infrastructure_http_handlers.CreateAgentRequest:
     properties:
       department:
@@ -1167,6 +1173,55 @@ paths:
       summary: Activate channel
       tags:
       - channels
+  /api/v1/channels/{id}/configure-webhook:
+    post:
+      consumes:
+      - application/json
+      description: 'Configura automaticamente o webhook no canal externo (ex: WAHA)'
+      parameters:
+      - description: Channel ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Webhook configuration (optional, uses default if not provided)
+        in: body
+        name: request
+        schema:
+          $ref: '#/definitions/infrastructure_http_handlers.ConfigureWebhookRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Webhook configured
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Authentication required
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Channel not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Configuration failed
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Configure channel webhook
+      tags:
+      - channels
   /api/v1/channels/{id}/deactivate:
     post:
       description: Desativa um canal de comunicação
@@ -1244,6 +1299,81 @@ paths:
       summary: Get session by ID
       tags:
       - sessions
+  /api/v1/channels/{id}/webhook-info:
+    get:
+      description: Retorna informações detalhadas sobre o webhook do canal
+      parameters:
+      - description: Channel ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Webhook info
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid channel ID
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Authentication required
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Channel not found
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Get channel webhook info
+      tags:
+      - channels
+  /api/v1/channels/{id}/webhook-url:
+    get:
+      description: Retorna a URL do webhook que deve ser configurada no canal externo
+        (WAHA, WhatsApp, etc)
+      parameters:
+      - description: Channel ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Webhook URL
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid channel ID
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Authentication required
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Channel not found
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Get channel webhook URL
+      tags:
+      - channels
   /api/v1/contacts:
     get:
       consumes:
@@ -2780,6 +2910,11 @@ paths:
   /test/setup:
     post:
       description: Limpa e cria project, pipeline, channel types e webhook para testes
+      parameters:
+      - description: URL do webhook externo (opcional)
+        in: query
+        name: webhook_url
+        type: string
       produces:
       - application/json
       responses:

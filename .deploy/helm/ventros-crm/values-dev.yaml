@@ -24,9 +24,9 @@ progressDeadlineSeconds: 600  # 10 minutos
 revisionHistoryLimit: 3
 
 image:
-  repository: leonardocaloi/ventros-crm
-  pullPolicy: IfNotPresent
-  tag: "dev-v7"  # Fixed: health check now uses correct queue name (waha.events.message.ack)
+  repository: ventros-crm
+  pullPolicy: Never  # Use local images in Minikube (never pull from registry)
+  tag: "v2"  # Latest: No entrypoint, direct CMD
 
 imagePullSecrets: []
 

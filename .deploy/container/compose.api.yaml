@@ -8,25 +8,24 @@
 #
 # Usage:
 #   make dev                                                    (recomendado)
-#   docker compose -f deployments/compose.api.yaml up -d        (manual)
+#   docker compose -f .deploy/container/compose.api.yaml up -d        (manual)
 
 services:
   # ============================================
-  # INFRAESTRUTURA (mesma do compose.infra.yaml)
+  # INFRAESTRUTURA (PostgreSQL, RabbitMQ, Redis, Temporal)
   # ============================================
   
   postgres:
-    image: docker.io/library/postgres:16-alpine
-    container_name: ventros-postgres
+    image: ${POSTGRES_IMAGE}
+    container_name: ${POSTGRES_CONTAINER_NAME}
     environment:
-      POSTGRES_USER: ventros
-      POSTGRES_PASSWORD: ventros123
-      POSTGRES_DB: ventros_crm
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT_HOST}:${POSTGRES_PORT_CONTAINER}"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./docker/init.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ventros"]
       interval: 10s
@@ -36,14 +35,14 @@ services:
       - ventros-network
 
   rabbitmq:
-    image: docker.io/library/rabbitmq:3.13-management-alpine
-    container_name: ventros-rabbitmq
+    image: ${RABBITMQ_IMAGE}
+    container_name: ${RABBITMQ_CONTAINER_NAME}
     environment:
-      RABBITMQ_DEFAULT_USER: guest
-      RABBITMQ_DEFAULT_PASS: guest
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS}
     ports:
-      - "5672:5672"
-      - "15672:15672"
+      - "${RABBITMQ_PORT_HOST}:${RABBITMQ_PORT_CONTAINER}"
+      - "${RABBITMQ_MANAGEMENT_PORT_HOST}:${RABBITMQ_MANAGEMENT_PORT_CONTAINER}"
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
     healthcheck:
@@ -55,10 +54,10 @@ services:
       - ventros-network
 
   redis:
-    image: docker.io/library/redis:7-alpine
-    container_name: ventros-redis
+    image: ${REDIS_IMAGE}
+    container_name: ${REDIS_CONTAINER_NAME}
     ports:
-      - "6379:6379"
+      - "${REDIS_PORT_HOST}:${REDIS_PORT_CONTAINER}"
     volumes:
       - redis_data:/data
     healthcheck:
@@ -70,16 +69,16 @@ services:
       - ventros-network
 
   temporal:
-    image: docker.io/temporalio/auto-setup:1.24.2
-    container_name: ventros-temporal
+    image: ${TEMPORAL_IMAGE}
+    container_name: ${TEMPORAL_CONTAINER_NAME}
     environment:
-      - DB=postgres12_pgx
-      - DB_PORT=5432
-      - POSTGRES_USER=ventros
-      - POSTGRES_PWD=ventros123
-      - POSTGRES_SEEDS=postgres
+      - DB=${DB}
+      - DB_PORT=${DB_PORT}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PWD=${POSTGRES_PASSWORD}
+      - POSTGRES_SEEDS=${POSTGRES_SEEDS}
     ports:
-      - "7233:7233"
+      - "${TEMPORAL_PORT_HOST}:${TEMPORAL_PORT_CONTAINER}"
     volumes:
       - temporal_data:/etc/temporal
     depends_on:
@@ -94,13 +93,13 @@ services:
       - ventros-network
 
   temporal-ui:
-    image: docker.io/temporalio/ui:2.26.2
-    container_name: ventros-temporal-ui
+    image: ${TEMPORAL_UI_IMAGE}
+    container_name: ${TEMPORAL_UI_CONTAINER_NAME}
     environment:
-      - TEMPORAL_ADDRESS=temporal:7233
-      - TEMPORAL_CORS_ORIGINS=http://localhost:3000
+      - TEMPORAL_ADDRESS=${TEMPORAL_ADDRESS}
+      - TEMPORAL_CORS_ORIGINS=${TEMPORAL_CORS_ORIGINS}
     ports:
-      - "8088:8080"
+      - "${TEMPORAL_UI_PORT_HOST}:${TEMPORAL_UI_PORT_CONTAINER}"
     depends_on:
       - temporal
     networks:

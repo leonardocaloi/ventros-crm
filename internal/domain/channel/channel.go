@@ -42,6 +42,11 @@ type Channel struct {
 	ExternalID string // ID externo do canal (ex: session_id do WAHA, phone_number_id do WhatsApp)
 	Config     map[string]interface{}
 	
+	// Webhook configuration
+	WebhookURL          string
+	WebhookConfiguredAt *time.Time
+	WebhookActive       bool
+	
 	// Estatísticas
 	MessagesReceived int
 	MessagesSent     int

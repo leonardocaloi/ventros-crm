@@ -34,6 +34,11 @@ func main() {
 
 	fmt.Println("🔄 Running authentication system migrations...")
 
+	// Enable UUID extension (replaces init.sql)
+	if err := db.Exec("CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\"").Error; err != nil {
+		log.Printf("⚠️  Failed to create uuid-ossp extension (may already exist): %v", err)
+	}
+
 	// Auto migrate all entities
 	err = db.AutoMigrate(
 		&entities.UserEntity{},

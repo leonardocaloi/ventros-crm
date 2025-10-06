@@ -7,17 +7,16 @@
 
 services:
   postgres:
-    image: docker.io/library/postgres:16-alpine
-    container_name: ventros-postgres
+    image: ${POSTGRES_IMAGE}
+    container_name: ${POSTGRES_CONTAINER_NAME}
     environment:
-      POSTGRES_USER: ventros
-      POSTGRES_PASSWORD: ventros123
-      POSTGRES_DB: ventros_crm
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT_HOST}:${POSTGRES_PORT_CONTAINER}"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./docker/init.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ventros"]
       interval: 10s
@@ -27,14 +26,14 @@ services:
       - ventros-network
 
   rabbitmq:
-    image: docker.io/library/rabbitmq:3.13-management-alpine
-    container_name: ventros-rabbitmq
+    image: ${RABBITMQ_IMAGE}
+    container_name: ${RABBITMQ_CONTAINER_NAME}
     environment:
-      RABBITMQ_DEFAULT_USER: guest
-      RABBITMQ_DEFAULT_PASS: guest
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS}
     ports:
-      - "5672:5672"
-      - "15672:15672"
+      - "${RABBITMQ_PORT_HOST}:${RABBITMQ_PORT_CONTAINER}"
+      - "${RABBITMQ_MANAGEMENT_PORT_HOST}:${RABBITMQ_MANAGEMENT_PORT_CONTAINER}"
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
     healthcheck:
@@ -46,10 +45,10 @@ services:
       - ventros-network
 
   redis:
-    image: docker.io/library/redis:7-alpine
-    container_name: ventros-redis
+    image: ${REDIS_IMAGE}
+    container_name: ${REDIS_CONTAINER_NAME}
     ports:
-      - "6379:6379"
+      - "${REDIS_PORT_HOST}:${REDIS_PORT_CONTAINER}"
     volumes:
       - redis_data:/data
     healthcheck:
@@ -61,16 +60,16 @@ services:
       - ventros-network
 
   temporal:
-    image: docker.io/temporalio/auto-setup:1.24.2
-    container_name: ventros-temporal
+    image: ${TEMPORAL_IMAGE}
+    container_name: ${TEMPORAL_CONTAINER_NAME}
     environment:
-      - DB=postgres12_pgx
-      - DB_PORT=5432
-      - POSTGRES_USER=ventros
-      - POSTGRES_PWD=ventros123
-      - POSTGRES_SEEDS=postgres
+      - DB=${DB}
+      - DB_PORT=${DB_PORT}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PWD=${POSTGRES_PASSWORD}
+      - POSTGRES_SEEDS=${POSTGRES_SEEDS}
     ports:
-      - "7233:7233"
+      - "${TEMPORAL_PORT_HOST}:${TEMPORAL_PORT_CONTAINER}"
     volumes:
       - temporal_data:/etc/temporal
     depends_on:
@@ -85,13 +84,13 @@ services:
       - ventros-network
 
   temporal-ui:
-    image: docker.io/temporalio/ui:2.26.2
-    container_name: ventros-temporal-ui
+    image: ${TEMPORAL_UI_IMAGE}
+    container_name: ${TEMPORAL_UI_CONTAINER_NAME}
     environment:
-      - TEMPORAL_ADDRESS=temporal:7233
-      - TEMPORAL_CORS_ORIGINS=http://localhost:3000
+      - TEMPORAL_ADDRESS=${TEMPORAL_ADDRESS}
+      - TEMPORAL_CORS_ORIGINS=${TEMPORAL_CORS_ORIGINS}
     ports:
-      - "8088:8080"
+      - "${TEMPORAL_UI_PORT_HOST}:${TEMPORAL_UI_PORT_CONTAINER}"
     depends_on:
       - temporal
     networks:
@@ -99,31 +98,31 @@ services:
 
   api:
     build:
-      context: ..
-      dockerfile: deployments/Containerfile
-    container_name: ventros-api
+      context: ../..
+      dockerfile: .deploy/container/Containerfile
+    container_name: ${API_CONTAINER_NAME}
     environment:
-      PORT: 8080
-      ENV: production
+      PORT: ${PORT}
+      ENV: ${ENV}
       DB_HOST: postgres
-      DB_PORT: 5432
-      DB_USER: ventros
-      DB_PASSWORD: ventros123
-      DB_NAME: ventros_crm
-      DB_SSLMODE: disable
-      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
+      DB_PORT: ${DB_PORT}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
+      DB_SSLMODE: ${DB_SSLMODE}
+      RABBITMQ_URL: amqp://${RABBITMQ_DEFAULT_USER}:${RABBITMQ_DEFAULT_PASS}@rabbitmq:5672/
       REDIS_HOST: redis
-      REDIS_PORT: 6379
-      REDIS_PASSWORD: ""
-      REDIS_DB: 0
+      REDIS_PORT: ${REDIS_PORT}
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      REDIS_DB: ${REDIS_DB}
       TEMPORAL_HOST: temporal:7233
-      TEMPORAL_NAMESPACE: default
-      LOG_LEVEL: info
-      ADMIN_EMAIL: admin@ventros.com
-      ADMIN_PASSWORD: admin123
-      ADMIN_NAME: Administrator
+      TEMPORAL_NAMESPACE: ${TEMPORAL_NAMESPACE}
+      LOG_LEVEL: ${LOG_LEVEL}
+      ADMIN_EMAIL: ${ADMIN_EMAIL}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+      ADMIN_NAME: ${ADMIN_NAME}
     ports:
-      - "8080:8080"
+      - "${API_PORT_HOST}:${API_PORT_CONTAINER}"
     depends_on:
       postgres:
         condition: service_healthy

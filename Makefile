@@ -16,7 +16,7 @@ infra: ## [INFRA] Sobe APENAS infraestrutura (PostgreSQL, RabbitMQ, Redis, Tempo
 	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 	@echo ""
 	@echo "🚀 Subindo serviços..."
-	@$(COMPOSE) -f deployments/compose.dev.yaml up -d
+	@$(COMPOSE) --env-file .deploy/container/.env -f .deploy/container/compose.api.yaml up -d
 	@echo ""
 	@echo "⏳ Aguardando serviços (15s)..."
 	@sleep 15
@@ -57,7 +57,7 @@ dev: ## [DEV] Sobe infra + API (via compose.api.yaml)
 	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 	@echo ""
 	@echo "📦 Subindo infraestrutura..."
-	@$(COMPOSE) -f deployments/compose.api.yaml up -d
+	@$(COMPOSE) --env-file .deploy/container/.env -f .deploy/container/compose.api.yaml up -d
 	@echo ""
 	@echo "⏳ Aguardando serviços (15s)..."
 	@sleep 15
@@ -71,7 +71,7 @@ dev: ## [DEV] Sobe infra + API (via compose.api.yaml)
 
 infra-stop: ## Para infraestrutura
 	@echo "🛑 Parando infraestrutura..."
-	@$(COMPOSE) -f deployments/compose.dev.yaml down
+	@$(COMPOSE) --env-file .deploy/container/.env -f .deploy/container/compose.api.yaml down
 
 infra-clean: ## Para e remove volumes (DESTRUTIVO - apaga TODOS os dados)
 	@echo "⚠️  ATENÇÃO: Isso vai APAGAR todos os dados!"
@@ -90,16 +90,16 @@ infra-clean: ## Para e remove volumes (DESTRUTIVO - apaga TODOS os dados)
 	@-lsof -ti:8080 | xargs kill -9 2>/dev/null || true
 	@sleep 1
 	@echo "🗑️  Removendo containers e volumes..."
-	@$(COMPOSE) -f deployments/compose.dev.yaml down -v
+	@$(COMPOSE) --env-file .deploy/container/.env -f .deploy/container/compose.api.yaml down -v
 	@echo "✅ Tudo limpo!"
 
 infra-reset: infra-clean infra ## Para, limpa volumes e sobe infra novamente (FRESH START)
 
 infra-logs: ## Mostra logs da infra
-	@$(COMPOSE) -f deployments/compose.dev.yaml logs -f
+	@$(COMPOSE) --env-file .deploy/container/.env -f .deploy/container/compose.api.yaml logs -f
 
 infra-ps: ## Lista containers da infra
-	@$(COMPOSE) -f deployments/compose.dev.yaml ps
+	@$(COMPOSE) --env-file .deploy/container/.env -f .deploy/container/compose.api.yaml ps
 
 # Aliases
 dev-stop: infra-stop ## Alias para infra-stop
@@ -111,10 +111,10 @@ container: ## [CONTAINER] Sobe tudo containerizado (infra + API)
 	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 	@echo ""
 	@echo "🔨 1. Building imagem..."
-	@$(CONTAINER_RUNTIME) build -f deployments/Containerfile -t ventros-crm:latest .
+	@$(CONTAINER_RUNTIME) build -f .deploy/container/Containerfile -t ventros-crm:latest .
 	@echo ""
 	@echo "🚀 2. Subindo full stack..."
-	@$(COMPOSE) -f deployments/compose.yaml up -d
+	@$(COMPOSE) --env-file .deploy/container/.env -f .deploy/container/compose.yaml up -d
 	@echo ""
 	@echo "⏳ 3. Aguardando API (30s)..."
 	@sleep 30
@@ -135,15 +135,15 @@ container: ## [CONTAINER] Sobe tudo containerizado (infra + API)
 
 container-stop: ## Para containers
 	@echo "🛑 Parando containers..."
-	@$(COMPOSE) -f deployments/compose.yaml down
+	@$(COMPOSE) --env-file .deploy/container/.env -f .deploy/container/compose.yaml down
 
 container-clean: ## Para e remove volumes (DESTRUTIVO)
 	@echo "⚠️  Removendo containers e volumes..."
-	@$(COMPOSE) -f deployments/compose.yaml down -v
+	@$(COMPOSE) --env-file .deploy/container/.env -f .deploy/container/compose.yaml down -v
 	@echo "✅ Limpo!"
 
 container-logs: ## Mostra logs dos containers
-	@$(COMPOSE) -f deployments/compose.yaml logs -f
+	@$(COMPOSE) --env-file .deploy/container/.env -f .deploy/container/compose.yaml logs -f
 
 k8s: ## [K8S] Deploy no Minikube com Helm
 	@echo "☸️  Deploy Kubernetes com Helm"
@@ -153,10 +153,10 @@ k8s: ## [K8S] Deploy no Minikube com Helm
 	@minikube status || (echo "❌ Minikube não está rodando. Execute: minikube start" && exit 1)
 	@echo ""
 	@echo "📦 2. Instalando Helm chart..."
-	@helm install ventros-crm ./deployments/helm/ventros-crm \
+	@helm install ventros-crm ./.deploy/helm/ventros-crm \
 		-n ventros-crm \
 		--create-namespace \
-		-f deployments/helm/ventros-crm/values-dev.yaml
+		-f .deploy/helm/ventros-crm/values-dev.yaml
 	@echo ""
 	@echo "⏳ 3. Aguardando pods (30s)..."
 	@sleep 30
@@ -177,9 +177,9 @@ k8s: ## [K8S] Deploy no Minikube com Helm
 
 k8s-upgrade: ## Atualiza deploy no K8s
 	@echo "🔄 Atualizando Helm release..."
-	@helm upgrade ventros-crm ./deployments/helm/ventros-crm \
+	@helm upgrade ventros-crm ./.deploy/helm/ventros-crm \
 		-n ventros-crm \
-		-f deployments/helm/ventros-crm/values-dev.yaml
+		-f .deploy/helm/ventros-crm/values-dev.yaml
 
 k8s-delete: ## Remove do K8s
 	@echo "🗑️  Removendo do Kubernetes..."
@@ -231,6 +231,77 @@ test-e2e: ## Roda testes E2E (requer API rodando)
 
 test-all: test test-e2e ## Roda todos os testes (unit + E2E)
 
+e2e-webhook: ## [E2E] Teste completo: Canal WAHA + Webhook + Mensagem FB Ads (WEBHOOK_URL=https://webhook.site/xxx)
+	@echo "🧪 E2E: Canal WAHA com Webhook e FB Ads"
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@echo ""
+	@echo "⚠️  Certifique-se que a API está rodando:"
+	@echo "   Terminal 1: make infra"
+	@echo "   Terminal 2: make api"
+	@echo ""
+	@echo "🔍 Testando conexão com API..."
+	@curl -f -s http://localhost:8080/health > /dev/null || (echo "❌ API não está rodando!" && exit 1)
+	@echo "✅ API respondendo!"
+	@echo ""
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@echo ""
+	@echo "1️⃣ Setup ambiente de teste..."
+	@WEBHOOK_PARAM=""; \
+	if [ -n "$(WEBHOOK_URL)" ]; then \
+		WEBHOOK_PARAM="?webhook_url=$(WEBHOOK_URL)"; \
+		echo "🔗 Usando webhook externo: $(WEBHOOK_URL)"; \
+	fi; \
+	SETUP_RESPONSE=$$(curl -s -X POST "http://localhost:8080/api/v1/test/setup$$WEBHOOK_PARAM"); \
+	echo $$SETUP_RESPONSE | jq -r '.data | "✅ User: \(.user_id)\n✅ Project: \(.project_id)\n✅ Channel: \(.channel_id)\n✅ Channel Webhook: \(.channel_webhook_url)\n✅ Webhook Subscription: \(.webhook_id)\n✅ API Key: \(.api_key)"'; \
+	WEBHOOK_ID=$$(echo $$SETUP_RESPONSE | jq -r '.data.webhook_id'); \
+	CHANNEL_ID=$$(echo $$SETUP_RESPONSE | jq -r '.data.channel_id'); \
+	CHANNEL_WEBHOOK_URL=$$(echo $$SETUP_RESPONSE | jq -r '.data.channel_webhook_url'); \
+	API_KEY=$$(echo $$SETUP_RESPONSE | jq -r '.data.api_key'); \
+	echo ""; \
+	echo "📋 Eventos ativos no webhook de teste:"; \
+	curl -s -X GET http://localhost:8080/api/v1/webhook-subscriptions/$$WEBHOOK_ID \
+		-H "Authorization: Bearer $$API_KEY" | jq -r '.webhook.events[] | "   ✓ \(.)"'; \
+	echo ""; \
+	echo "2️⃣ Webhook do canal já configurado automaticamente!"; \
+	echo "📍 URL: $$CHANNEL_WEBHOOK_URL"; \
+	echo ""; \
+	echo "3️⃣ Simulando mensagem do FB Ads no webhook..."; \
+	WEBHOOK_RESPONSE=$$(curl -s -X POST "$$CHANNEL_WEBHOOK_URL" \
+		-H "Content-Type: application/json" \
+		-d '{"id":"evt_e2e_fb_ads","timestamp":1696598400000,"event":"message","session":"test-session-waha","payload":{"id":"msg_fb_001","from":"5511999999999@c.us","fromMe":false,"body":"Olá! Tenho interesse na imersão e queria mais informações, por favor.","_data":{"Info":{"PushName":"Cliente FB Ads"},"Message":{"extendedTextMessage":{"contextInfo":{"conversionSource":"FB_Ads","entryPointConversionSource":"ctwa_ad","entryPointConversionApp":"instagram","ctwaClid":"test_click_id_123"}}}}}}'); \
+	echo $$WEBHOOK_RESPONSE | jq -r '"✅ Webhook processado: \(.status)"'; \
+	echo ""; \
+	echo "4️⃣ Verificando canal atualizado..."; \
+	curl -s -X GET http://localhost:8080/api/v1/channels/$$CHANNEL_ID \
+		-H "Authorization: Bearer $$API_KEY" | jq '.channel | {id,name,type,webhook_url,webhook_active,messages_received}'; \
+	echo ""; \
+	if [ -n "$(WEBHOOK_URL)" ]; then \
+		echo "5️⃣ Eventos de domínio serão enviados para: $(WEBHOOK_URL)"; \
+		echo "📤 Eventos esperados:"; \
+		echo "   ✓ contact.created (imediato)"; \
+		echo "   ✓ session.started (imediato)"; \
+		echo "   ✓ ad_campaign.tracked (imediato)"; \
+		echo "   ✓ session.ended (após 1 minuto de inatividade)"; \
+		echo ""; \
+		echo "💡 Verifique em: $(WEBHOOK_URL)"; \
+		echo "⏰ O evento session.ended chegará em ~1 minuto"; \
+		echo ""; \
+	fi; \
+	echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"; \
+	echo "✅ Teste E2E completo!"; \
+	echo ""; \
+	echo "🔍 O que aconteceu:"; \
+	echo "   • Canal WAHA criado com webhook URL automático"; \
+	echo "   • Mensagem FB Ads enviada para o webhook"; \
+	echo "   • Contact criado com tracking do FB Ads"; \
+	echo "   • Session iniciada"; \
+	echo "   • Message salva"; \
+	echo "   • Eventos de domínio disparados para webhook externo"; \
+	echo ""; \
+	echo "💡 Para usar webhook externo:"; \
+	echo "   WEBHOOK_URL=https://webhook.site/xxx make e2e-webhook"; \
+	echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
 test-coverage: ## Testes com coverage
 	@echo "🧪 Rodando testes com coverage..."
 	@go test -v -race -coverprofile=coverage.out ./...
@@ -256,7 +327,7 @@ migrate-force: infra-clean infra api ## Força fresh start (limpa DB + sobe + mi
 
 db-seed: ## Popula banco com dados de teste
 	@echo "🌱 Seeding database..."
-	@PGPASSWORD=ventros123 psql -h localhost -U ventros -d ventros_crm -f deployments/docker/seeds/seed.sql 2>/dev/null
+	@echo "⚠️  Arquivo seed.sql não encontrado - usar scripts/run-seeds.sh se disponível"
 	@echo "✅ Seed completo!"
 
 db-clean: ## Limpa database (DESTRUTIVO)

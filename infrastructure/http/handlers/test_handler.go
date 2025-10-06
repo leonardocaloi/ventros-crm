@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -81,7 +82,17 @@ func (h *TestHandler) cleanupTestData(tx *gorm.DB) error {
 		h.logger.Warn("Failed to delete project", zap.Error(err))
 	}
 
-	// 7. Delete user - hard delete (CRITICAL: users have soft delete)
+	// 7. Delete billing account - hard delete (must be before user delete)
+	if err := tx.Unscoped().Where("user_id = ?", userID).Delete(&entities.BillingAccountEntity{}).Error; err != nil {
+		h.logger.Warn("Failed to delete billing account", zap.Error(err))
+	}
+
+	// 8. Delete API keys - hard delete (must be before user delete due to FK)
+	if err := tx.Unscoped().Where("user_id = ?", userID).Delete(&entities.UserAPIKeyEntity{}).Error; err != nil {
+		h.logger.Warn("Failed to delete API keys", zap.Error(err))
+	}
+
+	// 9. Delete user - hard delete (CRITICAL: users have soft delete)
 	result = tx.Unscoped().Where("id = ?", userID).Delete(&entities.UserEntity{})
 	if result.Error != nil {
 		h.logger.Error("Failed to delete user", zap.Error(result.Error))
@@ -98,9 +109,16 @@ func (h *TestHandler) cleanupTestData(tx *gorm.DB) error {
 // @Description Limpa e cria project, pipeline, channel types e webhook para testes
 // @Tags test
 // @Produce json
+// @Param webhook_url query string false "URL do webhook externo (opcional)"
 // @Success 200 {object} map[string]interface{}
 // @Router /test/setup [post]
 func (h *TestHandler) SetupTestEnvironment(c *gin.Context) {
+	// Obter webhook URL do query param (opcional)
+	webhookURL := c.Query("webhook_url")
+	if webhookURL == "" {
+		webhookURL = "https://dev.webhook.n8n.ventros.cloud/webhook/ventros-crm-test"
+	}
+
 	tx := h.db.Begin()
 	defer func() {
 		if r := recover(); r != nil {
@@ -134,17 +152,47 @@ func (h *TestHandler) SetupTestEnvironment(c *gin.Context) {
 		return
 	}
 
-	// 2. Criar Project novo
-	projectID := uuid.MustParse("11111111-1111-1111-1111-111111111111")
-	project := entities.ProjectEntity{
-		ID:          projectID,
-		UserID:      userID,
-		Name:        "Projeto Teste WAHA",
-		Description: "Projeto para testes de integração WAHA",
-		Active:      true,
-		CreatedAt:   time.Now(),
-		UpdatedAt:   time.Now(),
+	// 2. Criar Billing Account
+	billingAccountID := uuid.New()
+	billingAccount := entities.BillingAccountEntity{
+		ID:            billingAccountID,
+		UserID:        userID,
+		Name:          "Conta Teste",
+		PaymentStatus: "active",
+		BillingEmail:  "teste@ventros.com",
+		Suspended:     false,
+		CreatedAt:     time.Now(),
+		UpdatedAt:     time.Now(),
 	}
+	
+	if err := tx.Create(&billingAccount).Error; err != nil {
+		tx.Rollback()
+		h.logger.Error("Failed to create billing account", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to create billing account: %v", err)})
+		return
+	}
+	
+	h.logger.Info("Billing account created", zap.String("id", billingAccountID.String()))
+
+	// 3. Criar Project novo
+	projectID := uuid.MustParse("11111111-1111-1111-1111-111111111111")
+	
+	// Usar o ID do billing account criado
+	project := entities.ProjectEntity{
+		ID:               projectID,
+		UserID:           userID,
+		BillingAccountID: billingAccount.ID, // Usar o ID do objeto criado
+		TenantID:         "test-tenant",
+		Name:             "Projeto Teste WAHA",
+		Description:      "Projeto para testes de integração WAHA",
+		Active:           true,
+		CreatedAt:        time.Now(),
+		UpdatedAt:        time.Now(),
+	}
+	
+	h.logger.Info("Creating project", 
+		zap.String("project_id", projectID.String()),
+		zap.String("billing_account_id", project.BillingAccountID.String()))
 	
 	if err := tx.Create(&project).Error; err != nil {
 		tx.Rollback()
@@ -197,16 +245,47 @@ func (h *TestHandler) SetupTestEnvironment(c *gin.Context) {
 		return
 	}
 
-	// 5. Criar Channel Types (skip for now - not essential for webhook test)
-	h.logger.Info("Skipping channel types creation - not essential for webhook test")
+	// 5. Criar Channel WAHA de teste
+	channelID := uuid.New()
+	externalID := "test-session-waha"
+	now := time.Now()
+	
+	// Gerar URL do webhook interno automaticamente
+	channelWebhookURL := fmt.Sprintf("http://localhost:8080/api/v1/webhooks/waha?session=%s", externalID)
+	
+	channel := entities.ChannelEntity{
+		ID:                  channelID,
+		UserID:              userID,
+		ProjectID:           projectID,
+		TenantID:            "test-tenant",
+		Name:                "Canal WAHA Teste",
+		Type:                "waha",
+		Status:              "active",
+		ExternalID:          externalID,
+		WebhookURL:          channelWebhookURL,
+		WebhookConfiguredAt: &now,
+		WebhookActive:       true,
+		CreatedAt:           time.Now(),
+		UpdatedAt:           time.Now(),
+	}
+	
+	if err := tx.Create(&channel).Error; err != nil {
+		tx.Rollback()
+		h.logger.Error("Failed to create channel", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create channel"})
+		return
+	}
 
-	// 6. Criar Webhook de teste
+	// 6. Criar Webhook Subscription de teste
 	webhookID := uuid.New()
 	webhook := entities.WebhookSubscriptionEntity{
 		ID:             webhookID,
+		UserID:         userID,
+		ProjectID:      projectID,
+		TenantID:       "test-tenant",
 		Name:           "Webhook Teste N8N",
-		URL:            "https://dev.webhook.n8n.ventros.cloud/webhook/ventros-crm-test",
-		Events:         pq.StringArray{"contact.created", "session.started", "ad_campaign.tracked"},
+		URL:            webhookURL,
+		Events:         pq.StringArray{"contact.created", "session.started", "session.ended", "ad_campaign.tracked"},
 		Active:         true,
 		RetryCount:     3,
 		TimeoutSeconds: 30,
@@ -221,21 +300,40 @@ func (h *TestHandler) SetupTestEnvironment(c *gin.Context) {
 		return
 	}
 
+	// 7. Criar API Key para autenticação nos testes
+	apiKey := "test-api-key-" + userID.String()
+	apiKeyHash := fmt.Sprintf("%x", sha256.Sum256([]byte(apiKey)))
+	apiKeyEntity := entities.UserAPIKeyEntity{
+		ID:        uuid.New(),
+		UserID:    userID,
+		Name:      "Test API Key",
+		KeyHash:   apiKeyHash,
+		Active:    true,
+		ExpiresAt: nil, // Sem expiração
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	}
+	
+	if err := tx.Create(&apiKeyEntity).Error; err != nil {
+		tx.Rollback()
+		h.logger.Error("Failed to create API key", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create API key"})
+		return
+	}
+
 	tx.Commit()
 
 	response := map[string]interface{}{
 		"success": true,
 		"data": map[string]interface{}{
-			"user_id":     userID,
-			"project_id":  projectID,
-			"pipeline_id": pipelineID,
-			"status_id":   statusID,
-			"webhook_id":  webhookID,
-			"channel_types": map[string]int{
-				"waha":      1,
-				"whatsapp":  2,
-				"instagram": 3,
-			},
+			"user_id":            userID,
+			"project_id":         projectID,
+			"pipeline_id":        pipelineID,
+			"status_id":          statusID,
+			"channel_id":         channelID,
+			"channel_webhook_url": channelWebhookURL,
+			"webhook_id":         webhookID,
+			"api_key":            apiKey,
 		},
 		"message": "Test environment cleaned and setup completed successfully",
 	}

@@ -19,13 +19,14 @@ import (
 	"github.com/caloi/ventros-crm/infrastructure/persistence"
 	"github.com/caloi/ventros-crm/infrastructure/webhooks"
 	"github.com/caloi/ventros-crm/infrastructure/workflow"
+	channelapp "github.com/caloi/ventros-crm/internal/application/channel"
 	appconfig "github.com/caloi/ventros-crm/internal/application/config"
 	contactapp "github.com/caloi/ventros-crm/internal/application/contact"
 	messageapp "github.com/caloi/ventros-crm/internal/application/message"
 	sessionapp "github.com/caloi/ventros-crm/internal/application/session"
 	"github.com/caloi/ventros-crm/internal/application/user"
 	webhookapp "github.com/caloi/ventros-crm/internal/application/webhook"
-	channelapp "github.com/caloi/ventros-crm/internal/application/channel"
+
 	// contact_event "github.com/caloi/ventros-crm/internal/domain/contact/events" // Temporariamente comentado
 	sessionworkflow "github.com/caloi/ventros-crm/internal/workflows/session"
 	"github.com/gin-gonic/gin"
@@ -79,7 +80,7 @@ func main() {
 	if err != nil {
 		logger.Fatal("Failed to connect to database", zap.Error(err))
 	}
-	
+
 	// Get underlying SQL DB for connection management
 	sqlDB, err := gormDB.DB()
 	if err != nil {
@@ -157,13 +158,13 @@ func main() {
 	configService := appconfig.NewAppConfigService(gormDB)
 	appCfg, err := configService.LoadConfig(ctx)
 	if err != nil {
-		logger.Fatal("Failed to load app config from database", 
+		logger.Fatal("Failed to load app config from database",
 			zap.Error(err),
-			zap.String("hint", "Run: make seed or execute SQL seeds in deployments/docker/seeds/"))
+			zap.String("hint", "Run: make db-seed or check database configuration"))
 	}
 	logger.Info("✅ App config loaded",
 		zap.Int("channel_types", len(appCfg.ChannelTypes)))
-	
+
 	// Initialize repositories (infrastructure layer)
 	contactRepo := persistence.NewGormContactRepository(gormDB)
 	sessionRepo := persistence.NewGormSessionRepository(gormDB)
@@ -174,7 +175,7 @@ func main() {
 	// Initialize webhook repository and use case
 	webhookRepo := persistence.NewWebhookRepositoryAdapter(gormDB)
 	webhookUseCase := webhookapp.NewManageSubscriptionUseCase(webhookRepo, logger)
-	
+
 	// Initialize webhook notifier
 	webhookNotifier := webhooks.NewWebhookNotifier(logger, webhookRepo)
 
@@ -183,55 +184,55 @@ func main() {
 	logger.Info("Event bus initialized")
 
 	// Initialize session manager (Temporal workflows) - will be used by processMessageUseCase
-	
+
 	// Initialize and start session worker
 	sessionWorker := workflow.NewSessionWorker(temporalClient, sessionRepo, eventBus, logger)
 	if err := sessionWorker.Start(ctx); err != nil {
 		logger.Fatal("Failed to start session worker", zap.Error(err))
 	}
-	
+
 	// Schedule session cleanup
 	if err := sessionWorker.ScheduleCleanup(ctx); err != nil {
 		logger.Warn("Failed to schedule session cleanup", zap.Error(err))
 	}
-	
+
 	// Initialize use cases with event bus adapters
 	contactEventBus := messaging.NewContactEventBusAdapter(eventBus)
 	sessionEventBus := messaging.NewSessionEventBusAdapter(eventBus)
-	
+
 	createContactUseCase := contactapp.NewCreateContactUseCase(contactRepo, contactEventBus)
 	createSessionUseCase := sessionapp.NewCreateSessionUseCase(sessionRepo, sessionEventBus)
 	closeSessionUseCase := sessionapp.NewCloseSessionUseCase(sessionRepo, sessionEventBus)
-	
+
 	// Initialize processMessageUseCase
 	messageRepo := persistence.NewGormMessageRepository(gormDB)
-	
+
 	// Create message event bus adapter
 	messageEventBus := messaging.NewMessageEventBusAdapter(eventBus)
-	
+
 	// Initialize session manager
 	sessionManager := sessionworkflow.NewSessionManager(temporalClient)
-	
+
 	// Note: Project and customer IDs are now obtained from authenticated user context
 	// via the auth middleware and RLS system
-	
+
 	// Initialize ProcessInboundMessageUseCase
 	processMessageUseCase := messageapp.NewProcessInboundMessageUseCase(
 		contactRepo,
-		sessionRepo, 
+		sessionRepo,
 		messageRepo,
 		contactEventRepo,
 		messageEventBus,
 		sessionManager,
 	)
-	
+
 	// Load AppConfig (channel types, etc)
 	appConfigService := appconfig.NewAppConfigService(gormDB)
 	appCfg, err3 := appConfigService.LoadConfig(ctx)
 	if err3 != nil {
 		logger.Fatal("Failed to load app config", zap.Error(err3))
 	}
-	
+
 	// Initialize message adapter and WAHA service
 	messageAdapter := waha.NewMessageAdapter()
 	wahaMessageService := messageapp.NewWAHAMessageService(
@@ -241,7 +242,7 @@ func main() {
 		appCfg,
 		messageAdapter,
 	)
-	
+
 	// Initialize WAHA consumer
 	wahaConsumer := messaging.NewWAHAMessageConsumer(wahaMessageService)
 	if err := wahaConsumer.Start(ctx, rabbitConn); err != nil {
@@ -257,13 +258,16 @@ func main() {
 		temporalClient,
 		gormDB, // Pass GORM DB for migration checks
 	)
-	
+
 	// Initialize user service for auth
 	userService := user.NewUserService(gormDB)
-	
+
+	// Initialize WAHA client for channel service
+	wahaClient := waha.NewWAHAClientFromEnv(logger)
+
 	// Initialize channel service
-	channelService := channelapp.NewChannelService(channelRepo, logger)
-	
+	channelService := channelapp.NewChannelService(channelRepo, logger, wahaClient)
+
 	// Initialize handlers
 	authHandler := handlers.NewAuthHandler(logger, userService)
 	channelHandler := handlers.NewChannelHandler(logger, channelService)
@@ -272,13 +276,13 @@ func main() {
 	queueHandler := handlers.NewQueueHandler(logger, rabbitConn)
 	sessionHandler := handlers.NewSessionHandler(logger, sessionRepo)
 	contactHandler := handlers.NewContactHandler(logger, contactRepo)
-	
+
 	// Create auth middleware
 	authMiddleware := middleware.NewAuthMiddleware(logger, cfg.Server.Env != "production", userService)
-	
+
 	// Create RLS middleware (agora só precisa do logger)
 	rlsMiddleware := middleware.NewRLSMiddleware(logger)
-	
+
 	// TODO: Update handlers to use use cases instead of repositories directly
 	_ = createContactUseCase
 	_ = createSessionUseCase
@@ -315,4 +319,3 @@ func initLogger(level, env string) (*zap.Logger, error) {
 	}
 	return zap.NewDevelopment()
 }
-

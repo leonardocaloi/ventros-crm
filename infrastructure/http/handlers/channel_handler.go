@@ -322,6 +322,200 @@ func (h *ChannelHandler) DeleteChannel(c *gin.Context) {
 	})
 }
 
+// GetChannelWebhookURL obtém a URL do webhook para configurar no canal externo
+// @Summary Get channel webhook URL
+// @Description Retorna a URL do webhook que deve ser configurada no canal externo (WAHA, WhatsApp, etc)
+// @Tags channels
+// @Produce json
+// @Security ApiKeyAuth
+// @Param id path string true "Channel ID"
+// @Success 200 {object} map[string]interface{} "Webhook URL"
+// @Failure 400 {object} map[string]interface{} "Invalid channel ID"
+// @Failure 401 {object} map[string]interface{} "Authentication required"
+// @Failure 404 {object} map[string]interface{} "Channel not found"
+// @Router /api/v1/channels/{id}/webhook-url [get]
+func (h *ChannelHandler) GetChannelWebhookURL(c *gin.Context) {
+	authCtx, exists := middleware.GetAuthContext(c)
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Authentication required"})
+		return
+	}
+
+	channelID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid channel ID"})
+		return
+	}
+
+	// Verificar se o canal existe e pertence ao usuário
+	channel, err := h.channelService.GetChannel(c.Request.Context(), channelID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Channel not found"})
+		return
+	}
+
+	if channel.UserID != authCtx.UserID {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Access denied"})
+		return
+	}
+
+	// Obter base URL da aplicação (pode vir de env ou header)
+	baseURL := c.GetHeader("X-Base-URL")
+	if baseURL == "" {
+		baseURL = "http://localhost:8080" // Fallback
+	}
+
+	webhookURL, err := h.channelService.GetWebhookURL(c.Request.Context(), channelID, baseURL)
+	if err != nil {
+		h.logger.Error("Failed to get webhook URL", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"channel_id":   channelID,
+		"channel_name": channel.Name,
+		"channel_type": channel.Type,
+		"webhook_url":  webhookURL,
+		"instructions": map[string]string{
+			"waha":      "Configure this URL in WAHA session webhooks",
+			"whatsapp":  "Configure this URL in WhatsApp Business API webhooks",
+			"telegram":  "Use this URL when setting up Telegram bot webhook",
+		}[channel.Type],
+	})
+}
+
+// ConfigureChannelWebhook configura o webhook automaticamente no canal externo
+// @Summary Configure channel webhook
+// @Description Configura automaticamente o webhook no canal externo (ex: WAHA)
+// @Tags channels
+// @Accept json
+// @Produce json
+// @Security ApiKeyAuth
+// @Param id path string true "Channel ID"
+// @Param request body ConfigureWebhookRequest false "Webhook configuration (optional, uses default if not provided)"
+// @Success 200 {object} map[string]interface{} "Webhook configured"
+// @Failure 400 {object} map[string]interface{} "Invalid request"
+// @Failure 401 {object} map[string]interface{} "Authentication required"
+// @Failure 404 {object} map[string]interface{} "Channel not found"
+// @Failure 500 {object} map[string]interface{} "Configuration failed"
+// @Router /api/v1/channels/{id}/configure-webhook [post]
+func (h *ChannelHandler) ConfigureChannelWebhook(c *gin.Context) {
+	authCtx, exists := middleware.GetAuthContext(c)
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Authentication required"})
+		return
+	}
+
+	channelID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid channel ID"})
+		return
+	}
+
+	// Verificar se o canal existe e pertence ao usuário
+	channel, err := h.channelService.GetChannel(c.Request.Context(), channelID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Channel not found"})
+		return
+	}
+
+	if channel.UserID != authCtx.UserID {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Access denied"})
+		return
+	}
+
+	// Parse request (opcional)
+	var req ConfigureWebhookRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		// Se não tiver body, usa valores padrão
+		req.BaseURL = "http://localhost:8080"
+	}
+
+	// Se não forneceu base URL, tenta obter do header ou usa padrão
+	if req.BaseURL == "" {
+		req.BaseURL = c.GetHeader("X-Base-URL")
+		if req.BaseURL == "" {
+			req.BaseURL = "http://localhost:8080"
+		}
+	}
+
+	// Gerar URL do webhook
+	webhookURL, err := h.channelService.GetWebhookURL(c.Request.Context(), channelID, req.BaseURL)
+	if err != nil {
+		h.logger.Error("Failed to get webhook URL", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Configurar webhook no canal externo
+	if err := h.channelService.ConfigureWebhook(c.Request.Context(), channelID, webhookURL); err != nil {
+		h.logger.Error("Failed to configure webhook", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to configure webhook: " + err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message":      "Webhook configured successfully",
+		"channel_id":   channelID,
+		"channel_name": channel.Name,
+		"webhook_url":  webhookURL,
+	})
+}
+
+// GetChannelWebhookInfo obtém informações sobre o webhook do canal
+// @Summary Get channel webhook info
+// @Description Retorna informações detalhadas sobre o webhook do canal
+// @Tags channels
+// @Produce json
+// @Security ApiKeyAuth
+// @Param id path string true "Channel ID"
+// @Success 200 {object} map[string]interface{} "Webhook info"
+// @Failure 400 {object} map[string]interface{} "Invalid channel ID"
+// @Failure 401 {object} map[string]interface{} "Authentication required"
+// @Failure 404 {object} map[string]interface{} "Channel not found"
+// @Router /api/v1/channels/{id}/webhook-info [get]
+func (h *ChannelHandler) GetChannelWebhookInfo(c *gin.Context) {
+	authCtx, exists := middleware.GetAuthContext(c)
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Authentication required"})
+		return
+	}
+
+	channelID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid channel ID"})
+		return
+	}
+
+	// Verificar se o canal existe e pertence ao usuário
+	channel, err := h.channelService.GetChannel(c.Request.Context(), channelID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Channel not found"})
+		return
+	}
+
+	if channel.UserID != authCtx.UserID {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Access denied"})
+		return
+	}
+
+	// Obter informações do webhook
+	info, err := h.channelService.GetWebhookInfo(c.Request.Context(), channelID)
+	if err != nil {
+		h.logger.Error("Failed to get webhook info", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, info)
+}
+
+// ConfigureWebhookRequest representa o request para configurar webhook
+type ConfigureWebhookRequest struct {
+	BaseURL string `json:"base_url" example:"https://api.ventros.com"`
+}
+
 // GetChannelQRCode obtém o QR code de um canal WAHA
 // TEMPORARIAMENTE COMENTADO - PRECISA IMPLEMENTAR MÉTODOS NO SERVICE
 /*

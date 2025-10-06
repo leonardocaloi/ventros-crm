@@ -26,7 +26,7 @@ podman build -f Containerfile -t ventros-crm:latest .
 # Run full stack
 podman-compose up -d
 # ou
-podman play kube deployments/kubernetes/
+podman play kube .deploy/kubernetes/
 
 # Run apenas infra
 podman-compose up -d postgres rabbitmq redis temporal
@@ -63,10 +63,13 @@ compose.yaml       # Compose file (agnóstico)
 
 ### Deployments
 ```
-deployments/
-├── docker/        # Docker-specific configs
-│   ├── init.sql
-│   └── seeds/
+.deploy/
+├── container/     # Container configs
+│   ├── .env
+│   ├── .env.example
+│   ├── Containerfile
+│   ├── compose.yaml
+│   └── compose.api.yaml
 ├── kubernetes/    # K8s manifests
 └── helm/          # Helm charts
 ```

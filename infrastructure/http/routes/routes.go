@@ -148,6 +148,11 @@ func SetupRoutes(router *gin.Engine, logger *zap.Logger, healthChecker *health.H
 			channels.POST("/:id/activate", channelHandler.ActivateChannel)
 			channels.POST("/:id/deactivate", channelHandler.DeactivateChannel)
 			channels.DELETE("/:id", channelHandler.DeleteChannel)
+			
+			// Webhook endpoints for channels
+			channels.GET("/:id/webhook-url", channelHandler.GetChannelWebhookURL)
+			channels.POST("/:id/configure-webhook", channelHandler.ConfigureChannelWebhook)
+			channels.GET("/:id/webhook-info", channelHandler.GetChannelWebhookInfo)
 		}
 
 		// Session routes (TODO: add auth when SetupRoutes is used)
@@ -312,6 +317,11 @@ func SetupRoutesBasicWithTest(router *gin.Engine, logger *zap.Logger, healthChec
 		channels.POST("/:id/activate", channelHandler.ActivateChannel)
 		channels.POST("/:id/deactivate", channelHandler.DeactivateChannel)
 		channels.DELETE("/:id", channelHandler.DeleteChannel)
+		
+		// Webhook endpoints for channels
+		channels.GET("/:id/webhook-url", channelHandler.GetChannelWebhookURL)
+		channels.POST("/:id/configure-webhook", channelHandler.ConfigureChannelWebhook)
+		channels.GET("/:id/webhook-info", channelHandler.GetChannelWebhookInfo)
 		
 		// Nested session routes under channel (using :id for channel)
 		channels.GET("/:id/sessions", sessionHandler.ListSessions)

@@ -122,6 +122,19 @@ func (r *GormChannelRepository) toEntity(ch *channel.Channel) *entities.ChannelE
 		Status:     entities.ChannelStatus(ch.Status),
 		ExternalID: ch.ExternalID,
 		Config:     config,
+		
+		// Webhook fields
+		WebhookURL:          ch.WebhookURL,
+		WebhookConfiguredAt: ch.WebhookConfiguredAt,
+		WebhookActive:       ch.WebhookActive,
+		
+		// Statistics
+		MessagesReceived: ch.MessagesReceived,
+		MessagesSent:     ch.MessagesSent,
+		LastMessageAt:    ch.LastMessageAt,
+		LastErrorAt:      ch.LastErrorAt,
+		LastError:        ch.LastError,
+		
 		CreatedAt:  ch.CreatedAt,
 		UpdatedAt:  ch.UpdatedAt,
 	}
@@ -148,6 +161,19 @@ func (r *GormChannelRepository) toDomain(entity *entities.ChannelEntity) *channe
 		ExternalID: entity.ExternalID,
 		Status:     channel.ChannelStatus(entity.Status),
 		Config:     config,
+		
+		// Webhook fields
+		WebhookURL:          entity.WebhookURL,
+		WebhookConfiguredAt: entity.WebhookConfiguredAt,
+		WebhookActive:       entity.WebhookActive,
+		
+		// Statistics
+		MessagesReceived: entity.MessagesReceived,
+		MessagesSent:     entity.MessagesSent,
+		LastMessageAt:    entity.LastMessageAt,
+		LastErrorAt:      entity.LastErrorAt,
+		LastError:        entity.LastError,
+		
 		CreatedAt:  entity.CreatedAt,
 		UpdatedAt:  entity.UpdatedAt,
 	}

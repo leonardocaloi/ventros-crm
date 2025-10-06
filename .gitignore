@@ -34,7 +34,7 @@ go.work.sum
 # ====================
 # Environment
 # ====================
-.env
+# .env
 .env.local
 .env.*.local
 .env.development

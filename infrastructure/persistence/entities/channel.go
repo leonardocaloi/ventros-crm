@@ -53,6 +53,11 @@ type ChannelEntity struct {
 	// Exemplo Telegram: {"bot_token": "...", "webhook_url": "..."}
 	Config datatypes.JSON `gorm:"type:jsonb"`
 	
+	// Webhook configuration (campos dedicados para facilitar queries e frontend)
+	WebhookURL         string     `gorm:"index"` // URL do webhook configurada
+	WebhookConfiguredAt *time.Time // Quando o webhook foi configurado
+	WebhookActive      bool       `gorm:"default:false"` // Se o webhook está ativo
+	
 	// Estatísticas genéricas (aplicam a todos os tipos)
 	MessagesReceived int `gorm:"default:0"`
 	MessagesSent     int `gorm:"default:0"`

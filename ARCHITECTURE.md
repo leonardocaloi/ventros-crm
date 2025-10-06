@@ -188,8 +188,8 @@ ventros-crm/
 │   └── workflow/       # Temporal client/workers
 │
 ├── guides/             # Documentation
-├── deployments/        # Deployment configs
-│   ├── docker/        # Docker setup
+├── .deploy/           # Deployment configs
+│   ├── container/     # Container setup (Docker/Podman)
 │   └── helm/          # Kubernetes Helm charts
 │
 └── scripts/           # Build/maintenance scripts

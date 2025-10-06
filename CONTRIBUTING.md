@@ -262,7 +262,7 @@ Infrastructure ← Repositories
 /infrastructure    - Infrastructure layer (DB, HTTP, Messaging)
 /guides            - Documentation
 /scripts           - Build/deploy scripts
-/deployments       - Deployment configs (Docker, Helm)
+/.deploy           - Deployment configs (Container, Helm)
 ```
 
 ### Naming Conventions
