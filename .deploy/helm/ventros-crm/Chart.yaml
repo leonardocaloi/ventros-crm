@@ -67,3 +67,4 @@ dependencies:
       - workflow
     # Temporal precisa aguardar PostgreSQL estar pronto
 
+# Trigger release
