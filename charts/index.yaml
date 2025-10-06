@@ -1,3 +1,55 @@
 apiVersion: v1
-entries: {}
-generated: "2025-10-06T21:43:12.619991639Z"
+entries:
+  ventros-crm:
+  - apiVersion: v2
+    appVersion: 0.1.0
+    created: "2025-10-06T21:52:26.445823386Z"
+    dependencies:
+    - condition: postgresOperator.installOperator
+      name: postgres-operator
+      repository: https://opensource.zalando.com/postgres-operator/charts/postgres-operator
+      tags:
+      - operators
+      - database
+      version: 1.14.0
+    - condition: rabbitmq.enabled
+      name: rabbitmq
+      repository: https://charts.bitnami.com/bitnami
+      tags:
+      - messaging
+      version: 12.15.0
+    - condition: redis.enabled
+      name: redis
+      repository: https://charts.bitnami.com/bitnami
+      tags:
+      - cache
+      version: 22.0.7
+    - condition: temporal.enabled
+      name: temporal
+      repository: https://go.temporal.io/helm-charts
+      tags:
+      - workflow
+      version: 0.68.0
+    description: Ventros CRM - Sistema de Gestão de Relacionamento com Cliente com
+      WhatsApp Integration
+    digest: 8f6b900c99253e8fc82f0c9af725291b67f38f6762fc622e9926cb0eb34bd80f
+    home: https://ventros.cloud
+    icon: https://ventros.cloud/logo.png
+    keywords:
+    - crm
+    - golang
+    - temporal
+    - rabbitmq
+    - whatsapp
+    - waha
+    maintainers:
+    - email: dev@ventros.com
+      name: Ventros Team
+    name: ventros-crm
+    sources:
+    - https://github.com/ventros/ventros-crm
+    type: application
+    urls:
+    - https://leonardocaloi.github.io/ventros-crm/charts/ventros-crm-0.1.0.tgz
+    version: 0.1.0
+generated: "2025-10-06T21:52:26.41930487Z"
