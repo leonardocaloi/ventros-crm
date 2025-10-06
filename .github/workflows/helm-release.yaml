@@ -107,7 +107,7 @@ jobs:
           gh release list --limit 100 | while read -r line; do
             tag=$(echo "$line" | awk '{print $1}')
             echo "Processing release: $tag"
-            gh release download "$tag" -D charts/ --skip-existing 2>/dev/null || true
+            gh release download "$tag" -D charts/ -p "*.tgz" --skip-existing || echo "⚠️  Failed to download $tag"
           done
           
           echo "📦 Charts downloaded:"
