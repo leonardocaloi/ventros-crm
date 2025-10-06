@@ -93,22 +93,32 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Update Helm repository index
-        if: steps.check_changes.outputs.version_exists == 'false'
         run: |
           # Checkout gh-pages branch
           git fetch origin gh-pages || git checkout --orphan gh-pages
           git checkout gh-pages || git checkout --orphan gh-pages
           
-          # Download all release assets
+          # Clean and recreate charts directory
+          rm -rf charts
           mkdir -p charts
+          
+          # Download all release assets
+          echo "📥 Downloading all release assets..."
           gh release list --limit 100 | while read -r line; do
             tag=$(echo "$line" | awk '{print $1}')
             echo "Processing release: $tag"
             gh release download "$tag" -D charts/ --skip-existing 2>/dev/null || true
           done
           
+          echo "📦 Charts downloaded:"
+          ls -lh charts/*.tgz 2>/dev/null || echo "No .tgz files found"
+          
           # Generate index
+          echo "📝 Generating Helm repository index..."
           helm repo index charts/ --url https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/charts/
+          
+          echo "✅ Index generated:"
+          cat charts/index.yaml
           
           # Create index.html
           cat > charts/index.html << 'EOF'
@@ -144,9 +154,12 @@ jobs:
           
           # Commit and push
           git add charts/
-          git commit -m "Release ventros-crm-${{ steps.check_changes.outputs.chart_version }}"
-          git push origin gh-pages --force
-          
-          echo "✅ Helm repository updated"
+          if git diff --staged --quiet; then
+            echo "⚠️  No changes to commit"
+          else
+            git commit -m "Update Helm repository index (triggered by ${{ github.sha }})"
+            git push origin gh-pages --force
+            echo "✅ Helm repository updated"
+          fi
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
