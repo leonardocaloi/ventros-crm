@@ -24,7 +24,7 @@ func NewHealthHandler(logger *zap.Logger, checker *health.HealthChecker) *Health
 type HealthResponse struct {
 	Status       string                        `json:"status" example:"healthy"`
 	Timestamp    time.Time                     `json:"timestamp" example:"2024-01-01T00:00:00Z"`
-	Version      string                        `json:"version" example:"1.0.0"`
+	Version      string                        `json:"version" example:"0.1.0"`
 	Service      string                        `json:"service" example:"ventros-crm"`
 	Dependencies map[string]health.CheckResult `json:"dependencies,omitempty"`
 }
@@ -42,7 +42,7 @@ func (h *HealthHandler) Health(c *gin.Context) {
 	c.JSON(http.StatusOK, HealthResponse{
 		Status:    string(health.StatusHealthy),
 		Timestamp: time.Now(),
-		Version:   "1.0.0",
+		Version:   "0.1.0",
 		Service:   "ventros-crm",
 	})
 }
@@ -73,7 +73,7 @@ func (h *HealthHandler) Ready(c *gin.Context) {
 	response := HealthResponse{
 		Status:       string(overallStatus),
 		Timestamp:    time.Now(),
-		Version:      "1.0.0",
+		Version:      "0.1.0",
 		Service:      "ventros-crm",
 		Dependencies: results,
 	}
@@ -100,7 +100,7 @@ func (h *HealthHandler) Live(c *gin.Context) {
 	c.JSON(http.StatusOK, HealthResponse{
 		Status:    string(health.StatusHealthy),
 		Timestamp: time.Now(),
-		Version:   "1.0.0",
+		Version:   "0.1.0",
 		Service:   "ventros-crm",
 	})
 }
