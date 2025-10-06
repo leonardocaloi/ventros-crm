@@ -38,12 +38,20 @@ jobs:
         run: |
           cd .deploy/helm/ventros-crm
           helm dependency build
+          ls -la charts/ || echo "Charts directory not created"
           cd ../../..
 
       - name: Package Helm chart
         run: |
           mkdir -p .cr-release-packages
           cd .deploy/helm
+          # Verificar se dependências foram baixadas
+          if [ -d "ventros-crm/charts" ]; then
+            echo "✅ Dependencies found in charts/"
+            ls -la ventros-crm/charts/
+          else
+            echo "❌ No charts/ directory found"
+          fi
           helm package ventros-crm --destination ../../.cr-release-packages
           cd ../..
 
