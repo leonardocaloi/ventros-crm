@@ -9,6 +9,7 @@ Este Helm Chart instala o Ventros CRM com todas as suas dependências no Kuberne
 - PV provisioner support (para persistência)
 - Cert-Manager (opcional, para TLS automático)
 
+
 ## 🚀 Instalação Rápida
 
 ### 🔒 Fase 1: Apenas PostgreSQL (Recomendado para início)
