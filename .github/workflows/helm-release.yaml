@@ -70,12 +70,9 @@ jobs:
           if [ -d "ventros-crm/charts" ]; then
             echo "✅ Dependencies found:"
             ls -la ventros-crm/charts/
-          else
-            echo "❌ No charts/ directory!"
-            exit 1
           fi
-          # Empacotar chart
-          helm package ventros-crm
+          # Empacotar chart com --dependency-update
+          helm package ventros-crm --dependency-update
           echo "✅ Chart packaged:"
           ls -la ventros-crm-*.tgz
 
