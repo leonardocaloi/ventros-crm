@@ -65,14 +65,15 @@ jobs:
       - name: Package Helm chart
         if: steps.check_changes.outputs.version_exists == 'false'
         run: |
-          cd .deploy/helm
+          cd .deploy/helm/ventros-crm
           # Verificar se dependências existem
-          if [ -d "ventros-crm/charts" ]; then
+          if [ -d "charts" ]; then
             echo "✅ Dependencies found:"
-            ls -la ventros-crm/charts/
+            ls -la charts/
           fi
-          # Empacotar chart com --dependency-update
-          helm package ventros-crm --dependency-update
+          # Empacotar chart diretamente do diretório
+          cd ..
+          helm package ventros-crm
           echo "✅ Chart packaged:"
           ls -la ventros-crm-*.tgz
 
