@@ -21,8 +21,11 @@ spec:
       - createdb
 
   databases:
-    # Database da aplicação (Temporal cria os dele automaticamente)
+    # Database da aplicação
     {{ .Values.postgresOperator.cluster.database }}: {{ .Values.postgresOperator.cluster.username }}
+    # Databases do Temporal (requeridos)
+    temporal: {{ .Values.postgresOperator.cluster.username }}
+    temporal_visibility: {{ .Values.postgresOperator.cluster.username }}
   postgresql:
     version: {{ .Values.postgresOperator.cluster.version | quote }}
     parameters:
