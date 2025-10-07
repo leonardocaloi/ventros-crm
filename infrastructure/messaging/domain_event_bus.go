@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/caloi/ventros-crm/infrastructure/persistence"
 	"github.com/caloi/ventros-crm/internal/domain/shared"
 	"github.com/caloi/ventros-crm/infrastructure/webhooks"
 )
@@ -14,13 +15,15 @@ import (
 type DomainEventBus struct {
 	conn            *RabbitMQConnection
 	webhookNotifier *webhooks.WebhookNotifier
+	eventLogRepo    *persistence.DomainEventLogRepository
 }
 
 // NewDomainEventBus cria um novo event bus.
-func NewDomainEventBus(conn *RabbitMQConnection, webhookNotifier *webhooks.WebhookNotifier) *DomainEventBus {
+func NewDomainEventBus(conn *RabbitMQConnection, webhookNotifier *webhooks.WebhookNotifier, eventLogRepo *persistence.DomainEventLogRepository) *DomainEventBus {
 	return &DomainEventBus{
 		conn:            conn,
 		webhookNotifier: webhookNotifier,
+		eventLogRepo:    eventLogRepo,
 	}
 }
 
@@ -35,6 +38,16 @@ func (bus *DomainEventBus) Publish(ctx context.Context, event shared.DomainEvent
 	
 	// Nome da routing key baseado no evento
 	routingKey := event.EventName()
+	
+	// Salva no log de eventos (não bloqueia se falhar)
+	if bus.eventLogRepo != nil {
+		go func() {
+			// TODO: Extrair tenantID, projectID, userID do contexto ou evento
+			if err := bus.eventLogRepo.LogEvent(context.Background(), event, "default", nil, nil); err != nil {
+				fmt.Printf("Failed to log domain event: %v\n", err)
+			}
+		}()
+	}
 	
 	// Publica na exchange de eventos de domínio
 	// Usa exchange fanout para broadcast

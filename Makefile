@@ -231,27 +231,33 @@ test-e2e: ## Roda testes E2E (requer API rodando)
 
 test-all: test test-e2e ## Roda todos os testes (unit + E2E)
 
-e2e-webhook: ## [E2E] Teste completo: Canal WAHA + Webhook + Mensagem FB Ads (WEBHOOK_URL=https://webhook.site/xxx)
+e2e-webhook: ## [E2E] Teste completo: Canal WAHA + Webhook + Mensagem FB Ads (WEBHOOK_URL=https://webhook.site/xxx API_BASE_URL=http://localhost:8080)
 	@echo "🧪 E2E: Canal WAHA com Webhook e FB Ads"
 	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 	@echo ""
-	@echo "⚠️  Certifique-se que a API está rodando:"
-	@echo "   Terminal 1: make infra"
-	@echo "   Terminal 2: make api"
-	@echo ""
-	@echo "🔍 Testando conexão com API..."
-	@curl -f -s http://localhost:8080/health > /dev/null || (echo "❌ API não está rodando!" && exit 1)
-	@echo "✅ API respondendo!"
-	@echo ""
-	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-	@echo ""
-	@echo "1️⃣ Setup ambiente de teste..."
-	@WEBHOOK_PARAM=""; \
+	@API_URL="$(API_BASE_URL)"; \
+	if [ -z "$$API_URL" ]; then \
+		API_URL="http://localhost:8080"; \
+	fi; \
+	echo "🌐 Base URL: $$API_URL"; \
+	echo ""; \
+	echo "⚠️  Certifique-se que a API está rodando em $$API_URL"; \
+	echo "   Terminal 1: make infra"; \
+	echo "   Terminal 2: make api"; \
+	echo ""; \
+	echo "🔍 Testando conexão com API..."; \
+	curl -f -s $$API_URL/health > /dev/null || (echo "❌ API não está rodando em $$API_URL!" && exit 1); \
+	echo "✅ API respondendo!"; \
+	echo ""; \
+	echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"; \
+	echo ""; \
+	echo "1️⃣ Setup ambiente de teste..."; \
+	QUERY_PARAMS="?api_base_url=$$API_URL"; \
 	if [ -n "$(WEBHOOK_URL)" ]; then \
-		WEBHOOK_PARAM="?webhook_url=$(WEBHOOK_URL)"; \
+		QUERY_PARAMS="$$QUERY_PARAMS&webhook_url=$(WEBHOOK_URL)"; \
 		echo "🔗 Usando webhook externo: $(WEBHOOK_URL)"; \
 	fi; \
-	SETUP_RESPONSE=$$(curl -s -X POST "http://localhost:8080/api/v1/test/setup$$WEBHOOK_PARAM"); \
+	SETUP_RESPONSE=$$(curl -s -X POST "$$API_URL/api/v1/test/setup$$QUERY_PARAMS"); \
 	echo $$SETUP_RESPONSE | jq -r '.data | "✅ User: \(.user_id)\n✅ Project: \(.project_id)\n✅ Channel: \(.channel_id)\n✅ Channel Webhook: \(.channel_webhook_url)\n✅ Webhook Subscription: \(.webhook_id)\n✅ API Key: \(.api_key)"'; \
 	WEBHOOK_ID=$$(echo $$SETUP_RESPONSE | jq -r '.data.webhook_id'); \
 	CHANNEL_ID=$$(echo $$SETUP_RESPONSE | jq -r '.data.channel_id'); \
@@ -259,7 +265,7 @@ e2e-webhook: ## [E2E] Teste completo: Canal WAHA + Webhook + Mensagem FB Ads (WE
 	API_KEY=$$(echo $$SETUP_RESPONSE | jq -r '.data.api_key'); \
 	echo ""; \
 	echo "📋 Eventos ativos no webhook de teste:"; \
-	curl -s -X GET http://localhost:8080/api/v1/webhook-subscriptions/$$WEBHOOK_ID \
+	curl -s -X GET $$API_URL/api/v1/webhook-subscriptions/$$WEBHOOK_ID \
 		-H "Authorization: Bearer $$API_KEY" | jq -r '.webhook.events[] | "   ✓ \(.)"'; \
 	echo ""; \
 	echo "2️⃣ Webhook do canal já configurado automaticamente!"; \
@@ -272,7 +278,7 @@ e2e-webhook: ## [E2E] Teste completo: Canal WAHA + Webhook + Mensagem FB Ads (WE
 	echo $$WEBHOOK_RESPONSE | jq -r '"✅ Webhook processado: \(.status)"'; \
 	echo ""; \
 	echo "4️⃣ Verificando canal atualizado..."; \
-	curl -s -X GET http://localhost:8080/api/v1/channels/$$CHANNEL_ID \
+	curl -s -X GET $$API_URL/api/v1/channels/$$CHANNEL_ID \
 		-H "Authorization: Bearer $$API_KEY" | jq '.channel | {id,name,type,webhook_url,webhook_active,messages_received}'; \
 	echo ""; \
 	if [ -n "$(WEBHOOK_URL)" ]; then \
@@ -298,8 +304,15 @@ e2e-webhook: ## [E2E] Teste completo: Canal WAHA + Webhook + Mensagem FB Ads (WE
 	echo "   • Message salva"; \
 	echo "   • Eventos de domínio disparados para webhook externo"; \
 	echo ""; \
-	echo "💡 Para usar webhook externo:"; \
+	echo "💡 Exemplos de uso:"; \
+	echo "   # Webhook externo:"; \
 	echo "   WEBHOOK_URL=https://webhook.site/xxx make e2e-webhook"; \
+	echo ""; \
+	echo "   # API na nuvem:"; \
+	echo "   API_BASE_URL=https://sua-api.com make e2e-webhook"; \
+	echo ""; \
+	echo "   # Ambos:"; \
+	echo "   API_BASE_URL=https://sua-api.com WEBHOOK_URL=https://webhook.site/xxx make e2e-webhook"; \
 	echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
 test-coverage: ## Testes com coverage

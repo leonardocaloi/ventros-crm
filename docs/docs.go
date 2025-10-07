@@ -3504,6 +3504,12 @@ const docTemplate = `{
                         "description": "URL do webhook externo (opcional)",
                         "name": "webhook_url",
                         "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Base URL da API (opcional, default: http://localhost:8080)",
+                        "name": "api_base_url",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -4141,7 +4147,7 @@ const docTemplate = `{
                 },
                 "version": {
                     "type": "string",
-                    "example": "1.0.0"
+                    "example": "0.1.0"
                 }
             }
         },

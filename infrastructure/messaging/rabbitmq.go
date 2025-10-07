@@ -533,7 +533,7 @@ func (r *RabbitMQConnection) SetupAllQueues() error {
 	}
 	
 	// Setup domain event queues
-	eventBus := NewDomainEventBus(r, nil) // nil webhook notifier for setup only
+	eventBus := NewDomainEventBus(r, nil, nil) // nil webhook notifier and event log repo for setup only
 	if err := eventBus.SetupEventQueues(); err != nil {
 		return fmt.Errorf("failed to setup domain event queues: %w", err)
 	}

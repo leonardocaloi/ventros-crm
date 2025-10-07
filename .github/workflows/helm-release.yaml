@@ -70,12 +70,19 @@ jobs:
           if [ -d "charts" ]; then
             echo "✅ Dependencies found:"
             ls -la charts/
+          else
+            echo "❌ Dependencies not found! This should not happen."
+            exit 1
           fi
-          # Empacotar chart diretamente do diretório
+          # Empacotar chart COM dependências (--dependency-update garante que estão incluídas)
           cd ..
-          helm package ventros-crm
+          helm package ventros-crm --dependency-update
           echo "✅ Chart packaged:"
-          ls -la ventros-crm-*.tgz
+          ls -lh ventros-crm-*.tgz
+          
+          # Verificar conteúdo do pacote
+          echo "📦 Package contents:"
+          tar -tzf ventros-crm-*.tgz | head -20
 
       - name: Create GitHub Release
         if: steps.check_changes.outputs.version_exists == 'false'

@@ -423,7 +423,7 @@ definitions:
         example: "2024-01-01T00:00:00Z"
         type: string
       version:
-        example: 1.0.0
+        example: 0.1.0
         type: string
     type: object
   infrastructure_http_handlers.LoginRequest:
@@ -2914,6 +2914,10 @@ paths:
       - description: URL do webhook externo (opcional)
         in: query
         name: webhook_url
+        type: string
+      - description: 'Base URL da API (opcional, default: http://localhost:8080)'
+        in: query
+        name: api_base_url
         type: string
       produces:
       - application/json

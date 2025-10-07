@@ -40,7 +40,7 @@ func (h *TestHandler) cleanupTestData(tx *gorm.DB) error {
 	}
 
 	// Delete in reverse order of dependencies
-	h.logger.Info("Cleaning up test data...", 
+	h.logger.Info("Cleaning up test data...",
 		zap.String("user_id", userID.String()),
 		zap.String("project_id", projectID.String()))
 
@@ -110,6 +110,7 @@ func (h *TestHandler) cleanupTestData(tx *gorm.DB) error {
 // @Tags test
 // @Produce json
 // @Param webhook_url query string false "URL do webhook externo (opcional)"
+// @Param api_base_url query string false "Base URL da API (opcional, default: http://localhost:8080)"
 // @Success 200 {object} map[string]interface{}
 // @Router /test/setup [post]
 func (h *TestHandler) SetupTestEnvironment(c *gin.Context) {
@@ -117,6 +118,12 @@ func (h *TestHandler) SetupTestEnvironment(c *gin.Context) {
 	webhookURL := c.Query("webhook_url")
 	if webhookURL == "" {
 		webhookURL = "https://dev.webhook.n8n.ventros.cloud/webhook/ventros-crm-test"
+	}
+
+	// Obter base URL da API do query param (opcional)
+	apiBaseURL := c.Query("api_base_url")
+	if apiBaseURL == "" {
+		apiBaseURL = "http://localhost:8080"
 	}
 
 	tx := h.db.Begin()
@@ -144,7 +151,7 @@ func (h *TestHandler) SetupTestEnvironment(c *gin.Context) {
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 	}
-	
+
 	if err := tx.Create(&user).Error; err != nil {
 		tx.Rollback()
 		h.logger.Error("Failed to create user", zap.Error(err))
@@ -164,19 +171,19 @@ func (h *TestHandler) SetupTestEnvironment(c *gin.Context) {
 		CreatedAt:     time.Now(),
 		UpdatedAt:     time.Now(),
 	}
-	
+
 	if err := tx.Create(&billingAccount).Error; err != nil {
 		tx.Rollback()
 		h.logger.Error("Failed to create billing account", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to create billing account: %v", err)})
 		return
 	}
-	
+
 	h.logger.Info("Billing account created", zap.String("id", billingAccountID.String()))
 
 	// 3. Criar Project novo
 	projectID := uuid.MustParse("11111111-1111-1111-1111-111111111111")
-	
+
 	// Usar o ID do billing account criado
 	project := entities.ProjectEntity{
 		ID:               projectID,
@@ -189,11 +196,11 @@ func (h *TestHandler) SetupTestEnvironment(c *gin.Context) {
 		CreatedAt:        time.Now(),
 		UpdatedAt:        time.Now(),
 	}
-	
-	h.logger.Info("Creating project", 
+
+	h.logger.Info("Creating project",
 		zap.String("project_id", projectID.String()),
 		zap.String("billing_account_id", project.BillingAccountID.String()))
-	
+
 	if err := tx.Create(&project).Error; err != nil {
 		tx.Rollback()
 		h.logger.Error("Failed to create project", zap.Error(err))
@@ -215,7 +222,7 @@ func (h *TestHandler) SetupTestEnvironment(c *gin.Context) {
 		CreatedAt:   time.Now(),
 		UpdatedAt:   time.Now(),
 	}
-	
+
 	if err := tx.Create(&pipeline).Error; err != nil {
 		tx.Rollback()
 		h.logger.Error("Failed to create pipeline", zap.Error(err))
@@ -237,7 +244,7 @@ func (h *TestHandler) SetupTestEnvironment(c *gin.Context) {
 		CreatedAt:   time.Now(),
 		UpdatedAt:   time.Now(),
 	}
-	
+
 	if err := tx.Create(&status).Error; err != nil {
 		tx.Rollback()
 		h.logger.Error("Failed to create pipeline status", zap.Error(err))
@@ -249,10 +256,10 @@ func (h *TestHandler) SetupTestEnvironment(c *gin.Context) {
 	channelID := uuid.New()
 	externalID := "test-session-waha"
 	now := time.Now()
-	
-	// Gerar URL do webhook interno automaticamente
-	channelWebhookURL := fmt.Sprintf("http://localhost:8080/api/v1/webhooks/waha?session=%s", externalID)
-	
+
+	// Gerar URL do webhook interno automaticamente usando a base URL configurada
+	channelWebhookURL := fmt.Sprintf("%s/api/v1/webhooks/waha?session=%s", apiBaseURL, externalID)
+
 	channel := entities.ChannelEntity{
 		ID:                  channelID,
 		UserID:              userID,
@@ -268,7 +275,7 @@ func (h *TestHandler) SetupTestEnvironment(c *gin.Context) {
 		CreatedAt:           time.Now(),
 		UpdatedAt:           time.Now(),
 	}
-	
+
 	if err := tx.Create(&channel).Error; err != nil {
 		tx.Rollback()
 		h.logger.Error("Failed to create channel", zap.Error(err))
@@ -292,7 +299,7 @@ func (h *TestHandler) SetupTestEnvironment(c *gin.Context) {
 		CreatedAt:      time.Now(),
 		UpdatedAt:      time.Now(),
 	}
-	
+
 	if err := tx.Create(&webhook).Error; err != nil {
 		tx.Rollback()
 		h.logger.Error("Failed to create webhook", zap.Error(err))
@@ -313,7 +320,7 @@ func (h *TestHandler) SetupTestEnvironment(c *gin.Context) {
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 	}
-	
+
 	if err := tx.Create(&apiKeyEntity).Error; err != nil {
 		tx.Rollback()
 		h.logger.Error("Failed to create API key", zap.Error(err))
@@ -326,14 +333,14 @@ func (h *TestHandler) SetupTestEnvironment(c *gin.Context) {
 	response := map[string]interface{}{
 		"success": true,
 		"data": map[string]interface{}{
-			"user_id":            userID,
-			"project_id":         projectID,
-			"pipeline_id":        pipelineID,
-			"status_id":          statusID,
-			"channel_id":         channelID,
+			"user_id":             userID,
+			"project_id":          projectID,
+			"pipeline_id":         pipelineID,
+			"status_id":           statusID,
+			"channel_id":          channelID,
 			"channel_webhook_url": channelWebhookURL,
-			"webhook_id":         webhookID,
-			"api_key":            apiKey,
+			"webhook_id":          webhookID,
+			"api_key":             apiKey,
 		},
 		"message": "Test environment cleaned and setup completed successfully",
 	}
@@ -415,13 +422,13 @@ func (h *TestHandler) TestWAHAMessage(c *gin.Context) {
 	response := map[string]interface{}{
 		"success": true,
 		"data": map[string]interface{}{
-			"message_type":   messageType,
-			"description":    description,
-			"webhook_url":    "/api/v1/webhooks/waha",
+			"message_type":    messageType,
+			"description":     description,
+			"webhook_url":     "/api/v1/webhooks/waha",
 			"expected_events": []string{"contact.created", "session.started", "ad_campaign.tracked"},
 		},
-		"message": "Use the curl command below to test WAHA webhook",
-		"curl_command": curlCommand,
+		"message":         "Use the curl command below to test WAHA webhook",
+		"curl_command":    curlCommand,
 		"available_types": []string{"fb_ads", "text", "image"},
 	}
 
@@ -700,19 +707,19 @@ func (h *TestHandler) TestWAHAConnection(c *gin.Context) {
 		return
 	}
 
-	h.logger.Info("Testing WAHA connection", 
+	h.logger.Info("Testing WAHA connection",
 		zap.String("base_url", req.BaseURL),
 		zap.String("token", "***masked***"))
 
 	// Teste básico de conectividade
 	client := &http.Client{Timeout: 10 * time.Second}
-	
+
 	// Testa endpoint de health/status da WAHA
 	healthURL := fmt.Sprintf("%s/api/sessions", req.BaseURL)
 	httpReq, err := http.NewRequest("GET", healthURL, nil)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Failed to create request",
+			"error":   "Failed to create request",
 			"details": err.Error(),
 		})
 		return
@@ -727,24 +734,24 @@ func (h *TestHandler) TestWAHAConnection(c *gin.Context) {
 	if err != nil {
 		h.logger.Error("WAHA connection failed", zap.Error(err))
 		c.JSON(http.StatusServiceUnavailable, gin.H{
-			"error": "Failed to connect to WAHA",
-			"details": err.Error(),
+			"error":    "Failed to connect to WAHA",
+			"details":  err.Error(),
 			"base_url": req.BaseURL,
 		})
 		return
 	}
 	defer resp.Body.Close()
 
-	h.logger.Info("WAHA connection successful", 
+	h.logger.Info("WAHA connection successful",
 		zap.Int("status_code", resp.StatusCode),
 		zap.String("status", resp.Status))
 
 	c.JSON(http.StatusOK, gin.H{
-		"message": "WAHA connection successful",
-		"base_url": req.BaseURL,
+		"message":     "WAHA connection successful",
+		"base_url":    req.BaseURL,
 		"status_code": resp.StatusCode,
-		"status": resp.Status,
-		"timestamp": time.Now().Format(time.RFC3339),
+		"status":      resp.Status,
+		"timestamp":   time.Now().Format(time.RFC3339),
 	})
 }
 
@@ -765,11 +772,11 @@ func (h *TestHandler) TestWAHAQRCode(c *gin.Context) {
 	}
 
 	// Simula um QR code da WAHA (formato típico)
-	mockQRCode := fmt.Sprintf("2@%s,null,null,%s", 
-		generateMockQRData(), 
+	mockQRCode := fmt.Sprintf("2@%s,null,null,%s",
+		generateMockQRData(),
 		time.Now().Format("20060102150405"))
 
-	h.logger.Info("Simulating WAHA QR code", 
+	h.logger.Info("Simulating WAHA QR code",
 		zap.String("session_id", req.SessionID),
 		zap.String("channel_name", req.ChannelName))
 
@@ -784,13 +791,13 @@ func (h *TestHandler) TestWAHAQRCode(c *gin.Context) {
 	fmt.Printf("%s\n\n", separator)
 
 	c.JSON(http.StatusOK, gin.H{
-		"message": "QR code generated successfully",
-		"session_id": req.SessionID,
+		"message":      "QR code generated successfully",
+		"session_id":   req.SessionID,
 		"channel_name": req.ChannelName,
-		"qr_code": mockQRCode,
+		"qr_code":      mockQRCode,
 		"generated_at": time.Now().Unix(),
-		"expires_at": time.Now().Add(45 * time.Second).Unix(),
-		"status": "SCAN_QR_CODE",
+		"expires_at":   time.Now().Add(45 * time.Second).Unix(),
+		"status":       "SCAN_QR_CODE",
 		"instructions": "Use WhatsApp mobile app to scan this QR code",
 	})
 }
@@ -808,9 +815,9 @@ type TestQRCodeRequest struct {
 
 // generateMockQRData gera dados simulados para QR code
 func generateMockQRData() string {
-	return fmt.Sprintf("1@%s@%s@%s", 
+	return fmt.Sprintf("1@%s@%s@%s",
 		generateRandomString(25),
-		generateRandomString(88), 
+		generateRandomString(88),
 		generateRandomString(43))
 }
 
