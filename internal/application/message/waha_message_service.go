@@ -41,10 +41,8 @@ func NewWAHAMessageService(
 // ProcessWAHAMessage processa uma mensagem do WAHA (vinda de webhook ou RabbitMQ).
 func (s *WAHAMessageService) ProcessWAHAMessage(ctx context.Context, event waha.WAHAMessageEvent) error {
 	// 1. Validações iniciais
-	if event.Payload.FromMe {
-		s.logger.Debug("Ignoring outbound message", zap.String("message_id", event.Payload.ID))
-		return nil
-	}
+	// ✅ NÃO ignora fromMe - deduplicação já foi feita no processor
+	// ✅ Processa todas as mensagens (fromMe será atribuída a agente device)
 	
 	if event.Payload.Data.Info.IsGroup {
 		s.logger.Debug("Ignoring group message", zap.String("message_id", event.Payload.ID))
@@ -86,11 +84,38 @@ func (s *WAHAMessageService) ProcessWAHAMessage(ctx context.Context, event waha.
 		trackingInterface[k] = v
 	}
 	
+	// 6.1. Extrair dados específicos por tipo
+	metadata := map[string]interface{}{
+		"waha_event_id": event.ID,
+		"waha_session":  event.Session, // ExternalID do canal WAHA
+		"channel_id":    ch.ID.String(),
+		"channel_name":  ch.Name,
+		"source":        event.Payload.Source,
+		"is_from_ad":    s.messageAdapter.IsFromAd(event),
+	}
+	
+	// Adiciona dados específicos baseado no tipo
+	switch contentType {
+	case "location":
+		if locationData := s.messageAdapter.ExtractLocationData(event); locationData != nil {
+			metadata["location"] = locationData
+		}
+	case "contact":
+		if contactData := s.messageAdapter.ExtractContactData(event); contactData != nil {
+			metadata["contact"] = contactData
+		}
+	case "document":
+		if filename := s.messageAdapter.ExtractFileName(event); filename != "" {
+			metadata["filename"] = filename
+		}
+	}
+	
 	// 7. Montar command
 	cmd := ProcessInboundMessageCommand{
-		MessageID:     event.Payload.ID,
-		ContactPhone:  phone,
-		ContactName:   event.Payload.Data.Info.PushName,
+		MessageID:        event.Payload.ID,                         // ID interno (legado)
+		ChannelMessageID: event.Payload.ID,                         // ✅ ID externo do WhatsApp (deduplicação)
+		ContactPhone:     phone,
+		ContactName:      event.Payload.Data.Info.PushName,
 		// Dados do canal (OBRIGATÓRIO)
 		ChannelID:     ch.ID,
 		ProjectID:     ch.ProjectID,
@@ -103,14 +128,8 @@ func (s *WAHAMessageService) ProcessWAHAMessage(ctx context.Context, event waha.
 		MediaMimetype: derefString(mimetype),
 		TrackingData:  trackingInterface,
 		ReceivedAt:    time.Unix(event.Payload.Timestamp/1000, 0), // Converter milliseconds para time.Time
-		Metadata: map[string]interface{}{
-			"waha_event_id": event.ID,
-			"waha_session":  event.Session, // ExternalID do canal WAHA
-			"channel_id":    ch.ID.String(),
-			"channel_name":  ch.Name,
-			"source":        event.Payload.Source,
-			"is_from_ad":    s.messageAdapter.IsFromAd(event),
-		},
+		Metadata:      metadata,
+		FromMe:        event.Payload.FromMe, // ✅ Indica se mensagem foi enviada pelo sistema
 	}
 	
 	// 8. Executar use case

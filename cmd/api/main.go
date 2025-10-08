@@ -170,6 +170,7 @@ func main() {
 	sessionRepo := persistence.NewGormSessionRepository(gormDB)
 	contactEventRepo := persistence.NewGormContactEventRepository(gormDB)
 	channelRepo := persistence.NewGormChannelRepository(gormDB)
+	eventLogRepo := persistence.NewDomainEventLogRepository(gormDB, logger)
 	logger.Info("Repositories initialized")
 
 	// Initialize webhook repository and use case
@@ -179,8 +180,8 @@ func main() {
 	// Initialize webhook notifier
 	webhookNotifier := webhooks.NewWebhookNotifier(logger, webhookRepo)
 
-	// Initialize event bus with webhook notifier
-	eventBus := messaging.NewDomainEventBus(rabbitConn, webhookNotifier)
+	// Initialize event bus with webhook notifier and event log
+	eventBus := messaging.NewDomainEventBus(rabbitConn, webhookNotifier, eventLogRepo)
 	logger.Info("Event bus initialized")
 
 	// Initialize session manager (Temporal workflows) - will be used by processMessageUseCase
@@ -224,6 +225,7 @@ func main() {
 		contactEventRepo,
 		messageEventBus,
 		sessionManager,
+		gormDB, // Adiciona DB para buscar timeout do pipeline
 	)
 
 	// Load AppConfig (channel types, etc)
@@ -243,7 +245,25 @@ func main() {
 		messageAdapter,
 	)
 
-	// Initialize WAHA consumer
+	// Setup nova arquitetura WAHA (eventos raw)
+	wahaIntegration := messaging.NewWAHAIntegration(
+		rabbitConn,
+		wahaMessageService,
+		messageRepo,
+		logger,
+	)
+	
+	// Configura as filas da nova arquitetura
+	if err := wahaIntegration.SetupQueues(); err != nil {
+		logger.Fatal("Failed to setup WAHA integration queues", zap.Error(err))
+	}
+	
+	// Inicia os processors da nova arquitetura
+	if err := wahaIntegration.StartProcessors(ctx, rabbitConn); err != nil {
+		logger.Fatal("Failed to start WAHA integration processors", zap.Error(err))
+	}
+
+	// Initialize WAHA consumer (legado - manter para compatibilidade)
 	wahaConsumer := messaging.NewWAHAMessageConsumer(wahaMessageService)
 	if err := wahaConsumer.Start(ctx, rabbitConn); err != nil {
 		logger.Fatal("Failed to start WAHA consumer", zap.Error(err))
@@ -271,11 +291,12 @@ func main() {
 	// Initialize handlers
 	authHandler := handlers.NewAuthHandler(logger, userService)
 	channelHandler := handlers.NewChannelHandler(logger, channelService)
-	wahaHandler := handlers.NewWAHAWebhookHandler(logger, wahaMessageService)
+	wahaHandler := handlers.NewWAHAWebhookHandler(logger, wahaIntegration.RawEventBus)
 	webhookHandler := handlers.NewWebhookSubscriptionHandler(logger, webhookUseCase)
 	queueHandler := handlers.NewQueueHandler(logger, rabbitConn)
 	sessionHandler := handlers.NewSessionHandler(logger, sessionRepo)
 	contactHandler := handlers.NewContactHandler(logger, contactRepo)
+	domainEventHandler := handlers.NewDomainEventHandler(eventLogRepo, logger)
 
 	// Create auth middleware
 	authMiddleware := middleware.NewAuthMiddleware(logger, cfg.Server.Env != "production", userService)
@@ -287,6 +308,7 @@ func main() {
 	_ = createContactUseCase
 	_ = createSessionUseCase
 	_ = closeSessionUseCase
+	_ = domainEventHandler // TODO: Add domain event routes
 
 	// Initialize pipeline handler (placeholder - will need pipeline repo)
 	// pipelineHandler := handlers.NewPipelineHandler(logger, pipelineRepo)

@@ -1,0 +1,151 @@
+{
+  "id": "evt_01k70by2n0htym3t9zdc02a30b",
+  "timestamp": 1759875369632,
+  "event": "message.any",
+  "session": "guilherme-batilani-suporte",
+  "metadata": {},
+  "me": {
+    "id": "551151947688@c.us",
+    "pushName": "Suporte Guilherme Batilani",
+    "lid": "164884348157989@lid",
+    "jid": "551151947688:9@s.whatsapp.net"
+  },
+  "payload": {
+    "id": "false_554497044474@c.us_2A7CB86E5739A01E0418",
+    "timestamp": 1759875369,
+    "from": "554497044474@c.us",
+    "fromMe": false,
+    "source": "app",
+    "to": null,
+    "participant": null,
+    "hasMedia": true,
+    "media": {
+      "url": "https://storage.googleapis.com/waha-ventros/guilherme-batilani-suporte/2A7CB86E5739A01E0418.heic?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=GOOGP2W2OKFCMBGUNNS5KIGF%2F20251007%2Fus-east4%2Fs3%2Faws4_request&X-Amz-Date=20251007T221609Z&X-Amz-Expires=3600&X-Amz-Signature=37f7355db51e8693b75a5b6f7c119d8de0fe3b74f57f0fae38cb23da60227ff4&X-Amz-SignedHeaders=host&x-amz-checksum-mode=ENABLED&x-id=GetObject",
+      "filename": "IMG_8908.HEIC",
+      "mimetype": "image/heic",
+      "s3": {
+        "Bucket": "waha-ventros",
+        "Key": "guilherme-batilani-suporte/2A7CB86E5739A01E0418.heic"
+      }
+    },
+    "ack": 2,
+    "ackName": "DEVICE",
+    "replyTo": null,
+    "_data": {
+      "Info": {
+        "Chat": "554497044474@s.whatsapp.net",
+        "Sender": "554497044474@s.whatsapp.net",
+        "IsFromMe": false,
+        "IsGroup": false,
+        "AddressingMode": "",
+        "SenderAlt": "145204438937610@lid",
+        "RecipientAlt": "",
+        "BroadcastListOwner": "",
+        "BroadcastRecipients": null,
+        "ID": "2A7CB86E5739A01E0418",
+        "ServerID": 0,
+        "Type": "media",
+        "PushName": "Leonardo",
+        "Timestamp": "2025-10-07T19:16:09-03:00",
+        "Category": "",
+        "Multicast": false,
+        "MediaType": "document",
+        "Edit": "",
+        "MsgBotInfo": {
+          "EditType": "",
+          "EditTargetID": "",
+          "EditSenderTimestampMS": "0001-01-01T00:00:00Z"
+        },
+        "MsgMetaInfo": {
+          "TargetID": "",
+          "TargetSender": "",
+          "TargetChat": "",
+          "DeprecatedLIDSession": null,
+          "ThreadMessageID": "",
+          "ThreadMessageSenderJID": ""
+        },
+        "VerifiedName": {
+          "Certificate": {
+            "details": "COvC6NioyfoMEgZzbWI6d2EiCExlb25hcmRv",
+            "signature": "6I7e+PuJzCpQCTIIf+zBPE6DpT8nAyWoaw8AchCVH/bYPdc7FlCsY/sYfCznvVJ85iU3yfooU4e35jkZmUcRCg=="
+          },
+          "Details": {
+            "serial": 7294480299991403,
+            "issuer": "smb:wa",
+            "verifiedName": "Leonardo"
+          }
+        },
+        "DeviceSentMeta": null
+      },
+      "Message": {
+        "documentMessage": {
+          "URL": "https://mmg.whatsapp.net/v/t62.7119-24/561364522_1444911899920969_1186770355575400624_n.enc?ccb=11-4&oh=01_Q5Aa2wGiUDGmbwft-_XkcKUe9a93QCNxI4lSu1KgpPjcAhcx2w&oe=690CE6EC&_nc_sid=5e03e0&mms3=true",
+          "mimetype": "image/heic",
+          "title": "IMG_8908",
+          "fileSHA256": "z/XkuZJphtwj5GMdwHCZFsQaSmcAMlnp3jEiDYx/TeA=",
+          "fileLength": 1812185,
+          "mediaKey": "8ZcjhSgZkV/azG4zN62q4rv8YQekcRImsJkjCEfj2jg=",
+          "fileName": "IMG_8908.HEIC",
+          "fileEncSHA256": "9c/sK76mv2KIG0MQVmV7tjIN2eJVF0HyHgUNU8yNSNc=",
+          "directPath": "/v/t62.7119-24/561364522_1444911899920969_1186770355575400624_n.enc?ccb=11-4&oh=01_Q5Aa2wGiUDGmbwft-_XkcKUe9a93QCNxI4lSu1KgpPjcAhcx2w&oe=690CE6EC&_nc_sid=5e03e0",
+          "mediaKeyTimestamp": 1759875367,
+          "contactVcard": false
+        },
+        "messageContextInfo": {
+          "deviceListMetadata": {
+            "senderKeyHash": "5eJF0WAwLm4HwA==",
+            "senderTimestamp": 1759178121,
+            "recipientKeyHash": "g1JUDWuO0tfzTw==",
+            "recipientTimestamp": 1759867497
+          },
+          "deviceListMetadataVersion": 2,
+          "messageSecret": "zICwXvgenoYYqlU1H5hG2/UnZu/XzpWiSWCzu1M93OI="
+        }
+      },
+      "IsEphemeral": false,
+      "IsViewOnce": false,
+      "IsViewOnceV2": false,
+      "IsViewOnceV2Extension": false,
+      "IsDocumentWithCaption": false,
+      "IsLottieSticker": false,
+      "IsBotInvoke": false,
+      "IsEdit": false,
+      "SourceWebMsg": null,
+      "UnavailableRequestID": "",
+      "RetryCount": 0,
+      "NewsletterMeta": null,
+      "RawMessage": {
+        "documentMessage": {
+          "URL": "https://mmg.whatsapp.net/v/t62.7119-24/561364522_1444911899920969_1186770355575400624_n.enc?ccb=11-4&oh=01_Q5Aa2wGiUDGmbwft-_XkcKUe9a93QCNxI4lSu1KgpPjcAhcx2w&oe=690CE6EC&_nc_sid=5e03e0&mms3=true",
+          "mimetype": "image/heic",
+          "title": "IMG_8908",
+          "fileSHA256": "z/XkuZJphtwj5GMdwHCZFsQaSmcAMlnp3jEiDYx/TeA=",
+          "fileLength": 1812185,
+          "mediaKey": "8ZcjhSgZkV/azG4zN62q4rv8YQekcRImsJkjCEfj2jg=",
+          "fileName": "IMG_8908.HEIC",
+          "fileEncSHA256": "9c/sK76mv2KIG0MQVmV7tjIN2eJVF0HyHgUNU8yNSNc=",
+          "directPath": "/v/t62.7119-24/561364522_1444911899920969_1186770355575400624_n.enc?ccb=11-4&oh=01_Q5Aa2wGiUDGmbwft-_XkcKUe9a93QCNxI4lSu1KgpPjcAhcx2w&oe=690CE6EC&_nc_sid=5e03e0",
+          "mediaKeyTimestamp": 1759875367,
+          "contactVcard": false
+        },
+        "messageContextInfo": {
+          "deviceListMetadata": {
+            "senderKeyHash": "5eJF0WAwLm4HwA==",
+            "senderTimestamp": 1759178121,
+            "recipientKeyHash": "g1JUDWuO0tfzTw==",
+            "recipientTimestamp": 1759867497
+          },
+          "deviceListMetadataVersion": 2,
+          "messageSecret": "zICwXvgenoYYqlU1H5hG2/UnZu/XzpWiSWCzu1M93OI="
+        }
+      },
+      "Status": 3
+    }
+  },
+  "environment": {
+    "version": "2025.9.8",
+    "engine": "GOWS",
+    "tier": "PLUS",
+    "browser": null
+  }
+}

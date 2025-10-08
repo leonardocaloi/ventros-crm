@@ -129,7 +129,7 @@ func (s *ChannelService) CreateChannel(ctx context.Context, req CreateChannelReq
 			baseURL = req.WAHAConfig.WebhookURL
 		}
 		
-		webhookURL := fmt.Sprintf("%s/api/v1/webhooks/waha?session=%s", baseURL, ch.ExternalID)
+		webhookURL := fmt.Sprintf("%s/api/v1/webhooks/waha/%s", baseURL, ch.ExternalID)
 		
 		// Atualizar canal com webhook URL
 		now := time.Now()
@@ -300,7 +300,7 @@ func (s *ChannelService) GetWebhookURL(ctx context.Context, channelID uuid.UUID,
 	switch ch.Type {
 	case channel.TypeWAHA:
 		// Para WAHA, usa o endpoint genérico
-		return fmt.Sprintf("%s/api/v1/webhooks/waha?session=%s", baseURL, ch.ExternalID), nil
+		return fmt.Sprintf("%s/api/v1/webhooks/waha/%s", baseURL, ch.ExternalID), nil
 	case channel.TypeWhatsApp:
 		return fmt.Sprintf("%s/api/v1/webhooks/whatsapp/%s", baseURL, ch.ID.String()), nil
 	case channel.TypeTelegram:

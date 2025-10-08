@@ -33,11 +33,12 @@ type CreatePipelineRequest struct {
 
 // UpdatePipelineRequest representa o payload para atualizar um pipeline
 type UpdatePipelineRequest struct {
-	Name        *string `json:"name,omitempty"`
-	Description *string `json:"description,omitempty"`
-	Color       *string `json:"color,omitempty"`
-	Position    *int    `json:"position,omitempty"`
-	Active      *bool   `json:"active,omitempty"`
+	Name                  *string `json:"name,omitempty"`
+	Description           *string `json:"description,omitempty"`
+	Color                 *string `json:"color,omitempty"`
+	Position              *int    `json:"position,omitempty"`
+	Active                *bool   `json:"active,omitempty"`
+	SessionTimeoutMinutes *int    `json:"session_timeout_minutes,omitempty" example:"1"`
 }
 
 // CreateStatusRequest representa o payload para criar um status

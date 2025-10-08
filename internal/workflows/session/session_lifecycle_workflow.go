@@ -31,63 +31,66 @@ func SessionLifecycleWorkflow(ctx workflow.Context, input SessionLifecycleWorkfl
 	}
 	ctx = workflow.WithActivityOptions(ctx, activityOptions)
 	
-	// Aguarda pelo timeout da sessão ou sinal de cancelamento
-	selector := workflow.NewSelector(ctx)
+	// Loop para permitir reset do timer quando há atividade
+	currentTimeout := input.TimeoutDuration
 	
-	// Timer para timeout automático
-	timeoutTimer := workflow.NewTimer(ctx, input.TimeoutDuration)
-	selector.AddFuture(timeoutTimer, func(f workflow.Future) {
-		logger.Info("Session timeout reached, ending session",
-			"session_id", input.SessionID.String())
+	for {
+		selector := workflow.NewSelector(ctx)
 		
-		// Executa activity para encerrar sessão por timeout
-		var result EndSessionActivityResult
-		err := workflow.ExecuteActivity(ctx, "EndSessionActivity", EndSessionActivityInput{
-			SessionID: input.SessionID,
-			Reason:    "inactivity_timeout",
-		}).Get(ctx, &result)
+		// Timer para timeout automático
+		timeoutTimer := workflow.NewTimer(ctx, currentTimeout)
+		selector.AddFuture(timeoutTimer, func(f workflow.Future) {
+			logger.Info("Session timeout reached, ending session",
+				"session_id", input.SessionID.String())
+			
+			// Executa activity para encerrar sessão por timeout
+			var result EndSessionActivityResult
+			err := workflow.ExecuteActivity(ctx, "EndSessionActivity", EndSessionActivityInput{
+				SessionID: input.SessionID,
+				Reason:    "inactivity_timeout",
+			}).Get(ctx, &result)
+			
+			if err != nil {
+				logger.Error("Failed to end session by timeout", "error", err)
+				return
+			}
+			
+			logger.Info("Session ended successfully by timeout",
+				"session_id", input.SessionID.String(),
+				"events_published", result.EventsPublished)
+		})
 		
-		if err != nil {
-			logger.Error("Failed to end session by timeout", "error", err)
-			return
+		// Canal para receber sinais de atividade (nova mensagem na sessão)
+		activityChannel := workflow.GetSignalChannel(ctx, "session-activity")
+		
+		timedOut := false
+		selector.AddReceive(activityChannel, func(c workflow.ReceiveChannel, more bool) {
+			var signal SessionActivitySignal
+			c.Receive(ctx, &signal)
+			
+			logger.Info("Session activity detected, resetting timeout",
+				"session_id", input.SessionID.String(),
+				"new_timeout", signal.NewTimeoutDuration.String())
+			
+			// Atualiza o timeout para o próximo loop
+			currentTimeout = signal.NewTimeoutDuration
+		})
+		
+		// Aguarda timeout ou nova atividade
+		selector.Select(ctx)
+		
+		// Se o timer expirou, encerra o workflow
+		err := timeoutTimer.Get(ctx, nil)
+		if err == nil {
+			timedOut = true
 		}
 		
-		logger.Info("Session ended successfully by timeout",
-			"session_id", input.SessionID.String(),
-			"events_published", result.EventsPublished)
-	})
-	
-	// Canal para receber sinais de cancelamento (nova atividade na sessão)
-	cancelChannel := workflow.GetSignalChannel(ctx, "session-activity")
-	selector.AddReceive(cancelChannel, func(c workflow.ReceiveChannel, more bool) {
-		var signal SessionActivitySignal
-		c.Receive(ctx, &signal)
-		
-		logger.Info("Session activity detected, extending timeout",
-			"session_id", input.SessionID.String(),
-			"new_timeout", signal.NewTimeoutDuration.String())
-		
-		// Timer será cancelado automaticamente quando o workflow terminar
-		
-		// Inicia novo workflow com novo timeout (recursivo)
-		childWorkflowOptions := workflow.ChildWorkflowOptions{
-			WorkflowID: "session-lifecycle-" + input.SessionID.String(),
+		if timedOut {
+			break
 		}
 		
-		newInput := SessionLifecycleWorkflowInput{
-			SessionID:       input.SessionID,
-			ContactID:       input.ContactID,
-			TenantID:        input.TenantID,
-			ChannelTypeID:   input.ChannelTypeID,
-			TimeoutDuration: signal.NewTimeoutDuration,
-		}
-		
-		childCtx := workflow.WithChildOptions(ctx, childWorkflowOptions)
-		workflow.ExecuteChildWorkflow(childCtx, SessionLifecycleWorkflow, newInput)
-	})
-	
-	// Aguarda um dos eventos
-	selector.Select(ctx)
+		// Caso contrário, continua o loop com novo timeout
+	}
 	
 	return nil
 }

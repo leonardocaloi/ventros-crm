@@ -75,7 +75,7 @@ func SetupRoutes(router *gin.Engine, logger *zap.Logger, healthChecker *health.H
 	// Webhook routes (sem auth para receber da WAHA)
 	webhooks := router.Group("/api/v1/webhooks")
 	{
-		webhooks.POST("/waha", wahaHandler.ReceiveWebhook)
+		webhooks.POST("/waha/:session", wahaHandler.ReceiveWebhook)
 		webhooks.GET("/waha", wahaHandler.GetWebhookInfo)
 	}
 
@@ -198,7 +198,7 @@ func SetupRoutesBasic(router *gin.Engine, logger *zap.Logger, healthChecker *hea
 	// Webhook routes (sem auth para receber da WAHA)
 	webhooks := router.Group("/api/v1/webhooks")
 	{
-		webhooks.POST("/waha", wahaHandler.ReceiveWebhook)
+		webhooks.POST("/waha/:session", wahaHandler.ReceiveWebhook)
 		webhooks.GET("/waha", wahaHandler.GetWebhookInfo)
 	}
 
@@ -272,6 +272,7 @@ func SetupRoutesBasic(router *gin.Engine, logger *zap.Logger, healthChecker *hea
 		{
 			sessions.GET("", sessionHandler.ListSessions)        // Requires ?contact_id or ?channel_id
 			sessions.GET("/:id", sessionHandler.GetSession)
+			sessions.POST("/:id/close", sessionHandler.CloseSession) // Agente encerra sessão manualmente
 			sessions.GET("/stats", sessionHandler.GetSessionStats)
 		}
 
@@ -349,6 +350,7 @@ func SetupRoutesBasicWithTest(router *gin.Engine, logger *zap.Logger, healthChec
 		{
 			test.POST("/setup", testHandler.SetupTestEnvironment)
 			test.POST("/cleanup", testHandler.CleanupTestEnvironment)
+			test.PUT("/pipeline/:id/timeout", testHandler.UpdatePipelineTimeout)
 			test.POST("/waha-message", testHandler.TestWAHAMessage)
 			test.POST("/send-waha-message", testHandler.SendWAHAMessage)
 			test.POST("/waha-connection", testHandler.TestWAHAConnection)

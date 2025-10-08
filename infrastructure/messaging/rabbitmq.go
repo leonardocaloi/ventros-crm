@@ -479,7 +479,19 @@ func (r *RabbitMQConnection) ListQueues() ([]QueueInfo, error) {
 func (r *RabbitMQConnection) SetupWAHAQueues() error {
 	// WAHA event queues - todas as filas de eventos que chegam da WAHA
 	wahaQueues := []string{
-		// Mensagens
+		// Fila de entrada (raw events) - NOVA ARQUITETURA
+		"waha.events.raw",
+		
+		// Filas de saída (eventos processados) - NOVA ARQUITETURA
+		"waha.events.message.parsed",
+		"waha.events.call.parsed",
+		"waha.events.presence.parsed",
+		"waha.events.group.parsed",
+		"waha.events.label.parsed",
+		"waha.events.unknown.parsed",
+		"waha.events.parse_errors",
+		
+		// Filas legadas (manter compatibilidade)
 		"waha.events.message",
 		"waha.events.message.any",
 		"waha.events.message.ack",

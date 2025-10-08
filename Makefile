@@ -229,7 +229,139 @@ test-e2e: ## Roda testes E2E (requer API rodando)
 	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 	@echo "✅ Testes E2E concluídos!"
 
+test-waha: ## Roda testes E2E do webhook WAHA (requer API rodando)
+	@echo "🧪 Rodando testes E2E - WAHA Webhook"
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@echo ""
+	@echo "⚠️  Certifique-se que a API está rodando:"
+	@echo "   Terminal 1: make infra"
+	@echo "   Terminal 2: make api"
+	@echo ""
+	@echo "🔍 Testando conexão com API..."
+	@curl -f -s http://localhost:8080/health > /dev/null || (echo "❌ API não está rodando!" && exit 1)
+	@echo "✅ API respondendo!"
+	@echo ""
+	@echo "🚀 Executando testes WAHA..."
+	@echo ""
+	@go test -v -timeout 10m -run TestWAHAWebhookTestSuite ./tests/e2e/
+	@echo ""
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@echo "✅ Testes WAHA concluídos!"
+
 test-all: test test-e2e ## Roda todos os testes (unit + E2E)
+
+setup-webhook-n8n: ## [SETUP] Configura webhook N8N com todos eventos de domínio (WEBHOOK_URL=https://dev.webhook.n8n.ventros.cloud/webhook/ventros/crm/events/all API_BASE_URL=http://localhost:8080)
+	@echo "🧪 Configurando Webhook N8N para Eventos de Domínio"
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@echo ""
+	@API_URL="$(API_BASE_URL)"; \
+	if [ -z "$$API_URL" ]; then \
+		API_URL="http://localhost:8080"; \
+	fi; \
+	WEBHOOK="$(WEBHOOK_URL)"; \
+	if [ -z "$$WEBHOOK" ]; then \
+		WEBHOOK="https://dev.webhook.n8n.ventros.cloud/webhook/ventros/crm/events/all"; \
+	fi; \
+	echo "🌐 API URL: $$API_URL"; \
+	echo "🔗 Webhook URL: $$WEBHOOK"; \
+	echo ""; \
+	echo "🔍 Testando conexão com API..."; \
+	curl -f -s $$API_URL/health > /dev/null || (echo "❌ API não está rodando em $$API_URL!" && exit 1); \
+	echo "✅ API respondendo!"; \
+	echo ""; \
+	echo "1️⃣ Configurando ambiente de teste..."; \
+	SETUP_RESPONSE=$$(curl -s -X POST "$$API_URL/api/v1/test/setup?webhook_url=$$WEBHOOK&api_base_url=$$API_URL"); \
+	USER_ID=$$(echo $$SETUP_RESPONSE | jq -r '.data.user_id'); \
+	PROJECT_ID=$$(echo $$SETUP_RESPONSE | jq -r '.data.project_id'); \
+	PIPELINE_ID=$$(echo $$SETUP_RESPONSE | jq -r '.data.pipeline_id'); \
+	CHANNEL_ID=$$(echo $$SETUP_RESPONSE | jq -r '.data.channel_id'); \
+	CHANNEL_WEBHOOK_URL=$$(echo $$SETUP_RESPONSE | jq -r '.data.channel_webhook_url'); \
+	WEBHOOK_ID=$$(echo $$SETUP_RESPONSE | jq -r '.data.webhook_id'); \
+	API_KEY=$$(echo $$SETUP_RESPONSE | jq -r '.data.api_key'); \
+	echo "✅ User: $$USER_ID"; \
+	echo "✅ Project: $$PROJECT_ID"; \
+	echo "✅ Pipeline: $$PIPELINE_ID"; \
+	echo "✅ Channel: $$CHANNEL_ID"; \
+	echo "✅ Webhook Subscription: $$WEBHOOK_ID"; \
+	API_KEY_SHORT=$$(echo "$$API_KEY" | cut -c1-20); \
+	echo "✅ API Key: $${API_KEY_SHORT}..."; \
+	echo ""; \
+	echo "2️⃣ Atualizando timeout da sessão para 1 minuto (teste)..."; \
+	curl -s -X PUT "$$API_URL/api/v1/test/pipeline/$$PIPELINE_ID/timeout?minutes=1" \
+		-H "Authorization: Bearer $$API_KEY" > /dev/null; \
+	echo "✅ Timeout atualizado para 1 minuto!"; \
+	echo ""; \
+	echo "3️⃣ Atualizando webhook com todos os eventos de domínio..."; \
+	UPDATE_RESPONSE=$$(curl -s -X PUT "$$API_URL/api/v1/webhook-subscriptions/$$WEBHOOK_ID" \
+		-H "Authorization: Bearer $$API_KEY" \
+		-H "Content-Type: application/json" \
+		-d '{"name":"Webhook N8N - Todos Eventos","url":"'"$$WEBHOOK"'","events":["contact.created","contact.updated","contact.deleted","contact.merged","contact.enriched","session.started","session.ended","session.agent_assigned","session.resolved","session.escalated","session.summarized","session.abandoned","tracking.message.meta_ads","pipeline.created","pipeline.updated","pipeline.activated","pipeline.deactivated","status.created","status.updated","contact.status_changed","contact.entered_pipeline","contact.exited_pipeline"],"active":true,"retry_count":3,"timeout_seconds":30}'); \
+	echo "✅ Webhook atualizado!"; \
+	echo ""; \
+	echo "4️⃣ Verificando eventos configurados..."; \
+	WEBHOOK_INFO=$$(curl -s -X GET "$$API_URL/api/v1/webhook-subscriptions/$$WEBHOOK_ID" \
+		-H "Authorization: Bearer $$API_KEY"); \
+	echo "📋 Eventos ativos:"; \
+	echo $$WEBHOOK_INFO | jq -r '.webhook.events[] | "   ✓ \(.)"'; \
+	echo ""; \
+	echo "5️⃣ Enviando TODAS as mensagens de teste para gerar eventos..."; \
+	echo ""; \
+	SESSION_ID=$$(echo $$CHANNEL_WEBHOOK_URL | sed 's/.*waha\///'); \
+	echo "📝 Enviando mensagem de texto..."; \
+	sed "s/\"session\": \"[^\"]*\"/\"session\": \"$$SESSION_ID\"/" events_waha/message_text.json | curl -s -X POST "$$CHANNEL_WEBHOOK_URL" -H "Content-Type: application/json" -d @- > /dev/null; \
+	sleep 1; \
+	echo "🖼️  Enviando mensagem de imagem..."; \
+	sed "s/\"session\": \"[^\"]*\"/\"session\": \"$$SESSION_ID\"/" events_waha/message_image.json | curl -s -X POST "$$CHANNEL_WEBHOOK_URL" -H "Content-Type: application/json" -d @- > /dev/null; \
+	sleep 1; \
+	echo "🎤 Enviando mensagem de voz (PTT)..."; \
+	sed "s/\"session\": \"[^\"]*\"/\"session\": \"$$SESSION_ID\"/" events_waha/message_recorded_audio.json | curl -s -X POST "$$CHANNEL_WEBHOOK_URL" -H "Content-Type: application/json" -d @- > /dev/null; \
+	sleep 1; \
+	echo "📍 Enviando mensagem de localização..."; \
+	sed "s/\"session\": \"[^\"]*\"/\"session\": \"$$SESSION_ID\"/" events_waha/message_location.json | curl -s -X POST "$$CHANNEL_WEBHOOK_URL" -H "Content-Type: application/json" -d @- > /dev/null; \
+	sleep 1; \
+	echo "👤 Enviando mensagem de contato..."; \
+	sed "s/\"session\": \"[^\"]*\"/\"session\": \"$$SESSION_ID\"/" events_waha/message_contact.json | curl -s -X POST "$$CHANNEL_WEBHOOK_URL" -H "Content-Type: application/json" -d @- > /dev/null; \
+	sleep 1; \
+	echo "📄 Enviando mensagem de documento..."; \
+	sed "s/\"session\": \"[^\"]*\"/\"session\": \"$$SESSION_ID\"/" events_waha/message_document_pdf.json | curl -s -X POST "$$CHANNEL_WEBHOOK_URL" -H "Content-Type: application/json" -d @- > /dev/null; \
+	sleep 1; \
+	echo "🔊 Enviando mensagem de áudio..."; \
+	sed "s/\"session\": \"[^\"]*\"/\"session\": \"$$SESSION_ID\"/" events_waha/message_audio.json | curl -s -X POST "$$CHANNEL_WEBHOOK_URL" -H "Content-Type: application/json" -d @- > /dev/null; \
+	sleep 1; \
+	echo "🖼️📝 Enviando mensagem de imagem com texto..."; \
+	sed "s/\"session\": \"[^\"]*\"/\"session\": \"$$SESSION_ID\"/" events_waha/message_image_text.json | curl -s -X POST "$$CHANNEL_WEBHOOK_URL" -H "Content-Type: application/json" -d @- > /dev/null; \
+	sleep 1; \
+	echo "📢 Enviando mensagem de FB Ads (tracking)..."; \
+	sed "s/\"session\": \"[^\"]*\"/\"session\": \"$$SESSION_ID\"/" events_waha/fb_ads_message.json | curl -s -X POST "$$CHANNEL_WEBHOOK_URL" -H "Content-Type: application/json" -d @- > /dev/null; \
+	sleep 2; \
+	echo "✅ Todas as 9 mensagens enviadas!"; \
+	echo ""; \
+	echo "5️⃣ Verificando canal..."; \
+	CHANNEL_INFO=$$(curl -s -X GET "$$API_URL/api/v1/channels/$$CHANNEL_ID" \
+		-H "Authorization: Bearer $$API_KEY"); \
+	echo $$CHANNEL_INFO | jq '.channel | {id, name, type, webhook_url, webhook_active, messages_received}'; \
+	echo ""; \
+	echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"; \
+	echo "✅ Webhook N8N configurado com sucesso!"; \
+	echo ""; \
+	echo "📤 Eventos que serão enviados para N8N:"; \
+	echo "   • Contatos: created, updated, deleted, merged, enriched"; \
+	echo "   • Sessões: started, ended, agent_assigned, resolved, escalated, summarized, abandoned"; \
+	echo "   • Tracking: tracking.message.meta_ads (Meta Ads: FB/Instagram)"; \
+	echo "   • Pipelines: created, updated, activated, deactivated"; \
+	echo "   • Status: created, updated, contact.status_changed, contact.entered_pipeline, contact.exited_pipeline"; \
+	echo ""; \
+	echo "🔗 Webhook URL: $$WEBHOOK"; \
+	echo "📋 Webhook ID: $$WEBHOOK_ID"; \
+	echo "🔑 API Key: $$API_KEY"; \
+	echo ""; \
+	echo "💡 Para testar, envie mensagens para o canal ou use:"; \
+	echo "   curl -X POST \"$$CHANNEL_WEBHOOK_URL\" \\"; \
+	echo "     -H \"Content-Type: application/json\" \\"; \
+	echo "     -d @events_waha/message_text.json"; \
+	echo ""; \
+	echo "🌐 Verifique os eventos em: $$WEBHOOK"; \
+	echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
 e2e-webhook: ## [E2E] Teste completo: Canal WAHA + Webhook + Mensagem FB Ads (WEBHOOK_URL=https://webhook.site/xxx API_BASE_URL=http://localhost:8080)
 	@echo "🧪 E2E: Canal WAHA com Webhook e FB Ads"
@@ -286,7 +418,7 @@ e2e-webhook: ## [E2E] Teste completo: Canal WAHA + Webhook + Mensagem FB Ads (WE
 		echo "📤 Eventos esperados:"; \
 		echo "   ✓ contact.created (imediato)"; \
 		echo "   ✓ session.started (imediato)"; \
-		echo "   ✓ ad_campaign.tracked (imediato)"; \
+		echo "   ✓ tracking.message.meta_ads (imediato)"; \
 		echo "   ✓ session.ended (após 1 minuto de inatividade)"; \
 		echo ""; \
 		echo "💡 Verifique em: $(WEBHOOK_URL)"; \

@@ -169,6 +169,12 @@ func (m *Message) AssignToSession(sessionID uuid.UUID) {
 	m.sessionID = &sessionID
 }
 
+// SetChannelMessageID define o ID externo da mensagem no canal (ex: WhatsApp message ID).
+// Usado para deduplicação e rastreamento de ACKs.
+func (m *Message) SetChannelMessageID(channelMessageID string) {
+	m.channelMessageID = &channelMessageID
+}
+
 // MarkAsDelivered marca a mensagem como entregue.
 func (m *Message) MarkAsDelivered() {
 	now := time.Now()

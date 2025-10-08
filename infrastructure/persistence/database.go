@@ -235,11 +235,35 @@ func AutoMigrate(db *gorm.DB) error {
 		// Custom Fields
 		&entities.ContactCustomFieldEntity{},
 		&entities.SessionCustomFieldEntity{},
+		
+		// Event Logs
+		&entities.DomainEventLogEntity{},
 	)
 
 	if err != nil {
 		return fmt.Errorf("failed to run migrations: %w", err)
 	}
+	
+	// 🎯 Otimizações pós-migração (índices customizados)
+	log.Println("🔄 Applying post-migration optimizations...")
+	postMigrationOptimizations := []string{
+		// Otimiza índice do channel_message_id para deduplicação e ACKs
+		`DROP INDEX IF EXISTS idx_messages_channel_message_id`,
+		`CREATE INDEX IF NOT EXISTS idx_messages_channel_message_id_lookup 
+		 ON messages(channel_message_id) 
+		 WHERE channel_message_id IS NOT NULL`,
+		`CREATE INDEX IF NOT EXISTS idx_messages_channel_msg_status 
+		 ON messages(channel_message_id, status) 
+		 WHERE channel_message_id IS NOT NULL`,
+	}
+	
+	for _, sql := range postMigrationOptimizations {
+		if err := db.Exec(sql).Error; err != nil {
+			log.Printf("⚠️  Warning: Post-migration optimization failed: %v", err)
+			// Continua mesmo se falhar (índice pode já existir)
+		}
+	}
+	log.Println("✅ Post-migration optimizations completed")
 
 	log.Println("✅ GORM migrations completed successfully!")
 	return nil

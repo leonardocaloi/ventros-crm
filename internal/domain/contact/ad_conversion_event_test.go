@@ -59,7 +59,7 @@ func TestAdConversionTrackedEvent_EventName(t *testing.T) {
 	eventName := event.EventName()
 	
 	// Assert
-	assert.Equal(t, "ad_campaign.tracked", eventName)
+	assert.Equal(t, "tracking.message.meta_ads", eventName)
 }
 
 func TestAdConversionTrackedEvent_OccurredAt(t *testing.T) {
@@ -235,7 +235,7 @@ func TestAdConversionTrackedEvent_FullScenario(t *testing.T) {
 	event := contact.NewAdConversionTrackedEvent(contactID, sessionID, tenantID, trackingData)
 	
 	// Assert - Verifica todos os dados necessários para tracking de conversão
-	assert.Equal(t, "ad_campaign.tracked", event.EventName())
+	assert.Equal(t, "tracking.message.meta_ads", event.EventName())
 	assert.Equal(t, "ctwa_ad", event.ConversionSource)
 	assert.Equal(t, "instagram", event.ConversionApp)
 	assert.NotEmpty(t, event.CTWAClickID, "CTWA Click ID é crucial para rastreamento de conversão")

@@ -208,19 +208,21 @@ func (h *TestHandler) SetupTestEnvironment(c *gin.Context) {
 		return
 	}
 
-	// 3. Criar Pipeline padrão
+	// 3. Criar Pipeline padrão (com timeout padrão de 30 minutos)
+	// O teste vai atualizar para 1 minuto via API depois
 	pipelineID := uuid.New()
 	pipeline := entities.PipelineEntity{
-		ID:          pipelineID,
-		ProjectID:   projectID,
-		TenantID:    "default",
-		Name:        "Pipeline Padrão",
-		Description: "Pipeline padrão para novos contatos",
-		Color:       "#3B82F6",
-		Position:    1,
-		Active:      true,
-		CreatedAt:   time.Now(),
-		UpdatedAt:   time.Now(),
+		ID:                    pipelineID,
+		ProjectID:             projectID,
+		TenantID:              "default",
+		Name:                  "Pipeline Padrão",
+		Description:           "Pipeline padrão para novos contatos",
+		Color:                 "#3B82F6",
+		Position:              1,
+		Active:                true,
+		SessionTimeoutMinutes: 30, // Padrão: 30 minutos (será atualizado para 1 min no teste)
+		CreatedAt:             time.Now(),
+		UpdatedAt:             time.Now(),
 	}
 
 	if err := tx.Create(&pipeline).Error; err != nil {
@@ -258,7 +260,7 @@ func (h *TestHandler) SetupTestEnvironment(c *gin.Context) {
 	now := time.Now()
 
 	// Gerar URL do webhook interno automaticamente usando a base URL configurada
-	channelWebhookURL := fmt.Sprintf("%s/api/v1/webhooks/waha?session=%s", apiBaseURL, externalID)
+	channelWebhookURL := fmt.Sprintf("%s/api/v1/webhooks/waha/%s", apiBaseURL, externalID)
 
 	channel := entities.ChannelEntity{
 		ID:                  channelID,
@@ -292,7 +294,7 @@ func (h *TestHandler) SetupTestEnvironment(c *gin.Context) {
 		TenantID:       "test-tenant",
 		Name:           "Webhook Teste N8N",
 		URL:            webhookURL,
-		Events:         pq.StringArray{"contact.created", "session.started", "session.ended", "ad_campaign.tracked"},
+		Events:         pq.StringArray{"contact.created", "session.started", "session.ended", "tracking.message.meta_ads"},
 		Active:         true,
 		RetryCount:     3,
 		TimeoutSeconds: 30,
@@ -425,7 +427,7 @@ func (h *TestHandler) TestWAHAMessage(c *gin.Context) {
 			"message_type":    messageType,
 			"description":     description,
 			"webhook_url":     "/api/v1/webhooks/waha",
-			"expected_events": []string{"contact.created", "session.started", "ad_campaign.tracked"},
+			"expected_events": []string{"contact.created", "session.started", "tracking.message.meta_ads"},
 		},
 		"message":         "Use the curl command below to test WAHA webhook",
 		"curl_command":    curlCommand,
@@ -500,7 +502,7 @@ func (h *TestHandler) SendWAHAMessage(c *gin.Context) {
 			"description":     description,
 			"webhook_status":  resp.StatusCode,
 			"webhook_url":     "/api/v1/webhooks/waha",
-			"expected_events": []string{"contact.created", "session.started", "ad_campaign.tracked"},
+			"expected_events": []string{"contact.created", "session.started", "tracking.message.meta_ads"},
 		},
 		"message": fmt.Sprintf("WAHA message sent successfully! Webhook returned status: %d", resp.StatusCode),
 	}
@@ -829,4 +831,41 @@ func generateRandomString(length int) string {
 		result[i] = charset[time.Now().UnixNano()%int64(len(charset))]
 	}
 	return string(result)
+}
+
+// UpdatePipelineTimeout atualiza o timeout de sessão do pipeline (apenas para testes)
+func (h *TestHandler) UpdatePipelineTimeout(c *gin.Context) {
+	pipelineID := c.Param("id")
+	minutes := c.DefaultQuery("minutes", "1")
+	
+	h.logger.Info("Updating pipeline timeout", 
+		zap.String("pipeline_id", pipelineID),
+		zap.String("minutes", minutes))
+	
+	// Atualiza o timeout do pipeline
+	result := h.db.Exec(`
+		UPDATE pipelines 
+		SET session_timeout_minutes = ?, updated_at = NOW() 
+		WHERE id = ?
+	`, minutes, pipelineID)
+	
+	if result.Error != nil {
+		h.logger.Error("Failed to update pipeline timeout", zap.Error(result.Error))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update pipeline timeout"})
+		return
+	}
+	
+	if result.RowsAffected == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Pipeline not found"})
+		return
+	}
+	
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": fmt.Sprintf("Pipeline timeout updated to %s minutes", minutes),
+		"data": gin.H{
+			"pipeline_id":             pipelineID,
+			"session_timeout_minutes": minutes,
+		},
+	})
 }

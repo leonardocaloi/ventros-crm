@@ -1358,6 +1358,36 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/contacts/{contact_id}/domain-events": {
+            "get": {
+                "description": "Lista todos os eventos de domínio disparados para um contato",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "domain-events"
+                ],
+                "summary": "List domain events by contact",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Contact ID",
+                        "name": "contact_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/contacts/{contact_id}/sessions": {
             "get": {
                 "security": [
@@ -1631,6 +1661,78 @@ const docTemplate = `{
                     },
                     "500": {
                         "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/domain-events": {
+            "get": {
+                "description": "Lista todos os eventos de domínio disparados em um projeto",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "domain-events"
+                ],
+                "summary": "List domain events by project",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Project ID",
+                        "name": "project_id",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Limit (default: 100)",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/domain-events/by-type": {
+            "get": {
+                "description": "Lista eventos de domínio filtrados por tipo",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "domain-events"
+                ],
+                "summary": "List domain events by type",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Event Type (e.g., contact.created, session.started)",
+                        "name": "event_type",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Limit (default: 100)",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -2772,6 +2874,104 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/sessions/{id}/close": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Encerra uma sessão manualmente. Apenas agentes podem encerrar sessões.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "sessions"
+                ],
+                "summary": "Close session",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Session ID (UUID)",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Close session request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/infrastructure_http_handlers.CloseSessionRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Session closed successfully",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Session not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/sessions/{session_id}/domain-events": {
+            "get": {
+                "description": "Lista todos os eventos de domínio disparados para uma sessão",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "domain-events"
+                ],
+                "summary": "List domain events by session",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Session ID",
+                        "name": "session_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/sessions/{session_id}/messages": {
             "get": {
                 "description": "Obtém todas as mensagens de uma sessão específica",
@@ -3172,7 +3372,9 @@ const docTemplate = `{
                         }
                     }
                 }
-            },
+            }
+        },
+        "/api/v1/webhooks/waha/{session}": {
             "post": {
                 "description": "Recebe eventos de webhook do WAHA (mensagens, chamadas, etc.)",
                 "consumes": [
@@ -3190,12 +3392,13 @@ const docTemplate = `{
                         "type": "string",
                         "description": "Session ID",
                         "name": "session",
-                        "in": "query"
+                        "in": "path",
+                        "required": true
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "Event processed",
+                        "description": "Event queued",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -3790,6 +3993,21 @@ const docTemplate = `{
                     "example": "Contato respondeu"
                 },
                 "status_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "infrastructure_http_handlers.CloseSessionRequest": {
+            "type": "object",
+            "required": [
+                "reason"
+            ],
+            "properties": {
+                "notes": {
+                    "type": "string"
+                },
+                "reason": {
+                    "description": "\"resolved\", \"transferred\", \"escalated\", \"agent_closed\"",
                     "type": "string"
                 }
             }

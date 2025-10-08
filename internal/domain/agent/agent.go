@@ -7,17 +7,48 @@ import (
 	"github.com/google/uuid"
 )
 
+// AgentType define os tipos de agentes
+type AgentType string
+
+const (
+	AgentTypeHuman   AgentType = "human"   // Agente humano (atendente/admin)
+	AgentTypeAI      AgentType = "ai"      // Agente de IA (externo via provider)
+	AgentTypeBot     AgentType = "bot"     // Bot/automação (interno)
+	AgentTypeChannel AgentType = "channel" // Canal/dispositivo
+)
+
+// AgentStatus define os status possíveis
+type AgentStatus string
+
+const (
+	AgentStatusAvailable AgentStatus = "available"
+	AgentStatusBusy      AgentStatus = "busy"
+	AgentStatusAway      AgentStatus = "away"
+	AgentStatusOffline   AgentStatus = "offline"
+)
+
 // Agent é o Aggregate Root para agentes do sistema.
-// Representa usuários que interagem com contatos e gerenciam conversas.
+// Representa entidades que podem interagir com contatos: humanos, IAs, bots ou canais.
 type Agent struct {
 	id          uuid.UUID
+	projectID   uuid.UUID
+	userID      *uuid.UUID // Null para agentes não-humanos
 	tenantID    string
 	name        string
 	email       string
+	agentType   AgentType
+	status      AgentStatus
 	role        Role
 	active      bool
+	config      map[string]interface{} // Configurações específicas (ex: AI provider, model)
 	permissions map[string]bool
 	settings    map[string]interface{}
+	
+	// Métricas
+	sessionsHandled   int
+	averageResponseMs int
+	lastActivityAt    *time.Time
+	
 	createdAt   time.Time
 	updatedAt   time.Time
 	lastLoginAt *time.Time
@@ -28,45 +59,57 @@ type Agent struct {
 
 // NewAgent cria um novo agente (factory method).
 func NewAgent(
+	projectID uuid.UUID,
 	tenantID string,
 	name string,
-	email string,
-	role Role,
+	agentType AgentType,
+	userID *uuid.UUID, // Obrigatório para human, null para outros
 ) (*Agent, error) {
+	if projectID == uuid.Nil {
+		return nil, errors.New("projectID cannot be nil")
+	}
 	if tenantID == "" {
 		return nil, errors.New("tenantID cannot be empty")
 	}
 	if name == "" {
 		return nil, errors.New("name cannot be empty")
 	}
-	if email == "" {
-		return nil, errors.New("email cannot be empty")
+	if agentType == "" {
+		agentType = AgentTypeHuman // Padrão
 	}
-	if !role.IsValid() {
-		return nil, errors.New("invalid role")
+	
+	// Validação: agente humano precisa de userID
+	if agentType == AgentTypeHuman && (userID == nil || *userID == uuid.Nil) {
+		return nil, errors.New("human agent requires a valid userID")
 	}
 
 	now := time.Now()
 	agent := &Agent{
-		id:          uuid.New(),
-		tenantID:    tenantID,
-		name:        name,
-		email:       email,
-		role:        role,
-		active:      true,
-		permissions: make(map[string]bool),
-		settings:    make(map[string]interface{}),
-		createdAt:   now,
-		updatedAt:   now,
-		events:      []DomainEvent{},
+		id:                uuid.New(),
+		projectID:         projectID,
+		userID:            userID,
+		tenantID:          tenantID,
+		name:              name,
+		agentType:         agentType,
+		status:            AgentStatusOffline,
+		role:              RoleHumanAgent, // Padrão para humanos
+		active:            true,
+		config:            make(map[string]interface{}),
+		permissions:       make(map[string]bool),
+		settings:          make(map[string]interface{}),
+		sessionsHandled:   0,
+		averageResponseMs: 0,
+		createdAt:         now,
+		updatedAt:         now,
+		events:            []DomainEvent{},
 	}
 
 	agent.addEvent(AgentCreatedEvent{
 		AgentID:   agent.id,
 		TenantID:  tenantID,
 		Name:      name,
-		Email:     email,
-		Role:      role,
+		Email:     agent.email,
+		Role:      agent.role,
 		CreatedAt: now,
 	})
 
@@ -235,15 +278,54 @@ func (a *Agent) UpdateSettings(settings map[string]interface{}) {
 	a.updatedAt = time.Now()
 }
 
+// SetStatus atualiza o status do agente
+func (a *Agent) SetStatus(status AgentStatus) {
+	if a.status != status {
+		a.status = status
+		a.updatedAt = time.Now()
+		a.lastActivityAt = &a.updatedAt
+	}
+}
+
+// SetConfig atualiza configurações específicas do agente (ex: AI provider)
+func (a *Agent) SetConfig(config map[string]interface{}) {
+	a.config = config
+	a.updatedAt = time.Now()
+}
+
+// RecordSessionHandled registra que o agente atendeu uma sessão
+func (a *Agent) RecordSessionHandled(responseTimeMs int) {
+	a.sessionsHandled++
+	
+	// Calcula média móvel do tempo de resposta
+	if a.averageResponseMs == 0 {
+		a.averageResponseMs = responseTimeMs
+	} else {
+		a.averageResponseMs = (a.averageResponseMs + responseTimeMs) / 2
+	}
+	
+	now := time.Now()
+	a.lastActivityAt = &now
+	a.updatedAt = now
+}
+
 // Getters
 func (a *Agent) ID() uuid.UUID                    { return a.id }
+func (a *Agent) ProjectID() uuid.UUID             { return a.projectID }
+func (a *Agent) UserID() *uuid.UUID               { return a.userID }
 func (a *Agent) TenantID() string                 { return a.tenantID }
 func (a *Agent) Name() string                     { return a.name }
 func (a *Agent) Email() string                    { return a.email }
+func (a *Agent) Type() AgentType                  { return a.agentType }
+func (a *Agent) Status() AgentStatus              { return a.status }
 func (a *Agent) Role() Role                       { return a.role }
 func (a *Agent) IsActive() bool                   { return a.active }
+func (a *Agent) Config() map[string]interface{}   { return a.config }
 func (a *Agent) Permissions() map[string]bool     { return a.permissions }
 func (a *Agent) Settings() map[string]interface{} { return a.settings }
+func (a *Agent) SessionsHandled() int             { return a.sessionsHandled }
+func (a *Agent) AverageResponseMs() int           { return a.averageResponseMs }
+func (a *Agent) LastActivityAt() *time.Time       { return a.lastActivityAt }
 func (a *Agent) CreatedAt() time.Time             { return a.createdAt }
 func (a *Agent) UpdatedAt() time.Time             { return a.updatedAt }
 func (a *Agent) LastLoginAt() *time.Time          { return a.lastLoginAt }

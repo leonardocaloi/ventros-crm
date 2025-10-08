@@ -187,3 +187,93 @@ func (h *SessionHandler) sessionToResponse(sess *session.Session) map[string]int
 
 	return response
 }
+
+// CloseSessionRequest representa a requisição para encerrar uma sessão
+type CloseSessionRequest struct {
+	Reason string `json:"reason" binding:"required"` // "resolved", "transferred", "escalated", "agent_closed"
+	Notes  string `json:"notes"`
+}
+
+// CloseSession encerra uma sessão manualmente (por agente)
+// @Summary Close session
+// @Description Encerra uma sessão manualmente. Apenas agentes podem encerrar sessões.
+// @Tags sessions
+// @Accept json
+// @Produce json
+// @Security ApiKeyAuth
+// @Param id path string true "Session ID (UUID)"
+// @Param request body CloseSessionRequest true "Close session request"
+// @Success 200 {object} map[string]interface{} "Session closed successfully"
+// @Failure 400 {object} map[string]interface{} "Invalid request"
+// @Failure 404 {object} map[string]interface{} "Session not found"
+// @Failure 500 {object} map[string]interface{} "Internal server error"
+// @Router /api/v1/sessions/{id}/close [post]
+func (h *SessionHandler) CloseSession(c *gin.Context) {
+	sessionIDStr := c.Param("id")
+	sessionID, err := uuid.Parse(sessionIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid session ID"})
+		return
+	}
+
+	var req CloseSessionRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Busca sessão
+	sess, err := h.sessionRepo.FindByID(c.Request.Context(), sessionID)
+	if err != nil {
+		h.logger.Error("Failed to get session", zap.Error(err))
+		c.JSON(http.StatusNotFound, gin.H{"error": "Session not found"})
+		return
+	}
+
+	// Valida se sessão já está encerrada
+	if sess.Status() == session.StatusEnded {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Session is already ended"})
+		return
+	}
+
+	// Encerra sessão baseado no reason
+	switch req.Reason {
+	case "resolved":
+		if err := sess.Resolve(); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+	case "escalated":
+		if err := sess.Escalate(); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+	case "transferred", "agent_closed":
+		// Encerra sessão com reason customizado
+		if err := sess.End(session.EndReason(req.Reason)); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+	default:
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid reason. Must be: resolved, transferred, escalated, or agent_closed"})
+		return
+	}
+
+	// Salva sessão
+	if err := h.sessionRepo.Save(c.Request.Context(), sess); err != nil {
+		h.logger.Error("Failed to update session", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to close session"})
+		return
+	}
+
+	h.logger.Info("Session closed by agent",
+		zap.String("session_id", sessionID.String()),
+		zap.String("reason", req.Reason))
+
+	c.JSON(http.StatusOK, gin.H{
+		"message":    "Session closed successfully",
+		"session_id": sessionID,
+		"reason":     req.Reason,
+		"status":     sess.Status(),
+	})
+}

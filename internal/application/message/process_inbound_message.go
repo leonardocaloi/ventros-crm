@@ -13,19 +13,21 @@ import (
 	"github.com/caloi/ventros-crm/internal/domain/shared"
 	sessionworkflow "github.com/caloi/ventros-crm/internal/workflows/session"
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
 
 // ProcessInboundMessageCommand represents the command to process an inbound message
 // IMPORTANTE: SessionID aqui refere-se à SESSÃO DO CRM (conversa com timeout gerenciado pelo Temporal),
 // NÃO ao session_id do WAHA (que é o ExternalID do canal). Não confundir os dois conceitos!
 type ProcessInboundMessageCommand struct {
-	MessageID     string
-	FromPhone     string
-	MessageText   string
-	Timestamp     time.Time
-	MessageType   string
-	MediaURL      string
-	MediaType     string
+	MessageID        string // ID interno (legado, pode ser removido)
+	ChannelMessageID string // ID externo do WhatsApp (usado para deduplicação)
+	FromPhone        string
+	MessageText      string
+	Timestamp        time.Time
+	MessageType      string
+	MediaURL         string
+	MediaType        string
 	// Channel context (OBRIGATÓRIO - toda mensagem vem de um canal)
 	ChannelID     uuid.UUID // UUID do canal de onde a mensagem veio
 	// User context (obtido do canal)
@@ -42,6 +44,7 @@ type ProcessInboundMessageCommand struct {
 	TrackingData  map[string]interface{}
 	ReceivedAt    time.Time
 	Metadata      map[string]interface{} // Pode conter "waha_session" (ExternalID do canal), "channel_name", etc.
+	FromMe        bool                   // Se a mensagem foi enviada pelo sistema (fromMe: true)
 }
 
 // EventBus é a interface para publicar eventos de domínio.
@@ -58,6 +61,7 @@ type ProcessInboundMessageUseCase struct {
 	contactEventRepo contact_event.Repository
 	eventBus         EventBus
 	sessionManager   *sessionworkflow.SessionManager
+	db               *gorm.DB
 }
 
 // NewProcessInboundMessageUseCase creates a new use case instance
@@ -68,6 +72,7 @@ func NewProcessInboundMessageUseCase(
 	contactEventRepo contact_event.Repository,
 	eventBus EventBus,
 	sessionManager *sessionworkflow.SessionManager,
+	db *gorm.DB,
 ) *ProcessInboundMessageUseCase {
 	return &ProcessInboundMessageUseCase{
 		contactRepo:      contactRepo,
@@ -76,6 +81,7 @@ func NewProcessInboundMessageUseCase(
 		contactEventRepo: contactEventRepo,
 		eventBus:         eventBus,
 		sessionManager:   sessionManager,
+		db:               db,
 	}
 }
 
@@ -215,8 +221,17 @@ func (uc *ProcessInboundMessageUseCase) findOrCreateSession(ctx context.Context,
 		}
 	}
 	
-	// Cria nova sessão (1 min timeout para teste)
-	timeoutDuration := 1 * time.Minute
+	// Determina timeout da sessão baseado no pipeline do projeto
+	// Padrão: valor configurado em SESSION_DEFAULT_TIMEOUT_MINUTES (30 minutos)
+	timeoutMinutes := 30 // Fallback hardcoded caso config não esteja disponível
+	
+	// Busca o pipeline ativo do projeto para obter o timeout configurado
+	pipeline, err := uc.findProjectPipeline(ctx, c.ProjectID())
+	if err == nil && pipeline != nil && pipeline.SessionTimeoutMinutes > 0 {
+		timeoutMinutes = pipeline.SessionTimeoutMinutes
+	}
+	
+	timeoutDuration := time.Duration(timeoutMinutes) * time.Minute
 	s, err := domainsession.NewSession(c.ID(), cmd.TenantID, channelTypeID, timeoutDuration)
 	if err != nil {
 		return nil, err
@@ -248,14 +263,25 @@ func (uc *ProcessInboundMessageUseCase) findOrCreateSession(ctx context.Context,
 
 // createMessage cria e persiste a mensagem
 func (uc *ProcessInboundMessageUseCase) createMessage(ctx context.Context, c *domaincontact.Contact, s *domainsession.Session, cmd ProcessInboundMessageCommand) (*domainmessage.Message, error) {
+	// 🎯 DEDUPLICAÇÃO: Verifica se mensagem já existe pelo channel_message_id
+	if cmd.ChannelMessageID != "" {
+		existingMsg, err := uc.messageRepo.FindByChannelMessageID(ctx, cmd.ChannelMessageID)
+		if err == nil && existingMsg != nil {
+			// Mensagem já existe, retorna a existente
+			fmt.Printf("⚠️  Message already exists (channel_message_id=%s), skipping creation\n", cmd.ChannelMessageID)
+			return existingMsg, nil
+		}
+		// Se não encontrou ou deu erro, continua criação
+	}
+	
 	// Parse content type
 	contentType, err := domainmessage.ParseContentType(cmd.ContentType)
 	if err != nil {
 		return nil, fmt.Errorf("invalid content type: %w", err)
 	}
 	
-	// Cria mensagem (inbound, fromMe=false)
-	m, err := domainmessage.NewMessage(c.ID(), cmd.ProjectID, cmd.CustomerID, contentType, false)
+	// Cria mensagem (usa cmd.FromMe para determinar direção)
+	m, err := domainmessage.NewMessage(c.ID(), cmd.ProjectID, cmd.CustomerID, contentType, cmd.FromMe)
 	if err != nil {
 		return nil, err
 	}
@@ -265,6 +291,11 @@ func (uc *ProcessInboundMessageUseCase) createMessage(ctx context.Context, c *do
 	
 	// Associa à sessão
 	m.AssignToSession(s.ID())
+	
+	// Define channel_message_id (ID externo do WhatsApp)
+	if cmd.ChannelMessageID != "" {
+		m.SetChannelMessageID(cmd.ChannelMessageID)
+	}
 	
 	// Define conteúdo
 	if contentType.IsText() && cmd.Text != "" {
@@ -406,6 +437,35 @@ func (uc *ProcessInboundMessageUseCase) trackAdConversion(ctx context.Context, c
 	
 	// Publica evento
 	return uc.eventBus.Publish(ctx, conversionEvent)
+}
+
+// findProjectPipeline busca o pipeline ativo do projeto
+func (uc *ProcessInboundMessageUseCase) findProjectPipeline(ctx context.Context, projectID uuid.UUID) (*PipelineInfo, error) {
+	// Query direto no banco para buscar pipeline ativo do projeto
+	var result struct {
+		SessionTimeoutMinutes int
+	}
+	
+	err := uc.db.Raw(`
+		SELECT session_timeout_minutes 
+		FROM pipelines 
+		WHERE project_id = ? AND active = true AND deleted_at IS NULL 
+		ORDER BY position ASC 
+		LIMIT 1
+	`, projectID).Scan(&result).Error
+	
+	if err != nil {
+		return nil, err
+	}
+	
+	return &PipelineInfo{
+		SessionTimeoutMinutes: result.SessionTimeoutMinutes,
+	}, nil
+}
+
+// PipelineInfo contém informações do pipeline necessárias para criar sessão
+type PipelineInfo struct {
+	SessionTimeoutMinutes int
 }
 
 // truncate trunca string para max caracteres

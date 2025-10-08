@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/caloi/ventros-crm/infrastructure/persistence"
 	"github.com/gin-gonic/gin"
@@ -105,8 +106,8 @@ func (h *DomainEventHandler) ListDomainEventsByProject(c *gin.Context) {
 
 	limit := 100
 	if limitStr := c.Query("limit"); limitStr != "" {
-		if _, err := gin.H{}.MarshalJSON(); err == nil {
-			// Parse limit
+		if parsedLimit, err := strconv.Atoi(limitStr); err == nil && parsedLimit > 0 && parsedLimit <= 1000 {
+			limit = parsedLimit
 		}
 	}
 

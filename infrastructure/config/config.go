@@ -13,6 +13,7 @@ type Config struct {
 	RabbitMQ RabbitMQConfig
 	Temporal TemporalConfig
 	Log      LogConfig
+	Session  SessionConfig
 }
 
 type ServerConfig struct {
@@ -49,6 +50,10 @@ type LogConfig struct {
 	Level string
 }
 
+type SessionConfig struct {
+	DefaultTimeoutMinutes int // Timeout padrão para sessões em minutos
+}
+
 // Load loads configuration from environment variables
 func Load() *Config {
 	return &Config{
@@ -79,12 +84,25 @@ func Load() *Config {
 		},
 		Log: LogConfig{
 		},
+		Session: SessionConfig{
+			DefaultTimeoutMinutes: getEnvInt("SESSION_DEFAULT_TIMEOUT_MINUTES", 30),
+		},
 	}
 }
 
 func getEnv(key, defaultValue string) string {
 	if value := os.Getenv(key); value != "" {
 		return value
+	}
+	return defaultValue
+}
+
+func getEnvInt(key string, defaultValue int) int {
+	if value := os.Getenv(key); value != "" {
+		var intValue int
+		if _, err := fmt.Sscanf(value, "%d", &intValue); err == nil {
+			return intValue
+		}
 	}
 	return defaultValue
 }

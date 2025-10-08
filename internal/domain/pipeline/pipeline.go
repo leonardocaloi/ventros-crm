@@ -9,17 +9,18 @@ import (
 
 // Pipeline representa um pipeline de vendas/atendimento
 type Pipeline struct {
-	id          uuid.UUID
-	projectID   uuid.UUID
-	tenantID    string
-	name        string
-	description string
-	color       string
-	position    int
-	active      bool
-	statuses    []*Status
-	createdAt   time.Time
-	updatedAt   time.Time
+	id                    uuid.UUID
+	projectID             uuid.UUID
+	tenantID              string
+	name                  string
+	description           string
+	color                 string
+	position              int
+	active                bool
+	sessionTimeoutMinutes int       // Timeout de inatividade para sessões (padrão: 30min)
+	statuses              []*Status
+	createdAt             time.Time
+	updatedAt             time.Time
 	
 	// Domain Events
 	events []DomainEvent
@@ -39,16 +40,17 @@ func NewPipeline(projectID uuid.UUID, tenantID, name string) (*Pipeline, error) 
 
 	now := time.Now()
 	pipeline := &Pipeline{
-		id:          uuid.New(),
-		projectID:   projectID,
-		tenantID:    tenantID,
-		name:        name,
-		position:    0,
-		active:      true,
-		statuses:    []*Status{},
-		createdAt:   now,
-		updatedAt:   now,
-		events:      []DomainEvent{},
+		id:                    uuid.New(),
+		projectID:             projectID,
+		tenantID:              tenantID,
+		name:                  name,
+		position:              0,
+		active:                true,
+		sessionTimeoutMinutes: 30, // Padrão: 30 minutos
+		statuses:              []*Status{},
+		createdAt:             now,
+		updatedAt:             now,
+		events:                []DomainEvent{},
 	}
 
 	pipeline.addEvent(PipelineCreatedEvent{
@@ -68,21 +70,28 @@ func ReconstructPipeline(
 	tenantID, name, description, color string,
 	position int,
 	active bool,
+	sessionTimeoutMinutes int,
 	createdAt, updatedAt time.Time,
 ) *Pipeline {
+	// Se timeout não foi definido, usa padrão de 30 minutos
+	if sessionTimeoutMinutes <= 0 {
+		sessionTimeoutMinutes = 30
+	}
+	
 	return &Pipeline{
-		id:          id,
-		projectID:   projectID,
-		tenantID:    tenantID,
-		name:        name,
-		description: description,
-		color:       color,
-		position:    position,
-		active:      active,
-		statuses:    []*Status{},
-		createdAt:   createdAt,
-		updatedAt:   updatedAt,
-		events:      []DomainEvent{},
+		id:                    id,
+		projectID:             projectID,
+		tenantID:              tenantID,
+		name:                  name,
+		description:           description,
+		color:                 color,
+		position:              position,
+		active:                active,
+		sessionTimeoutMinutes: sessionTimeoutMinutes,
+		statuses:              []*Status{},
+		createdAt:             createdAt,
+		updatedAt:             updatedAt,
+		events:                []DomainEvent{},
 	}
 }
 
@@ -246,17 +255,33 @@ func (p *Pipeline) GetStatusByName(name string) *Status {
 }
 
 // Getters
-func (p *Pipeline) ID() uuid.UUID           { return p.id }
-func (p *Pipeline) ProjectID() uuid.UUID    { return p.projectID }
-func (p *Pipeline) TenantID() string        { return p.tenantID }
-func (p *Pipeline) Name() string            { return p.name }
-func (p *Pipeline) Description() string     { return p.description }
-func (p *Pipeline) Color() string           { return p.color }
-func (p *Pipeline) Position() int           { return p.position }
-func (p *Pipeline) IsActive() bool          { return p.active }
-func (p *Pipeline) Statuses() []*Status     { return append([]*Status{}, p.statuses...) } // Copy
-func (p *Pipeline) CreatedAt() time.Time    { return p.createdAt }
-func (p *Pipeline) UpdatedAt() time.Time    { return p.updatedAt }
+func (p *Pipeline) ID() uuid.UUID                { return p.id }
+func (p *Pipeline) ProjectID() uuid.UUID         { return p.projectID }
+func (p *Pipeline) TenantID() string             { return p.tenantID }
+func (p *Pipeline) Name() string                 { return p.name }
+func (p *Pipeline) Description() string          { return p.description }
+func (p *Pipeline) Color() string                { return p.color }
+func (p *Pipeline) Position() int                { return p.position }
+func (p *Pipeline) IsActive() bool               { return p.active }
+func (p *Pipeline) SessionTimeoutMinutes() int   { return p.sessionTimeoutMinutes }
+func (p *Pipeline) Statuses() []*Status          { return append([]*Status{}, p.statuses...) } // Copy
+func (p *Pipeline) CreatedAt() time.Time         { return p.createdAt }
+func (p *Pipeline) UpdatedAt() time.Time         { return p.updatedAt }
+
+// SetSessionTimeout atualiza o timeout de sessão (em minutos)
+func (p *Pipeline) SetSessionTimeout(minutes int) error {
+	if minutes <= 0 {
+		return errors.New("session timeout must be greater than 0")
+	}
+	if minutes > 1440 { // Máximo 24 horas
+		return errors.New("session timeout cannot exceed 1440 minutes (24 hours)")
+	}
+	
+	p.sessionTimeoutMinutes = minutes
+	p.updatedAt = time.Now()
+	
+	return nil
+}
 
 // DomainEvents retorna os eventos de domínio
 func (p *Pipeline) DomainEvents() []DomainEvent {

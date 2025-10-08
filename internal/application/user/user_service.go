@@ -177,16 +177,17 @@ func (s *UserService) CreateUser(req CreateUserRequest) (*CreateUserResponse, er
 		return nil, fmt.Errorf("failed to create default project: %w", err)
 	}
 
-	// 4. Cria pipeline default
+	// 4. Cria pipeline default (com timeout de 30 minutos)
 	pipeline := entities.PipelineEntity{
-		ID:          uuid.New(),
-		ProjectID:   project.ID,
-		TenantID:    project.TenantID,
-		Name:        "Pipeline Principal",
-		Description: "Pipeline padrão para novos contatos",
-		Color:       "#3B82F6",
-		Position:    0,
-		Active:      true,
+		ID:                    uuid.New(),
+		ProjectID:             project.ID,
+		TenantID:              project.TenantID,
+		Name:                  "Pipeline Principal",
+		Description:           "Pipeline padrão para novos contatos",
+		Color:                 "#3B82F6",
+		Position:              0,
+		Active:                true,
+		SessionTimeoutMinutes: 30, // Timeout padrão de 30 minutos
 	}
 
 	if err := tx.Create(&pipeline).Error; err != nil {
@@ -194,7 +195,28 @@ func (s *UserService) CreateUser(req CreateUserRequest) (*CreateUserResponse, er
 		return nil, fmt.Errorf("failed to create default pipeline: %w", err)
 	}
 
-	// 4. Gera API Key
+	// 5. Cria agente humano automaticamente para user admin
+	if req.Role == "admin" {
+		agent := entities.AgentEntity{
+			ID:        uuid.New(),
+			ProjectID: project.ID,
+			UserID:    &newUser.ID,
+			TenantID:  project.TenantID,
+			Name:      req.Name,
+			Email:     req.Email,
+			Type:      entities.AgentTypeHuman,
+			Status:    entities.AgentStatusOffline,
+			Active:    true,
+			Config:    map[string]interface{}{},
+		}
+
+		if err := tx.Create(&agent).Error; err != nil {
+			tx.Rollback()
+			return nil, fmt.Errorf("failed to create default agent: %w", err)
+		}
+	}
+
+	// 6. Gera API Key
 	apiKey, err := s.generateAPIKey(tx, newUser.ID, "Default API Key")
 	if err != nil {
 		tx.Rollback()

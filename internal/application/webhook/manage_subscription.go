@@ -198,7 +198,7 @@ func (uc *ManageSubscriptionUseCase) GetAvailableEvents() map[string][]string {
 			"message.failed",     // Mensagem falhou
 		},
 		"domain_tracking": {
-			"ad_campaign.tracked", // Conversão de anúncio rastreada (FB Ads)
+			"tracking.message.meta_ads", // Conversão de anúncio rastreada (Meta Ads: FB/Instagram)
 		},
 		"domain_pipelines": {
 			"pipeline.created",          // Pipeline criado

@@ -34,7 +34,7 @@ type AdConversionTrackedEvent struct {
 	TrackedAt time.Time
 }
 
-func (e AdConversionTrackedEvent) EventName() string     { return "ad_campaign.tracked" }
+func (e AdConversionTrackedEvent) EventName() string     { return "tracking.message.meta_ads" }
 func (e AdConversionTrackedEvent) OccurredAt() time.Time { return e.TrackedAt }
 
 // NewAdConversionTrackedEvent cria um novo evento de rastreamento de conversão de anúncio.
