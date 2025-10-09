@@ -15,19 +15,19 @@ var GitCommit = "unknown"
 
 // Info contains all version information
 type Info struct {
-	Version    string `json:"version"`
-	BuildDate  string `json:"build_date"`
-	GitCommit  string `json:"git_commit"`
-	GoVersion  string `json:"go_version"`
+	Version   string `json:"version"`
+	BuildDate string `json:"build_date"`
+	GitCommit string `json:"git_commit"`
+	GoVersion string `json:"go_version"`
 }
 
 // GetInfo returns the version information
 func GetInfo(goVersion string) Info {
 	return Info{
-		Version:    Version,
-		BuildDate:  BuildDate,
-		GitCommit:  GitCommit,
-		GoVersion:  goVersion,
+		Version:   Version,
+		BuildDate: BuildDate,
+		GitCommit: GitCommit,
+		GoVersion: goVersion,
 	}
 }
 

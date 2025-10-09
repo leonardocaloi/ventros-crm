@@ -1,7 +1,6 @@
 package waha
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/caloi/ventros-crm/internal/domain/message"
@@ -35,25 +34,25 @@ type WAHAMe struct {
 }
 
 type WAHAPayload struct {
-	ID          string       `json:"id"`
-	Timestamp   int64        `json:"timestamp"`
-	From        string       `json:"from"`
-	FromMe      bool         `json:"fromMe"`
-	Source      string       `json:"source"` // "app", "web", etc
-	To          string       `json:"to"`
-	Participant *string      `json:"participant"` // Para grupos
-	HasMedia    bool         `json:"hasMedia"`
-	Media       *WAHAMedia   `json:"media"`
-	Body        *string      `json:"body"` // Texto da mensagem
-	ReplyTo     *string      `json:"replyTo"`
-	Data        WAHAData     `json:"_data"`
+	ID          string      `json:"id"`
+	Timestamp   int64       `json:"timestamp"`
+	From        string      `json:"from"`
+	FromMe      bool        `json:"fromMe"`
+	Source      string      `json:"source"` // "app", "web", etc
+	To          string      `json:"to"`
+	Participant *string     `json:"participant"` // Para grupos
+	HasMedia    bool        `json:"hasMedia"`
+	Media       *WAHAMedia  `json:"media"`
+	Body        *string     `json:"body"`    // Texto da mensagem
+	ReplyTo     interface{} `json:"replyTo"` // Pode ser string ou objeto
+	Data        WAHAData    `json:"_data"`
 }
 
 type WAHAMedia struct {
-	URL      string     `json:"url"`
-	Mimetype string     `json:"mimetype"`
-	Filename string     `json:"filename,omitempty"`
-	S3       *WAHAS3    `json:"s3"`
+	URL      string  `json:"url"`
+	Mimetype string  `json:"mimetype"`
+	Filename string  `json:"filename,omitempty"`
+	S3       *WAHAS3 `json:"s3"`
 }
 
 type WAHAS3 struct {
@@ -67,28 +66,28 @@ type WAHAData struct {
 }
 
 type WAHAInfo struct {
-	Chat      string  `json:"Chat"`
-	Sender    string  `json:"Sender"`
-	IsFromMe  bool    `json:"IsFromMe"`
-	IsGroup   bool    `json:"IsGroup"`
-	SenderAlt string  `json:"SenderAlt"` // LID alternativo
-	ID        string  `json:"ID"`
-	Type      string  `json:"Type"`      // "text", "media"
-	PushName  string  `json:"PushName"`
-	MediaType string  `json:"MediaType"` // "image", "video", "audio", etc
+	Chat      string `json:"Chat"`
+	Sender    string `json:"Sender"`
+	IsFromMe  bool   `json:"IsFromMe"`
+	IsGroup   bool   `json:"IsGroup"`
+	SenderAlt string `json:"SenderAlt"` // LID alternativo
+	ID        string `json:"ID"`
+	Type      string `json:"Type"` // "text", "media"
+	PushName  string `json:"PushName"`
+	MediaType string `json:"MediaType"` // "image", "video", "audio", etc
 }
 
 type WAHAMessage struct {
 	// Diferentes tipos de mensagens
-	Conversation     *string              `json:"conversation"`     // Texto simples
-	ImageMessage     *WAHAMediaMessage    `json:"imageMessage"`
-	VideoMessage     *WAHAMediaMessage    `json:"videoMessage"`
-	AudioMessage     *WAHAMediaMessage    `json:"audioMessage"`
-	DocumentMessage  *WAHAMediaMessage    `json:"documentMessage"`
-	StickerMessage   *WAHAMediaMessage    `json:"stickerMessage"`
-	LocationMessage  *WAHALocationMessage `json:"locationMessage"`
-	ContactMessage   *WAHAContactMessage  `json:"contactMessage"`
-	ExtendedTextMsg  *WAHAExtendedText    `json:"extendedTextMessage"`
+	Conversation    *string              `json:"conversation"` // Texto simples
+	ImageMessage    *WAHAMediaMessage    `json:"imageMessage"`
+	VideoMessage    *WAHAMediaMessage    `json:"videoMessage"`
+	AudioMessage    *WAHAMediaMessage    `json:"audioMessage"`
+	DocumentMessage *WAHAMediaMessage    `json:"documentMessage"`
+	StickerMessage  *WAHAMediaMessage    `json:"stickerMessage"`
+	LocationMessage *WAHALocationMessage `json:"locationMessage"`
+	ContactMessage  *WAHAContactMessage  `json:"contactMessage"`
+	ExtendedTextMsg *WAHAExtendedText    `json:"extendedTextMessage"`
 }
 
 type WAHAMediaMessage struct {
@@ -100,19 +99,19 @@ type WAHAMediaMessage struct {
 }
 
 type WAHAExtendedText struct {
-	Text        string              `json:"text"`
-	ContextInfo *WAHAContextInfo    `json:"contextInfo"`
+	Text        string           `json:"text"`
+	ContextInfo *WAHAContextInfo `json:"contextInfo"`
 }
 
 type WAHAContextInfo struct {
 	// Tracking de conversão (ads, etc)
-	ConversionSource                     string               `json:"conversionSource,omitempty"`
-	ConversionData                       string               `json:"conversionData,omitempty"`
-	EntryPointConversionSource           string               `json:"entryPointConversionSource,omitempty"`
-	EntryPointConversionApp              string               `json:"entryPointConversionApp,omitempty"`
-	EntryPointConversionExternalSource   string               `json:"entryPointConversionExternalSource,omitempty"`
-	EntryPointConversionExternalMedium   string               `json:"entryPointConversionExternalMedium,omitempty"`
-	ExternalAdReply                      *WAHAExternalAdReply `json:"externalAdReply,omitempty"`
+	ConversionSource                   string               `json:"conversionSource,omitempty"`
+	ConversionData                     string               `json:"conversionData,omitempty"`
+	EntryPointConversionSource         string               `json:"entryPointConversionSource,omitempty"`
+	EntryPointConversionApp            string               `json:"entryPointConversionApp,omitempty"`
+	EntryPointConversionExternalSource string               `json:"entryPointConversionExternalSource,omitempty"`
+	EntryPointConversionExternalMedium string               `json:"entryPointConversionExternalMedium,omitempty"`
+	ExternalAdReply                    *WAHAExternalAdReply `json:"externalAdReply,omitempty"`
 }
 
 type WAHAExternalAdReply struct {
@@ -154,36 +153,8 @@ func (a *MessageAdapter) ToContentType(event WAHAMessageEvent) (message.ContentT
 	if info.Type == "text" {
 		return message.ContentTypeText, nil
 	}
-	
-	if info.Type == "media" {
-		// Verifica o MediaType específico
-		switch info.MediaType {
-		case "image":
-			return message.ContentTypeImage, nil
-		case "video":
-			return message.ContentTypeVideo, nil
-		case "audio":
-			// Se tem PTT flag, é voice
-			if a.isPTT(event) {
-				return message.ContentTypeVoice, nil
-			}
-			return message.ContentTypeAudio, nil
-		case "ptt": // Push-to-Talk (voice message)
-			return message.ContentTypeVoice, nil
-		case "document":
-			return message.ContentTypeDocument, nil
-		case "sticker":
-			return message.ContentTypeSticker, nil
-		case "location":
-			return message.ContentTypeLocation, nil
-		case "vcard", "contact":
-			return message.ContentTypeContact, nil
-		default:
-			return "", fmt.Errorf("unsupported media type: %s", info.MediaType)
-		}
-	}
 
-	// 2. Fallback: tenta determinar pela estrutura da mensagem
+	// 2. Verifica estruturas específicas de mensagem
 	if msg.Conversation != nil {
 		return message.ContentTypeText, nil
 	}
@@ -194,6 +165,7 @@ func (a *MessageAdapter) ToContentType(event WAHAMessageEvent) (message.ContentT
 		return message.ContentTypeVideo, nil
 	}
 	if msg.AudioMessage != nil {
+		// Verificar se é PTT (Push-to-Talk)
 		if a.isPTT(event) {
 			return message.ContentTypeVoice, nil
 		}
@@ -201,9 +173,6 @@ func (a *MessageAdapter) ToContentType(event WAHAMessageEvent) (message.ContentT
 	}
 	if msg.DocumentMessage != nil {
 		return message.ContentTypeDocument, nil
-	}
-	if msg.StickerMessage != nil {
-		return message.ContentTypeSticker, nil
 	}
 	if msg.LocationMessage != nil {
 		return message.ContentTypeLocation, nil
@@ -215,7 +184,25 @@ func (a *MessageAdapter) ToContentType(event WAHAMessageEvent) (message.ContentT
 		return message.ContentTypeText, nil
 	}
 
-	return "", errors.New("unable to determine content type from WAHA event")
+	// 3. Fallback: usa MediaType do Info se disponível
+	if info.MediaType != "" {
+		switch info.MediaType {
+		case "image":
+			return message.ContentTypeImage, nil
+		case "video":
+			return message.ContentTypeVideo, nil
+		case "audio":
+			return message.ContentTypeAudio, nil
+		case "ptt": // Push-to-Talk (voice message)
+			return message.ContentTypeVoice, nil
+		case "document":
+			return message.ContentTypeDocument, nil
+		case "vcard", "contact":
+			return message.ContentTypeContact, nil
+		}
+	}
+
+	return "", fmt.Errorf("unsupported content type: unsupported media type: %s", info.MediaType)
 }
 
 // isPTT verifica se o áudio é do tipo PTT (Push-to-Talk / gravação de voz).
@@ -224,13 +211,13 @@ func (a *MessageAdapter) isPTT(event WAHAMessageEvent) bool {
 	if event.Payload.Data.Info.MediaType == "ptt" {
 		return true
 	}
-	
+
 	// 2. Verifica pelo campo PTT na estrutura AudioMessage
 	msg := event.Payload.Data.Message
 	if msg.AudioMessage != nil && msg.AudioMessage.PTT {
 		return true
 	}
-	
+
 	return false
 }
 
@@ -279,7 +266,7 @@ func (a *MessageAdapter) ExtractMediaURL(event WAHAMessageEvent) *string {
 
 	// 2. Tenta extrair da estrutura interna
 	msg := payload.Data.Message
-	
+
 	if msg.ImageMessage != nil && msg.ImageMessage.URL != "" {
 		return &msg.ImageMessage.URL
 	}
@@ -310,7 +297,7 @@ func (a *MessageAdapter) ExtractMimeType(event WAHAMessageEvent) *string {
 
 	// 2. Tenta extrair da estrutura interna
 	msg := payload.Data.Message
-	
+
 	if msg.ImageMessage != nil && msg.ImageMessage.Mimetype != "" {
 		return &msg.ImageMessage.Mimetype
 	}
@@ -333,29 +320,29 @@ func (a *MessageAdapter) ExtractMimeType(event WAHAMessageEvent) *string {
 // ExtractContactPhone extrai o número de telefone do contato (limpo).
 func (a *MessageAdapter) ExtractContactPhone(event WAHAMessageEvent) string {
 	from := event.Payload.From
-	
+
 	// Remove sufixos do WhatsApp (@c.us, @s.whatsapp.net, @lid)
 	phone := from
 	suffixes := []string{"@c.us", "@s.whatsapp.net", "@lid"}
-	
+
 	for _, suffix := range suffixes {
 		if len(phone) > len(suffix) && phone[len(phone)-len(suffix):] == suffix {
 			phone = phone[:len(phone)-len(suffix)]
 			break
 		}
 	}
-	
+
 	return phone
 }
 
 // ExtractTrackingData extrai dados de rastreamento (ads, conversões).
 func (a *MessageAdapter) ExtractTrackingData(event WAHAMessageEvent) map[string]string {
 	tracking := make(map[string]string)
-	
+
 	msg := event.Payload.Data.Message
 	if msg.ExtendedTextMsg != nil && msg.ExtendedTextMsg.ContextInfo != nil {
 		ctx := msg.ExtendedTextMsg.ContextInfo
-		
+
 		if ctx.EntryPointConversionSource != "" {
 			tracking["conversion_source"] = ctx.EntryPointConversionSource
 		}
@@ -371,7 +358,7 @@ func (a *MessageAdapter) ExtractTrackingData(event WAHAMessageEvent) map[string]
 		if ctx.ConversionData != "" {
 			tracking["conversion_data"] = ctx.ConversionData
 		}
-		
+
 		if ctx.ExternalAdReply != nil {
 			tracking["ad_source_type"] = ctx.ExternalAdReply.SourceType
 			tracking["ad_source_id"] = ctx.ExternalAdReply.SourceID
@@ -380,7 +367,7 @@ func (a *MessageAdapter) ExtractTrackingData(event WAHAMessageEvent) map[string]
 			tracking["ctwa_clid"] = ctx.ExternalAdReply.CTWAClid
 		}
 	}
-	
+
 	return tracking
 }
 
@@ -427,17 +414,17 @@ func (a *MessageAdapter) ExtractContactData(event WAHAMessageEvent) map[string]i
 // ExtractFileName extrai o nome do arquivo de documentos.
 func (a *MessageAdapter) ExtractFileName(event WAHAMessageEvent) string {
 	payload := event.Payload
-	
+
 	// 1. Tenta do campo media.filename
 	if payload.HasMedia && payload.Media != nil && payload.Media.Filename != "" {
 		return payload.Media.Filename
 	}
-	
+
 	// 2. Tenta da estrutura interna
 	msg := payload.Data.Message
 	if msg.DocumentMessage != nil && msg.DocumentMessage.FileName != "" {
 		return msg.DocumentMessage.FileName
 	}
-	
+
 	return ""
 }

@@ -13,7 +13,7 @@ type CreateContactRequest struct {
 	Timezone      string                 `json:"timezone,omitempty" example:"America/Sao_Paulo"`
 	Tags          []string               `json:"tags,omitempty" example:"vip,lead"`
 	Metadata      map[string]interface{} `json:"metadata,omitempty"`
-} // @name CreateContactRequest
+} //	@name	CreateContactRequest
 
 // UpdateContactRequest representa o payload para atualizar um contato
 type UpdateContactRequest struct {
@@ -25,7 +25,7 @@ type UpdateContactRequest struct {
 	Timezone      *string                `json:"timezone,omitempty" example:"America/Sao_Paulo"`
 	Tags          *[]string              `json:"tags,omitempty"`
 	Metadata      map[string]interface{} `json:"metadata,omitempty"`
-} // @name UpdateContactRequest
+} //	@name	UpdateContactRequest
 
 // CreatePipelineRequest representa o payload para criar um pipeline
 type CreatePipelineRequest struct {
@@ -33,7 +33,7 @@ type CreatePipelineRequest struct {
 	Description string `json:"description,omitempty" example:"Pipeline principal de vendas"`
 	Color       string `json:"color,omitempty" example:"#3B82F6"`
 	Position    int    `json:"position,omitempty" example:"1"`
-} // @name CreatePipelineRequest
+} //	@name	CreatePipelineRequest
 
 // CreatePipelineStatusRequest representa o payload para criar um status de pipeline
 type CreatePipelineStatusRequest struct {
@@ -42,21 +42,21 @@ type CreatePipelineStatusRequest struct {
 	Color       string `json:"color,omitempty" example:"#10B981"`
 	StatusType  string `json:"status_type" binding:"required" example:"open"`
 	Position    int    `json:"position,omitempty" example:"1"`
-} // @name CreatePipelineStatusRequest
+} //	@name	CreatePipelineStatusRequest
 
 // ChangeContactStatusRequest representa o payload para mudar status de um contato
 type ChangeContactStatusRequest struct {
 	StatusID uuid.UUID              `json:"status_id" binding:"required" example:"550e8400-e29b-41d4-a716-446655440000"`
 	Notes    string                 `json:"notes,omitempty" example:"Cliente demonstrou interesse"`
 	Metadata map[string]interface{} `json:"metadata,omitempty"`
-} // @name ChangeContactStatusRequest
+} //	@name	ChangeContactStatusRequest
 
 // CreateProjectRequest representa o payload para criar um projeto
 type CreateProjectRequest struct {
 	Name        string                 `json:"name" binding:"required" example:"Meu Projeto"`
 	Description string                 `json:"description,omitempty" example:"Projeto de vendas"`
 	Settings    map[string]interface{} `json:"settings,omitempty"`
-} // @name CreateProjectRequest
+} //	@name	CreateProjectRequest
 
 // CreateWebhookSubscriptionRequest representa o payload para criar um webhook
 type CreateWebhookSubscriptionRequest struct {
@@ -67,7 +67,7 @@ type CreateWebhookSubscriptionRequest struct {
 	Headers        map[string]string `json:"headers,omitempty"`
 	RetryCount     int               `json:"retry_count,omitempty" example:"3"`
 	TimeoutSeconds int               `json:"timeout_seconds,omitempty" example:"30"`
-} // @name CreateWebhookSubscriptionRequest
+} //	@name	CreateWebhookSubscriptionRequest
 
 // UpdateWebhookSubscriptionRequest representa o payload para atualizar um webhook
 type UpdateWebhookSubscriptionRequest struct {
@@ -79,7 +79,7 @@ type UpdateWebhookSubscriptionRequest struct {
 	Headers        *map[string]string `json:"headers,omitempty"`
 	RetryCount     *int               `json:"retry_count,omitempty" example:"3"`
 	TimeoutSeconds *int               `json:"timeout_seconds,omitempty" example:"30"`
-} // @name UpdateWebhookSubscriptionRequest
+} //	@name	UpdateWebhookSubscriptionRequest
 
 // CreateAgentRequest representa o payload para criar um agente
 type CreateAgentRequest struct {
@@ -88,7 +88,7 @@ type CreateAgentRequest struct {
 	Role     string                 `json:"role,omitempty" example:"agent"`
 	Status   string                 `json:"status,omitempty" example:"active"`
 	Metadata map[string]interface{} `json:"metadata,omitempty"`
-} // @name CreateAgentRequest
+} //	@name	CreateAgentRequest
 
 // UpdateAgentRequest representa o payload para atualizar um agente
 type UpdateAgentRequest struct {
@@ -97,7 +97,7 @@ type UpdateAgentRequest struct {
 	Role     *string                `json:"role,omitempty" example:"agent"`
 	Status   *string                `json:"status,omitempty" example:"active"`
 	Metadata map[string]interface{} `json:"metadata,omitempty"`
-} // @name UpdateAgentRequest
+} //	@name	UpdateAgentRequest
 
 // SendMessageRequest representa o payload para enviar uma mensagem
 type SendMessageRequest struct {
@@ -107,4 +107,4 @@ type SendMessageRequest struct {
 	MediaURL      string                 `json:"media_url,omitempty" example:"https://example.com/image.jpg"`
 	MediaMimetype string                 `json:"media_mimetype,omitempty" example:"image/jpeg"`
 	Metadata      map[string]interface{} `json:"metadata,omitempty"`
-} // @name SendMessageRequest
+} //	@name	SendMessageRequest

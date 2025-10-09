@@ -75,20 +75,20 @@ func (r *DomainEventLogRepository) LogEvent(ctx context.Context, event shared.Do
 func (r *DomainEventLogRepository) extractAggregateInfo(event shared.DomainEvent) (uuid.UUID, string) {
 	// Usa type assertion para extrair informações específicas de cada tipo de evento
 	// Isso pode ser melhorado com uma interface comum
-	
+
 	switch e := event.(type) {
 	// Contact events
 	case interface{ ContactID() uuid.UUID }:
 		return e.ContactID(), "contact"
-	
+
 	// Session events
 	case interface{ SessionID() uuid.UUID }:
 		return e.SessionID(), "session"
-	
+
 	// Message events
 	case interface{ MessageID() uuid.UUID }:
 		return e.MessageID(), "message"
-	
+
 	default:
 		// Se não conseguir extrair, retorna UUID zero
 		return uuid.Nil, "unknown"
@@ -98,55 +98,55 @@ func (r *DomainEventLogRepository) extractAggregateInfo(event shared.DomainEvent
 // FindByAggregateID busca eventos por ID da agregação
 func (r *DomainEventLogRepository) FindByAggregateID(ctx context.Context, aggregateID uuid.UUID) ([]entities.DomainEventLogEntity, error) {
 	var logs []entities.DomainEventLogEntity
-	
+
 	err := r.db.WithContext(ctx).
 		Where("aggregate_id = ?", aggregateID).
 		Order("occurred_at DESC").
 		Find(&logs).Error
-	
+
 	if err != nil {
 		return nil, err
 	}
-	
+
 	return logs, nil
 }
 
 // FindByEventType busca eventos por tipo
 func (r *DomainEventLogRepository) FindByEventType(ctx context.Context, eventType string, limit int) ([]entities.DomainEventLogEntity, error) {
 	var logs []entities.DomainEventLogEntity
-	
+
 	query := r.db.WithContext(ctx).
 		Where("event_type = ?", eventType).
 		Order("occurred_at DESC")
-	
+
 	if limit > 0 {
 		query = query.Limit(limit)
 	}
-	
+
 	err := query.Find(&logs).Error
 	if err != nil {
 		return nil, err
 	}
-	
+
 	return logs, nil
 }
 
 // FindByProjectID busca eventos por projeto
 func (r *DomainEventLogRepository) FindByProjectID(ctx context.Context, projectID uuid.UUID, limit int) ([]entities.DomainEventLogEntity, error) {
 	var logs []entities.DomainEventLogEntity
-	
+
 	query := r.db.WithContext(ctx).
 		Where("project_id = ?", projectID).
 		Order("occurred_at DESC")
-	
+
 	if limit > 0 {
 		query = query.Limit(limit)
 	}
-	
+
 	err := query.Find(&logs).Error
 	if err != nil {
 		return nil, err
 	}
-	
+
 	return logs, nil
 }

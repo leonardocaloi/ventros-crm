@@ -42,16 +42,17 @@ type GenerateAPIKeyRequest struct {
 }
 
 // CreateUser creates a new user
-// @Summary Create user
-// @Description Cria um novo usuário no sistema com projeto e pipeline default
-// @Tags auth
-// @Accept json
-// @Produce json
-// @Param user body CreateUserRequest true "User data"
-// @Success 201 {object} map[string]interface{} "User created successfully"
-// @Failure 400 {object} map[string]interface{} "Invalid request"
-// @Failure 500 {object} map[string]interface{} "Internal server error"
-// @Router /api/v1/auth/register [post]
+//
+//	@Summary		Create user
+//	@Description	Cria um novo usuário no sistema com projeto e pipeline default
+//	@Tags			auth
+//	@Accept			json
+//	@Produce		json
+//	@Param			user	body		CreateUserRequest		true	"User data"
+//	@Success		201		{object}	map[string]interface{}	"User created successfully"
+//	@Failure		400		{object}	map[string]interface{}	"Invalid request"
+//	@Failure		500		{object}	map[string]interface{}	"Internal server error"
+//	@Router			/api/v1/auth/register [post]
 func (h *AuthHandler) CreateUser(c *gin.Context) {
 	var req CreateUserRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -89,16 +90,17 @@ func (h *AuthHandler) CreateUser(c *gin.Context) {
 }
 
 // Login authenticates a user
-// @Summary User login
-// @Description Autentica um usuário e retorna API key
-// @Tags auth
-// @Accept json
-// @Produce json
-// @Param credentials body LoginRequest true "Login credentials"
-// @Success 200 {object} map[string]interface{} "Login successful"
-// @Failure 400 {object} map[string]interface{} "Invalid credentials"
-// @Failure 401 {object} map[string]interface{} "Authentication failed"
-// @Router /api/v1/auth/login [post]
+//
+//	@Summary		User login
+//	@Description	Autentica um usuário e retorna API key
+//	@Tags			auth
+//	@Accept			json
+//	@Produce		json
+//	@Param			credentials	body		LoginRequest			true	"Login credentials"
+//	@Success		200			{object}	map[string]interface{}	"Login successful"
+//	@Failure		400			{object}	map[string]interface{}	"Invalid credentials"
+//	@Failure		401			{object}	map[string]interface{}	"Authentication failed"
+//	@Router			/api/v1/auth/login [post]
 func (h *AuthHandler) Login(c *gin.Context) {
 	var req LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -132,14 +134,15 @@ func (h *AuthHandler) Login(c *gin.Context) {
 }
 
 // GetProfile gets current user profile
-// @Summary Get user profile
-// @Description Obtém o perfil do usuário autenticado
-// @Tags auth
-// @Produce json
-// @Security ApiKeyAuth
-// @Success 200 {object} map[string]interface{} "User profile"
-// @Failure 401 {object} map[string]interface{} "Not authenticated"
-// @Router /api/v1/auth/profile [get]
+//
+//	@Summary		Get user profile
+//	@Description	Obtém o perfil do usuário autenticado
+//	@Tags			auth
+//	@Produce		json
+//	@Security		ApiKeyAuth
+//	@Success		200	{object}	map[string]interface{}	"User profile"
+//	@Failure		401	{object}	map[string]interface{}	"Not authenticated"
+//	@Router			/api/v1/auth/profile [get]
 func (h *AuthHandler) GetProfile(c *gin.Context) {
 	authCtx, exists := middleware.GetAuthContext(c)
 	if !exists {
@@ -156,16 +159,17 @@ func (h *AuthHandler) GetProfile(c *gin.Context) {
 }
 
 // GenerateAPIKey generates a new API key for the user
-// @Summary Generate API key
-// @Description Gera uma nova API key para o usuário
-// @Tags auth
-// @Accept json
-// @Produce json
-// @Security ApiKeyAuth
-// @Param request body GenerateAPIKeyRequest true "API key request"
-// @Success 200 {object} map[string]interface{} "API key generated"
-// @Failure 401 {object} map[string]interface{} "Not authenticated"
-// @Router /api/v1/auth/api-key [post]
+//
+//	@Summary		Generate API key
+//	@Description	Gera uma nova API key para o usuário
+//	@Tags			auth
+//	@Accept			json
+//	@Produce		json
+//	@Security		ApiKeyAuth
+//	@Param			request	body		GenerateAPIKeyRequest	true	"API key request"
+//	@Success		200		{object}	map[string]interface{}	"API key generated"
+//	@Failure		401		{object}	map[string]interface{}	"Not authenticated"
+//	@Router			/api/v1/auth/api-key [post]
 func (h *AuthHandler) GenerateAPIKey(c *gin.Context) {
 	authCtx, exists := middleware.GetAuthContext(c)
 	if !exists {
@@ -182,21 +186,22 @@ func (h *AuthHandler) GenerateAPIKey(c *gin.Context) {
 	apiKey := uuid.New().String()
 
 	c.JSON(http.StatusOK, gin.H{
-		"message":  "API key generated successfully",
-		"api_key":  apiKey,
-		"name":     req.Name,
-		"user_id":  authCtx.UserID,
-		"note":     "Save this API key - it won't be shown again",
+		"message": "API key generated successfully",
+		"api_key": apiKey,
+		"name":    req.Name,
+		"user_id": authCtx.UserID,
+		"note":    "Save this API key - it won't be shown again",
 	})
 }
 
 // GetAuthInfo provides authentication information for development
-// @Summary Get auth info
-// @Description Informações sobre autenticação para desenvolvimento
-// @Tags auth
-// @Produce json
-// @Success 200 {object} map[string]interface{} "Auth information"
-// @Router /api/v1/auth/info [get]
+//
+//	@Summary		Get auth info
+//	@Description	Informações sobre autenticação para desenvolvimento
+//	@Tags			auth
+//	@Produce		json
+//	@Success		200	{object}	map[string]interface{}	"Auth information"
+//	@Router			/api/v1/auth/info [get]
 func (h *AuthHandler) GetAuthInfo(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Authentication methods available",

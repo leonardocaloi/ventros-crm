@@ -13,7 +13,7 @@ type BillingAccountEntity struct {
 	UserID           uuid.UUID      `gorm:"type:uuid;not null;index"`
 	Name             string         `gorm:"not null"`
 	PaymentStatus    string         `gorm:"not null;default:'pending';index"` // pending, active, suspended, canceled
-	PaymentMethods   []byte         `gorm:"type:jsonb"` // JSON array of payment methods
+	PaymentMethods   []byte         `gorm:"type:jsonb"`                       // JSON array of payment methods
 	BillingEmail     string         `gorm:"not null"`
 	Suspended        bool           `gorm:"default:false;index"`
 	SuspendedAt      *time.Time     `gorm:""`

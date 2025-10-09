@@ -9,17 +9,18 @@ import (
 
 // ProjectEntity represents a Project entity in the database
 type ProjectEntity struct {
-	ID               uuid.UUID      `gorm:"type:uuid;primary_key;default:gen_random_uuid()"`
-	UserID           uuid.UUID      `gorm:"type:uuid;not null;index"`
-	BillingAccountID uuid.UUID      `gorm:"type:uuid;not null;index"`
-	TenantID         string         `gorm:"uniqueIndex;not null;index"`
-	Name             string         `gorm:"not null"`
-	Description      string         `gorm:"type:text"`
-	Configuration    map[string]interface{} `gorm:"type:jsonb"`
-	Active           bool           `gorm:"default:true"`
-	CreatedAt        time.Time      `gorm:"autoCreateTime"`
-	UpdatedAt        time.Time      `gorm:"autoUpdateTime"`
-	DeletedAt        gorm.DeletedAt `gorm:"index"`
+	ID                      uuid.UUID              `gorm:"type:uuid;primary_key;default:gen_random_uuid()"`
+	UserID                  uuid.UUID              `gorm:"type:uuid;not null;index"`
+	BillingAccountID        uuid.UUID              `gorm:"type:uuid;not null;index"`
+	TenantID                string                 `gorm:"uniqueIndex;not null;index"`
+	Name                    string                 `gorm:"not null"`
+	Description             string                 `gorm:"type:text"`
+	Configuration           map[string]interface{} `gorm:"type:jsonb"`
+	Active                  bool                   `gorm:"default:true"`
+	SessionTimeoutMinutes   int                    `gorm:"default:30;not null;index"` // Timeout padrão para todas as sessões do projeto
+	CreatedAt               time.Time              `gorm:"autoCreateTime"`
+	UpdatedAt               time.Time              `gorm:"autoUpdateTime"`
+	DeletedAt               gorm.DeletedAt         `gorm:"index"`
 
 	// Relacionamentos
 	User           UserEntity           `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE"`

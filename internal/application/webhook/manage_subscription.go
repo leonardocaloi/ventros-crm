@@ -171,74 +171,121 @@ func (uc *ManageSubscriptionUseCase) DeleteWebhook(ctx context.Context, id uuid.
 }
 
 // GetAvailableEvents retorna eventos disponíveis (WAHA + Domínio/Aplicação)
-func (uc *ManageSubscriptionUseCase) GetAvailableEvents() map[string][]string {
-	return map[string][]string{
+func (uc *ManageSubscriptionUseCase) GetAvailableEvents() map[string]interface{} {
+	return map[string]interface{}{
 		// ===== EVENTOS DE DOMÍNIO/APLICAÇÃO (Internos) =====
-		"domain_contacts": {
-			"contact.created",     // Novo contato criado
-			"contact.updated",     // Contato atualizado
-			"contact.deleted",     // Contato deletado
-			"contact.merged",      // Contatos duplicados merged
-			"contact.enriched",    // Dados externos adicionados
+		"domain_contacts": map[string]interface{}{
+			"wildcard": "contact.*", // Subscreve todos os eventos de contato
+			"events": []string{
+				"contact.created",                 // Novo contato criado
+				"contact.updated",                 // Contato atualizado
+				"contact.deleted",                 // Contato deletado
+				"contact.merged",                  // Contatos duplicados merged
+				"contact.enriched",                // Dados externos adicionados
+				"contact.profile_picture_updated", // Foto de perfil atualizada
+			},
 		},
-		"domain_sessions": {
-			"session.started",           // Nova sessão iniciada
-			"session.ended",             // Sessão encerrada
-			"session.message_recorded",  // Mensagem registrada na sessão
-			"session.agent_assigned",    // Agente atribuído
-			"session.resolved",          // Sessão resolvida
-			"session.escalated",         // Sessão escalada
-			"session.summarized",        // Resumo gerado por IA
-			"session.abandoned",         // Sessão abandonada
+		"domain_sessions": map[string]interface{}{
+			"wildcard": "session.*", // Subscreve todos os eventos de sessão
+			"events": []string{
+				"session.created",        // Nova sessão criada (alias: session.started)
+				"session.closed",         // Sessão encerrada (alias: session.ended)
+				"session.agent_assigned", // Agente atribuído
+				"session.resolved",       // Sessão resolvida
+				"session.escalated",      // Sessão escalada
+				"session.summarized",     // Resumo gerado por IA
+				"session.abandoned",      // Sessão abandonada
+			},
 		},
-		"domain_messages": {
-			"message.created",    // Mensagem criada no sistema
-			"message.delivered",  // Mensagem entregue
-			"message.read",       // Mensagem lida
-			"message.failed",     // Mensagem falhou
+		"domain_notes": map[string]interface{}{
+			"wildcard": "note.*", // Subscreve todos os eventos de nota
+			"events": []string{
+				"note.added",   // Nota adicionada ao contato
+				"note.updated", // Nota atualizada
+				"note.deleted", // Nota deletada
+				"note.pinned",  // Nota fixada
+			},
 		},
-		"domain_tracking": {
-			"tracking.message.meta_ads", // Conversão de anúncio rastreada (Meta Ads: FB/Instagram)
+		"domain_tracking": map[string]interface{}{
+			"wildcard": "tracking.*", // Subscreve todos os eventos de tracking
+			"events": []string{
+				"tracking.message.meta_ads", // Conversão de anúncio rastreada (Meta Ads: FB/Instagram)
+				"tracking.created",          // Tracking criado
+				"tracking.enriched",         // Tracking enriquecido com dados adicionais
+			},
 		},
-		"domain_pipelines": {
-			"pipeline.created",          // Pipeline criado
-			"pipeline.updated",          // Pipeline atualizado
-			"pipeline.activated",        // Pipeline ativado
-			"pipeline.deactivated",      // Pipeline desativado
-			"status.created",            // Status criado
-			"status.updated",            // Status atualizado
-			"contact.status_changed",    // Status do contato alterado
-			"contact.entered_pipeline",  // Contato entrou no pipeline
-			"contact.exited_pipeline",   // Contato saiu do pipeline
+		"domain_pipelines": map[string]interface{}{
+			"wildcard": "pipeline.*", // Subscreve todos os eventos de pipeline
+			"events": []string{
+				"pipeline.created",         // Pipeline criado
+				"pipeline.updated",         // Pipeline atualizado
+				"pipeline.activated",       // Pipeline ativado
+				"pipeline.deactivated",     // Pipeline desativado
+				"pipeline.status.created",  // Status criado
+				"pipeline.status.updated",  // Status atualizado
+				"pipeline.status.changed",  // Status do contato alterado
+				"contact.entered_pipeline", // Contato entrou no pipeline
+				"contact.exited_pipeline",  // Contato saiu do pipeline
+			},
 		},
-		
+		"domain_agents": map[string]interface{}{
+			"wildcard": "agent.*", // Subscreve todos os eventos de agente
+			"events": []string{
+				"agent.created",     // Agente criado
+				"agent.updated",     // Agente atualizado
+				"agent.activated",   // Agente ativado
+				"agent.deactivated", // Agente desativado
+			},
+		},
+		"domain_channels": map[string]interface{}{
+			"wildcard": "channel.*", // Subscreve todos os eventos de canal
+			"events": []string{
+				"channel.created",     // Canal criado
+				"channel.activated",   // Canal ativado
+				"channel.deactivated", // Canal desativado
+				"channel.deleted",     // Canal deletado
+			},
+		},
+
 		// ===== EVENTOS WAHA (Externos - Canal WhatsApp) =====
-		"waha_messages": {
-			"message",           // Mensagens incoming (fromMe: false)
-			"message.any",       // Todas as mensagens (fromMe: true/false)
-			"message.ack",       // Confirmações de leitura
-			"message.reaction",  // Reações
-			"message.edited",    // Mensagens editadas
+		// Nota: Eventos de mensagens foram removidos conforme solicitado
+		"waha_calls": map[string]interface{}{
+			"wildcard": "call.*", // Subscreve todos os eventos de call
+			"events": []string{
+				"call.received",
+				"call.accepted",
+				"call.rejected",
+			},
 		},
-		"waha_calls": {
-			"call.received",
-			"call.accepted", 
-			"call.rejected",
+		"waha_labels": map[string]interface{}{
+			"wildcard": "label.*", // Subscreve todos os eventos de label
+			"events": []string{
+				"label.upsert",
+				"label.deleted",
+				"label.chat.added",
+				"label.chat.deleted",
+			},
 		},
-		"waha_labels": {
-			"label.upsert",
-			"label.deleted",
-			"label.chat.added",
-			"label.chat.deleted",
+		"waha_groups": map[string]interface{}{
+			"wildcard": "group.*", // Subscreve todos os eventos de group
+			"events": []string{
+				"group.v2.join",
+				"group.v2.leave",
+				"group.v2.update",
+				"group.v2.participants",
+			},
 		},
-		"waha_groups": {
-			"group.v2.join",
-			"group.v2.leave",
-			"group.v2.update",
-			"group.v2.participants",
+		"waha_presence": map[string]interface{}{
+			"wildcard": "presence.*", // Subscreve todos os eventos de presence
+			"events": []string{
+				"presence.update", // Status de presença (online/offline/typing)
+			},
 		},
-		"waha_other": {
-			"event.response.failed",
+		"waha_other": map[string]interface{}{
+			"wildcard": "event.*", // Subscreve todos os eventos genéricos
+			"events": []string{
+				"event.response.failed",
+			},
 		},
 	}
 }

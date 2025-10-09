@@ -1,0 +1,41 @@
+tags:
+- name: Health
+  description: Health check endpoints
+- name: Authentication
+  description: Authentication and authorization endpoints
+- name: Users
+  description: User management endpoints
+- name: Billing
+  description: Billing and payment endpoints
+- name: Pipelines
+  description: Pipeline management endpoints
+- name: Channels
+  description: Communication channel endpoints
+- name: Projects
+  description: Project management endpoints
+- name: Agents
+  description: Agent management endpoints
+- name: Contacts
+  description: Contact management endpoints
+- name: Contact Lists
+  description: Contact list management endpoints
+- name: Contact Events
+  description: Contact event endpoints
+- name: contact-events
+  description: Contact event streaming endpoints
+- name: Sessions
+  description: Session management endpoints
+- name: messages
+  description: Message CRUD endpoints
+- name: Messages
+  description: Message sending endpoints
+- name: Webhooks
+  description: Webhook subscription management
+- name: webhooks
+  description: Incoming webhook endpoints
+- name: queues
+  description: Queue management endpoints
+- name: domain-events
+  description: Domain event endpoints
+- name: test
+  description: Testing endpoints

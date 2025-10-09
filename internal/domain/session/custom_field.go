@@ -70,7 +70,7 @@ func (scf *SessionCustomField) UpdateValue(newField *shared.CustomField) error {
 	if newField == nil {
 		return errors.New("new field cannot be nil")
 	}
-	
+
 	// Validar que mantém a mesma chave e tipo
 	if scf.customField.Key() != newField.Key() {
 		return errors.New("cannot change field key")
@@ -85,12 +85,12 @@ func (scf *SessionCustomField) UpdateValue(newField *shared.CustomField) error {
 }
 
 // Getters
-func (scf *SessionCustomField) ID() uuid.UUID                 { return scf.id }
-func (scf *SessionCustomField) SessionID() uuid.UUID          { return scf.sessionID }
-func (scf *SessionCustomField) TenantID() string              { return scf.tenantID }
+func (scf *SessionCustomField) ID() uuid.UUID                    { return scf.id }
+func (scf *SessionCustomField) SessionID() uuid.UUID             { return scf.sessionID }
+func (scf *SessionCustomField) TenantID() string                 { return scf.tenantID }
 func (scf *SessionCustomField) CustomField() *shared.CustomField { return scf.customField }
-func (scf *SessionCustomField) FieldKey() string              { return scf.customField.Key() }
-func (scf *SessionCustomField) FieldType() shared.FieldType   { return scf.customField.Type() }
-func (scf *SessionCustomField) FieldValue() interface{}       { return scf.customField.Value() }
-func (scf *SessionCustomField) CreatedAt() time.Time          { return scf.createdAt }
-func (scf *SessionCustomField) UpdatedAt() time.Time          { return scf.updatedAt }
+func (scf *SessionCustomField) FieldKey() string                 { return scf.customField.Key() }
+func (scf *SessionCustomField) FieldType() shared.FieldType      { return scf.customField.Type() }
+func (scf *SessionCustomField) FieldValue() interface{}          { return scf.customField.Value() }
+func (scf *SessionCustomField) CreatedAt() time.Time             { return scf.createdAt }
+func (scf *SessionCustomField) UpdatedAt() time.Time             { return scf.updatedAt }

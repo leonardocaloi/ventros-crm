@@ -167,16 +167,16 @@ func (e *Event) HasMessage() bool {
 }
 
 // Getters
-func (e *Event) ID() uuid.UUID                       { return e.id }
-func (e *Event) ContactID() *uuid.UUID               { return e.contactID }
-func (e *Event) SessionID() *uuid.UUID               { return e.sessionID }
-func (e *Event) MessageID() *uuid.UUID               { return e.messageID }
-func (e *Event) TenantID() string                    { return e.tenantID }
-func (e *Event) EventType() string                   { return e.eventType }
-func (e *Event) Source() EventSource                 { return e.source }
-func (e *Event) SequenceNumber() *int                { return e.sequenceNumber }
-func (e *Event) Timestamp() time.Time                { return e.timestamp }
-func (e *Event) CreatedAt() time.Time                { return e.createdAt }
+func (e *Event) ID() uuid.UUID         { return e.id }
+func (e *Event) ContactID() *uuid.UUID { return e.contactID }
+func (e *Event) SessionID() *uuid.UUID { return e.sessionID }
+func (e *Event) MessageID() *uuid.UUID { return e.messageID }
+func (e *Event) TenantID() string      { return e.tenantID }
+func (e *Event) EventType() string     { return e.eventType }
+func (e *Event) Source() EventSource   { return e.source }
+func (e *Event) SequenceNumber() *int  { return e.sequenceNumber }
+func (e *Event) Timestamp() time.Time  { return e.timestamp }
+func (e *Event) CreatedAt() time.Time  { return e.createdAt }
 func (e *Event) Payload() map[string]interface{} {
 	// Return copy
 	copy := make(map[string]interface{})

@@ -9,23 +9,28 @@ import (
 
 // Contact é o Aggregate Root para contatos.
 type Contact struct {
-	id                 uuid.UUID
-	projectID          uuid.UUID
-	tenantID           string
-	name               string
-	email              *Email
-	phone              *Phone
-	externalID         *string
-	sourceChannel      *string
-	language           string
-	timezone           *string
-	tags               []string
+	id            uuid.UUID
+	projectID     uuid.UUID
+	tenantID      string
+	name          string
+	email         *Email
+	phone         *Phone
+	externalID    *string
+	sourceChannel *string
+	language      string
+	timezone      *string
+	tags          []string
+
+	// WhatsApp Profile
+	profilePictureURL       *string
+	profilePictureFetchedAt *time.Time
+
 	firstInteractionAt *time.Time
 	lastInteractionAt  *time.Time
 	createdAt          time.Time
 	updatedAt          time.Time
 	deletedAt          *time.Time
-	
+
 	events []DomainEvent
 }
 
@@ -58,13 +63,7 @@ func NewContact(
 		events:    []DomainEvent{},
 	}
 
-	contact.addEvent(ContactCreatedEvent{
-		ContactID: contact.id,
-		ProjectID: projectID,
-		TenantID:  tenantID,
-		Name:      name,
-		CreatedAt: now,
-	})
+	contact.addEvent(NewContactCreatedEvent(contact.id, projectID, tenantID, name))
 
 	return contact, nil
 }
@@ -82,6 +81,8 @@ func ReconstructContact(
 	language string,
 	timezone *string,
 	tags []string,
+	profilePictureURL *string,
+	profilePictureFetchedAt *time.Time,
 	firstInteractionAt *time.Time,
 	lastInteractionAt *time.Time,
 	createdAt time.Time,
@@ -93,23 +94,25 @@ func ReconstructContact(
 	}
 
 	return &Contact{
-		id:                 id,
-		projectID:          projectID,
-		tenantID:           tenantID,
-		name:               name,
-		email:              email,
-		phone:              phone,
-		externalID:         externalID,
-		sourceChannel:      sourceChannel,
-		language:           language,
-		timezone:           timezone,
-		tags:               tags,
-		firstInteractionAt: firstInteractionAt,
-		lastInteractionAt:  lastInteractionAt,
-		createdAt:          createdAt,
-		updatedAt:          updatedAt,
-		deletedAt:          deletedAt,
-		events:             []DomainEvent{},
+		id:                      id,
+		projectID:               projectID,
+		tenantID:                tenantID,
+		name:                    name,
+		email:                   email,
+		phone:                   phone,
+		externalID:              externalID,
+		sourceChannel:           sourceChannel,
+		language:                language,
+		timezone:                timezone,
+		tags:                    tags,
+		profilePictureURL:       profilePictureURL,
+		profilePictureFetchedAt: profilePictureFetchedAt,
+		firstInteractionAt:      firstInteractionAt,
+		lastInteractionAt:       lastInteractionAt,
+		createdAt:               createdAt,
+		updatedAt:               updatedAt,
+		deletedAt:               deletedAt,
+		events:                  []DomainEvent{},
 	}
 }
 
@@ -142,12 +145,9 @@ func (c *Contact) UpdateName(name string) error {
 	}
 	c.name = name
 	c.updatedAt = time.Now()
-	
-	c.addEvent(ContactUpdatedEvent{
-		ContactID: c.id,
-		UpdatedAt: c.updatedAt,
-	})
-	
+
+	c.addEvent(NewContactUpdatedEvent(c.id))
+
 	return nil
 }
 
@@ -220,6 +220,19 @@ func (c *Contact) SetTimezone(timezone string) {
 	c.updatedAt = time.Now()
 }
 
+// SetProfilePicture define a URL da foto de perfil do WhatsApp
+func (c *Contact) SetProfilePicture(url string) {
+	if url == "" {
+		c.profilePictureURL = nil
+		c.profilePictureFetchedAt = nil
+	} else {
+		c.profilePictureURL = &url
+		now := time.Now()
+		c.profilePictureFetchedAt = &now
+	}
+	c.updatedAt = time.Now()
+}
+
 // Delete é um alias para SoftDelete para compatibilidade.
 func (c *Contact) Delete() error {
 	return c.SoftDelete()
@@ -228,7 +241,7 @@ func (c *Contact) Delete() error {
 // RecordInteraction registra uma interação.
 func (c *Contact) RecordInteraction() {
 	now := time.Now()
-	
+
 	if c.firstInteractionAt == nil {
 		c.firstInteractionAt = &now
 	}
@@ -241,16 +254,13 @@ func (c *Contact) SoftDelete() error {
 	if c.deletedAt != nil {
 		return errors.New("contact already deleted")
 	}
-	
+
 	now := time.Now()
 	c.deletedAt = &now
 	c.updatedAt = now
-	
-	c.addEvent(ContactDeletedEvent{
-		ContactID: c.id,
-		DeletedAt: now,
-	})
-	
+
+	c.addEvent(NewContactDeletedEvent(c.id))
+
 	return nil
 }
 
@@ -261,22 +271,24 @@ func (c *Contact) IsDeleted() bool {
 
 // Getters
 
-func (c *Contact) ID() uuid.UUID              { return c.id }
-func (c *Contact) ProjectID() uuid.UUID       { return c.projectID }
-func (c *Contact) TenantID() string           { return c.tenantID }
-func (c *Contact) Name() string               { return c.name }
-func (c *Contact) Email() *Email              { return c.email }
-func (c *Contact) Phone() *Phone              { return c.phone }
-func (c *Contact) ExternalID() *string        { return c.externalID }
-func (c *Contact) SourceChannel() *string     { return c.sourceChannel }
-func (c *Contact) Language() string           { return c.language }
-func (c *Contact) Timezone() *string          { return c.timezone }
-func (c *Contact) Tags() []string             { return append([]string{}, c.tags...) } // Copy
-func (c *Contact) FirstInteractionAt() *time.Time { return c.firstInteractionAt }
-func (c *Contact) LastInteractionAt() *time.Time  { return c.lastInteractionAt }
-func (c *Contact) CreatedAt() time.Time       { return c.createdAt }
-func (c *Contact) UpdatedAt() time.Time       { return c.updatedAt }
-func (c *Contact) DeletedAt() *time.Time      { return c.deletedAt }
+func (c *Contact) ID() uuid.UUID                       { return c.id }
+func (c *Contact) ProjectID() uuid.UUID                { return c.projectID }
+func (c *Contact) TenantID() string                    { return c.tenantID }
+func (c *Contact) Name() string                        { return c.name }
+func (c *Contact) Email() *Email                       { return c.email }
+func (c *Contact) Phone() *Phone                       { return c.phone }
+func (c *Contact) ExternalID() *string                 { return c.externalID }
+func (c *Contact) SourceChannel() *string              { return c.sourceChannel }
+func (c *Contact) Language() string                    { return c.language }
+func (c *Contact) Timezone() *string                   { return c.timezone }
+func (c *Contact) Tags() []string                      { return append([]string{}, c.tags...) } // Copy
+func (c *Contact) ProfilePictureURL() *string          { return c.profilePictureURL }
+func (c *Contact) ProfilePictureFetchedAt() *time.Time { return c.profilePictureFetchedAt }
+func (c *Contact) FirstInteractionAt() *time.Time      { return c.firstInteractionAt }
+func (c *Contact) LastInteractionAt() *time.Time       { return c.lastInteractionAt }
+func (c *Contact) CreatedAt() time.Time                { return c.createdAt }
+func (c *Contact) UpdatedAt() time.Time                { return c.updatedAt }
+func (c *Contact) DeletedAt() *time.Time               { return c.deletedAt }
 
 // DomainEvents retorna os eventos de domínio.
 func (c *Contact) DomainEvents() []DomainEvent {

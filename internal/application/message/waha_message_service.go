@@ -14,11 +14,11 @@ import (
 // WAHAMessageService encapsula a lógica de processamento de mensagens WAHA.
 // Remove responsabilidade excessiva dos handlers/consumers.
 type WAHAMessageService struct {
-	logger              *zap.Logger
-	channelRepo         channel.Repository
-	processMessageUC    *ProcessInboundMessageUseCase
-	appConfig           *config.AppConfig
-	messageAdapter      *waha.MessageAdapter
+	logger           *zap.Logger
+	channelRepo      channel.Repository
+	processMessageUC *ProcessInboundMessageUseCase
+	appConfig        *config.AppConfig
+	messageAdapter   *waha.MessageAdapter
 }
 
 // NewWAHAMessageService cria um novo serviço de mensagens WAHA.
@@ -43,47 +43,47 @@ func (s *WAHAMessageService) ProcessWAHAMessage(ctx context.Context, event waha.
 	// 1. Validações iniciais
 	// ✅ NÃO ignora fromMe - deduplicação já foi feita no processor
 	// ✅ Processa todas as mensagens (fromMe será atribuída a agente device)
-	
+
 	if event.Payload.Data.Info.IsGroup {
 		s.logger.Debug("Ignoring group message", zap.String("message_id", event.Payload.ID))
 		return nil
 	}
-	
+
 	// 2. Buscar canal pelo ExternalID (WAHA session)
 	ch, err := s.channelRepo.GetByExternalID(event.Session)
 	if err != nil {
 		return fmt.Errorf("channel not found for WAHA session '%s': %w", event.Session, err)
 	}
-	
+
 	// 3. Validar se canal está ativo
 	if !ch.IsActive() {
 		return fmt.Errorf("channel %s is not active (status: %s)", ch.ID.String(), ch.Status)
 	}
-	
+
 	// 4. Obter ChannelTypeID do AppConfig (remove hardcoded!)
 	channelTypeID, err := s.appConfig.GetChannelTypeID(string(ch.Type))
 	if err != nil {
 		return fmt.Errorf("failed to get channel type ID for '%s': %w", ch.Type, err)
 	}
-	
+
 	// 5. Extrair dados da mensagem usando adapter
 	contentType, err := s.messageAdapter.ToContentType(event)
 	if err != nil {
 		return fmt.Errorf("unsupported content type: %w", err)
 	}
-	
+
 	phone := s.messageAdapter.ExtractContactPhone(event)
 	text := s.messageAdapter.ExtractText(event)
 	mediaURL := s.messageAdapter.ExtractMediaURL(event)
 	mimetype := s.messageAdapter.ExtractMimeType(event)
 	tracking := s.messageAdapter.ExtractTrackingData(event)
-	
+
 	// 6. Converter tracking data para map[string]interface{}
 	trackingInterface := make(map[string]interface{})
 	for k, v := range tracking {
 		trackingInterface[k] = v
 	}
-	
+
 	// 6.1. Extrair dados específicos por tipo
 	metadata := map[string]interface{}{
 		"waha_event_id": event.ID,
@@ -93,7 +93,7 @@ func (s *WAHAMessageService) ProcessWAHAMessage(ctx context.Context, event waha.
 		"source":        event.Payload.Source,
 		"is_from_ad":    s.messageAdapter.IsFromAd(event),
 	}
-	
+
 	// Adiciona dados específicos baseado no tipo
 	switch contentType {
 	case "location":
@@ -109,11 +109,11 @@ func (s *WAHAMessageService) ProcessWAHAMessage(ctx context.Context, event waha.
 			metadata["filename"] = filename
 		}
 	}
-	
+
 	// 7. Montar command
 	cmd := ProcessInboundMessageCommand{
-		MessageID:        event.Payload.ID,                         // ID interno (legado)
-		ChannelMessageID: event.Payload.ID,                         // ✅ ID externo do WhatsApp (deduplicação)
+		MessageID:        event.Payload.ID, // ID interno (legado)
+		ChannelMessageID: event.Payload.ID, // ✅ ID externo do WhatsApp (deduplicação)
 		ContactPhone:     phone,
 		ContactName:      event.Payload.Data.Info.PushName,
 		// Dados do canal (OBRIGATÓRIO)
@@ -131,12 +131,12 @@ func (s *WAHAMessageService) ProcessWAHAMessage(ctx context.Context, event waha.
 		Metadata:      metadata,
 		FromMe:        event.Payload.FromMe, // ✅ Indica se mensagem foi enviada pelo sistema
 	}
-	
+
 	// 8. Executar use case
 	if err := s.processMessageUC.Execute(ctx, cmd); err != nil {
 		return fmt.Errorf("failed to process message: %w", err)
 	}
-	
+
 	// 9. Atualizar estatísticas do canal
 	ch.IncrementMessagesReceived()
 	if err := s.channelRepo.Update(ch); err != nil {
@@ -144,14 +144,14 @@ func (s *WAHAMessageService) ProcessWAHAMessage(ctx context.Context, event waha.
 			zap.String("channel_id", ch.ID.String()),
 			zap.Error(err))
 	}
-	
+
 	s.logger.Info("WAHA message processed successfully",
 		zap.String("message_id", event.Payload.ID),
 		zap.String("from", phone),
 		zap.String("waha_session", event.Session),
 		zap.String("channel_id", ch.ID.String()),
 		zap.String("project_id", ch.ProjectID.String()))
-	
+
 	return nil
 }
 

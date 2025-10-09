@@ -4,24 +4,29 @@ import (
 	"testing"
 	"time"
 
+	"github.com/caloi/ventros-crm/internal/domain"
 	"github.com/caloi/ventros-crm/internal/domain/message"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
+// ===========================
+// 1.4.1 - Testes de Factory Method
+// ===========================
+
 func TestNewMessage_Success(t *testing.T) {
 	// Arrange
-	contactID := uuid.New()
-	projectID := uuid.New()
-	customerID := uuid.New()
+	contactID := domain.NewTestUUID()
+	projectID := domain.NewTestUUID()
+	customerID := domain.NewTestUUID()
 
 	// Act
 	msg, err := message.NewMessage(
 		contactID,
 		projectID,
 		customerID,
-		message.MessageTypeText,
+		message.ContentTypeText,
 		false, // inbound
 	)
 
@@ -31,67 +36,93 @@ func TestNewMessage_Success(t *testing.T) {
 	assert.Equal(t, contactID, msg.ContactID())
 	assert.Equal(t, projectID, msg.ProjectID())
 	assert.Equal(t, customerID, msg.CustomerID())
-	assert.Equal(t, message.MessageTypeText, msg.Type())
+	assert.Equal(t, message.ContentTypeText, msg.ContentType())
 	assert.False(t, msg.FromMe())
 	assert.Equal(t, message.StatusSent, msg.Status())
-	
-	// Deve ter evento MessageCreated
-	events := msg.DomainEvents()
-	assert.Len(t, events, 1)
-	assert.Equal(t, "message.created", events[0].EventName())
+	domain.AssertTimeNotZero(t, msg.Timestamp(), "Timestamp")
 }
 
-func TestNewMessage_ValidationErrors(t *testing.T) {
-	tests := []struct {
-		name       string
-		contactID  uuid.UUID
-		projectID  uuid.UUID
-		customerID uuid.UUID
-		wantErr    string
-	}{
-		{
-			name:       "nil contact ID",
-			contactID:  uuid.Nil,
-			projectID:  uuid.New(),
-			customerID: uuid.New(),
-			wantErr:    "contactID cannot be nil",
-		},
-		{
-			name:       "nil project ID",
-			contactID:  uuid.New(),
-			projectID:  uuid.Nil,
-			customerID: uuid.New(),
-			wantErr:    "projectID cannot be nil",
-		},
-		{
-			name:       "nil customer ID",
-			contactID:  uuid.New(),
-			projectID:  uuid.New(),
-			customerID: uuid.Nil,
-			wantErr:    "customerID cannot be nil",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			msg, err := message.NewMessage(
-				tt.contactID,
-				tt.projectID,
-				tt.customerID,
-				message.MessageTypeText,
-				false,
-			)
-
-			assert.Error(t, err)
-			assert.Contains(t, err.Error(), tt.wantErr)
-			assert.Nil(t, msg)
-		})
-	}
-}
-
-func TestMessage_SetText_Success(t *testing.T) {
+func TestNewMessage_EmptyContactID(t *testing.T) {
 	// Arrange
-	msg, _ := message.NewMessage(uuid.New(), uuid.New(), uuid.New(), message.MessageTypeText, false)
+	contactID := uuid.Nil
+	projectID := domain.NewTestUUID()
+	customerID := domain.NewTestUUID()
+
+	// Act
+	msg, err := message.NewMessage(contactID, projectID, customerID, message.ContentTypeText, false)
+
+	// Assert
+	require.Error(t, err)
+	assert.Nil(t, msg)
+	assert.Contains(t, err.Error(), "contactID cannot be nil")
+}
+
+func TestNewMessage_EmptyProjectID(t *testing.T) {
+	// Arrange
+	contactID := domain.NewTestUUID()
+	projectID := uuid.Nil
+	customerID := domain.NewTestUUID()
+
+	// Act
+	msg, err := message.NewMessage(contactID, projectID, customerID, message.ContentTypeText, false)
+
+	// Assert
+	require.Error(t, err)
+	assert.Nil(t, msg)
+	assert.Contains(t, err.Error(), "projectID cannot be nil")
+}
+
+func TestNewMessage_InvalidContentType(t *testing.T) {
+	// Arrange
+	contactID := domain.NewTestUUID()
+	projectID := domain.NewTestUUID()
+	customerID := domain.NewTestUUID()
+	invalidContentType := message.ContentType("invalid")
+
+	// Act
+	msg, err := message.NewMessage(contactID, projectID, customerID, invalidContentType, false)
+
+	// Assert
+	require.Error(t, err)
+	assert.Nil(t, msg)
+	assert.Contains(t, err.Error(), "invalid content type")
+}
+
+func TestNewMessage_GeneratesEvent(t *testing.T) {
+	// Arrange
+	contactID := domain.NewTestUUID()
+	projectID := domain.NewTestUUID()
+	customerID := domain.NewTestUUID()
+
+	// Act
+	msg, err := message.NewMessage(contactID, projectID, customerID, message.ContentTypeText, false)
+
+	// Assert
+	require.NoError(t, err)
+	events := msg.DomainEvents()
+	require.Len(t, events, 1)
+
+	event, ok := events[0].(message.MessageCreatedEvent)
+	require.True(t, ok, "Event should be MessageCreatedEvent")
+	assert.Equal(t, msg.ID(), event.MessageID)
+	assert.Equal(t, contactID, event.ContactID)
+	assert.False(t, event.FromMe)
+	domain.AssertTimeNotZero(t, event.CreatedAt, "Event CreatedAt")
+}
+
+// ===========================
+// 1.4.2 - Testes de Content Type
+// ===========================
+
+func TestSetText_ValidTextMessage(t *testing.T) {
+	// Arrange
+	msg, _ := message.NewMessage(
+		domain.NewTestUUID(),
+		domain.NewTestUUID(),
+		domain.NewTestUUID(),
+		message.ContentTypeText,
+		false,
+	)
 	text := "Hello, world!"
 
 	// Act
@@ -99,142 +130,236 @@ func TestMessage_SetText_Success(t *testing.T) {
 
 	// Assert
 	require.NoError(t, err)
-	assert.NotNil(t, msg.Text())
+	require.NotNil(t, msg.Text())
 	assert.Equal(t, text, *msg.Text())
 }
 
-func TestMessage_SetText_OnMediaMessage_Error(t *testing.T) {
+func TestSetText_NonTextMessage(t *testing.T) {
 	// Arrange
-	msg, _ := message.NewMessage(uuid.New(), uuid.New(), uuid.New(), message.MessageTypeMedia, false)
+	msg, _ := message.NewMessage(
+		domain.NewTestUUID(),
+		domain.NewTestUUID(),
+		domain.NewTestUUID(),
+		message.ContentTypeImage, // Media type, not text
+		false,
+	)
 
 	// Act
 	err := msg.SetText("test")
 
 	// Assert
-	assert.Error(t, err)
+	require.Error(t, err)
 	assert.Contains(t, err.Error(), "cannot set text on non-text message")
 }
 
-func TestMessage_SetMedia_Success(t *testing.T) {
+func TestSetMediaContent_ValidMediaMessage(t *testing.T) {
 	// Arrange
-	msg, _ := message.NewMessage(uuid.New(), uuid.New(), uuid.New(), message.MessageTypeMedia, false)
+	msg, _ := message.NewMessage(
+		domain.NewTestUUID(),
+		domain.NewTestUUID(),
+		domain.NewTestUUID(),
+		message.ContentTypeImage,
+		false,
+	)
+	url := "https://example.com/image.jpg"
+	mimetype := "image/jpeg"
 
 	// Act
-	err := msg.SetMedia(message.MediaTypeImage, "image/jpeg", "https://example.com/image.jpg")
+	err := msg.SetMediaContent(url, mimetype)
 
 	// Assert
 	require.NoError(t, err)
-	assert.True(t, msg.HasMedia())
-	assert.NotNil(t, msg.MediaType())
-	assert.Equal(t, "image", *msg.MediaType())
-	assert.NotNil(t, msg.MediaMimetype())
-	assert.Equal(t, "image/jpeg", *msg.MediaMimetype())
-	assert.NotNil(t, msg.MediaURL())
-	assert.Equal(t, "https://example.com/image.jpg", *msg.MediaURL())
-	
-	// Verifica GetMediaType
-	mediaType, err := msg.GetMediaType()
-	require.NoError(t, err)
-	assert.Equal(t, message.MediaTypeImage, mediaType)
+	require.NotNil(t, msg.MediaURL())
+	assert.Equal(t, url, *msg.MediaURL())
+	require.NotNil(t, msg.MediaMimetype())
+	assert.Equal(t, mimetype, *msg.MediaMimetype())
+	assert.True(t, msg.HasMediaURL())
 }
 
-func TestMessage_SetMedia_OnTextMessage_Error(t *testing.T) {
+func TestSetMediaContent_NonMediaMessage(t *testing.T) {
 	// Arrange
-	msg, _ := message.NewMessage(uuid.New(), uuid.New(), uuid.New(), message.MessageTypeText, false)
+	msg, _ := message.NewMessage(
+		domain.NewTestUUID(),
+		domain.NewTestUUID(),
+		domain.NewTestUUID(),
+		message.ContentTypeText, // Text type, not media
+		false,
+	)
 
 	// Act
-	err := msg.SetMedia(message.MediaTypeImage, "image/jpeg", "https://example.com/image.jpg")
+	err := msg.SetMediaContent("https://example.com/file.jpg", "image/jpeg")
 
 	// Assert
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "cannot set media on non-media message")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "cannot set media content on non-media message")
 }
 
-func TestMessage_MediaTypes(t *testing.T) {
-	tests := []struct {
-		name      string
-		mediaType message.MediaType
-	}{
-		{"image", message.MediaTypeImage},
-		{"video", message.MediaTypeVideo},
-		{"audio", message.MediaTypeAudio},
-		{"document", message.MediaTypeDocument},
-		{"sticker", message.MediaTypeSticker},
-		{"location", message.MediaTypeLocation},
-		{"contact", message.MediaTypeContact},
+func TestContentType_IsValid(t *testing.T) {
+	validTypes := []message.ContentType{
+		message.ContentTypeText,
+		message.ContentTypeImage,
+		message.ContentTypeVideo,
+		message.ContentTypeAudio,
+		message.ContentTypeVoice,
+		message.ContentTypeDocument,
+		message.ContentTypeLocation,
+		message.ContentTypeContact,
+		message.ContentTypeSticker,
+		message.ContentTypeSystem,
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			// Arrange
-			msg, _ := message.NewMessage(uuid.New(), uuid.New(), uuid.New(), message.MessageTypeMedia, false)
-
-			// Act
-			err := msg.SetMedia(tt.mediaType, "test/mimetype", "https://example.com/file")
-
-			// Assert
-			require.NoError(t, err)
-			assert.True(t, msg.HasMedia())
-			
-			retrievedType, err := msg.GetMediaType()
-			require.NoError(t, err)
-			assert.Equal(t, tt.mediaType, retrievedType)
+	for _, ct := range validTypes {
+		t.Run(string(ct), func(t *testing.T) {
+			assert.True(t, ct.IsValid(), "%s should be valid", ct)
 		})
 	}
+
+	// Invalid type
+	invalidType := message.ContentType("invalid")
+	assert.False(t, invalidType.IsValid())
 }
 
-func TestMessage_AssignToSession(t *testing.T) {
-	// Arrange
-	msg, _ := message.NewMessage(uuid.New(), uuid.New(), uuid.New(), message.MessageTypeText, false)
-	sessionID := uuid.New()
-
-	// Act
-	msg.AssignToSession(sessionID)
-
-	// Assert
-	assert.NotNil(t, msg.SessionID())
-	assert.Equal(t, sessionID, *msg.SessionID())
+func TestContentType_IsText(t *testing.T) {
+	assert.True(t, message.ContentTypeText.IsText())
+	assert.False(t, message.ContentTypeImage.IsText())
+	assert.False(t, message.ContentTypeVideo.IsText())
 }
 
-func TestMessage_MarkAsDelivered(t *testing.T) {
+func TestContentType_IsMedia(t *testing.T) {
+	mediaTypes := []message.ContentType{
+		message.ContentTypeImage,
+		message.ContentTypeVideo,
+		message.ContentTypeAudio,
+		message.ContentTypeVoice,
+		message.ContentTypeDocument,
+		message.ContentTypeSticker,
+	}
+
+	for _, ct := range mediaTypes {
+		t.Run(string(ct), func(t *testing.T) {
+			assert.True(t, ct.IsMedia(), "%s should be media type", ct)
+		})
+	}
+
+	// Non-media types
+	assert.False(t, message.ContentTypeText.IsMedia())
+	assert.False(t, message.ContentTypeLocation.IsMedia())
+	assert.False(t, message.ContentTypeContact.IsMedia())
+}
+
+// ===========================
+// 1.4.3 - Testes de Status Transitions
+// ===========================
+
+func TestMarkAsDelivered_Success(t *testing.T) {
 	// Arrange
-	msg, _ := message.NewMessage(uuid.New(), uuid.New(), uuid.New(), message.MessageTypeText, true)
+	msg, _ := message.NewMessage(
+		domain.NewTestUUID(),
+		domain.NewTestUUID(),
+		domain.NewTestUUID(),
+		message.ContentTypeText,
+		true, // outbound
+	)
 	msg.ClearEvents() // Limpa evento de criação
+	assert.Equal(t, message.StatusSent, msg.Status())
 
 	// Act
 	msg.MarkAsDelivered()
 
 	// Assert
 	assert.Equal(t, message.StatusDelivered, msg.Status())
-	assert.NotNil(t, msg.DeliveredAt())
-	
-	// Deve emitir evento
-	events := msg.DomainEvents()
-	assert.Len(t, events, 1)
-	assert.Equal(t, "message.delivered", events[0].EventName())
 }
 
-func TestMessage_MarkAsRead(t *testing.T) {
+func TestMarkAsDelivered_SetsTimestamp(t *testing.T) {
 	// Arrange
-	msg, _ := message.NewMessage(uuid.New(), uuid.New(), uuid.New(), message.MessageTypeText, true)
+	msg, _ := message.NewMessage(
+		domain.NewTestUUID(),
+		domain.NewTestUUID(),
+		domain.NewTestUUID(),
+		message.ContentTypeText,
+		true,
+	)
+	assert.Nil(t, msg.DeliveredAt())
+
+	// Act
+	msg.MarkAsDelivered()
+
+	// Assert
+	require.NotNil(t, msg.DeliveredAt())
+	domain.AssertTimeNotZero(t, *msg.DeliveredAt(), "DeliveredAt")
+}
+
+func TestMarkAsDelivered_GeneratesEvent(t *testing.T) {
+	// Arrange
+	msg, _ := message.NewMessage(
+		domain.NewTestUUID(),
+		domain.NewTestUUID(),
+		domain.NewTestUUID(),
+		message.ContentTypeText,
+		true,
+	)
 	msg.ClearEvents()
+
+	// Act
+	msg.MarkAsDelivered()
+
+	// Assert
+	events := msg.DomainEvents()
+	require.Len(t, events, 1)
+
+	event, ok := events[0].(message.MessageDeliveredEvent)
+	require.True(t, ok, "Event should be MessageDeliveredEvent")
+	assert.Equal(t, msg.ID(), event.MessageID)
+	domain.AssertTimeNotZero(t, event.DeliveredAt, "Event DeliveredAt")
+}
+
+func TestMarkAsRead_Success(t *testing.T) {
+	// Arrange
+	msg, _ := message.NewMessage(
+		domain.NewTestUUID(),
+		domain.NewTestUUID(),
+		domain.NewTestUUID(),
+		message.ContentTypeText,
+		true,
+	)
+	assert.Equal(t, message.StatusSent, msg.Status())
 
 	// Act
 	msg.MarkAsRead()
 
 	// Assert
 	assert.Equal(t, message.StatusRead, msg.Status())
-	assert.NotNil(t, msg.ReadAt())
-	
-	// Deve emitir evento
-	events := msg.DomainEvents()
-	assert.Len(t, events, 1)
-	assert.Equal(t, "message.read", events[0].EventName())
 }
 
-func TestMessage_MarkAsFailed(t *testing.T) {
+func TestMarkAsRead_SetsTimestamp(t *testing.T) {
 	// Arrange
-	msg, _ := message.NewMessage(uuid.New(), uuid.New(), uuid.New(), message.MessageTypeText, true)
+	msg, _ := message.NewMessage(
+		domain.NewTestUUID(),
+		domain.NewTestUUID(),
+		domain.NewTestUUID(),
+		message.ContentTypeText,
+		true,
+	)
+	assert.Nil(t, msg.ReadAt())
+
+	// Act
+	msg.MarkAsRead()
+
+	// Assert
+	require.NotNil(t, msg.ReadAt())
+	domain.AssertTimeNotZero(t, *msg.ReadAt(), "ReadAt")
+}
+
+func TestMarkAsFailed_Success(t *testing.T) {
+	// Arrange
+	msg, _ := message.NewMessage(
+		domain.NewTestUUID(),
+		domain.NewTestUUID(),
+		domain.NewTestUUID(),
+		message.ContentTypeText,
+		true,
+	)
+	assert.Equal(t, message.StatusSent, msg.Status())
 
 	// Act
 	msg.MarkAsFailed()
@@ -243,27 +368,104 @@ func TestMessage_MarkAsFailed(t *testing.T) {
 	assert.Equal(t, message.StatusFailed, msg.Status())
 }
 
-func TestMessage_IsInbound_IsOutbound(t *testing.T) {
+// ===========================
+// Additional Tests
+// ===========================
+
+func TestAssignToSession(t *testing.T) {
 	// Arrange
-	inboundMsg, _ := message.NewMessage(uuid.New(), uuid.New(), uuid.New(), message.MessageTypeText, false)
-	outboundMsg, _ := message.NewMessage(uuid.New(), uuid.New(), uuid.New(), message.MessageTypeText, true)
+	msg, _ := message.NewMessage(
+		domain.NewTestUUID(),
+		domain.NewTestUUID(),
+		domain.NewTestUUID(),
+		message.ContentTypeText,
+		false,
+	)
+	sessionID := domain.NewTestUUID()
+	assert.Nil(t, msg.SessionID())
+
+	// Act
+	msg.AssignToSession(sessionID)
+
+	// Assert
+	require.NotNil(t, msg.SessionID())
+	assert.Equal(t, sessionID, *msg.SessionID())
+}
+
+func TestAssignToChannel(t *testing.T) {
+	// Arrange
+	msg, _ := message.NewMessage(
+		domain.NewTestUUID(),
+		domain.NewTestUUID(),
+		domain.NewTestUUID(),
+		message.ContentTypeText,
+		false,
+	)
+	channelID := domain.NewTestUUID()
+	channelTypeID := domain.IntPtr(1)
+
+	// Act
+	msg.AssignToChannel(channelID, channelTypeID)
+
+	// Assert
+	assert.Equal(t, channelID, msg.ChannelID())
+	require.NotNil(t, msg.ChannelTypeID())
+	assert.Equal(t, 1, *msg.ChannelTypeID())
+}
+
+func TestSetChannelMessageID(t *testing.T) {
+	// Arrange
+	msg, _ := message.NewMessage(
+		domain.NewTestUUID(),
+		domain.NewTestUUID(),
+		domain.NewTestUUID(),
+		message.ContentTypeText,
+		false,
+	)
+	externalID := "wamid.123456"
+
+	// Act
+	msg.SetChannelMessageID(externalID)
+
+	// Assert
+	require.NotNil(t, msg.ChannelMessageID())
+	assert.Equal(t, externalID, *msg.ChannelMessageID())
+}
+
+func TestIsInbound_IsOutbound(t *testing.T) {
+	// Arrange
+	inboundMsg, _ := message.NewMessage(
+		domain.NewTestUUID(),
+		domain.NewTestUUID(),
+		domain.NewTestUUID(),
+		message.ContentTypeText,
+		false, // fromMe = false
+	)
+	outboundMsg, _ := message.NewMessage(
+		domain.NewTestUUID(),
+		domain.NewTestUUID(),
+		domain.NewTestUUID(),
+		message.ContentTypeText,
+		true, // fromMe = true
+	)
 
 	// Assert
 	assert.True(t, inboundMsg.IsInbound())
 	assert.False(t, inboundMsg.IsOutbound())
-	
+
 	assert.True(t, outboundMsg.IsOutbound())
 	assert.False(t, outboundMsg.IsInbound())
 }
 
 func TestReconstructMessage(t *testing.T) {
 	// Arrange
-	id := uuid.New()
+	id := domain.NewTestUUID()
 	timestamp := time.Now()
-	customerID := uuid.New()
-	projectID := uuid.New()
-	contactID := uuid.New()
-	sessionID := uuid.New()
+	customerID := domain.NewTestUUID()
+	projectID := domain.NewTestUUID()
+	contactID := domain.NewTestUUID()
+	sessionID := domain.NewTestUUID()
+	channelID := domain.NewTestUUID()
 	channelTypeID := 1
 	text := "Test message"
 	deliveredAt := time.Now()
@@ -277,20 +479,19 @@ func TestReconstructMessage(t *testing.T) {
 		customerID,
 		projectID,
 		&channelTypeID,
-		true,
-		nil,
+		true, // fromMe
+		channelID,
 		contactID,
 		&sessionID,
-		message.MessageTypeText,
+		message.ContentTypeText,
 		&text,
-		nil,
-		nil,
-		nil,
-		nil,
-		nil,
+		nil, // mediaURL
+		nil, // mediaMimetype
+		nil, // channelMessageID
+		nil, // replyToID
 		message.StatusRead,
-		nil,
-		nil,
+		nil, // language
+		nil, // agentID
 		metadata,
 		&deliveredAt,
 		&readAt,
@@ -302,31 +503,20 @@ func TestReconstructMessage(t *testing.T) {
 	assert.Equal(t, customerID, msg.CustomerID())
 	assert.Equal(t, projectID, msg.ProjectID())
 	assert.Equal(t, contactID, msg.ContactID())
-	assert.NotNil(t, msg.SessionID())
+	assert.Equal(t, channelID, msg.ChannelID())
+	require.NotNil(t, msg.SessionID())
 	assert.Equal(t, sessionID, *msg.SessionID())
 	assert.True(t, msg.FromMe())
 	assert.Equal(t, message.StatusRead, msg.Status())
-	assert.NotNil(t, msg.Text())
+	require.NotNil(t, msg.Text())
 	assert.Equal(t, text, *msg.Text())
-	assert.NotNil(t, msg.DeliveredAt())
-	assert.NotNil(t, msg.ReadAt())
-	
+	require.NotNil(t, msg.DeliveredAt())
+	require.NotNil(t, msg.ReadAt())
+
 	// Metadata deve ser copiado
 	retrievedMetadata := msg.Metadata()
 	assert.Equal(t, "value", retrievedMetadata["key"])
-	
+
 	// Não deve ter eventos após reconstituir
-	assert.Empty(t, msg.DomainEvents())
-}
-
-func TestMessage_ClearEvents(t *testing.T) {
-	// Arrange
-	msg, _ := message.NewMessage(uuid.New(), uuid.New(), uuid.New(), message.MessageTypeText, false)
-	assert.Len(t, msg.DomainEvents(), 1)
-
-	// Act
-	msg.ClearEvents()
-
-	// Assert
 	assert.Empty(t, msg.DomainEvents())
 }

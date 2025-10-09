@@ -17,11 +17,11 @@ type Pipeline struct {
 	color                 string
 	position              int
 	active                bool
-	sessionTimeoutMinutes int       // Timeout de inatividade para sessões (padrão: 30min)
+	sessionTimeoutMinutes *int // Timeout de inatividade para sessões (NULL = herda do channel/project)
 	statuses              []*Status
 	createdAt             time.Time
 	updatedAt             time.Time
-	
+
 	// Domain Events
 	events []DomainEvent
 }
@@ -46,7 +46,7 @@ func NewPipeline(projectID uuid.UUID, tenantID, name string) (*Pipeline, error) 
 		name:                  name,
 		position:              0,
 		active:                true,
-		sessionTimeoutMinutes: 30, // Padrão: 30 minutos
+		sessionTimeoutMinutes: nil, // NULL = herda do channel/project
 		statuses:              []*Status{},
 		createdAt:             now,
 		updatedAt:             now,
@@ -70,14 +70,9 @@ func ReconstructPipeline(
 	tenantID, name, description, color string,
 	position int,
 	active bool,
-	sessionTimeoutMinutes int,
+	sessionTimeoutMinutes *int,
 	createdAt, updatedAt time.Time,
 ) *Pipeline {
-	// Se timeout não foi definido, usa padrão de 30 minutos
-	if sessionTimeoutMinutes <= 0 {
-		sessionTimeoutMinutes = 30
-	}
-	
 	return &Pipeline{
 		id:                    id,
 		projectID:             projectID,
@@ -87,7 +82,7 @@ func ReconstructPipeline(
 		color:                 color,
 		position:              position,
 		active:                active,
-		sessionTimeoutMinutes: sessionTimeoutMinutes,
+		sessionTimeoutMinutes: sessionTimeoutMinutes, // NULL = inherit from channel/project
 		statuses:              []*Status{},
 		createdAt:             createdAt,
 		updatedAt:             updatedAt,
@@ -100,11 +95,11 @@ func (p *Pipeline) UpdateName(name string) error {
 	if name == "" {
 		return errors.New("name cannot be empty")
 	}
-	
+
 	oldName := p.name
 	p.name = name
 	p.updatedAt = time.Now()
-	
+
 	p.addEvent(PipelineUpdatedEvent{
 		PipelineID: p.id,
 		Field:      "name",
@@ -112,7 +107,7 @@ func (p *Pipeline) UpdateName(name string) error {
 		NewValue:   name,
 		UpdatedAt:  p.updatedAt,
 	})
-	
+
 	return nil
 }
 
@@ -121,7 +116,7 @@ func (p *Pipeline) UpdateDescription(description string) {
 	oldDescription := p.description
 	p.description = description
 	p.updatedAt = time.Now()
-	
+
 	p.addEvent(PipelineUpdatedEvent{
 		PipelineID: p.id,
 		Field:      "description",
@@ -136,7 +131,7 @@ func (p *Pipeline) UpdateColor(color string) {
 	oldColor := p.color
 	p.color = color
 	p.updatedAt = time.Now()
-	
+
 	p.addEvent(PipelineUpdatedEvent{
 		PipelineID: p.id,
 		Field:      "color",
@@ -151,7 +146,7 @@ func (p *Pipeline) UpdatePosition(position int) {
 	oldPosition := p.position
 	p.position = position
 	p.updatedAt = time.Now()
-	
+
 	p.addEvent(PipelineUpdatedEvent{
 		PipelineID: p.id,
 		Field:      "position",
@@ -166,9 +161,9 @@ func (p *Pipeline) Activate() {
 	if !p.active {
 		p.active = true
 		p.updatedAt = time.Now()
-		
+
 		p.addEvent(PipelineActivatedEvent{
-			PipelineID: p.id,
+			PipelineID:  p.id,
 			ActivatedAt: p.updatedAt,
 		})
 	}
@@ -179,9 +174,9 @@ func (p *Pipeline) Deactivate() {
 	if p.active {
 		p.active = false
 		p.updatedAt = time.Now()
-		
+
 		p.addEvent(PipelineDeactivatedEvent{
-			PipelineID: p.id,
+			PipelineID:    p.id,
 			DeactivatedAt: p.updatedAt,
 		})
 	}
@@ -192,24 +187,24 @@ func (p *Pipeline) AddStatus(status *Status) error {
 	if status == nil {
 		return errors.New("status cannot be nil")
 	}
-	
+
 	// Verifica se já existe um status com o mesmo nome
 	for _, s := range p.statuses {
 		if s.Name() == status.Name() {
 			return errors.New("status with this name already exists in pipeline")
 		}
 	}
-	
+
 	p.statuses = append(p.statuses, status)
 	p.updatedAt = time.Now()
-	
+
 	p.addEvent(StatusAddedToPipelineEvent{
 		PipelineID: p.id,
 		StatusID:   status.ID(),
 		StatusName: status.Name(),
 		AddedAt:    p.updatedAt,
 	})
-	
+
 	return nil
 }
 
@@ -219,18 +214,18 @@ func (p *Pipeline) RemoveStatus(statusID uuid.UUID) error {
 		if status.ID() == statusID {
 			p.statuses = append(p.statuses[:i], p.statuses[i+1:]...)
 			p.updatedAt = time.Now()
-			
+
 			p.addEvent(StatusRemovedFromPipelineEvent{
 				PipelineID: p.id,
 				StatusID:   statusID,
 				StatusName: status.Name(),
 				RemovedAt:  p.updatedAt,
 			})
-			
+
 			return nil
 		}
 	}
-	
+
 	return errors.New("status not found in pipeline")
 }
 
@@ -255,31 +250,34 @@ func (p *Pipeline) GetStatusByName(name string) *Status {
 }
 
 // Getters
-func (p *Pipeline) ID() uuid.UUID                { return p.id }
-func (p *Pipeline) ProjectID() uuid.UUID         { return p.projectID }
-func (p *Pipeline) TenantID() string             { return p.tenantID }
-func (p *Pipeline) Name() string                 { return p.name }
-func (p *Pipeline) Description() string          { return p.description }
-func (p *Pipeline) Color() string                { return p.color }
-func (p *Pipeline) Position() int                { return p.position }
-func (p *Pipeline) IsActive() bool               { return p.active }
-func (p *Pipeline) SessionTimeoutMinutes() int   { return p.sessionTimeoutMinutes }
-func (p *Pipeline) Statuses() []*Status          { return append([]*Status{}, p.statuses...) } // Copy
-func (p *Pipeline) CreatedAt() time.Time         { return p.createdAt }
-func (p *Pipeline) UpdatedAt() time.Time         { return p.updatedAt }
+func (p *Pipeline) ID() uuid.UUID              { return p.id }
+func (p *Pipeline) ProjectID() uuid.UUID       { return p.projectID }
+func (p *Pipeline) TenantID() string           { return p.tenantID }
+func (p *Pipeline) Name() string               { return p.name }
+func (p *Pipeline) Description() string        { return p.description }
+func (p *Pipeline) Color() string              { return p.color }
+func (p *Pipeline) Position() int              { return p.position }
+func (p *Pipeline) IsActive() bool             { return p.active }
+func (p *Pipeline) SessionTimeoutMinutes() *int { return p.sessionTimeoutMinutes }
+func (p *Pipeline) Statuses() []*Status        { return append([]*Status{}, p.statuses...) } // Copy
+func (p *Pipeline) CreatedAt() time.Time       { return p.createdAt }
+func (p *Pipeline) UpdatedAt() time.Time       { return p.updatedAt }
 
 // SetSessionTimeout atualiza o timeout de sessão (em minutos)
-func (p *Pipeline) SetSessionTimeout(minutes int) error {
-	if minutes <= 0 {
-		return errors.New("session timeout must be greater than 0")
+// Pass nil to inherit from channel/project, or a value to override
+func (p *Pipeline) SetSessionTimeout(minutes *int) error {
+	if minutes != nil {
+		if *minutes <= 0 {
+			return errors.New("session timeout must be greater than 0")
+		}
+		if *minutes > 1440 { // Máximo 24 horas
+			return errors.New("session timeout cannot exceed 1440 minutes (24 hours)")
+		}
 	}
-	if minutes > 1440 { // Máximo 24 horas
-		return errors.New("session timeout cannot exceed 1440 minutes (24 hours)")
-	}
-	
+
 	p.sessionTimeoutMinutes = minutes
 	p.updatedAt = time.Now()
-	
+
 	return nil
 }
 

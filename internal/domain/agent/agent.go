@@ -7,6 +7,10 @@ import (
 	"github.com/google/uuid"
 )
 
+var (
+	ErrAgentNotFound = errors.New("agent not found")
+)
+
 // AgentType define os tipos de agentes
 type AgentType string
 
@@ -43,12 +47,12 @@ type Agent struct {
 	config      map[string]interface{} // Configurações específicas (ex: AI provider, model)
 	permissions map[string]bool
 	settings    map[string]interface{}
-	
+
 	// Métricas
 	sessionsHandled   int
 	averageResponseMs int
 	lastActivityAt    *time.Time
-	
+
 	createdAt   time.Time
 	updatedAt   time.Time
 	lastLoginAt *time.Time
@@ -77,7 +81,7 @@ func NewAgent(
 	if agentType == "" {
 		agentType = AgentTypeHuman // Padrão
 	}
-	
+
 	// Validação: agente humano precisa de userID
 	if agentType == AgentTypeHuman && (userID == nil || *userID == uuid.Nil) {
 		return nil, errors.New("human agent requires a valid userID")
@@ -104,14 +108,7 @@ func NewAgent(
 		events:            []DomainEvent{},
 	}
 
-	agent.addEvent(AgentCreatedEvent{
-		AgentID:   agent.id,
-		TenantID:  tenantID,
-		Name:      name,
-		Email:     agent.email,
-		Role:      agent.role,
-		CreatedAt: now,
-	})
+	agent.addEvent(NewAgentCreatedEvent(agent.id, tenantID, name, agent.email, agent.role))
 
 	return agent, nil
 }
@@ -167,11 +164,7 @@ func (a *Agent) UpdateProfile(name, email string) error {
 
 	if len(changes) > 0 {
 		a.updatedAt = time.Now()
-		a.addEvent(AgentUpdatedEvent{
-			AgentID:   a.id,
-			Changes:   changes,
-			UpdatedAt: a.updatedAt,
-		})
+		a.addEvent(NewAgentUpdatedEvent(a.id, changes))
 	}
 
 	return nil
@@ -186,10 +179,7 @@ func (a *Agent) Activate() error {
 	a.active = true
 	a.updatedAt = time.Now()
 
-	a.addEvent(AgentActivatedEvent{
-		AgentID:     a.id,
-		ActivatedAt: a.updatedAt,
-	})
+	a.addEvent(NewAgentActivatedEvent(a.id))
 
 	return nil
 }
@@ -203,10 +193,7 @@ func (a *Agent) Deactivate() error {
 	a.active = false
 	a.updatedAt = time.Now()
 
-	a.addEvent(AgentDeactivatedEvent{
-		AgentID:       a.id,
-		DeactivatedAt: a.updatedAt,
-	})
+	a.addEvent(NewAgentDeactivatedEvent(a.id))
 
 	return nil
 }
@@ -217,10 +204,7 @@ func (a *Agent) RecordLogin() {
 	a.lastLoginAt = &now
 	a.updatedAt = now
 
-	a.addEvent(AgentLoggedInEvent{
-		AgentID:     a.id,
-		LoggedInAt:  now,
-	})
+	a.addEvent(NewAgentLoggedInEvent(a.id))
 }
 
 // GrantPermission concede uma permissão ao agente.
@@ -236,11 +220,7 @@ func (a *Agent) GrantPermission(permission string) error {
 	a.permissions[permission] = true
 	a.updatedAt = time.Now()
 
-	a.addEvent(AgentPermissionGrantedEvent{
-		AgentID:    a.id,
-		Permission: permission,
-		GrantedAt:  a.updatedAt,
-	})
+	a.addEvent(NewAgentPermissionGrantedEvent(a.id, permission))
 
 	return nil
 }
@@ -258,11 +238,7 @@ func (a *Agent) RevokePermission(permission string) error {
 	delete(a.permissions, permission)
 	a.updatedAt = time.Now()
 
-	a.addEvent(AgentPermissionRevokedEvent{
-		AgentID:    a.id,
-		Permission: permission,
-		RevokedAt:  a.updatedAt,
-	})
+	a.addEvent(NewAgentPermissionRevokedEvent(a.id, permission))
 
 	return nil
 }
@@ -296,14 +272,14 @@ func (a *Agent) SetConfig(config map[string]interface{}) {
 // RecordSessionHandled registra que o agente atendeu uma sessão
 func (a *Agent) RecordSessionHandled(responseTimeMs int) {
 	a.sessionsHandled++
-	
+
 	// Calcula média móvel do tempo de resposta
 	if a.averageResponseMs == 0 {
 		a.averageResponseMs = responseTimeMs
 	} else {
 		a.averageResponseMs = (a.averageResponseMs + responseTimeMs) / 2
 	}
-	
+
 	now := time.Now()
 	a.lastActivityAt = &now
 	a.updatedAt = now

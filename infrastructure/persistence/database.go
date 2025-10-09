@@ -39,20 +39,20 @@ func NewDatabase(config DatabaseConfig) (*gorm.DB, error) {
 func fixSchemaIncompatibilities(db *gorm.DB) error {
 	fmt.Println("🔧 Starting fixSchemaIncompatibilities...")
 	log.Println("🔧 Starting fixSchemaIncompatibilities...")
-	
+
 	type columnInfo struct {
 		TableName  string `gorm:"column:table_name"`
 		ColumnName string `gorm:"column:column_name"`
 		DataType   string `gorm:"column:data_type"`
 	}
-	
+
 	// Mapeamento de conversões conhecidas: de tipo -> para tipo
 	typeConversions := map[string]map[string]string{
 		"webhook_subscriptions.events": {
 			"jsonb": "text[]",
 		},
 	}
-	
+
 	// Buscar todas as colunas que podem precisar de conversão
 	var columns []columnInfo
 	result := db.Raw(`
@@ -61,14 +61,14 @@ func fixSchemaIncompatibilities(db *gorm.DB) error {
 		WHERE table_schema = 'public'
 		AND table_name IN ('webhook_subscriptions')
 	`).Scan(&columns)
-	
+
 	if result.Error != nil {
 		log.Printf("⚠️  Warning: Failed to query columns: %v", result.Error)
 		return result.Error
 	}
-	
+
 	log.Printf("🔍 Found %d columns to check for conversions", len(columns))
-	
+
 	// Se não encontrou nada, tentar com current_schema
 	if len(columns) == 0 {
 		log.Println("🔍 No columns found in 'public' schema, trying with current_schema()...")
@@ -80,16 +80,16 @@ func fixSchemaIncompatibilities(db *gorm.DB) error {
 		`).Scan(&columns)
 		log.Printf("🔍 Found %d columns with current_schema()", len(columns))
 	}
-	
+
 	// Aplicar conversões necessárias
 	for _, col := range columns {
 		key := col.TableName + "." + col.ColumnName
 		log.Printf("🔍 Checking column: %s (type: %s)", key, col.DataType)
-		
+
 		if conversions, exists := typeConversions[key]; exists {
 			if targetType, needsConversion := conversions[col.DataType]; needsConversion {
 				log.Printf("🔄 Converting %s.%s from %s to %s...", col.TableName, col.ColumnName, col.DataType, targetType)
-				
+
 				var conversionSQL string
 				// Definir SQL de conversão baseado nos tipos
 				if col.DataType == "jsonb" && targetType == "text[]" {
@@ -115,10 +115,10 @@ func fixSchemaIncompatibilities(db *gorm.DB) error {
 							-- Renomear coluna temporária
 							ALTER TABLE %s RENAME COLUMN %s_temp TO %s;
 						END $$;
-					`, col.TableName, col.ColumnName, 
-					   col.TableName, col.ColumnName, col.ColumnName, col.ColumnName,
-					   col.TableName, col.ColumnName,
-					   col.TableName, col.ColumnName, col.ColumnName)
+					`, col.TableName, col.ColumnName,
+						col.TableName, col.ColumnName, col.ColumnName, col.ColumnName,
+						col.TableName, col.ColumnName,
+						col.TableName, col.ColumnName, col.ColumnName)
 				} else {
 					// Conversão genérica
 					conversionSQL = fmt.Sprintf(
@@ -126,7 +126,7 @@ func fixSchemaIncompatibilities(db *gorm.DB) error {
 						col.TableName, col.ColumnName, targetType, col.ColumnName, targetType,
 					)
 				}
-				
+
 				if err := db.Exec(conversionSQL).Error; err != nil {
 					log.Printf("⚠️  Warning: Failed to convert %s.%s: %v", col.TableName, col.ColumnName, err)
 				} else {
@@ -135,7 +135,7 @@ func fixSchemaIncompatibilities(db *gorm.DB) error {
 			}
 		}
 	}
-	
+
 	return nil
 }
 
@@ -151,7 +151,7 @@ func AutoMigrate(db *gorm.DB) error {
 		log.Printf("⚠️  Warning: Some schema fixes failed: %v", err)
 	}
 	fmt.Println("DEBUG: fixSchemaIncompatibilities completed")
-	
+
 	preMigrationUpdates := []string{
 		// Converter webhook_subscriptions.events de jsonb para text[] PRIMEIRO
 		`DO $$ 
@@ -208,42 +208,57 @@ func AutoMigrate(db *gorm.DB) error {
 	err := db.AutoMigrate(
 		// Core entities
 		&entities.UserEntity{},
-		&entities.UserAPIKeyEntity{},        // ← ADICIONADO
+		&entities.UserAPIKeyEntity{}, // ← ADICIONADO
 		&entities.ProjectEntity{},
-		&entities.BillingAccountEntity{},    // ← ADICIONADO
-		&entities.ChannelEntity{},           // ← ADICIONADO
+		&entities.BillingAccountEntity{}, // ← ADICIONADO
+		&entities.ChannelEntity{},        // ← ADICIONADO
 		&entities.ChannelTypeEntity{},
-		
+
 		// Contact & Communication
 		&entities.ContactEntity{},
 		&entities.SessionEntity{},
 		&entities.MessageEntity{},
 		&entities.ContactEventEntity{},
-		
+		&entities.NoteEntity{},         // ← ADICIONADO
+		&entities.AIProcessingEntity{}, // ← ADICIONADO
+
 		// Agents
 		&entities.AgentEntity{},
 		&entities.AgentSessionEntity{},
-		
+
 		// Webhooks
 		&entities.WebhookSubscriptionEntity{},
-		
+
 		// Pipelines
 		&entities.PipelineEntity{},
 		&entities.PipelineStatusEntity{},
 		&entities.ContactPipelineStatusEntity{},
-		
+
 		// Custom Fields
 		&entities.ContactCustomFieldEntity{},
 		&entities.SessionCustomFieldEntity{},
-		
+
+		// Contact Lists
+		&entities.ContactListEntity{},
+		&entities.ContactListFilterRuleEntity{},
+		&entities.ContactListMemberEntity{},
+
 		// Event Logs
 		&entities.DomainEventLogEntity{},
+
+		// Outbox Pattern (Transactional Outbox + Idempotency)
+		&entities.OutboxEventEntity{},    // ← ADICIONADO
+		&entities.ProcessedEventEntity{}, // ← ADICIONADO
+
+		// Tracking (Attribution)
+		&entities.TrackingEntity{},           // ← ADICIONADO
+		&entities.TrackingEnrichmentEntity{}, // ← ADICIONADO
 	)
 
 	if err != nil {
 		return fmt.Errorf("failed to run migrations: %w", err)
 	}
-	
+
 	// 🎯 Otimizações pós-migração (índices customizados)
 	log.Println("🔄 Applying post-migration optimizations...")
 	postMigrationOptimizations := []string{
@@ -256,7 +271,7 @@ func AutoMigrate(db *gorm.DB) error {
 		 ON messages(channel_message_id, status) 
 		 WHERE channel_message_id IS NOT NULL`,
 	}
-	
+
 	for _, sql := range postMigrationOptimizations {
 		if err := db.Exec(sql).Error; err != nil {
 			log.Printf("⚠️  Warning: Post-migration optimization failed: %v", err)
@@ -479,6 +494,6 @@ func SetupRLS(db *gorm.DB) error {
 	log.Println("      - messages, sessions, webhook_subscriptions, channels")
 	log.Println("   🔒 Policies created for user isolation")
 	log.Println("   🔄 RLS será aplicado via GORM callbacks usando SET LOCAL")
-	
+
 	return nil
 }

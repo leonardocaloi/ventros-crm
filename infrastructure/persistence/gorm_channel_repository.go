@@ -43,7 +43,7 @@ func (r *GormChannelRepository) GetByUserID(userID uuid.UUID) ([]*channel.Channe
 	if err := r.db.Where("user_id = ?", userID).Find(&entities).Error; err != nil {
 		return nil, fmt.Errorf("failed to get channels by user: %w", err)
 	}
-	
+
 	channels := make([]*channel.Channel, len(entities))
 	for i, entity := range entities {
 		channels[i] = r.toDomain(&entity)
@@ -56,7 +56,7 @@ func (r *GormChannelRepository) GetByProjectID(projectID uuid.UUID) ([]*channel.
 	if err := r.db.Where("project_id = ?", projectID).Find(&entities).Error; err != nil {
 		return nil, fmt.Errorf("failed to get channels by project: %w", err)
 	}
-	
+
 	channels := make([]*channel.Channel, len(entities))
 	for i, entity := range entities {
 		channels[i] = r.toDomain(&entity)
@@ -80,7 +80,7 @@ func (r *GormChannelRepository) GetActiveWAHAChannels() ([]*channel.Channel, err
 	if err := r.db.Where("type = ? AND status = ?", "waha", "active").Find(&entities).Error; err != nil {
 		return nil, fmt.Errorf("failed to get active WAHA channels: %w", err)
 	}
-	
+
 	channels := make([]*channel.Channel, len(entities))
 	for i, entity := range entities {
 		channels[i] = r.toDomain(&entity)
@@ -122,21 +122,25 @@ func (r *GormChannelRepository) toEntity(ch *channel.Channel) *entities.ChannelE
 		Status:     entities.ChannelStatus(ch.Status),
 		ExternalID: ch.ExternalID,
 		Config:     config,
-		
+
 		// Webhook fields
 		WebhookURL:          ch.WebhookURL,
 		WebhookConfiguredAt: ch.WebhookConfiguredAt,
 		WebhookActive:       ch.WebhookActive,
-		
+
+		// AI Features
+		AIEnabled:       ch.AIEnabled,
+		AIAgentsEnabled: ch.AIAgentsEnabled,
+
 		// Statistics
 		MessagesReceived: ch.MessagesReceived,
 		MessagesSent:     ch.MessagesSent,
 		LastMessageAt:    ch.LastMessageAt,
 		LastErrorAt:      ch.LastErrorAt,
 		LastError:        ch.LastError,
-		
-		CreatedAt:  ch.CreatedAt,
-		UpdatedAt:  ch.UpdatedAt,
+
+		CreatedAt: ch.CreatedAt,
+		UpdatedAt: ch.UpdatedAt,
 	}
 }
 
@@ -161,20 +165,24 @@ func (r *GormChannelRepository) toDomain(entity *entities.ChannelEntity) *channe
 		ExternalID: entity.ExternalID,
 		Status:     channel.ChannelStatus(entity.Status),
 		Config:     config,
-		
+
 		// Webhook fields
 		WebhookURL:          entity.WebhookURL,
 		WebhookConfiguredAt: entity.WebhookConfiguredAt,
 		WebhookActive:       entity.WebhookActive,
-		
+
+		// AI Features
+		AIEnabled:       entity.AIEnabled,
+		AIAgentsEnabled: entity.AIAgentsEnabled,
+
 		// Statistics
 		MessagesReceived: entity.MessagesReceived,
 		MessagesSent:     entity.MessagesSent,
 		LastMessageAt:    entity.LastMessageAt,
 		LastErrorAt:      entity.LastErrorAt,
 		LastError:        entity.LastError,
-		
-		CreatedAt:  entity.CreatedAt,
-		UpdatedAt:  entity.UpdatedAt,
+
+		CreatedAt: entity.CreatedAt,
+		UpdatedAt: entity.UpdatedAt,
 	}
 }

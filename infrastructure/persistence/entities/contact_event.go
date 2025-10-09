@@ -20,7 +20,7 @@ type ContactEventEntity struct {
 	Description       *string                `gorm:"type:text"`
 	Payload           map[string]interface{} `gorm:"type:jsonb"`
 	Metadata          map[string]interface{} `gorm:"type:jsonb"`
-	Source            string                 `gorm:"not null;index"` // system, agent, integration, automation
+	Source            string                 `gorm:"not null;index"`  // system, agent, integration, automation
 	TriggeredBy       *uuid.UUID             `gorm:"type:uuid;index"` // Agent ID
 	IntegrationSource *string                `gorm:""`
 	IsRealtime        bool                   `gorm:"default:true;index"`

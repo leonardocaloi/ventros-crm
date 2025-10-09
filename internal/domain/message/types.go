@@ -6,23 +6,23 @@ import "errors"
 type ContentType string
 
 const (
-	ContentTypeText          ContentType = "text"
-	ContentTypeImage         ContentType = "image"
-	ContentTypeVideo         ContentType = "video"
-	ContentTypeAudio         ContentType = "audio"
-	ContentTypeVoice         ContentType = "voice"          // Áudio gravado (PTT)
-	ContentTypeDocument      ContentType = "document"
-	ContentTypeLocation      ContentType = "location"
-	ContentTypeContact       ContentType = "contact"
-	ContentTypeSticker       ContentType = "sticker"
-	ContentTypeSystem        ContentType = "system"
+	ContentTypeText     ContentType = "text"
+	ContentTypeImage    ContentType = "image"
+	ContentTypeVideo    ContentType = "video"
+	ContentTypeAudio    ContentType = "audio"
+	ContentTypeVoice    ContentType = "voice"
+	ContentTypeDocument ContentType = "document"
+	ContentTypeLocation ContentType = "location"
+	ContentTypeContact  ContentType = "contact"
+	ContentTypeSticker  ContentType = "sticker"
+	ContentTypeSystem   ContentType = "system"
 )
 
 // IsValid verifica se o tipo de conteúdo é válido.
 func (ct ContentType) IsValid() bool {
 	switch ct {
 	case ContentTypeText, ContentTypeImage, ContentTypeVideo, ContentTypeAudio,
-		ContentTypeVoice, ContentTypeDocument, ContentTypeLocation, ContentTypeContact, 
+		ContentTypeVoice, ContentTypeDocument, ContentTypeLocation, ContentTypeContact,
 		ContentTypeSticker, ContentTypeSystem:
 		return true
 	default:

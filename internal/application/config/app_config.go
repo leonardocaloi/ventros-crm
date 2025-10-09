@@ -43,7 +43,7 @@ func (s *AppConfigService) LoadConfig(ctx context.Context) (*AppConfig, error) {
 			"telegram":  5,
 		},
 	}
-	
+
 	return cfg, nil
 }
 

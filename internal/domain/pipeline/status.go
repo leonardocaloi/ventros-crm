@@ -28,7 +28,7 @@ type Status struct {
 	active      bool
 	createdAt   time.Time
 	updatedAt   time.Time
-	
+
 	// Domain Events
 	events []DomainEvent
 }
@@ -98,11 +98,11 @@ func (s *Status) UpdateName(name string) error {
 	if name == "" {
 		return errors.New("name cannot be empty")
 	}
-	
+
 	oldName := s.name
 	s.name = name
 	s.updatedAt = time.Now()
-	
+
 	s.addEvent(StatusUpdatedEvent{
 		StatusID:  s.id,
 		Field:     "name",
@@ -110,7 +110,7 @@ func (s *Status) UpdateName(name string) error {
 		NewValue:  name,
 		UpdatedAt: s.updatedAt,
 	})
-	
+
 	return nil
 }
 
@@ -119,7 +119,7 @@ func (s *Status) UpdateDescription(description string) {
 	oldDescription := s.description
 	s.description = description
 	s.updatedAt = time.Now()
-	
+
 	s.addEvent(StatusUpdatedEvent{
 		StatusID:  s.id,
 		Field:     "description",
@@ -134,7 +134,7 @@ func (s *Status) UpdateColor(color string) {
 	oldColor := s.color
 	s.color = color
 	s.updatedAt = time.Now()
-	
+
 	s.addEvent(StatusUpdatedEvent{
 		StatusID:  s.id,
 		Field:     "color",
@@ -149,7 +149,7 @@ func (s *Status) UpdatePosition(position int) {
 	oldPosition := s.position
 	s.position = position
 	s.updatedAt = time.Now()
-	
+
 	s.addEvent(StatusUpdatedEvent{
 		StatusID:  s.id,
 		Field:     "position",
@@ -164,11 +164,11 @@ func (s *Status) UpdateType(statusType StatusType) error {
 	if statusType == "" {
 		return errors.New("statusType cannot be empty")
 	}
-	
+
 	oldType := s.statusType
 	s.statusType = statusType
 	s.updatedAt = time.Now()
-	
+
 	s.addEvent(StatusUpdatedEvent{
 		StatusID:  s.id,
 		Field:     "status_type",
@@ -176,7 +176,7 @@ func (s *Status) UpdateType(statusType StatusType) error {
 		NewValue:  string(statusType),
 		UpdatedAt: s.updatedAt,
 	})
-	
+
 	return nil
 }
 
@@ -185,7 +185,7 @@ func (s *Status) Activate() {
 	if !s.active {
 		s.active = true
 		s.updatedAt = time.Now()
-		
+
 		s.addEvent(StatusActivatedEvent{
 			StatusID:    s.id,
 			ActivatedAt: s.updatedAt,
@@ -198,7 +198,7 @@ func (s *Status) Deactivate() {
 	if s.active {
 		s.active = false
 		s.updatedAt = time.Now()
-		
+
 		s.addEvent(StatusDeactivatedEvent{
 			StatusID:      s.id,
 			DeactivatedAt: s.updatedAt,
@@ -222,16 +222,16 @@ func (s *Status) IsClosed() bool {
 }
 
 // Getters
-func (s *Status) ID() uuid.UUID         { return s.id }
-func (s *Status) PipelineID() uuid.UUID { return s.pipelineID }
-func (s *Status) Name() string          { return s.name }
-func (s *Status) Description() string   { return s.description }
-func (s *Status) Color() string         { return s.color }
+func (s *Status) ID() uuid.UUID          { return s.id }
+func (s *Status) PipelineID() uuid.UUID  { return s.pipelineID }
+func (s *Status) Name() string           { return s.name }
+func (s *Status) Description() string    { return s.description }
+func (s *Status) Color() string          { return s.color }
 func (s *Status) StatusType() StatusType { return s.statusType }
-func (s *Status) Position() int         { return s.position }
-func (s *Status) IsActiveStatus() bool  { return s.active }
-func (s *Status) CreatedAt() time.Time  { return s.createdAt }
-func (s *Status) UpdatedAt() time.Time  { return s.updatedAt }
+func (s *Status) Position() int          { return s.position }
+func (s *Status) IsActiveStatus() bool   { return s.active }
+func (s *Status) CreatedAt() time.Time   { return s.createdAt }
+func (s *Status) UpdatedAt() time.Time   { return s.updatedAt }
 
 // DomainEvents retorna os eventos de domínio
 func (s *Status) DomainEvents() []DomainEvent {

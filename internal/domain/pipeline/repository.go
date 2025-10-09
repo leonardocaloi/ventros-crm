@@ -38,24 +38,24 @@ type Repository interface {
 
 // ContactStatusHistory representa o histórico de mudanças de status de um contato
 type ContactStatusHistory struct {
-	ID          uuid.UUID
-	ContactID   uuid.UUID
-	PipelineID  uuid.UUID
-	StatusID    uuid.UUID
-	StatusName  string
-	ChangedAt   time.Time
-	ChangedBy   *uuid.UUID
-	Reason      string
-	Duration    *time.Duration // Tempo que ficou neste status
+	ID         uuid.UUID
+	ContactID  uuid.UUID
+	PipelineID uuid.UUID
+	StatusID   uuid.UUID
+	StatusName string
+	ChangedAt  time.Time
+	ChangedBy  *uuid.UUID
+	Reason     string
+	Duration   *time.Duration // Tempo que ficou neste status
 }
 
 // ContactPipelineStatus representa o status atual de um contato em um pipeline
 type ContactPipelineStatus struct {
-	ContactID   uuid.UUID
-	PipelineID  uuid.UUID
-	StatusID    uuid.UUID
-	StatusName  string
-	EnteredAt   time.Time
-	UpdatedAt   time.Time
-	UpdatedBy   *uuid.UUID
+	ContactID  uuid.UUID
+	PipelineID uuid.UUID
+	StatusID   uuid.UUID
+	StatusName string
+	EnteredAt  time.Time
+	UpdatedAt  time.Time
+	UpdatedBy  *uuid.UUID
 }

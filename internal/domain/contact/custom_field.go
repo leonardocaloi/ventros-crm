@@ -70,7 +70,7 @@ func (ccf *ContactCustomField) UpdateValue(newField *shared.CustomField) error {
 	if newField == nil {
 		return errors.New("new field cannot be nil")
 	}
-	
+
 	// Validar que mantém a mesma chave e tipo
 	if ccf.customField.Key() != newField.Key() {
 		return errors.New("cannot change field key")
@@ -85,12 +85,12 @@ func (ccf *ContactCustomField) UpdateValue(newField *shared.CustomField) error {
 }
 
 // Getters
-func (ccf *ContactCustomField) ID() uuid.UUID                 { return ccf.id }
-func (ccf *ContactCustomField) ContactID() uuid.UUID          { return ccf.contactID }
-func (ccf *ContactCustomField) TenantID() string              { return ccf.tenantID }
+func (ccf *ContactCustomField) ID() uuid.UUID                    { return ccf.id }
+func (ccf *ContactCustomField) ContactID() uuid.UUID             { return ccf.contactID }
+func (ccf *ContactCustomField) TenantID() string                 { return ccf.tenantID }
 func (ccf *ContactCustomField) CustomField() *shared.CustomField { return ccf.customField }
-func (ccf *ContactCustomField) FieldKey() string              { return ccf.customField.Key() }
-func (ccf *ContactCustomField) FieldType() shared.FieldType   { return ccf.customField.Type() }
-func (ccf *ContactCustomField) FieldValue() interface{}       { return ccf.customField.Value() }
-func (ccf *ContactCustomField) CreatedAt() time.Time          { return ccf.createdAt }
-func (ccf *ContactCustomField) UpdatedAt() time.Time          { return ccf.updatedAt }
+func (ccf *ContactCustomField) FieldKey() string                 { return ccf.customField.Key() }
+func (ccf *ContactCustomField) FieldType() shared.FieldType      { return ccf.customField.Type() }
+func (ccf *ContactCustomField) FieldValue() interface{}          { return ccf.customField.Value() }
+func (ccf *ContactCustomField) CreatedAt() time.Time             { return ccf.createdAt }
+func (ccf *ContactCustomField) UpdatedAt() time.Time             { return ccf.updatedAt }

@@ -45,16 +45,17 @@ type UpdateWebhookRequest struct {
 }
 
 // CreateWebhook creates a new webhook subscription
-// @Summary Create webhook subscription
-// @Description Cria uma nova inscrição de webhook para receber eventos do WAHA
-// @Tags webhooks
-// @Accept json
-// @Produce json
-// @Param webhook body CreateWebhookRequest true "Webhook subscription data"
-// @Success 201 {object} map[string]interface{} "Webhook created successfully"
-// @Failure 400 {object} map[string]interface{} "Invalid request"
-// @Failure 500 {object} map[string]interface{} "Internal server error"
-// @Router /api/v1/webhook-subscriptions [post]
+//
+//	@Summary		Create webhook subscription
+//	@Description	Cria uma nova inscrição de webhook para receber eventos do WAHA
+//	@Tags			webhooks
+//	@Accept			json
+//	@Produce		json
+//	@Param			webhook	body		CreateWebhookRequest	true	"Webhook subscription data"
+//	@Success		201		{object}	map[string]interface{}	"Webhook created successfully"
+//	@Failure		400		{object}	map[string]interface{}	"Invalid request"
+//	@Failure		500		{object}	map[string]interface{}	"Internal server error"
+//	@Router			/api/v1/webhook-subscriptions [post]
 func (h *WebhookSubscriptionHandler) CreateWebhook(c *gin.Context) {
 	// Obter contexto do usuário autenticado
 	authCtx, exists := middleware.GetAuthContext(c)
@@ -104,14 +105,15 @@ func (h *WebhookSubscriptionHandler) CreateWebhook(c *gin.Context) {
 }
 
 // ListWebhooks lists all webhook subscriptions
-// @Summary List webhook subscriptions
-// @Description Lista todas as inscrições de webhooks
-// @Tags webhooks
-// @Produce json
-// @Param active query bool false "Filter by active status"
-// @Success 200 {array} map[string]interface{} "List of webhooks"
-// @Failure 500 {object} map[string]interface{} "Internal server error"
-// @Router /api/v1/webhook-subscriptions [get]
+//
+//	@Summary		List webhook subscriptions
+//	@Description	Lista todas as inscrições de webhooks
+//	@Tags			webhooks
+//	@Produce		json
+//	@Param			active	query		bool					false	"Filter by active status"
+//	@Success		200		{array}		map[string]interface{}	"List of webhooks"
+//	@Failure		500		{object}	map[string]interface{}	"Internal server error"
+//	@Router			/api/v1/webhook-subscriptions [get]
 func (h *WebhookSubscriptionHandler) ListWebhooks(c *gin.Context) {
 	var activeOnly *bool
 	if activeStr := c.Query("active"); activeStr != "" {
@@ -135,15 +137,16 @@ func (h *WebhookSubscriptionHandler) ListWebhooks(c *gin.Context) {
 }
 
 // GetWebhook gets a webhook subscription by ID
-// @Summary Get webhook subscription
-// @Description Obtém detalhes de uma inscrição de webhook
-// @Tags webhooks
-// @Produce json
-// @Param id path string true "Webhook ID (UUID)"
-// @Success 200 {object} map[string]interface{} "Webhook details"
-// @Failure 404 {object} map[string]interface{} "Webhook not found"
-// @Failure 500 {object} map[string]interface{} "Internal server error"
-// @Router /api/v1/webhook-subscriptions/{id} [get]
+//
+//	@Summary		Get webhook subscription
+//	@Description	Obtém detalhes de uma inscrição de webhook
+//	@Tags			webhooks
+//	@Produce		json
+//	@Param			id	path		string					true	"Webhook ID (UUID)"
+//	@Success		200	{object}	map[string]interface{}	"Webhook details"
+//	@Failure		404	{object}	map[string]interface{}	"Webhook not found"
+//	@Failure		500	{object}	map[string]interface{}	"Internal server error"
+//	@Router			/api/v1/webhook-subscriptions/{id} [get]
 func (h *WebhookSubscriptionHandler) GetWebhook(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := uuid.Parse(idStr)
@@ -167,18 +170,19 @@ func (h *WebhookSubscriptionHandler) GetWebhook(c *gin.Context) {
 }
 
 // UpdateWebhook updates a webhook subscription
-// @Summary Update webhook subscription
-// @Description Atualiza uma inscrição de webhook
-// @Tags webhooks
-// @Accept json
-// @Produce json
-// @Param id path string true "Webhook ID (UUID)"
-// @Param webhook body UpdateWebhookRequest true "Webhook update data"
-// @Success 200 {object} map[string]interface{} "Webhook updated successfully"
-// @Failure 400 {object} map[string]interface{} "Invalid request"
-// @Failure 404 {object} map[string]interface{} "Webhook not found"
-// @Failure 500 {object} map[string]interface{} "Internal server error"
-// @Router /api/v1/webhook-subscriptions/{id} [put]
+//
+//	@Summary		Update webhook subscription
+//	@Description	Atualiza uma inscrição de webhook
+//	@Tags			webhooks
+//	@Accept			json
+//	@Produce		json
+//	@Param			id		path		string					true	"Webhook ID (UUID)"
+//	@Param			webhook	body		UpdateWebhookRequest	true	"Webhook update data"
+//	@Success		200		{object}	map[string]interface{}	"Webhook updated successfully"
+//	@Failure		400		{object}	map[string]interface{}	"Invalid request"
+//	@Failure		404		{object}	map[string]interface{}	"Webhook not found"
+//	@Failure		500		{object}	map[string]interface{}	"Internal server error"
+//	@Router			/api/v1/webhook-subscriptions/{id} [put]
 func (h *WebhookSubscriptionHandler) UpdateWebhook(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := uuid.Parse(idStr)
@@ -220,15 +224,16 @@ func (h *WebhookSubscriptionHandler) UpdateWebhook(c *gin.Context) {
 }
 
 // DeleteWebhook deletes a webhook subscription
-// @Summary Delete webhook subscription
-// @Description Remove uma inscrição de webhook
-// @Tags webhooks
-// @Produce json
-// @Param id path string true "Webhook ID (UUID)"
-// @Success 204 "Webhook deleted successfully"
-// @Failure 404 {object} map[string]interface{} "Webhook not found"
-// @Failure 500 {object} map[string]interface{} "Internal server error"
-// @Router /api/v1/webhook-subscriptions/{id} [delete]
+//
+//	@Summary		Delete webhook subscription
+//	@Description	Remove uma inscrição de webhook
+//	@Tags			webhooks
+//	@Produce		json
+//	@Param			id	path	string	true	"Webhook ID (UUID)"
+//	@Success		204	"Webhook deleted successfully"
+//	@Failure		404	{object}	map[string]interface{}	"Webhook not found"
+//	@Failure		500	{object}	map[string]interface{}	"Internal server error"
+//	@Router			/api/v1/webhook-subscriptions/{id} [delete]
 func (h *WebhookSubscriptionHandler) DeleteWebhook(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := uuid.Parse(idStr)
@@ -252,15 +257,16 @@ func (h *WebhookSubscriptionHandler) DeleteWebhook(c *gin.Context) {
 }
 
 // GetAvailableEvents returns list of available WAHA events
-// @Summary Get available WAHA events
-// @Description Lista todos os eventos WAHA disponíveis para inscrição
-// @Tags webhooks
-// @Produce json
-// @Success 200 {object} map[string]interface{} "Available events"
-// @Router /api/v1/webhook-subscriptions/available-events [get]
+//
+//	@Summary		Get available WAHA events
+//	@Description	Lista todos os eventos WAHA disponíveis para inscrição
+//	@Tags			webhooks
+//	@Produce		json
+//	@Success		200	{object}	map[string]interface{}	"Available events"
+//	@Router			/api/v1/webhook-subscriptions/available-events [get]
 func (h *WebhookSubscriptionHandler) GetAvailableEvents(c *gin.Context) {
 	events := h.useCase.GetAvailableEvents()
-	
+
 	c.JSON(http.StatusOK, gin.H{
 		"events":       events,
 		"queue_prefix": "waha.events",

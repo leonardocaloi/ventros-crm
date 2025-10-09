@@ -9,8 +9,8 @@ import (
 	"github.com/caloi/ventros-crm/infrastructure/channels/waha"
 	messageapp "github.com/caloi/ventros-crm/internal/application/message"
 	domainmessage "github.com/caloi/ventros-crm/internal/domain/message"
-	amqp "github.com/rabbitmq/amqp091-go"
 	"github.com/google/uuid"
+	amqp "github.com/rabbitmq/amqp091-go"
 	"go.uber.org/zap"
 )
 
@@ -65,7 +65,7 @@ func (p *WAHARawEventProcessor) processRawEventWithRecovery(ctx context.Context,
 			p.logger.Error("Panic in raw event processing",
 				zap.Any("panic", r),
 				zap.String("event_id", rawEvent.ID))
-			
+
 			// Cria erro de panic para DLQ
 			parseError := waha.WAHAParseError{
 				RawEventID: rawEvent.ID,
@@ -74,12 +74,12 @@ func (p *WAHARawEventProcessor) processRawEventWithRecovery(ctx context.Context,
 				OccurredAt: time.Now(),
 				RawBody:    rawEvent.Body,
 			}
-			
+
 			// Envia para DLQ (não falha se der erro)
 			if dlqErr := p.eventBus.PublishParseError(ctx, parseError); dlqErr != nil {
 				p.logger.Error("Failed to publish panic error to DLQ", zap.Error(dlqErr))
 			}
-			
+
 			err = fmt.Errorf("panic in processing: %v", r)
 		}
 	}()
@@ -98,7 +98,7 @@ func (p *WAHARawEventProcessor) processRawEvent(ctx context.Context, rawEvent wa
 
 	// 2. Valida estrutura básica
 	if wahaEvent.Event == "" {
-		return p.handleParseError(ctx, rawEvent, 
+		return p.handleParseError(ctx, rawEvent,
 			fmt.Errorf("missing event type"), "missing_event_type")
 	}
 
@@ -118,25 +118,25 @@ func (p *WAHARawEventProcessor) routeEvent(ctx context.Context, rawEvent waha.WA
 		// ✅ Processa TODAS as mensagens (fromMe: true/false)
 		// Deduplicação já implementada para fromMe: true
 		return p.processMessageEvent(ctx, rawEvent, wahaEvent)
-		
+
 	case "message":
 		// ⚠️ Ignora "message" - usar apenas "message.any" para capturar tudo
 		p.logger.Debug("Ignoring 'message' event, using 'message.any' instead",
 			zap.String("raw_event_id", rawEvent.ID))
 		return nil
-		
+
 	case "message.ack":
 		return p.processMessageAckEvent(ctx, rawEvent, wahaEvent)
-		
+
 	case "call.received", "call.accepted", "call.rejected":
 		return p.processCallEvent(ctx, rawEvent, wahaEvent)
-		
+
 	case "label.upsert", "label.deleted", "label.chat.added", "label.chat.deleted":
 		return p.processLabelEvent(ctx, rawEvent, wahaEvent)
-		
+
 	case "group.v2.join", "group.v2.leave", "group.v2.update", "group.v2.participants":
 		return p.processGroupEvent(ctx, rawEvent, wahaEvent)
-		
+
 	default:
 		return p.processUnknownEvent(ctx, rawEvent, wahaEvent)
 	}
@@ -217,7 +217,7 @@ func (p *WAHARawEventProcessor) processMessageAckEvent(ctx context.Context, rawE
 		Ack  int    `json:"ack"`  // Status: 1=sent, 2=delivered, 3=read, 4=played
 		From string `json:"from"` // Remetente
 	}
-	
+
 	if err := json.Unmarshal(payloadBytes, &ackPayload); err != nil {
 		p.logger.Warn("Failed to unmarshal ACK payload, skipping",
 			zap.Error(err),
@@ -288,7 +288,7 @@ func (p *WAHARawEventProcessor) processCallEvent(ctx context.Context, rawEvent w
 		zap.String("raw_event_id", rawEvent.ID),
 		zap.String("event", wahaEvent.Event),
 		zap.String("session", wahaEvent.Session))
-	
+
 	return p.publishToProcessedQueue(ctx, rawEvent, wahaEvent, "waha.events.call.parsed")
 }
 
@@ -299,7 +299,7 @@ func (p *WAHARawEventProcessor) processLabelEvent(ctx context.Context, rawEvent 
 		zap.String("raw_event_id", rawEvent.ID),
 		zap.String("event", wahaEvent.Event),
 		zap.String("session", wahaEvent.Session))
-	
+
 	return p.publishToProcessedQueue(ctx, rawEvent, wahaEvent, "waha.events.label.parsed")
 }
 
@@ -310,7 +310,7 @@ func (p *WAHARawEventProcessor) processGroupEvent(ctx context.Context, rawEvent 
 		zap.String("raw_event_id", rawEvent.ID),
 		zap.String("event", wahaEvent.Event),
 		zap.String("session", wahaEvent.Session))
-	
+
 	return p.publishToProcessedQueue(ctx, rawEvent, wahaEvent, "waha.events.group.parsed")
 }
 
@@ -320,7 +320,7 @@ func (p *WAHARawEventProcessor) processUnknownEvent(ctx context.Context, rawEven
 		zap.String("raw_event_id", rawEvent.ID),
 		zap.String("event", wahaEvent.Event),
 		zap.String("session", wahaEvent.Session))
-	
+
 	return p.publishToProcessedQueue(ctx, rawEvent, wahaEvent, "waha.events.unknown.parsed")
 }
 
@@ -334,8 +334,8 @@ func (p *WAHARawEventProcessor) publishToProcessedQueue(ctx context.Context, raw
 		Payload:    wahaEvent.Payload.(map[string]interface{}),
 		Metadata: map[string]interface{}{
 			"original_timestamp": rawEvent.Timestamp,
-			"source":            rawEvent.Source,
-			"body_size":         rawEvent.GetBodySize(),
+			"source":             rawEvent.Source,
+			"body_size":          rawEvent.GetBodySize(),
 		},
 	}
 

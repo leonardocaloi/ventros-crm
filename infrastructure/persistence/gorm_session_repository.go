@@ -41,11 +41,11 @@ func (r *GormSessionRepository) FindByID(ctx context.Context, id uuid.UUID) (*se
 func (r *GormSessionRepository) FindActiveByContact(ctx context.Context, contactID uuid.UUID, channelTypeID *int) (*session.Session, error) {
 	var entity entities.SessionEntity
 	query := r.db.WithContext(ctx).Where("contact_id = ? AND status = 'active'", contactID)
-	
+
 	if channelTypeID != nil {
 		query = query.Where("channel_type_id = ?", *channelTypeID)
 	}
-	
+
 	err := query.First(&entity).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -73,11 +73,11 @@ func (r *GormSessionRepository) FindInactiveSessions(ctx context.Context, tenant
 func (r *GormSessionRepository) FindSessionsRequiringSummary(ctx context.Context, tenantID string, limit int) ([]*session.Session, error) {
 	var entities []entities.SessionEntity
 	query := r.db.WithContext(ctx).Where("tenant_id = ? AND status = 'ended' AND summary IS NULL AND message_count >= 3", tenantID)
-	
+
 	if limit > 0 {
 		query = query.Limit(limit)
 	}
-	
+
 	err := query.Find(&entities).Error
 	if err != nil {
 		return nil, err
@@ -117,6 +117,7 @@ func (r *GormSessionRepository) domainToEntity(s *session.Session) *entities.Ses
 		ID:                  s.ID(),
 		ContactID:           s.ContactID(),
 		TenantID:            s.TenantID(),
+		PipelineID:          s.PipelineID(), // ✅ Pipeline ID
 		ChannelTypeID:       s.ChannelTypeID(),
 		StartedAt:           s.StartedAt(),
 		EndedAt:             s.EndedAt(),
@@ -181,6 +182,7 @@ func (r *GormSessionRepository) entityToDomain(entity *entities.SessionEntity) *
 		entity.ContactID,
 		entity.TenantID,
 		entity.ChannelTypeID,
+		entity.PipelineID, // ✅ Adicionado pipeline_id
 		entity.StartedAt,
 		entity.EndedAt,
 		status,
@@ -191,6 +193,10 @@ func (r *GormSessionRepository) entityToDomain(entity *entities.SessionEntity) *
 		entity.MessagesFromContact,
 		entity.MessagesFromAgent,
 		entity.DurationSeconds,
+		entity.FirstContactMessageAt,
+		entity.FirstAgentResponseAt,
+		entity.AgentResponseTimeSeconds,
+		entity.ContactWaitTimeSeconds,
 		entity.AgentIDs,
 		entity.AgentTransfers,
 		entity.Summary,

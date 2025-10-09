@@ -16,7 +16,7 @@ type Customer struct {
 	settings  map[string]interface{}
 	createdAt time.Time
 	updatedAt time.Time
-	
+
 	events []DomainEvent
 }
 
@@ -82,15 +82,15 @@ func (c *Customer) Activate() error {
 	if c.status == StatusActive {
 		return nil
 	}
-	
+
 	c.status = StatusActive
 	c.updatedAt = time.Now()
-	
+
 	c.addEvent(CustomerActivatedEvent{
-		CustomerID: c.id,
+		CustomerID:  c.id,
 		ActivatedAt: time.Now(),
 	})
-	
+
 	return nil
 }
 
@@ -99,15 +99,15 @@ func (c *Customer) Suspend() error {
 	if c.status == StatusSuspended {
 		return nil
 	}
-	
+
 	c.status = StatusSuspended
 	c.updatedAt = time.Now()
-	
+
 	c.addEvent(CustomerSuspendedEvent{
-		CustomerID: c.id,
+		CustomerID:  c.id,
 		SuspendedAt: time.Now(),
 	})
-	
+
 	return nil
 }
 
@@ -129,11 +129,11 @@ func (c *Customer) IsActive() bool {
 }
 
 // Getters
-func (c *Customer) ID() uuid.UUID                       { return c.id }
-func (c *Customer) Name() string                        { return c.name }
-func (c *Customer) Email() string                       { return c.email }
-func (c *Customer) Status() Status                      { return c.status }
-func (c *Customer) Settings() map[string]interface{}    {
+func (c *Customer) ID() uuid.UUID  { return c.id }
+func (c *Customer) Name() string   { return c.name }
+func (c *Customer) Email() string  { return c.email }
+func (c *Customer) Status() Status { return c.status }
+func (c *Customer) Settings() map[string]interface{} {
 	// Return copy
 	copy := make(map[string]interface{})
 	for k, v := range c.settings {

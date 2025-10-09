@@ -3,6 +3,7 @@ package session
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/caloi/ventros-crm/internal/domain/session"
 	"github.com/google/uuid"
@@ -10,8 +11,9 @@ import (
 
 // RecordMessageCommand contém os dados para registrar uma mensagem.
 type RecordMessageCommand struct {
-	SessionID   uuid.UUID
-	FromContact bool
+	SessionID        uuid.UUID
+	FromContact      bool
+	MessageTimestamp time.Time
 }
 
 // RecordMessageUseCase implementa o caso de uso de registro de mensagem.
@@ -45,7 +47,7 @@ func (uc *RecordMessageUseCase) Execute(ctx context.Context, cmd RecordMessageCo
 	}
 
 	// Lógica de domínio - registrar mensagem
-	if err := sess.RecordMessage(cmd.FromContact); err != nil {
+	if err := sess.RecordMessage(cmd.FromContact, cmd.MessageTimestamp); err != nil {
 		return err
 	}
 

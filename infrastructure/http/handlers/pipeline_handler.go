@@ -12,13 +12,13 @@ import (
 )
 
 type PipelineHandler struct {
-	logger      *zap.Logger
+	logger       *zap.Logger
 	pipelineRepo pipeline.Repository
 }
 
 func NewPipelineHandler(logger *zap.Logger, pipelineRepo pipeline.Repository) *PipelineHandler {
 	return &PipelineHandler{
-		logger:      logger,
+		logger:       logger,
 		pipelineRepo: pipelineRepo,
 	}
 }
@@ -43,11 +43,11 @@ type UpdatePipelineRequest struct {
 
 // CreateStatusRequest representa o payload para criar um status
 type CreateStatusRequest struct {
-	Name        string                `json:"name" binding:"required" example:"Novo Lead"`
-	Description string                `json:"description" example:"Lead recém chegado"`
-	Color       string                `json:"color" example:"#10B981"`
-	StatusType  pipeline.StatusType   `json:"status_type" binding:"required" example:"open"`
-	Position    int                   `json:"position" example:"0"`
+	Name        string              `json:"name" binding:"required" example:"Novo Lead"`
+	Description string              `json:"description" example:"Lead recém chegado"`
+	Color       string              `json:"color" example:"#10B981"`
+	StatusType  pipeline.StatusType `json:"status_type" binding:"required" example:"open"`
+	Position    int                 `json:"position" example:"0"`
 }
 
 // UpdateStatusRequest representa o payload para atualizar um status
@@ -68,19 +68,20 @@ type ChangeContactStatusRequest struct {
 }
 
 // ListPipelines lists all pipelines for a project
-// @Summary List pipelines
-// @Description Lista todos os pipelines de um projeto (apenas do usuário autenticado)
-// @Tags pipelines
-// @Produce json
-// @Security ApiKeyAuth
-// @Param project_id query string true "Project ID (UUID)"
-// @Param active query bool false "Filter by active status"
-// @Success 200 {array} map[string]interface{} "List of pipelines"
-// @Failure 400 {object} map[string]interface{} "Invalid parameters"
-// @Failure 401 {object} map[string]interface{} "Not authenticated"
-// @Failure 403 {object} map[string]interface{} "Project not owned by user"
-// @Failure 500 {object} map[string]interface{} "Internal server error"
-// @Router /api/v1/pipelines [get]
+//
+//	@Summary		List pipelines
+//	@Description	Lista todos os pipelines de um projeto (apenas do usuário autenticado)
+//	@Tags			pipelines
+//	@Produce		json
+//	@Security		ApiKeyAuth
+//	@Param			project_id	query		string					true	"Project ID (UUID)"
+//	@Param			active		query		bool					false	"Filter by active status"
+//	@Success		200			{array}		map[string]interface{}	"List of pipelines"
+//	@Failure		400			{object}	map[string]interface{}	"Invalid parameters"
+//	@Failure		401			{object}	map[string]interface{}	"Not authenticated"
+//	@Failure		403			{object}	map[string]interface{}	"Project not owned by user"
+//	@Failure		500			{object}	map[string]interface{}	"Internal server error"
+//	@Router			/api/v1/pipelines [get]
 func (h *PipelineHandler) ListPipelines(c *gin.Context) {
 	// Verificar autenticação
 	authCtx, exists := middleware.GetAuthContext(c)
@@ -102,7 +103,7 @@ func (h *PipelineHandler) ListPipelines(c *gin.Context) {
 	}
 
 	activeOnly := c.Query("active") == "true"
-	
+
 	var pipelines []*pipeline.Pipeline
 	var err error
 	if activeOnly {
@@ -112,7 +113,7 @@ func (h *PipelineHandler) ListPipelines(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve pipelines"})
 			return
 		}
-		
+
 		// Convert to response
 		response := make([]map[string]interface{}, len(pipelines))
 		for i, p := range pipelines {
@@ -126,7 +127,7 @@ func (h *PipelineHandler) ListPipelines(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve pipelines"})
 			return
 		}
-		
+
 		// Convert to response
 		response := make([]map[string]interface{}, len(pipelines))
 		for i, p := range pipelines {
@@ -137,17 +138,18 @@ func (h *PipelineHandler) ListPipelines(c *gin.Context) {
 }
 
 // CreatePipeline creates a new pipeline
-// @Summary Create pipeline
-// @Description Cria um novo pipeline
-// @Tags pipelines
-// @Accept json
-// @Produce json
-// @Param project_id query string true "Project ID (UUID)"
-// @Param pipeline body CreatePipelineRequest true "Pipeline data"
-// @Success 201 {object} map[string]interface{} "Pipeline created successfully"
-// @Failure 400 {object} map[string]interface{} "Invalid request"
-// @Failure 500 {object} map[string]interface{} "Internal server error"
-// @Router /api/v1/pipelines [post]
+//
+//	@Summary		Create pipeline
+//	@Description	Cria um novo pipeline
+//	@Tags			pipelines
+//	@Accept			json
+//	@Produce		json
+//	@Param			project_id	query		string					true	"Project ID (UUID)"
+//	@Param			pipeline	body		CreatePipelineRequest	true	"Pipeline data"
+//	@Success		201			{object}	map[string]interface{}	"Pipeline created successfully"
+//	@Failure		400			{object}	map[string]interface{}	"Invalid request"
+//	@Failure		500			{object}	map[string]interface{}	"Internal server error"
+//	@Router			/api/v1/pipelines [post]
 func (h *PipelineHandler) CreatePipeline(c *gin.Context) {
 	projectIDStr := c.Query("project_id")
 	if projectIDStr == "" {
@@ -203,16 +205,17 @@ func (h *PipelineHandler) CreatePipeline(c *gin.Context) {
 }
 
 // GetPipeline gets a pipeline by ID with its statuses
-// @Summary Get pipeline by ID
-// @Description Obtém detalhes de um pipeline específico com seus status
-// @Tags pipelines
-// @Produce json
-// @Param id path string true "Pipeline ID (UUID)"
-// @Success 200 {object} map[string]interface{} "Pipeline details with statuses"
-// @Failure 400 {object} map[string]interface{} "Invalid pipeline ID"
-// @Failure 404 {object} map[string]interface{} "Pipeline not found"
-// @Failure 500 {object} map[string]interface{} "Internal server error"
-// @Router /api/v1/pipelines/{id} [get]
+//
+//	@Summary		Get pipeline by ID
+//	@Description	Obtém detalhes de um pipeline específico com seus status
+//	@Tags			pipelines
+//	@Produce		json
+//	@Param			id	path		string					true	"Pipeline ID (UUID)"
+//	@Success		200	{object}	map[string]interface{}	"Pipeline details with statuses"
+//	@Failure		400	{object}	map[string]interface{}	"Invalid pipeline ID"
+//	@Failure		404	{object}	map[string]interface{}	"Pipeline not found"
+//	@Failure		500	{object}	map[string]interface{}	"Internal server error"
+//	@Router			/api/v1/pipelines/{id} [get]
 func (h *PipelineHandler) GetPipeline(c *gin.Context) {
 	idStr := c.Param("id")
 	pipelineID, err := uuid.Parse(idStr)
@@ -236,7 +239,7 @@ func (h *PipelineHandler) GetPipeline(c *gin.Context) {
 
 	// Convert to response
 	response := h.pipelineToResponse(domainPipeline)
-	
+
 	// Add statuses
 	statusesResponse := make([]map[string]interface{}, len(statuses))
 	for i, s := range statuses {
@@ -248,18 +251,19 @@ func (h *PipelineHandler) GetPipeline(c *gin.Context) {
 }
 
 // CreateStatus creates a new status in a pipeline
-// @Summary Create status
-// @Description Cria um novo status em um pipeline
-// @Tags pipelines
-// @Accept json
-// @Produce json
-// @Param id path string true "Pipeline ID (UUID)"
-// @Param status body CreateStatusRequest true "Status data"
-// @Success 201 {object} map[string]interface{} "Status created successfully"
-// @Failure 400 {object} map[string]interface{} "Invalid request"
-// @Failure 404 {object} map[string]interface{} "Pipeline not found"
-// @Failure 500 {object} map[string]interface{} "Internal server error"
-// @Router /api/v1/pipelines/{id}/statuses [post]
+//
+//	@Summary		Create status
+//	@Description	Cria um novo status em um pipeline
+//	@Tags			pipelines
+//	@Accept			json
+//	@Produce		json
+//	@Param			id		path		string					true	"Pipeline ID (UUID)"
+//	@Param			status	body		CreateStatusRequest		true	"Status data"
+//	@Success		201		{object}	map[string]interface{}	"Status created successfully"
+//	@Failure		400		{object}	map[string]interface{}	"Invalid request"
+//	@Failure		404		{object}	map[string]interface{}	"Pipeline not found"
+//	@Failure		500		{object}	map[string]interface{}	"Internal server error"
+//	@Router			/api/v1/pipelines/{id}/statuses [post]
 func (h *PipelineHandler) CreateStatus(c *gin.Context) {
 	pipelineIDStr := c.Param("id")
 	pipelineID, err := uuid.Parse(pipelineIDStr)
@@ -327,19 +331,20 @@ func (h *PipelineHandler) CreateStatus(c *gin.Context) {
 }
 
 // ChangeContactStatus changes the status of a contact in a pipeline
-// @Summary Change contact status
-// @Description Altera o status de um contato em um pipeline
-// @Tags pipelines
-// @Accept json
-// @Produce json
-// @Param pipeline_id path string true "Pipeline ID (UUID)"
-// @Param contact_id path string true "Contact ID (UUID)"
-// @Param request body ChangeContactStatusRequest true "Status change data"
-// @Success 200 {object} map[string]interface{} "Status changed successfully"
-// @Failure 400 {object} map[string]interface{} "Invalid request"
-// @Failure 404 {object} map[string]interface{} "Pipeline or contact not found"
-// @Failure 500 {object} map[string]interface{} "Internal server error"
-// @Router /api/v1/pipelines/{pipeline_id}/contacts/{contact_id}/status [put]
+//
+//	@Summary		Change contact status
+//	@Description	Altera o status de um contato em um pipeline
+//	@Tags			pipelines
+//	@Accept			json
+//	@Produce		json
+//	@Param			pipeline_id	path		string						true	"Pipeline ID (UUID)"
+//	@Param			contact_id	path		string						true	"Contact ID (UUID)"
+//	@Param			request		body		ChangeContactStatusRequest	true	"Status change data"
+//	@Success		200			{object}	map[string]interface{}		"Status changed successfully"
+//	@Failure		400			{object}	map[string]interface{}		"Invalid request"
+//	@Failure		404			{object}	map[string]interface{}		"Pipeline or contact not found"
+//	@Failure		500			{object}	map[string]interface{}		"Internal server error"
+//	@Router			/api/v1/pipelines/{pipeline_id}/contacts/{contact_id}/status [put]
 func (h *PipelineHandler) ChangeContactStatus(c *gin.Context) {
 	pipelineIDStr := c.Param("pipeline_id")
 	contactIDStr := c.Param("contact_id")
@@ -378,7 +383,7 @@ func (h *PipelineHandler) ChangeContactStatus(c *gin.Context) {
 
 	// Set contact status
 	if err := h.pipelineRepo.SetContactStatus(c.Request.Context(), contactID, pipelineID, req.StatusID); err != nil {
-		h.logger.Error("Failed to set contact status", 
+		h.logger.Error("Failed to set contact status",
 			zap.String("contact_id", contactID.String()),
 			zap.String("pipeline_id", pipelineID.String()),
 			zap.String("status_id", req.StatusID.String()),
@@ -398,17 +403,18 @@ func (h *PipelineHandler) ChangeContactStatus(c *gin.Context) {
 }
 
 // GetContactStatus gets the current status of a contact in a pipeline
-// @Summary Get contact status
-// @Description Obtém o status atual de um contato em um pipeline
-// @Tags pipelines
-// @Produce json
-// @Param pipeline_id path string true "Pipeline ID (UUID)"
-// @Param contact_id path string true "Contact ID (UUID)"
-// @Success 200 {object} map[string]interface{} "Contact status"
-// @Failure 400 {object} map[string]interface{} "Invalid parameters"
-// @Failure 404 {object} map[string]interface{} "Status not found"
-// @Failure 500 {object} map[string]interface{} "Internal server error"
-// @Router /api/v1/pipelines/{pipeline_id}/contacts/{contact_id}/status [get]
+//
+//	@Summary		Get contact status
+//	@Description	Obtém o status atual de um contato em um pipeline
+//	@Tags			pipelines
+//	@Produce		json
+//	@Param			pipeline_id	path		string					true	"Pipeline ID (UUID)"
+//	@Param			contact_id	path		string					true	"Contact ID (UUID)"
+//	@Success		200			{object}	map[string]interface{}	"Contact status"
+//	@Failure		400			{object}	map[string]interface{}	"Invalid parameters"
+//	@Failure		404			{object}	map[string]interface{}	"Status not found"
+//	@Failure		500			{object}	map[string]interface{}	"Internal server error"
+//	@Router			/api/v1/pipelines/{pipeline_id}/contacts/{contact_id}/status [get]
 func (h *PipelineHandler) GetContactStatus(c *gin.Context) {
 	pipelineIDStr := c.Param("pipeline_id")
 	contactIDStr := c.Param("contact_id")
@@ -427,7 +433,7 @@ func (h *PipelineHandler) GetContactStatus(c *gin.Context) {
 
 	status, err := h.pipelineRepo.GetContactStatus(c.Request.Context(), contactID, pipelineID)
 	if err != nil {
-		h.logger.Error("Failed to get contact status", 
+		h.logger.Error("Failed to get contact status",
 			zap.String("contact_id", contactID.String()),
 			zap.String("pipeline_id", pipelineID.String()),
 			zap.Error(err))

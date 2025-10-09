@@ -7,19 +7,23 @@ import (
 	"github.com/google/uuid"
 )
 
+// ErrProjectNotFound is returned when a project is not found
+var ErrProjectNotFound = errors.New("project not found")
+
 // Project é o Aggregate Root para workspaces/projetos (multi-tenancy).
 type Project struct {
-	id               uuid.UUID
-	customerID       uuid.UUID
-	billingAccountID uuid.UUID
-	tenantID         string
-	name             string
-	description      string
-	configuration    map[string]interface{}
-	active           bool
-	createdAt        time.Time
-	updatedAt        time.Time
-	
+	id                    uuid.UUID
+	customerID            uuid.UUID
+	billingAccountID      uuid.UUID
+	tenantID              string
+	name                  string
+	description           string
+	configuration         map[string]interface{}
+	active                bool
+	sessionTimeoutMinutes int // Timeout padrão para todas as sessões do projeto (em minutos)
+	createdAt             time.Time
+	updatedAt             time.Time
+
 	events []DomainEvent
 }
 
@@ -40,26 +44,20 @@ func NewProject(customerID, billingAccountID uuid.UUID, tenantID, name string) (
 
 	now := time.Now()
 	project := &Project{
-		id:               uuid.New(),
-		customerID:       customerID,
-		billingAccountID: billingAccountID,
-		tenantID:         tenantID,
-		name:             name,
-		configuration:    make(map[string]interface{}),
-		active:           true,
-		createdAt:        now,
-		updatedAt:        now,
-		events:           []DomainEvent{},
+		id:                    uuid.New(),
+		customerID:            customerID,
+		billingAccountID:      billingAccountID,
+		tenantID:              tenantID,
+		name:                  name,
+		configuration:         make(map[string]interface{}),
+		active:                true,
+		sessionTimeoutMinutes: 30,
+		createdAt:             now,
+		updatedAt:             now,
+		events:                []DomainEvent{},
 	}
 
-	project.addEvent(ProjectCreatedEvent{
-		ProjectID:        project.id,
-		CustomerID:       customerID,
-		BillingAccountID: billingAccountID,
-		TenantID:         tenantID,
-		Name:             name,
-		CreatedAt:        now,
-	})
+	project.addEvent(NewProjectCreatedEvent(project.id, customerID, billingAccountID, tenantID, name))
 
 	return project, nil
 }
@@ -74,6 +72,7 @@ func ReconstructProject(
 	description string,
 	configuration map[string]interface{},
 	active bool,
+	sessionTimeoutMinutes int,
 	createdAt time.Time,
 	updatedAt time.Time,
 ) *Project {
@@ -81,18 +80,24 @@ func ReconstructProject(
 		configuration = make(map[string]interface{})
 	}
 
+	// Default to 30 minutes if invalid value
+	if sessionTimeoutMinutes <= 0 {
+		sessionTimeoutMinutes = 30
+	}
+
 	return &Project{
-		id:               id,
-		customerID:       customerID,
-		billingAccountID: billingAccountID,
-		tenantID:         tenantID,
-		name:             name,
-		description:      description,
-		configuration:    configuration,
-		active:           active,
-		createdAt:        createdAt,
-		updatedAt:        updatedAt,
-		events:           []DomainEvent{},
+		id:                    id,
+		customerID:            customerID,
+		billingAccountID:      billingAccountID,
+		tenantID:              tenantID,
+		name:                  name,
+		description:           description,
+		configuration:         configuration,
+		active:                active,
+		sessionTimeoutMinutes: sessionTimeoutMinutes,
+		createdAt:             createdAt,
+		updatedAt:             updatedAt,
+		events:                []DomainEvent{},
 	}
 }
 
@@ -118,6 +123,12 @@ func (p *Project) UpdateConfiguration(config map[string]interface{}) {
 	p.updatedAt = time.Now()
 }
 
+// UpdateDescription atualiza a descrição do projeto.
+func (p *Project) UpdateDescription(description string) {
+	p.description = description
+	p.updatedAt = time.Now()
+}
+
 // GetConfiguration retorna uma configuração específica.
 func (p *Project) GetConfiguration(key string) (interface{}, bool) {
 	val, ok := p.configuration[key]
@@ -129,27 +140,22 @@ func (p *Project) SetSessionTimeout(minutes int) {
 	if minutes <= 0 {
 		minutes = 30
 	}
-	p.configuration["session_timeout_minutes"] = minutes
+	p.sessionTimeoutMinutes = minutes
 	p.updatedAt = time.Now()
 }
 
 // GetSessionTimeout retorna o timeout de sessões (default 30).
 func (p *Project) GetSessionTimeout() int {
-	if val, ok := p.configuration["session_timeout_minutes"]; ok {
-		if timeout, ok := val.(int); ok {
-			return timeout
-		}
-	}
-	return 30
+	return p.sessionTimeoutMinutes
 }
 
 // Getters
-func (p *Project) ID() uuid.UUID                    { return p.id }
-func (p *Project) CustomerID() uuid.UUID            { return p.customerID }
-func (p *Project) BillingAccountID() uuid.UUID      { return p.billingAccountID }
-func (p *Project) TenantID() string                 { return p.tenantID }
-func (p *Project) Name() string                     { return p.name }
-func (p *Project) Description() string              { return p.description }
+func (p *Project) ID() uuid.UUID               { return p.id }
+func (p *Project) CustomerID() uuid.UUID       { return p.customerID }
+func (p *Project) BillingAccountID() uuid.UUID { return p.billingAccountID }
+func (p *Project) TenantID() string            { return p.tenantID }
+func (p *Project) Name() string                { return p.name }
+func (p *Project) Description() string         { return p.description }
 func (p *Project) Configuration() map[string]interface{} {
 	copy := make(map[string]interface{})
 	for k, v := range p.configuration {
@@ -157,9 +163,10 @@ func (p *Project) Configuration() map[string]interface{} {
 	}
 	return copy
 }
-func (p *Project) IsActive() bool       { return p.active }
-func (p *Project) CreatedAt() time.Time { return p.createdAt }
-func (p *Project) UpdatedAt() time.Time { return p.updatedAt }
+func (p *Project) IsActive() bool              { return p.active }
+func (p *Project) SessionTimeoutMinutes() int  { return p.sessionTimeoutMinutes }
+func (p *Project) CreatedAt() time.Time        { return p.createdAt }
+func (p *Project) UpdatedAt() time.Time        { return p.updatedAt }
 
 // Domain Events
 func (p *Project) DomainEvents() []DomainEvent {

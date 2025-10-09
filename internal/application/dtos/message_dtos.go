@@ -42,7 +42,7 @@ type MessageDetailDTO struct {
 	ReadAt           *time.Time             `json:"read_at,omitempty"`
 	CreatedAt        time.Time              `json:"created_at"`
 	UpdatedAt        time.Time              `json:"updated_at"`
-	
+
 	// Relacionamentos
 	Contact *ContactSummaryDTO `json:"contact,omitempty"`
 	Agent   *AgentSummaryDTO   `json:"agent,omitempty"`

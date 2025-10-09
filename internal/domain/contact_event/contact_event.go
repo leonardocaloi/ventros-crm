@@ -28,8 +28,8 @@ type ContactEvent struct {
 	metadata    map[string]interface{}
 
 	// Origem e rastreamento
-	source        Source
-	triggeredBy   *uuid.UUID // Agent ID
+	source            Source
+	triggeredBy       *uuid.UUID // Agent ID
 	integrationSource *string
 
 	// Entrega em tempo real
@@ -292,23 +292,23 @@ func (e *ContactEvent) IsSystemGenerated() bool {
 
 // Getters
 
-func (e *ContactEvent) ID() uuid.UUID                       { return e.id }
-func (e *ContactEvent) ContactID() uuid.UUID                { return e.contactID }
-func (e *ContactEvent) SessionID() *uuid.UUID               { return e.sessionID }
-func (e *ContactEvent) TenantID() string                    { return e.tenantID }
-func (e *ContactEvent) EventType() string                   { return e.eventType }
-func (e *ContactEvent) Category() Category                  { return e.category }
-func (e *ContactEvent) Priority() Priority                  { return e.priority }
-func (e *ContactEvent) Title() *string                      { return e.title }
-func (e *ContactEvent) Description() *string                { return e.description }
-func (e *ContactEvent) Source() Source                      { return e.source }
-func (e *ContactEvent) TriggeredBy() *uuid.UUID             { return e.triggeredBy }
-func (e *ContactEvent) IntegrationSource() *string          { return e.integrationSource }
-func (e *ContactEvent) DeliveredAt() *time.Time             { return e.deliveredAt }
-func (e *ContactEvent) ReadAt() *time.Time                  { return e.readAt }
-func (e *ContactEvent) ExpiresAt() *time.Time               { return e.expiresAt }
-func (e *ContactEvent) OccurredAt() time.Time               { return e.occurredAt }
-func (e *ContactEvent) CreatedAt() time.Time                { return e.createdAt }
+func (e *ContactEvent) ID() uuid.UUID              { return e.id }
+func (e *ContactEvent) ContactID() uuid.UUID       { return e.contactID }
+func (e *ContactEvent) SessionID() *uuid.UUID      { return e.sessionID }
+func (e *ContactEvent) TenantID() string           { return e.tenantID }
+func (e *ContactEvent) EventType() string          { return e.eventType }
+func (e *ContactEvent) Category() Category         { return e.category }
+func (e *ContactEvent) Priority() Priority         { return e.priority }
+func (e *ContactEvent) Title() *string             { return e.title }
+func (e *ContactEvent) Description() *string       { return e.description }
+func (e *ContactEvent) Source() Source             { return e.source }
+func (e *ContactEvent) TriggeredBy() *uuid.UUID    { return e.triggeredBy }
+func (e *ContactEvent) IntegrationSource() *string { return e.integrationSource }
+func (e *ContactEvent) DeliveredAt() *time.Time    { return e.deliveredAt }
+func (e *ContactEvent) ReadAt() *time.Time         { return e.readAt }
+func (e *ContactEvent) ExpiresAt() *time.Time      { return e.expiresAt }
+func (e *ContactEvent) OccurredAt() time.Time      { return e.occurredAt }
+func (e *ContactEvent) CreatedAt() time.Time       { return e.createdAt }
 
 // Payload retorna uma cópia do payload.
 func (e *ContactEvent) Payload() map[string]interface{} {

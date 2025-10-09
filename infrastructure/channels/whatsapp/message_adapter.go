@@ -9,15 +9,15 @@ import (
 // WhatsAppMessagePayload representa a estrutura da API do WhatsApp/Meta.
 // Essa estrutura espelha o formato real da API externa.
 type WhatsAppMessagePayload struct {
-	Type     string                 `json:"type"`      // "text" ou "interactive" ou outros
-	Text     *WhatsAppText          `json:"text,omitempty"`
-	Image    *WhatsAppMedia         `json:"image,omitempty"`
-	Video    *WhatsAppMedia         `json:"video,omitempty"`
-	Audio    *WhatsAppMedia         `json:"audio,omitempty"`
-	Document *WhatsAppMedia         `json:"document,omitempty"`
-	Sticker  *WhatsAppMedia         `json:"sticker,omitempty"`
-	Location *WhatsAppLocation      `json:"location,omitempty"`
-	Contacts []WhatsAppContactCard  `json:"contacts,omitempty"`
+	Type     string                `json:"type"` // "text" ou "interactive" ou outros
+	Text     *WhatsAppText         `json:"text,omitempty"`
+	Image    *WhatsAppMedia        `json:"image,omitempty"`
+	Video    *WhatsAppMedia        `json:"video,omitempty"`
+	Audio    *WhatsAppMedia        `json:"audio,omitempty"`
+	Document *WhatsAppMedia        `json:"document,omitempty"`
+	Sticker  *WhatsAppMedia        `json:"sticker,omitempty"`
+	Location *WhatsAppLocation     `json:"location,omitempty"`
+	Contacts []WhatsAppContactCard `json:"contacts,omitempty"`
 }
 
 type WhatsAppText struct {
@@ -40,7 +40,7 @@ type WhatsAppLocation struct {
 }
 
 type WhatsAppContactCard struct {
-	Name  WhatsAppContactName  `json:"name"`
+	Name  WhatsAppContactName    `json:"name"`
 	Phone []WhatsAppContactPhone `json:"phones,omitempty"`
 }
 
@@ -92,7 +92,7 @@ func (a *MessageAdapter) ExtractText(payload WhatsAppMessagePayload) string {
 	if payload.Text != nil {
 		return payload.Text.Body
 	}
-	
+
 	// Caption de mídia também é considerado texto
 	if payload.Image != nil && payload.Image.Caption != "" {
 		return payload.Image.Caption
@@ -103,14 +103,14 @@ func (a *MessageAdapter) ExtractText(payload WhatsAppMessagePayload) string {
 	if payload.Document != nil && payload.Document.Caption != "" {
 		return payload.Document.Caption
 	}
-	
+
 	return ""
 }
 
 // ExtractMediaURL extrai a URL da mídia do payload do WhatsApp.
 func (a *MessageAdapter) ExtractMediaURL(payload WhatsAppMessagePayload) *string {
 	var url string
-	
+
 	switch payload.Type {
 	case "image":
 		if payload.Image != nil {
@@ -133,7 +133,7 @@ func (a *MessageAdapter) ExtractMediaURL(payload WhatsAppMessagePayload) *string
 			url = payload.Sticker.Link
 		}
 	}
-	
+
 	if url == "" {
 		return nil
 	}
@@ -143,7 +143,7 @@ func (a *MessageAdapter) ExtractMediaURL(payload WhatsAppMessagePayload) *string
 // ExtractMimeType extrai o mime type da mídia do payload do WhatsApp.
 func (a *MessageAdapter) ExtractMimeType(payload WhatsAppMessagePayload) *string {
 	var mimeType string
-	
+
 	switch payload.Type {
 	case "image":
 		if payload.Image != nil {
@@ -166,7 +166,7 @@ func (a *MessageAdapter) ExtractMimeType(payload WhatsAppMessagePayload) *string
 			mimeType = payload.Sticker.MimeType
 		}
 	}
-	
+
 	if mimeType == "" {
 		return nil
 	}
@@ -177,19 +177,19 @@ func (a *MessageAdapter) ExtractMimeType(payload WhatsAppMessagePayload) *string
 //
 // func HandleWhatsAppWebhook(payload WhatsAppMessagePayload) error {
 //     adapter := NewMessageAdapter()
-//     
+//
 //     // 1. Converte tipo do WhatsApp → Domínio
 //     contentType, err := adapter.ToContentType(payload)
 //     if err != nil {
 //         return err
 //     }
-//     
+//
 //     // 2. Cria mensagem no domínio (modelo limpo)
 //     msg, err := message.NewMessage(contactID, projectID, customerID, contentType, false)
 //     if err != nil {
 //         return err
 //     }
-//     
+//
 //     // 3. Preenche conteúdo baseado no tipo
 //     if contentType.IsText() {
 //         text := adapter.ExtractText(payload)
@@ -201,7 +201,7 @@ func (a *MessageAdapter) ExtractMimeType(payload WhatsAppMessagePayload) *string
 //             msg.SetMediaContent(*url, *mimeType)
 //         }
 //     }
-//     
+//
 //     // 4. Salva no repositório
 //     return messageRepo.Save(ctx, msg)
 // }

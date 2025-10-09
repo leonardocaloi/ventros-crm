@@ -5,13 +5,16 @@ import (
 	"time"
 )
 
+// ErrChannelTypeNotFound is returned when a channel type is not found
+var ErrChannelTypeNotFound = errors.New("channel type not found")
+
 // Channel type IDs (constantes para type safety)
 const (
-	WAHA       = 1 // WAHA - WhatsApp HTTP API (Multi-device)
-	WhatsApp   = 2 // WhatsApp Business API Official
-	DirectIG   = 3 // Instagram Direct Messages
-	Messenger  = 4 // Facebook Messenger
-	Telegram   = 5 // Telegram Bot API
+	WAHA      = 1 // WAHA - WhatsApp HTTP API (Multi-device)
+	WhatsApp  = 2 // WhatsApp Business API Official
+	DirectIG  = 3 // Instagram Direct Messages
+	Messenger = 4 // Facebook Messenger
+	Telegram  = 5 // Telegram Bot API
 )
 
 // Names mapeamento de IDs para nomes
@@ -100,7 +103,7 @@ func ReconstructChannelType(
 	if configuration == nil {
 		configuration = make(map[string]interface{})
 	}
-	
+
 	return &ChannelType{
 		id:            id,
 		name:          name,
@@ -177,10 +180,10 @@ func (ct *ChannelType) IsMeta() bool {
 }
 
 // Getters
-func (ct *ChannelType) ID() int                           { return ct.id }
-func (ct *ChannelType) Name() string                      { return ct.name }
-func (ct *ChannelType) Description() string               { return ct.description }
-func (ct *ChannelType) Provider() string                  { return ct.provider }
+func (ct *ChannelType) ID() int             { return ct.id }
+func (ct *ChannelType) Name() string        { return ct.name }
+func (ct *ChannelType) Description() string { return ct.description }
+func (ct *ChannelType) Provider() string    { return ct.provider }
 func (ct *ChannelType) Configuration() map[string]interface{} {
 	// Return copy
 	copy := make(map[string]interface{})

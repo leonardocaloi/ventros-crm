@@ -3,17 +3,16 @@ package contact
 import (
 	"time"
 
+	"github.com/caloi/ventros-crm/internal/domain/shared"
 	"github.com/google/uuid"
 )
 
-// DomainEvent é a interface base para eventos de domínio.
-type DomainEvent interface {
-	EventName() string
-	OccurredAt() time.Time
-}
+// DomainEvent é um alias para shared.DomainEvent (compatibilidade retroativa).
+type DomainEvent = shared.DomainEvent
 
 // ContactCreatedEvent - Contato criado.
 type ContactCreatedEvent struct {
+	shared.BaseEvent
 	ContactID uuid.UUID
 	ProjectID uuid.UUID
 	TenantID  string
@@ -21,45 +20,100 @@ type ContactCreatedEvent struct {
 	CreatedAt time.Time
 }
 
-func (e ContactCreatedEvent) EventName() string     { return "contact.created" }
-func (e ContactCreatedEvent) OccurredAt() time.Time { return e.CreatedAt }
+func NewContactCreatedEvent(contactID, projectID uuid.UUID, tenantID, name string) ContactCreatedEvent {
+	return ContactCreatedEvent{
+		BaseEvent: shared.NewBaseEvent("contact.created", time.Now()),
+		ContactID: contactID,
+		ProjectID: projectID,
+		TenantID:  tenantID,
+		Name:      name,
+		CreatedAt: time.Now(),
+	}
+}
 
 // ContactUpdatedEvent - Contato atualizado.
 type ContactUpdatedEvent struct {
+	shared.BaseEvent
 	ContactID uuid.UUID
 	UpdatedAt time.Time
 }
 
-func (e ContactUpdatedEvent) EventName() string     { return "contact.updated" }
-func (e ContactUpdatedEvent) OccurredAt() time.Time { return e.UpdatedAt }
+func NewContactUpdatedEvent(contactID uuid.UUID) ContactUpdatedEvent {
+	return ContactUpdatedEvent{
+		BaseEvent: shared.NewBaseEvent("contact.updated", time.Now()),
+		ContactID: contactID,
+		UpdatedAt: time.Now(),
+	}
+}
+
+// ContactProfilePictureUpdatedEvent - Foto de perfil do contato foi atualizada
+type ContactProfilePictureUpdatedEvent struct {
+	shared.BaseEvent
+	ContactID         uuid.UUID
+	TenantID          string
+	ProfilePictureURL string
+	FetchedAt         time.Time
+}
+
+func NewContactProfilePictureUpdatedEvent(contactID uuid.UUID, tenantID, profilePictureURL string) ContactProfilePictureUpdatedEvent {
+	return ContactProfilePictureUpdatedEvent{
+		BaseEvent:         shared.NewBaseEvent("contact.profile_picture_updated", time.Now()),
+		ContactID:         contactID,
+		TenantID:          tenantID,
+		ProfilePictureURL: profilePictureURL,
+		FetchedAt:         time.Now(),
+	}
+}
 
 // ContactDeletedEvent - Contato deletado (soft delete).
 type ContactDeletedEvent struct {
+	shared.BaseEvent
 	ContactID uuid.UUID
 	DeletedAt time.Time
 }
 
-func (e ContactDeletedEvent) EventName() string     { return "contact.deleted" }
-func (e ContactDeletedEvent) OccurredAt() time.Time { return e.DeletedAt }
+func NewContactDeletedEvent(contactID uuid.UUID) ContactDeletedEvent {
+	return ContactDeletedEvent{
+		BaseEvent: shared.NewBaseEvent("contact.deleted", time.Now()),
+		ContactID: contactID,
+		DeletedAt: time.Now(),
+	}
+}
 
 // ContactMergedEvent - Contatos duplicados foram merged.
 type ContactMergedEvent struct {
-	PrimaryContactID   uuid.UUID
-	MergedContactIDs   []uuid.UUID
-	MergeStrategy      string
-	MergedAt           time.Time
+	shared.BaseEvent
+	PrimaryContactID uuid.UUID
+	MergedContactIDs []uuid.UUID
+	MergeStrategy    string
+	MergedAt         time.Time
 }
 
-func (e ContactMergedEvent) EventName() string     { return "contact.merged" }
-func (e ContactMergedEvent) OccurredAt() time.Time { return e.MergedAt }
+func NewContactMergedEvent(primaryContactID uuid.UUID, mergedContactIDs []uuid.UUID, mergeStrategy string) ContactMergedEvent {
+	return ContactMergedEvent{
+		BaseEvent:        shared.NewBaseEvent("contact.merged", time.Now()),
+		PrimaryContactID: primaryContactID,
+		MergedContactIDs: mergedContactIDs,
+		MergeStrategy:    mergeStrategy,
+		MergedAt:         time.Now(),
+	}
+}
 
 // ContactEnrichedEvent - Dados externos adicionados ao contato.
 type ContactEnrichedEvent struct {
-	ContactID         uuid.UUID
-	EnrichmentSource  string
-	EnrichedData      map[string]interface{}
-	EnrichedAt        time.Time
+	shared.BaseEvent
+	ContactID        uuid.UUID
+	EnrichmentSource string
+	EnrichedData     map[string]interface{}
+	EnrichedAt       time.Time
 }
 
-func (e ContactEnrichedEvent) EventName() string     { return "contact.enriched" }
-func (e ContactEnrichedEvent) OccurredAt() time.Time { return e.EnrichedAt }
+func NewContactEnrichedEvent(contactID uuid.UUID, enrichmentSource string, enrichedData map[string]interface{}) ContactEnrichedEvent {
+	return ContactEnrichedEvent{
+		BaseEvent:        shared.NewBaseEvent("contact.enriched", time.Now()),
+		ContactID:        contactID,
+		EnrichmentSource: enrichmentSource,
+		EnrichedData:     enrichedData,
+		EnrichedAt:       time.Now(),
+	}
+}

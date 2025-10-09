@@ -3,9 +3,9 @@ package messaging
 import (
 	"context"
 
-	"github.com/caloi/ventros-crm/internal/domain/shared"
 	domaincontact "github.com/caloi/ventros-crm/internal/domain/contact"
 	domainsession "github.com/caloi/ventros-crm/internal/domain/session"
+	"github.com/caloi/ventros-crm/internal/domain/shared"
 )
 
 // ContactEventBusAdapter adapta DomainEventBus para contact.EventBus
@@ -18,17 +18,8 @@ func NewContactEventBusAdapter(domainEventBus *DomainEventBus) *ContactEventBusA
 }
 
 func (a *ContactEventBusAdapter) Publish(ctx context.Context, event domaincontact.DomainEvent) error {
-	// Cast para shared.DomainEvent
-	sharedEvent, ok := event.(shared.DomainEvent)
-	if !ok {
-		// Se não implementa shared.DomainEvent, criar um wrapper
-		sharedEvent = &DomainEventWrapper{
-			eventName:  event.EventName(),
-			occurredAt: event.OccurredAt(),
-			data:       event,
-		}
-	}
-	return a.domainEventBus.Publish(ctx, sharedEvent)
+	// contact.DomainEvent é agora um alias para shared.DomainEvent, então pode passar direto
+	return a.domainEventBus.Publish(ctx, event)
 }
 
 // SessionEventBusAdapter adapta DomainEventBus para session.EventBus
@@ -41,17 +32,8 @@ func NewSessionEventBusAdapter(domainEventBus *DomainEventBus) *SessionEventBusA
 }
 
 func (a *SessionEventBusAdapter) Publish(ctx context.Context, event domainsession.DomainEvent) error {
-	// Cast para shared.DomainEvent
-	sharedEvent, ok := event.(shared.DomainEvent)
-	if !ok {
-		// Se não implementa shared.DomainEvent, criar um wrapper
-		sharedEvent = &DomainEventWrapper{
-			eventName:  event.EventName(),
-			occurredAt: event.OccurredAt(),
-			data:       event,
-		}
-	}
-	return a.domainEventBus.Publish(ctx, sharedEvent)
+	// session.DomainEvent é agora um alias para shared.DomainEvent, então pode passar direto
+	return a.domainEventBus.Publish(ctx, event)
 }
 
 // MessageEventBusAdapter adapta DomainEventBus para message.EventBus

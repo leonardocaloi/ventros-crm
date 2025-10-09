@@ -8,13 +8,19 @@ import (
 
 // WebhookSubscription é a entidade de domínio para inscrições de webhook
 type WebhookSubscription struct {
-	ID              uuid.UUID
-	UserID          uuid.UUID
-	ProjectID       uuid.UUID
-	TenantID        string
-	Name            string
-	URL             string
-	Events          []string
+	ID        uuid.UUID
+	UserID    uuid.UUID
+	ProjectID uuid.UUID
+	TenantID  string
+	Name      string
+	URL       string
+	Events    []string // Domain events (contact.created, session.started, etc)
+
+	// Contact Events (timeline) filters
+	SubscribeContactEvents bool     // Se true, recebe contact events da tabela contact_events
+	ContactEventTypes      []string // Tipos específicos: contact_created, session_started, etc
+	ContactEventCategories []string // Categorias: system, session, pipeline, status, note
+
 	Active          bool
 	Secret          string
 	Headers         map[string]string
@@ -125,7 +131,7 @@ func (w *WebhookSubscription) SetRetryPolicy(retryCount, timeoutSeconds int) {
 func (w *WebhookSubscription) RecordTrigger(success bool) {
 	now := time.Now()
 	w.LastTriggeredAt = &now
-	
+
 	if success {
 		w.LastSuccessAt = &now
 		w.SuccessCount++
@@ -133,7 +139,7 @@ func (w *WebhookSubscription) RecordTrigger(success bool) {
 		w.LastFailureAt = &now
 		w.FailureCount++
 	}
-	
+
 	w.UpdatedAt = now
 }
 
@@ -157,4 +163,52 @@ func (w *WebhookSubscription) IsSubscribedTo(eventType string) bool {
 // ShouldNotify verifica se o webhook deve ser notificado
 func (w *WebhookSubscription) ShouldNotify(eventType string) bool {
 	return w.Active && w.IsSubscribedTo(eventType)
+}
+
+// EnableContactEvents habilita o recebimento de contact events
+func (w *WebhookSubscription) EnableContactEvents(eventTypes, categories []string) {
+	w.SubscribeContactEvents = true
+	w.ContactEventTypes = eventTypes
+	w.ContactEventCategories = categories
+	w.UpdatedAt = time.Now()
+}
+
+// DisableContactEvents desabilita o recebimento de contact events
+func (w *WebhookSubscription) DisableContactEvents() {
+	w.SubscribeContactEvents = false
+	w.ContactEventTypes = nil
+	w.ContactEventCategories = nil
+	w.UpdatedAt = time.Now()
+}
+
+// ShouldReceiveContactEvent verifica se deve receber um contact event específico
+func (w *WebhookSubscription) ShouldReceiveContactEvent(eventType, category string) bool {
+	if !w.Active || !w.SubscribeContactEvents {
+		return false
+	}
+
+	// Se não tem filtros, recebe todos
+	if len(w.ContactEventTypes) == 0 && len(w.ContactEventCategories) == 0 {
+		return true
+	}
+
+	// Verifica se o tipo está na lista
+	if len(w.ContactEventTypes) > 0 {
+		for _, t := range w.ContactEventTypes {
+			if t == eventType || t == "*" {
+				return true
+			}
+		}
+	}
+
+	// Verifica se a categoria está na lista
+	if len(w.ContactEventCategories) > 0 {
+		for _, c := range w.ContactEventCategories {
+			if c == category || c == "*" {
+				return true
+			}
+		}
+	}
+
+	return false
 }

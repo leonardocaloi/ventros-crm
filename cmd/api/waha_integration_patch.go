@@ -18,7 +18,7 @@ func setupWAHAIntegration(
 	messageRepo domainmessage.Repository,
 	logger *zap.Logger,
 ) (*messaging.WAHAIntegration, error) {
-	
+
 	// Cria a integração WAHA completa
 	wahaIntegration := messaging.NewWAHAIntegration(
 		rabbitConn,
@@ -26,17 +26,17 @@ func setupWAHAIntegration(
 		messageRepo,
 		logger,
 	)
-	
+
 	// Configura as filas
 	if err := wahaIntegration.SetupQueues(); err != nil {
 		return nil, err
 	}
-	
+
 	// Inicia os processors
 	if err := wahaIntegration.StartProcessors(ctx, rabbitConn); err != nil {
 		return nil, err
 	}
-	
+
 	logger.Info("WAHA integration setup completed successfully")
 	return wahaIntegration, nil
 }

@@ -1,89 +1,5 @@
 basePath: /
 definitions:
-  Contact:
-    properties:
-      created_at:
-        type: string
-      email:
-        example: joao@example.com
-        type: string
-      external_id:
-        example: ext-123
-        type: string
-      first_interaction_at:
-        type: string
-      id:
-        example: 550e8400-e29b-41d4-a716-446655440000
-        type: string
-      language:
-        example: pt-BR
-        type: string
-      last_interaction_at:
-        type: string
-      name:
-        example: João Silva
-        type: string
-      phone:
-        example: "5511999999999"
-        type: string
-      project_id:
-        example: 11111111-1111-1111-1111-111111111111
-        type: string
-      source_channel:
-        example: whatsapp
-        type: string
-      tags:
-        example:
-        - vip
-        - lead
-        items:
-          type: string
-        type: array
-      tenant_id:
-        example: default
-        type: string
-      timezone:
-        example: America/Sao_Paulo
-        type: string
-      updated_at:
-        type: string
-    type: object
-  CreateContactRequest:
-    properties:
-      email:
-        example: joao@example.com
-        type: string
-      external_id:
-        example: ext-123
-        type: string
-      language:
-        example: pt-BR
-        type: string
-      metadata:
-        additionalProperties: true
-        type: object
-      name:
-        example: João Silva
-        type: string
-      phone:
-        example: "5511999999999"
-        type: string
-      source_channel:
-        example: whatsapp
-        type: string
-      tags:
-        example:
-        - vip
-        - lead
-        items:
-          type: string
-        type: array
-      timezone:
-        example: America/Sao_Paulo
-        type: string
-    required:
-    - name
-    type: object
   Error:
     properties:
       details:
@@ -95,22 +11,6 @@ definitions:
       message:
         example: Invalid email format
         type: string
-    type: object
-  List:
-    properties:
-      data: {}
-      page:
-        example: 1
-        type: integer
-      page_size:
-        example: 20
-        type: integer
-      total:
-        example: 100
-        type: integer
-      total_pages:
-        example: 5
-        type: integer
     type: object
   github_com_caloi_ventros-crm_infrastructure_health.CheckResult:
     properties:
@@ -141,6 +41,229 @@ definitions:
     - StatusHealthy
     - StatusDegraded
     - StatusUnhealthy
+  github_com_caloi_ventros-crm_infrastructure_http_dto.ActionParameterDTO:
+    properties:
+      default: {}
+      description:
+        type: string
+      name:
+        type: string
+      required:
+        type: boolean
+      type:
+        type: string
+    type: object
+  github_com_caloi_ventros-crm_infrastructure_http_dto.ActionResponse:
+    properties:
+      category:
+        type: string
+      code:
+        type: string
+      description:
+        type: string
+      example:
+        additionalProperties: true
+        type: object
+      name:
+        type: string
+      parameters:
+        items:
+          $ref: '#/definitions/github_com_caloi_ventros-crm_infrastructure_http_dto.ActionParameterDTO'
+        type: array
+    type: object
+  github_com_caloi_ventros-crm_infrastructure_http_dto.AutomationDiscoveryResponse:
+    properties:
+      actions:
+        items:
+          $ref: '#/definitions/github_com_caloi_ventros-crm_infrastructure_http_dto.ActionResponse'
+        type: array
+      logic_types:
+        items:
+          $ref: '#/definitions/github_com_caloi_ventros-crm_infrastructure_http_dto.LogicOperatorResponse'
+        type: array
+      operators:
+        items:
+          $ref: '#/definitions/github_com_caloi_ventros-crm_infrastructure_http_dto.ConditionOperatorResponse'
+        type: array
+      triggers:
+        items:
+          $ref: '#/definitions/github_com_caloi_ventros-crm_infrastructure_http_dto.TriggerResponse'
+        type: array
+      types:
+        items:
+          $ref: '#/definitions/github_com_caloi_ventros-crm_infrastructure_http_dto.AutomationTypeResponse'
+        type: array
+    type: object
+  github_com_caloi_ventros-crm_infrastructure_http_dto.AutomationTypeResponse:
+    properties:
+      code:
+        type: string
+      description:
+        type: string
+      examples:
+        items:
+          type: string
+        type: array
+      icon:
+        type: string
+      name:
+        type: string
+    type: object
+  github_com_caloi_ventros-crm_infrastructure_http_dto.ConditionOperatorResponse:
+    properties:
+      code:
+        type: string
+      description:
+        type: string
+      example:
+        type: string
+      name:
+        type: string
+    type: object
+  github_com_caloi_ventros-crm_infrastructure_http_dto.LogicOperatorResponse:
+    properties:
+      code:
+        type: string
+      description:
+        type: string
+      name:
+        type: string
+    type: object
+  github_com_caloi_ventros-crm_infrastructure_http_dto.TriggerParameter:
+    properties:
+      description:
+        type: string
+      example:
+        type: string
+      name:
+        type: string
+      type:
+        type: string
+    type: object
+  github_com_caloi_ventros-crm_infrastructure_http_dto.TriggerResponse:
+    properties:
+      category:
+        type: string
+      code:
+        type: string
+      description:
+        type: string
+      is_system:
+        type: boolean
+      name:
+        type: string
+      parameters:
+        items:
+          $ref: '#/definitions/github_com_caloi_ventros-crm_infrastructure_http_dto.TriggerParameter'
+        type: array
+    type: object
+  github_com_caloi_ventros-crm_internal_application_tracking.DecodeTrackingRequest:
+    properties:
+      message:
+        type: string
+    required:
+    - message
+    type: object
+  github_com_caloi_ventros-crm_internal_application_tracking.DecodeTrackingResponse:
+    properties:
+      analysis:
+        additionalProperties: true
+        type: object
+      clean_message:
+        type: string
+      confidence:
+        type: string
+      decoded_decimal:
+        type: integer
+      decoded_ternary:
+        type: string
+      error:
+        type: string
+      original_message:
+        type: string
+      success:
+        type: boolean
+    type: object
+  github_com_caloi_ventros-crm_internal_application_tracking.EncodeTrackingRequest:
+    properties:
+      message:
+        type: string
+      phone:
+        type: string
+      tracking_id:
+        type: integer
+    required:
+    - message
+    - tracking_id
+    type: object
+  github_com_caloi_ventros-crm_internal_application_tracking.EncodeTrackingResponse:
+    properties:
+      debug:
+        additionalProperties: true
+        type: object
+      decimal_value:
+        type: integer
+      invisible_code:
+        type: string
+      message_with_code:
+        type: string
+      original_message:
+        type: string
+      phone:
+        type: string
+      success:
+        type: boolean
+      ternary_encoded:
+        type: string
+      tracking_id:
+        type: integer
+      whatsapp_link:
+        type: string
+    type: object
+  github_com_caloi_ventros-crm_internal_application_tracking.TrackingDTO:
+    properties:
+      ad_id:
+        type: string
+      ad_url:
+        type: string
+      campaign:
+        type: string
+      click_id:
+        type: string
+      contact_id:
+        type: string
+      conversion_data:
+        type: string
+      created_at:
+        type: string
+      id:
+        type: string
+      metadata:
+        additionalProperties: true
+        type: object
+      platform:
+        type: string
+      project_id:
+        type: string
+      session_id:
+        type: string
+      source:
+        type: string
+      tenant_id:
+        type: string
+      updated_at:
+        type: string
+      utm_campaign:
+        type: string
+      utm_content:
+        type: string
+      utm_medium:
+        type: string
+      utm_source:
+        type: string
+      utm_term:
+        type: string
+    type: object
   github_com_caloi_ventros-crm_internal_domain_pipeline.StatusType:
     enum:
     - open
@@ -166,6 +289,15 @@ definitions:
         type: string
       reason:
         example: Contato respondeu
+        type: string
+      status_id:
+        type: string
+    required:
+    - status_id
+    type: object
+  infrastructure_http_handlers.ChangePipelineStatusRequest:
+    properties:
+      reason:
         type: string
       status_id:
         type: string
@@ -243,6 +375,45 @@ definitions:
     required:
     - name
     - type
+    type: object
+  infrastructure_http_handlers.CreateContactRequest:
+    properties:
+      custom_fields:
+        additionalProperties:
+          type: string
+        example:
+          company: Empresa XYZ
+        type: object
+      email:
+        example: joao@example.com
+        type: string
+      external_id:
+        example: ext_123
+        type: string
+      language:
+        example: pt-BR
+        type: string
+      name:
+        example: João Silva
+        type: string
+      phone:
+        example: "+5511999999999"
+        type: string
+      source_channel:
+        example: whatsapp
+        type: string
+      tags:
+        example:
+        - lead
+        - whatsapp
+        items:
+          type: string
+        type: array
+      timezone:
+        example: America/Sao_Paulo
+        type: string
+    required:
+    - name
     type: object
   infrastructure_http_handlers.CreateMessageRequest:
     properties:
@@ -333,6 +504,49 @@ definitions:
     - name
     - status_type
     type: object
+  infrastructure_http_handlers.CreateTrackingRequest:
+    properties:
+      ad_id:
+        type: string
+      ad_url:
+        type: string
+      campaign:
+        type: string
+      click_id:
+        type: string
+      contact_id:
+        type: string
+      conversion_data:
+        type: string
+      metadata:
+        additionalProperties: true
+        type: object
+      platform:
+        description: instagram, facebook, etc
+        type: string
+      project_id:
+        type: string
+      session_id:
+        type: string
+      source:
+        description: meta_ads, google_ads, etc
+        type: string
+      utm_campaign:
+        type: string
+      utm_content:
+        type: string
+      utm_medium:
+        type: string
+      utm_source:
+        type: string
+      utm_term:
+        type: string
+    required:
+    - contact_id
+    - platform
+    - project_id
+    - source
+    type: object
   infrastructure_http_handlers.CreateUserRequest:
     properties:
       email:
@@ -411,6 +625,18 @@ definitions:
     - name
     - url
     type: object
+  infrastructure_http_handlers.EnumValue:
+    properties:
+      description:
+        example: Facebook, Instagram, Messenger, Audience Network
+        type: string
+      label:
+        example: Meta (Facebook/Instagram)
+        type: string
+      value:
+        example: meta
+        type: string
+    type: object
   infrastructure_http_handlers.GenerateAPIKeyRequest:
     properties:
       name:
@@ -436,6 +662,17 @@ definitions:
         example: 0.1.0
         type: string
     type: object
+  infrastructure_http_handlers.ImportWAHAHistoryRequest:
+    properties:
+      limit:
+        description: Número de mensagens por chat (0 = todas)
+        example: 100
+        type: integer
+      strategy:
+        description: '"all", "recent", "custom"'
+        example: recent
+        type: string
+    type: object
   infrastructure_http_handlers.LoginRequest:
     properties:
       email:
@@ -447,6 +684,15 @@ definitions:
     required:
     - email
     - password
+    type: object
+  infrastructure_http_handlers.PlatformCompatibilityInfo:
+    properties:
+      description:
+        type: string
+      valid_mediums:
+        items:
+          type: string
+        type: array
     type: object
   infrastructure_http_handlers.TestQRCodeRequest:
     properties:
@@ -470,6 +716,45 @@ definitions:
         type: string
     required:
     - base_url
+    type: object
+  infrastructure_http_handlers.TrackingEnumsResponse:
+    properties:
+      creative_formats:
+        items:
+          $ref: '#/definitions/infrastructure_http_handlers.EnumValue'
+        type: array
+      google_sources:
+        items:
+          $ref: '#/definitions/infrastructure_http_handlers.EnumValue'
+        type: array
+      marketing_tactics:
+        items:
+          $ref: '#/definitions/infrastructure_http_handlers.EnumValue'
+        type: array
+      mediums:
+        items:
+          $ref: '#/definitions/infrastructure_http_handlers.EnumValue'
+        type: array
+      meta_sources:
+        items:
+          $ref: '#/definitions/infrastructure_http_handlers.EnumValue'
+        type: array
+      mkt_direto_sources:
+        items:
+          $ref: '#/definitions/infrastructure_http_handlers.EnumValue'
+        type: array
+      offline_sources:
+        items:
+          $ref: '#/definitions/infrastructure_http_handlers.EnumValue'
+        type: array
+      platform_compatibility:
+        additionalProperties:
+          $ref: '#/definitions/infrastructure_http_handlers.PlatformCompatibilityInfo'
+        type: object
+      platforms:
+        items:
+          $ref: '#/definitions/infrastructure_http_handlers.EnumValue'
+        type: array
     type: object
   infrastructure_http_handlers.UpdateAgentRequest:
     properties:
@@ -567,6 +852,7 @@ definitions:
       url:
         type: string
     type: object
+host: localhost:8080
 info:
   contact:
     email: support@ventros.com
@@ -938,6 +1224,223 @@ paths:
       summary: Create user
       tags:
       - auth
+  /api/v1/automation/actions:
+    get:
+      description: Retorna todas as ações que podem ser executadas nas automações
+      parameters:
+      - description: Filtrar por categoria (messaging, pipeline, assignment, tasks,
+          integration, organization, data, workflow)
+        in: query
+        name: category
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/github_com_caloi_ventros-crm_infrastructure_http_dto.ActionResponse'
+            type: array
+      summary: Lista ações disponíveis
+      tags:
+      - Automation
+  /api/v1/automation/conditions/operators:
+    get:
+      description: Retorna todos os operadores disponíveis para condições (eq, gt,
+        lt, contains, etc)
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/github_com_caloi_ventros-crm_infrastructure_http_dto.ConditionOperatorResponse'
+            type: array
+      summary: Lista operadores de condição
+      tags:
+      - Automation
+  /api/v1/automation/discovery:
+    get:
+      description: Retorna tipos, triggers, ações, operadores e lógica em uma única
+        resposta
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_caloi_ventros-crm_infrastructure_http_dto.AutomationDiscoveryResponse'
+      summary: Discovery completo de automação
+      tags:
+      - Automation
+  /api/v1/automation/logic-operators:
+    get:
+      description: Retorna operadores lógicos disponíveis para combinar condições
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/github_com_caloi_ventros-crm_infrastructure_http_dto.LogicOperatorResponse'
+            type: array
+      summary: Lista operadores lógicos
+      tags:
+      - Automation
+  /api/v1/automation/triggers:
+    get:
+      description: Retorna todos os triggers do sistema e customizados
+      parameters:
+      - description: Filtrar por categoria (session, message, pipeline, temporal,
+          transaction, behavior)
+        in: query
+        name: category
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              custom_triggers:
+                items:
+                  $ref: '#/definitions/github_com_caloi_ventros-crm_infrastructure_http_dto.TriggerResponse'
+                type: array
+              system_triggers:
+                items:
+                  $ref: '#/definitions/github_com_caloi_ventros-crm_infrastructure_http_dto.TriggerResponse'
+                type: array
+            type: object
+      summary: Lista triggers disponíveis
+      tags:
+      - Automation
+  /api/v1/automation/triggers/{code}:
+    get:
+      description: Retorna metadados completos de um trigger incluindo parâmetros
+        disponíveis
+      parameters:
+      - description: Código do trigger
+        in: path
+        name: code
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_caloi_ventros-crm_infrastructure_http_dto.TriggerResponse'
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      summary: Detalhes de um trigger
+      tags:
+      - Automation
+  /api/v1/automation/triggers/custom:
+    post:
+      consumes:
+      - application/json
+      description: Permite que admins registrem triggers customizados com prefixo
+        'custom.'
+      parameters:
+      - description: Metadados do trigger
+        in: body
+        name: trigger
+        required: true
+        schema:
+          properties:
+            code:
+              type: string
+            description:
+              type: string
+            name:
+              type: string
+            parameters:
+              items:
+                properties:
+                  description:
+                    type: string
+                  name:
+                    type: string
+                  type:
+                    type: string
+                type: object
+              type: array
+          type: object
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            properties:
+              message:
+                type: string
+              trigger:
+                $ref: '#/definitions/github_com_caloi_ventros-crm_infrastructure_http_dto.TriggerResponse'
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      summary: Registrar trigger customizado
+      tags:
+      - Automation
+  /api/v1/automation/triggers/custom/{code}:
+    delete:
+      description: Remove trigger customizado previamente registrado
+      parameters:
+      - description: Código do trigger customizado
+        in: path
+        name: code
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              message:
+                type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      summary: Remover trigger customizado
+      tags:
+      - Automation
+  /api/v1/automation/types:
+    get:
+      description: Retorna todos os tipos de automação disponíveis (follow-up, event,
+        scheduled, etc)
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/github_com_caloi_ventros-crm_infrastructure_http_dto.AutomationTypeResponse'
+            type: array
+      summary: Lista tipos de automação
+      tags:
+      - Automation
   /api/v1/channels:
     get:
       description: Lista todos os canais do usuário autenticado
@@ -1183,6 +1686,50 @@ paths:
       summary: Activate channel
       tags:
       - channels
+  /api/v1/channels/{id}/activate-waha:
+    post:
+      consumes:
+      - application/json
+      description: Ativa e inicializa uma sessão WAHA para um canal
+      parameters:
+      - description: Channel ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: WAHA channel activated
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request or not WAHA channel
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Authentication required
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Channel not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Activate WAHA channel
+      tags:
+      - channels
   /api/v1/channels/{id}/configure-webhook:
     post:
       consumes:
@@ -1272,6 +1819,55 @@ paths:
       security:
       - ApiKeyAuth: []
       summary: Deactivate channel
+      tags:
+      - channels
+  /api/v1/channels/{id}/import-history:
+    post:
+      consumes:
+      - application/json
+      description: Importa histórico de mensagens de um canal WAHA (chats e mensagens)
+      parameters:
+      - description: Channel ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Import configuration (optional)
+        in: body
+        name: request
+        schema:
+          $ref: '#/definitions/infrastructure_http_handlers.ImportWAHAHistoryRequest'
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: Import started (async)
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request or not WAHA channel
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Authentication required
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Channel not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Import WAHA message history
       tags:
       - channels
   /api/v1/channels/{id}/sessions/{session_id}:
@@ -1412,30 +2008,28 @@ paths:
         "200":
           description: List of contacts
           schema:
-            allOf:
-            - $ref: '#/definitions/List'
-            - properties:
-                data:
-                  items:
-                    $ref: '#/definitions/Contact'
-                  type: array
-              type: object
+            additionalProperties: true
+            type: object
         "400":
           description: Invalid parameters
           schema:
-            $ref: '#/definitions/Error'
+            additionalProperties: true
+            type: object
         "401":
           description: Not authenticated
           schema:
-            $ref: '#/definitions/Error'
+            additionalProperties: true
+            type: object
         "403":
           description: Project not owned by user
           schema:
-            $ref: '#/definitions/Error'
+            additionalProperties: true
+            type: object
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/Error'
+            additionalProperties: true
+            type: object
       summary: List contacts
       tags:
       - contacts
@@ -1454,22 +2048,25 @@ paths:
         name: contact
         required: true
         schema:
-          $ref: '#/definitions/CreateContactRequest'
+          $ref: '#/definitions/infrastructure_http_handlers.CreateContactRequest'
       produces:
       - application/json
       responses:
         "201":
           description: Contact created successfully
           schema:
-            $ref: '#/definitions/Contact'
+            additionalProperties: true
+            type: object
         "400":
           description: Invalid request
           schema:
-            $ref: '#/definitions/Error'
+            additionalProperties: true
+            type: object
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/Error'
+            additionalProperties: true
+            type: object
       summary: Create a new contact
       tags:
       - contacts
@@ -1493,6 +2090,108 @@ paths:
       summary: List domain events by contact
       tags:
       - domain-events
+  /api/v1/contacts/{contact_id}/events:
+    get:
+      description: List contact events with filtering and pagination
+      parameters:
+      - description: Contact ID
+        in: path
+        name: contact_id
+        required: true
+        type: string
+      - description: Filter by categories (comma-separated)
+        in: query
+        name: categories
+        type: string
+      - description: Filter by priority
+        in: query
+        name: priority
+        type: string
+      - description: 'Limit (default: 50, max: 200)'
+        in: query
+        name: limit
+        type: integer
+      - description: 'Offset (default: 0)'
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: List contact events
+      tags:
+      - contact-events
+  /api/v1/contacts/{contact_id}/events/stream:
+    get:
+      description: Stream contact events in real-time using Server-Sent Events (SSE).
+        Requires authentication.
+      parameters:
+      - description: Contact ID
+        in: path
+        name: contact_id
+        required: true
+        type: string
+      - description: 'Filter by categories (comma-separated): status,pipeline,assignment,tag,note,session,custom_field,system,notification'
+        in: query
+        name: categories
+        type: string
+      - description: 'Filter by priority: low,normal,high,urgent'
+        in: query
+        name: priority
+        type: string
+      produces:
+      - text/event-stream
+      responses:
+        "200":
+          description: Event stream
+          schema:
+            type: string
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden - no access to this contact
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Stream contact events
+      tags:
+      - contact-events
+  /api/v1/contacts/{contact_id}/events/stream/{category}:
+    get:
+      description: Stream contact events filtered by specific category
+      parameters:
+      - description: Contact ID
+        in: path
+        name: contact_id
+        required: true
+        type: string
+      - description: 'Category: status,pipeline,assignment,tag,note,session,custom_field,system,notification'
+        in: path
+        name: category
+        required: true
+        type: string
+      produces:
+      - text/event-stream
+      responses:
+        "200":
+          description: Event stream
+          schema:
+            type: string
+      summary: Stream contact events by category
+      tags:
+      - contact-events
   /api/v1/contacts/{contact_id}/sessions:
     get:
       description: Lista todas as sessões. Quando usado no endpoint global /sessions,
@@ -1543,6 +2242,37 @@ paths:
       summary: List sessions
       tags:
       - sessions
+  /api/v1/contacts/{contact_id}/trackings:
+    get:
+      description: Retorna todos os trackings de um contato específico
+      parameters:
+      - description: ID do contato
+        in: path
+        name: contact_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/github_com_caloi_ventros-crm_internal_application_tracking.TrackingDTO'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/Error'
+      security:
+      - BearerAuth: []
+      summary: Busca trackings de um contato
+      tags:
+      - tracking
   /api/v1/contacts/{id}:
     delete:
       description: Remove um contato (soft delete)
@@ -1591,19 +2321,23 @@ paths:
         "200":
           description: Contact details
           schema:
-            $ref: '#/definitions/Contact'
+            additionalProperties: true
+            type: object
         "400":
           description: Invalid contact ID
           schema:
-            $ref: '#/definitions/Error'
+            additionalProperties: true
+            type: object
         "404":
           description: Contact not found
           schema:
-            $ref: '#/definitions/Error'
+            additionalProperties: true
+            type: object
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/Error'
+            additionalProperties: true
+            type: object
       summary: Get contact by ID
       tags:
       - contacts
@@ -1647,6 +2381,61 @@ paths:
             additionalProperties: true
             type: object
       summary: Update contact
+      tags:
+      - contacts
+  /api/v1/contacts/{id}/pipelines/{pipeline_id}/status:
+    put:
+      consumes:
+      - application/json
+      description: Altera o status de um contato em um pipeline específico
+      parameters:
+      - description: Contact ID (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Pipeline ID (UUID)
+        in: path
+        name: pipeline_id
+        required: true
+        type: string
+      - description: Status change request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/infrastructure_http_handlers.ChangePipelineStatusRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Status changed successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Authentication required
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Contact or pipeline not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Change contact pipeline status
       tags:
       - contacts
   /api/v1/contacts/{id}/sessions/{session_id}:
@@ -2658,6 +3447,144 @@ paths:
       summary: Test WAHA QR code
       tags:
       - test
+  /api/v1/trackings:
+    post:
+      consumes:
+      - application/json
+      description: Cria um novo registro de tracking para rastrear origem de contato
+        (anúncios, campanhas, etc)
+      parameters:
+      - description: Dados do tracking
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/infrastructure_http_handlers.CreateTrackingRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/github_com_caloi_ventros-crm_internal_application_tracking.TrackingDTO'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/Error'
+      security:
+      - BearerAuth: []
+      summary: Cria um novo tracking de conversão
+      tags:
+      - tracking
+  /api/v1/trackings/{id}:
+    get:
+      description: Retorna um tracking específico por ID
+      parameters:
+      - description: ID do tracking
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_caloi_ventros-crm_internal_application_tracking.TrackingDTO'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/Error'
+      security:
+      - BearerAuth: []
+      summary: Busca tracking por ID
+      tags:
+      - tracking
+  /api/v1/trackings/decode:
+    post:
+      consumes:
+      - application/json
+      description: Extrai código invisível ternário de mensagem para identificar tracking
+      parameters:
+      - description: Mensagem para decode
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_caloi_ventros-crm_internal_application_tracking.DecodeTrackingRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_caloi_ventros-crm_internal_application_tracking.DecodeTrackingResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/Error'
+      security:
+      - BearerAuth: []
+      summary: Decodifica mensagem WhatsApp para extrair tracking ID
+      tags:
+      - tracking
+  /api/v1/trackings/encode:
+    post:
+      consumes:
+      - application/json
+      description: Insere código invisível ternário em mensagem para rastreamento
+      parameters:
+      - description: Dados para encode
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_caloi_ventros-crm_internal_application_tracking.EncodeTrackingRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_caloi_ventros-crm_internal_application_tracking.EncodeTrackingResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/Error'
+      security:
+      - BearerAuth: []
+      summary: Codifica tracking ID em mensagem WhatsApp
+      tags:
+      - tracking
+  /api/v1/trackings/enums:
+    get:
+      description: Retorna todos os valores válidos de enums para construir trackings
+        (plataformas, mediums, táticas, formatos, etc)
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/infrastructure_http_handlers.TrackingEnumsResponse'
+      security:
+      - BearerAuth: []
+      summary: Lista todos os enums disponíveis para tracking
+      tags:
+      - tracking
   /api/v1/webhook-subscriptions:
     get:
       description: Lista todas as inscrições de webhooks
@@ -3097,4 +4024,15 @@ paths:
 schemes:
 - http
 - https
+securityDefinitions:
+  ApiKeyAuth:
+    description: API Key authentication for service-to-service communication
+    in: header
+    name: X-API-Key
+    type: apiKey
+  BearerAuth:
+    description: 'Bearer token authentication. Format: "Bearer {token}"'
+    in: header
+    name: Authorization
+    type: apiKey
 swagger: "2.0"

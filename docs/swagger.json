@@ -18,6 +18,7 @@
         },
         "version": "1.0"
     },
+    "host": "localhost:8080",
     "basePath": "/",
     "paths": {
         "/api/v1/agents": {
@@ -552,6 +553,331 @@
                 }
             }
         },
+        "/api/v1/automation/actions": {
+            "get": {
+                "description": "Retorna todas as ações que podem ser executadas nas automações",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Automation"
+                ],
+                "summary": "Lista ações disponíveis",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Filtrar por categoria (messaging, pipeline, assignment, tasks, integration, organization, data, workflow)",
+                        "name": "category",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/github_com_caloi_ventros-crm_infrastructure_http_dto.ActionResponse"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/automation/conditions/operators": {
+            "get": {
+                "description": "Retorna todos os operadores disponíveis para condições (eq, gt, lt, contains, etc)",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Automation"
+                ],
+                "summary": "Lista operadores de condição",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/github_com_caloi_ventros-crm_infrastructure_http_dto.ConditionOperatorResponse"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/automation/discovery": {
+            "get": {
+                "description": "Retorna tipos, triggers, ações, operadores e lógica em uma única resposta",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Automation"
+                ],
+                "summary": "Discovery completo de automação",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_caloi_ventros-crm_infrastructure_http_dto.AutomationDiscoveryResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/automation/logic-operators": {
+            "get": {
+                "description": "Retorna operadores lógicos disponíveis para combinar condições",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Automation"
+                ],
+                "summary": "Lista operadores lógicos",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/github_com_caloi_ventros-crm_infrastructure_http_dto.LogicOperatorResponse"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/automation/triggers": {
+            "get": {
+                "description": "Retorna todos os triggers do sistema e customizados",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Automation"
+                ],
+                "summary": "Lista triggers disponíveis",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Filtrar por categoria (session, message, pipeline, temporal, transaction, behavior)",
+                        "name": "category",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "custom_triggers": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/definitions/github_com_caloi_ventros-crm_infrastructure_http_dto.TriggerResponse"
+                                    }
+                                },
+                                "system_triggers": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/definitions/github_com_caloi_ventros-crm_infrastructure_http_dto.TriggerResponse"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/automation/triggers/custom": {
+            "post": {
+                "description": "Permite que admins registrem triggers customizados com prefixo 'custom.'",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Automation"
+                ],
+                "summary": "Registrar trigger customizado",
+                "parameters": [
+                    {
+                        "description": "Metadados do trigger",
+                        "name": "trigger",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "code": {
+                                    "type": "string"
+                                },
+                                "description": {
+                                    "type": "string"
+                                },
+                                "name": {
+                                    "type": "string"
+                                },
+                                "parameters": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "object",
+                                        "properties": {
+                                            "description": {
+                                                "type": "string"
+                                            },
+                                            "name": {
+                                                "type": "string"
+                                            },
+                                            "type": {
+                                                "type": "string"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "message": {
+                                    "type": "string"
+                                },
+                                "trigger": {
+                                    "$ref": "#/definitions/github_com_caloi_ventros-crm_infrastructure_http_dto.TriggerResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/automation/triggers/custom/{code}": {
+            "delete": {
+                "description": "Remove trigger customizado previamente registrado",
+                "tags": [
+                    "Automation"
+                ],
+                "summary": "Remover trigger customizado",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Código do trigger customizado",
+                        "name": "code",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "message": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/automation/triggers/{code}": {
+            "get": {
+                "description": "Retorna metadados completos de um trigger incluindo parâmetros disponíveis",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Automation"
+                ],
+                "summary": "Detalhes de um trigger",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Código do trigger",
+                        "name": "code",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_caloi_ventros-crm_infrastructure_http_dto.TriggerResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/automation/types": {
+            "get": {
+                "description": "Retorna todos os tipos de automação disponíveis (follow-up, event, scheduled, etc)",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Automation"
+                ],
+                "summary": "Lista tipos de automação",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/github_com_caloi_ventros-crm_infrastructure_http_dto.AutomationTypeResponse"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/channels": {
             "get": {
                 "security": [
@@ -919,6 +1245,72 @@
                 }
             }
         },
+        "/api/v1/channels/{id}/activate-waha": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Ativa e inicializa uma sessão WAHA para um canal",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "channels"
+                ],
+                "summary": "Activate WAHA channel",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Channel ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "WAHA channel activated",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request or not WAHA channel",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Authentication required",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Channel not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/channels/{id}/configure-webhook": {
             "post": {
                 "security": [
@@ -1027,6 +1419,80 @@
                     },
                     "400": {
                         "description": "Invalid channel ID",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Authentication required",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Channel not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/channels/{id}/import-history": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Importa histórico de mensagens de um canal WAHA (chats e mensagens)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "channels"
+                ],
+                "summary": "Import WAHA message history",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Channel ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Import configuration (optional)",
+                        "name": "request",
+                        "in": "body",
+                        "schema": {
+                            "$ref": "#/definitions/infrastructure_http_handlers.ImportWAHAHistoryRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "description": "Import started (async)",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request or not WAHA channel",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -1259,46 +1725,36 @@
                     "200": {
                         "description": "List of contacts",
                         "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/List"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "type": "array",
-                                            "items": {
-                                                "$ref": "#/definitions/Contact"
-                                            }
-                                        }
-                                    }
-                                }
-                            ]
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     },
                     "400": {
                         "description": "Invalid parameters",
                         "schema": {
-                            "$ref": "#/definitions/Error"
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     },
                     "401": {
                         "description": "Not authenticated",
                         "schema": {
-                            "$ref": "#/definitions/Error"
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     },
                     "403": {
                         "description": "Project not owned by user",
                         "schema": {
-                            "$ref": "#/definitions/Error"
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/Error"
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     }
                 }
@@ -1329,7 +1785,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/CreateContactRequest"
+                            "$ref": "#/definitions/infrastructure_http_handlers.CreateContactRequest"
                         }
                     }
                 ],
@@ -1337,19 +1793,22 @@
                     "201": {
                         "description": "Contact created successfully",
                         "schema": {
-                            "$ref": "#/definitions/Contact"
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     },
                     "400": {
                         "description": "Invalid request",
                         "schema": {
-                            "$ref": "#/definitions/Error"
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/Error"
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     }
                 }
@@ -1380,6 +1839,160 @@
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/contacts/{contact_id}/events": {
+            "get": {
+                "description": "List contact events with filtering and pagination",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "contact-events"
+                ],
+                "summary": "List contact events",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Contact ID",
+                        "name": "contact_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by categories (comma-separated)",
+                        "name": "categories",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by priority",
+                        "name": "priority",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Limit (default: 50, max: 200)",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Offset (default: 0)",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/contacts/{contact_id}/events/stream": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Stream contact events in real-time using Server-Sent Events (SSE). Requires authentication.",
+                "produces": [
+                    "text/event-stream"
+                ],
+                "tags": [
+                    "contact-events"
+                ],
+                "summary": "Stream contact events",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Contact ID",
+                        "name": "contact_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by categories (comma-separated): status,pipeline,assignment,tag,note,session,custom_field,system,notification",
+                        "name": "categories",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by priority: low,normal,high,urgent",
+                        "name": "priority",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Event stream",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden - no access to this contact",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/contacts/{contact_id}/events/stream/{category}": {
+            "get": {
+                "description": "Stream contact events filtered by specific category",
+                "produces": [
+                    "text/event-stream"
+                ],
+                "tags": [
+                    "contact-events"
+                ],
+                "summary": "Stream contact events by category",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Contact ID",
+                        "name": "contact_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Category: status,pipeline,assignment,tag,note,session,custom_field,system,notification",
+                        "name": "category",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Event stream",
+                        "schema": {
+                            "type": "string"
                         }
                     }
                 }
@@ -1459,6 +2072,55 @@
                 }
             }
         },
+        "/api/v1/contacts/{contact_id}/trackings": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retorna todos os trackings de um contato específico",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "tracking"
+                ],
+                "summary": "Busca trackings de um contato",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID do contato",
+                        "name": "contact_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/github_com_caloi_ventros-crm_internal_application_tracking.TrackingDTO"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/Error"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/Error"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/contacts/{id}": {
             "get": {
                 "description": "Get detailed information about a specific contact",
@@ -1485,25 +2147,29 @@
                     "200": {
                         "description": "Contact details",
                         "schema": {
-                            "$ref": "#/definitions/Contact"
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     },
                     "400": {
                         "description": "Invalid contact ID",
                         "schema": {
-                            "$ref": "#/definitions/Error"
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     },
                     "404": {
                         "description": "Contact not found",
                         "schema": {
-                            "$ref": "#/definitions/Error"
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/Error"
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     }
                 }
@@ -1600,6 +2266,88 @@
                     },
                     "404": {
                         "description": "Contact not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/contacts/{id}/pipelines/{pipeline_id}/status": {
+            "put": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Altera o status de um contato em um pipeline específico",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "contacts"
+                ],
+                "summary": "Change contact pipeline status",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Contact ID (UUID)",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Pipeline ID (UUID)",
+                        "name": "pipeline_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Status change request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/infrastructure_http_handlers.ChangePipelineStatusRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Status changed successfully",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Authentication required",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Contact or pipeline not found",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -3100,6 +3848,224 @@
                 }
             }
         },
+        "/api/v1/trackings": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Cria um novo registro de tracking para rastrear origem de contato (anúncios, campanhas, etc)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "tracking"
+                ],
+                "summary": "Cria um novo tracking de conversão",
+                "parameters": [
+                    {
+                        "description": "Dados do tracking",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/infrastructure_http_handlers.CreateTrackingRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_caloi_ventros-crm_internal_application_tracking.TrackingDTO"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/Error"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/Error"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/trackings/decode": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Extrai código invisível ternário de mensagem para identificar tracking",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "tracking"
+                ],
+                "summary": "Decodifica mensagem WhatsApp para extrair tracking ID",
+                "parameters": [
+                    {
+                        "description": "Mensagem para decode",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_caloi_ventros-crm_internal_application_tracking.DecodeTrackingRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_caloi_ventros-crm_internal_application_tracking.DecodeTrackingResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/Error"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/trackings/encode": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Insere código invisível ternário em mensagem para rastreamento",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "tracking"
+                ],
+                "summary": "Codifica tracking ID em mensagem WhatsApp",
+                "parameters": [
+                    {
+                        "description": "Dados para encode",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_caloi_ventros-crm_internal_application_tracking.EncodeTrackingRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_caloi_ventros-crm_internal_application_tracking.EncodeTrackingResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/Error"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/Error"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/trackings/enums": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retorna todos os valores válidos de enums para construir trackings (plataformas, mediums, táticas, formatos, etc)",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "tracking"
+                ],
+                "summary": "Lista todos os enums disponíveis para tracking",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/infrastructure_http_handlers.TrackingEnumsResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/trackings/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retorna um tracking específico por ID",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "tracking"
+                ],
+                "summary": "Busca tracking por ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID do tracking",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_caloi_ventros-crm_internal_application_tracking.TrackingDTO"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/Error"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/Error"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/webhook-subscriptions": {
             "get": {
                 "description": "Lista todas as inscrições de webhooks",
@@ -3754,123 +4720,6 @@
         }
     },
     "definitions": {
-        "Contact": {
-            "type": "object",
-            "properties": {
-                "created_at": {
-                    "type": "string"
-                },
-                "email": {
-                    "type": "string",
-                    "example": "joao@example.com"
-                },
-                "external_id": {
-                    "type": "string",
-                    "example": "ext-123"
-                },
-                "first_interaction_at": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string",
-                    "example": "550e8400-e29b-41d4-a716-446655440000"
-                },
-                "language": {
-                    "type": "string",
-                    "example": "pt-BR"
-                },
-                "last_interaction_at": {
-                    "type": "string"
-                },
-                "name": {
-                    "type": "string",
-                    "example": "João Silva"
-                },
-                "phone": {
-                    "type": "string",
-                    "example": "5511999999999"
-                },
-                "project_id": {
-                    "type": "string",
-                    "example": "11111111-1111-1111-1111-111111111111"
-                },
-                "source_channel": {
-                    "type": "string",
-                    "example": "whatsapp"
-                },
-                "tags": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    },
-                    "example": [
-                        "vip",
-                        "lead"
-                    ]
-                },
-                "tenant_id": {
-                    "type": "string",
-                    "example": "default"
-                },
-                "timezone": {
-                    "type": "string",
-                    "example": "America/Sao_Paulo"
-                },
-                "updated_at": {
-                    "type": "string"
-                }
-            }
-        },
-        "CreateContactRequest": {
-            "type": "object",
-            "required": [
-                "name"
-            ],
-            "properties": {
-                "email": {
-                    "type": "string",
-                    "example": "joao@example.com"
-                },
-                "external_id": {
-                    "type": "string",
-                    "example": "ext-123"
-                },
-                "language": {
-                    "type": "string",
-                    "example": "pt-BR"
-                },
-                "metadata": {
-                    "type": "object",
-                    "additionalProperties": true
-                },
-                "name": {
-                    "type": "string",
-                    "example": "João Silva"
-                },
-                "phone": {
-                    "type": "string",
-                    "example": "5511999999999"
-                },
-                "source_channel": {
-                    "type": "string",
-                    "example": "whatsapp"
-                },
-                "tags": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    },
-                    "example": [
-                        "vip",
-                        "lead"
-                    ]
-                },
-                "timezone": {
-                    "type": "string",
-                    "example": "America/Sao_Paulo"
-                }
-            }
-        },
         "Error": {
             "type": "object",
             "properties": {
@@ -3885,28 +4734,6 @@
                 "message": {
                     "type": "string",
                     "example": "Invalid email format"
-                }
-            }
-        },
-        "List": {
-            "type": "object",
-            "properties": {
-                "data": {},
-                "page": {
-                    "type": "integer",
-                    "example": 1
-                },
-                "page_size": {
-                    "type": "integer",
-                    "example": 20
-                },
-                "total": {
-                    "type": "integer",
-                    "example": 100
-                },
-                "total_pages": {
-                    "type": "integer",
-                    "example": 5
                 }
             }
         },
@@ -3952,6 +4779,344 @@
                 "StatusUnhealthy"
             ]
         },
+        "github_com_caloi_ventros-crm_infrastructure_http_dto.ActionParameterDTO": {
+            "type": "object",
+            "properties": {
+                "default": {},
+                "description": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "required": {
+                    "type": "boolean"
+                },
+                "type": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_caloi_ventros-crm_infrastructure_http_dto.ActionResponse": {
+            "type": "object",
+            "properties": {
+                "category": {
+                    "type": "string"
+                },
+                "code": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "example": {
+                    "type": "object",
+                    "additionalProperties": true
+                },
+                "name": {
+                    "type": "string"
+                },
+                "parameters": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_caloi_ventros-crm_infrastructure_http_dto.ActionParameterDTO"
+                    }
+                }
+            }
+        },
+        "github_com_caloi_ventros-crm_infrastructure_http_dto.AutomationDiscoveryResponse": {
+            "type": "object",
+            "properties": {
+                "actions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_caloi_ventros-crm_infrastructure_http_dto.ActionResponse"
+                    }
+                },
+                "logic_types": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_caloi_ventros-crm_infrastructure_http_dto.LogicOperatorResponse"
+                    }
+                },
+                "operators": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_caloi_ventros-crm_infrastructure_http_dto.ConditionOperatorResponse"
+                    }
+                },
+                "triggers": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_caloi_ventros-crm_infrastructure_http_dto.TriggerResponse"
+                    }
+                },
+                "types": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_caloi_ventros-crm_infrastructure_http_dto.AutomationTypeResponse"
+                    }
+                }
+            }
+        },
+        "github_com_caloi_ventros-crm_infrastructure_http_dto.AutomationTypeResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "examples": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "icon": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_caloi_ventros-crm_infrastructure_http_dto.ConditionOperatorResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "example": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_caloi_ventros-crm_infrastructure_http_dto.LogicOperatorResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_caloi_ventros-crm_infrastructure_http_dto.TriggerParameter": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "example": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_caloi_ventros-crm_infrastructure_http_dto.TriggerResponse": {
+            "type": "object",
+            "properties": {
+                "category": {
+                    "type": "string"
+                },
+                "code": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "is_system": {
+                    "type": "boolean"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "parameters": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_caloi_ventros-crm_infrastructure_http_dto.TriggerParameter"
+                    }
+                }
+            }
+        },
+        "github_com_caloi_ventros-crm_internal_application_tracking.DecodeTrackingRequest": {
+            "type": "object",
+            "required": [
+                "message"
+            ],
+            "properties": {
+                "message": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_caloi_ventros-crm_internal_application_tracking.DecodeTrackingResponse": {
+            "type": "object",
+            "properties": {
+                "analysis": {
+                    "type": "object",
+                    "additionalProperties": true
+                },
+                "clean_message": {
+                    "type": "string"
+                },
+                "confidence": {
+                    "type": "string"
+                },
+                "decoded_decimal": {
+                    "type": "integer"
+                },
+                "decoded_ternary": {
+                    "type": "string"
+                },
+                "error": {
+                    "type": "string"
+                },
+                "original_message": {
+                    "type": "string"
+                },
+                "success": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "github_com_caloi_ventros-crm_internal_application_tracking.EncodeTrackingRequest": {
+            "type": "object",
+            "required": [
+                "message",
+                "tracking_id"
+            ],
+            "properties": {
+                "message": {
+                    "type": "string"
+                },
+                "phone": {
+                    "type": "string"
+                },
+                "tracking_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "github_com_caloi_ventros-crm_internal_application_tracking.EncodeTrackingResponse": {
+            "type": "object",
+            "properties": {
+                "debug": {
+                    "type": "object",
+                    "additionalProperties": true
+                },
+                "decimal_value": {
+                    "type": "integer"
+                },
+                "invisible_code": {
+                    "type": "string"
+                },
+                "message_with_code": {
+                    "type": "string"
+                },
+                "original_message": {
+                    "type": "string"
+                },
+                "phone": {
+                    "type": "string"
+                },
+                "success": {
+                    "type": "boolean"
+                },
+                "ternary_encoded": {
+                    "type": "string"
+                },
+                "tracking_id": {
+                    "type": "integer"
+                },
+                "whatsapp_link": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_caloi_ventros-crm_internal_application_tracking.TrackingDTO": {
+            "type": "object",
+            "properties": {
+                "ad_id": {
+                    "type": "string"
+                },
+                "ad_url": {
+                    "type": "string"
+                },
+                "campaign": {
+                    "type": "string"
+                },
+                "click_id": {
+                    "type": "string"
+                },
+                "contact_id": {
+                    "type": "string"
+                },
+                "conversion_data": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "metadata": {
+                    "type": "object",
+                    "additionalProperties": true
+                },
+                "platform": {
+                    "type": "string"
+                },
+                "project_id": {
+                    "type": "string"
+                },
+                "session_id": {
+                    "type": "string"
+                },
+                "source": {
+                    "type": "string"
+                },
+                "tenant_id": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "utm_campaign": {
+                    "type": "string"
+                },
+                "utm_content": {
+                    "type": "string"
+                },
+                "utm_medium": {
+                    "type": "string"
+                },
+                "utm_source": {
+                    "type": "string"
+                },
+                "utm_term": {
+                    "type": "string"
+                }
+            }
+        },
         "github_com_caloi_ventros-crm_internal_domain_pipeline.StatusType": {
             "type": "string",
             "enum": [
@@ -3988,6 +5153,20 @@
                 "reason": {
                     "type": "string",
                     "example": "Contato respondeu"
+                },
+                "status_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "infrastructure_http_handlers.ChangePipelineStatusRequest": {
+            "type": "object",
+            "required": [
+                "status_id"
+            ],
+            "properties": {
+                "reason": {
+                    "type": "string"
                 },
                 "status_id": {
                     "type": "string"
@@ -4093,6 +5272,61 @@
                 },
                 "waha_config": {
                     "$ref": "#/definitions/infrastructure_http_handlers.CreateWAHAConfigRequest"
+                }
+            }
+        },
+        "infrastructure_http_handlers.CreateContactRequest": {
+            "type": "object",
+            "required": [
+                "name"
+            ],
+            "properties": {
+                "custom_fields": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    },
+                    "example": {
+                        "company": "Empresa XYZ"
+                    }
+                },
+                "email": {
+                    "type": "string",
+                    "example": "joao@example.com"
+                },
+                "external_id": {
+                    "type": "string",
+                    "example": "ext_123"
+                },
+                "language": {
+                    "type": "string",
+                    "example": "pt-BR"
+                },
+                "name": {
+                    "type": "string",
+                    "example": "João Silva"
+                },
+                "phone": {
+                    "type": "string",
+                    "example": "+5511999999999"
+                },
+                "source_channel": {
+                    "type": "string",
+                    "example": "whatsapp"
+                },
+                "tags": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "example": [
+                        "lead",
+                        "whatsapp"
+                    ]
+                },
+                "timezone": {
+                    "type": "string",
+                    "example": "America/Sao_Paulo"
                 }
             }
         },
@@ -4223,6 +5457,68 @@
                 }
             }
         },
+        "infrastructure_http_handlers.CreateTrackingRequest": {
+            "type": "object",
+            "required": [
+                "contact_id",
+                "platform",
+                "project_id",
+                "source"
+            ],
+            "properties": {
+                "ad_id": {
+                    "type": "string"
+                },
+                "ad_url": {
+                    "type": "string"
+                },
+                "campaign": {
+                    "type": "string"
+                },
+                "click_id": {
+                    "type": "string"
+                },
+                "contact_id": {
+                    "type": "string"
+                },
+                "conversion_data": {
+                    "type": "string"
+                },
+                "metadata": {
+                    "type": "object",
+                    "additionalProperties": true
+                },
+                "platform": {
+                    "description": "instagram, facebook, etc",
+                    "type": "string"
+                },
+                "project_id": {
+                    "type": "string"
+                },
+                "session_id": {
+                    "type": "string"
+                },
+                "source": {
+                    "description": "meta_ads, google_ads, etc",
+                    "type": "string"
+                },
+                "utm_campaign": {
+                    "type": "string"
+                },
+                "utm_content": {
+                    "type": "string"
+                },
+                "utm_medium": {
+                    "type": "string"
+                },
+                "utm_source": {
+                    "type": "string"
+                },
+                "utm_term": {
+                    "type": "string"
+                }
+            }
+        },
         "infrastructure_http_handlers.CreateUserRequest": {
             "type": "object",
             "required": [
@@ -4330,6 +5626,23 @@
                 }
             }
         },
+        "infrastructure_http_handlers.EnumValue": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string",
+                    "example": "Facebook, Instagram, Messenger, Audience Network"
+                },
+                "label": {
+                    "type": "string",
+                    "example": "Meta (Facebook/Instagram)"
+                },
+                "value": {
+                    "type": "string",
+                    "example": "meta"
+                }
+            }
+        },
         "infrastructure_http_handlers.GenerateAPIKeyRequest": {
             "type": "object",
             "properties": {
@@ -4366,6 +5679,21 @@
                 }
             }
         },
+        "infrastructure_http_handlers.ImportWAHAHistoryRequest": {
+            "type": "object",
+            "properties": {
+                "limit": {
+                    "description": "Número de mensagens por chat (0 = todas)",
+                    "type": "integer",
+                    "example": 100
+                },
+                "strategy": {
+                    "description": "\"all\", \"recent\", \"custom\"",
+                    "type": "string",
+                    "example": "recent"
+                }
+            }
+        },
         "infrastructure_http_handlers.LoginRequest": {
             "type": "object",
             "required": [
@@ -4380,6 +5708,20 @@
                 "password": {
                     "type": "string",
                     "example": "senha123"
+                }
+            }
+        },
+        "infrastructure_http_handlers.PlatformCompatibilityInfo": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "valid_mediums": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 }
             }
         },
@@ -4413,6 +5755,65 @@
                 "token": {
                     "type": "string",
                     "example": "your-waha-token"
+                }
+            }
+        },
+        "infrastructure_http_handlers.TrackingEnumsResponse": {
+            "type": "object",
+            "properties": {
+                "creative_formats": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/infrastructure_http_handlers.EnumValue"
+                    }
+                },
+                "google_sources": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/infrastructure_http_handlers.EnumValue"
+                    }
+                },
+                "marketing_tactics": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/infrastructure_http_handlers.EnumValue"
+                    }
+                },
+                "mediums": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/infrastructure_http_handlers.EnumValue"
+                    }
+                },
+                "meta_sources": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/infrastructure_http_handlers.EnumValue"
+                    }
+                },
+                "mkt_direto_sources": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/infrastructure_http_handlers.EnumValue"
+                    }
+                },
+                "offline_sources": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/infrastructure_http_handlers.EnumValue"
+                    }
+                },
+                "platform_compatibility": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "$ref": "#/definitions/infrastructure_http_handlers.PlatformCompatibilityInfo"
+                    }
+                },
+                "platforms": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/infrastructure_http_handlers.EnumValue"
+                    }
                 }
             }
         },
@@ -4561,6 +5962,20 @@
                     "type": "string"
                 }
             }
+        }
+    },
+    "securityDefinitions": {
+        "ApiKeyAuth": {
+            "description": "API Key authentication for service-to-service communication",
+            "type": "apiKey",
+            "name": "X-API-Key",
+            "in": "header"
+        },
+        "BearerAuth": {
+            "description": "Bearer token authentication. Format: \"Bearer {token}\"",
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header"
         }
     }
 }

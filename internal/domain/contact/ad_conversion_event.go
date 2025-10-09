@@ -3,39 +3,42 @@ package contact
 import (
 	"time"
 
+	"github.com/caloi/ventros-crm/internal/domain/shared"
 	"github.com/google/uuid"
 )
 
 // AdConversionTrackedEvent é emitido quando uma mensagem de anúncio (FB/Instagram) é recebida.
 // Permite rastreamento de ROI e atribuição de conversões.
+//
+// Nome do evento: "tracking.message.meta_ads"
+//
+// Para subscrever todos os eventos de tracking, use "tracking.*"
 type AdConversionTrackedEvent struct {
+	shared.BaseEvent
 	ContactID uuid.UUID
 	SessionID uuid.UUID
 	TenantID  string
-	
+
 	// Campaign information
 	ConversionSource string // "ctwa_ad", "facebook_ads", etc
 	ConversionApp    string // "instagram", "facebook"
-	
+
 	// Ad details
 	AdSourceType string // "ad"
 	AdSourceID   string // Ad ID on platform
 	AdSourceApp  string // Platform name
 	AdSourceURL  string // Link to ad/post
-	
+
 	// Click tracking
 	CTWAClickID string // Click-to-WhatsApp Click ID for conversion tracking
-	
+
 	// Additional tracking
-	ConversionData    string // Encrypted payload from platform
-	ExternalSource    string // "FB_Ads"
-	ExternalMedium    string // "unavailable"
-	
+	ConversionData string // Encrypted payload from platform
+	ExternalSource string // "FB_Ads"
+	ExternalMedium string // "unavailable"
+
 	TrackedAt time.Time
 }
-
-func (e AdConversionTrackedEvent) EventName() string     { return "tracking.message.meta_ads" }
-func (e AdConversionTrackedEvent) OccurredAt() time.Time { return e.TrackedAt }
 
 // NewAdConversionTrackedEvent cria um novo evento de rastreamento de conversão de anúncio.
 func NewAdConversionTrackedEvent(
@@ -45,27 +48,28 @@ func NewAdConversionTrackedEvent(
 	trackingData map[string]string,
 ) AdConversionTrackedEvent {
 	return AdConversionTrackedEvent{
-		ContactID:         contactID,
-		SessionID:         sessionID,
-		TenantID:          tenantID,
-		ConversionSource:  trackingData["conversion_source"],
-		ConversionApp:     trackingData["conversion_app"],
-		AdSourceType:      trackingData["ad_source_type"],
-		AdSourceID:        trackingData["ad_source_id"],
-		AdSourceApp:       trackingData["ad_source_app"],
-		AdSourceURL:       trackingData["ad_source_url"],
-		CTWAClickID:       trackingData["ctwa_clid"],
-		ConversionData:    trackingData["conversion_data"],
-		ExternalSource:    trackingData["external_source"],
-		ExternalMedium:    trackingData["external_medium"],
-		TrackedAt:         time.Now(),
+		BaseEvent:        shared.NewBaseEvent("tracking.message.meta_ads", time.Now()),
+		ContactID:        contactID,
+		SessionID:        sessionID,
+		TenantID:         tenantID,
+		ConversionSource: trackingData["conversion_source"],
+		ConversionApp:    trackingData["conversion_app"],
+		AdSourceType:     trackingData["ad_source_type"],
+		AdSourceID:       trackingData["ad_source_id"],
+		AdSourceApp:      trackingData["ad_source_app"],
+		AdSourceURL:      trackingData["ad_source_url"],
+		CTWAClickID:      trackingData["ctwa_clid"],
+		ConversionData:   trackingData["conversion_data"],
+		ExternalSource:   trackingData["external_source"],
+		ExternalMedium:   trackingData["external_medium"],
+		TrackedAt:        time.Now(),
 	}
 }
 
 // ToContactEventPayload converte o evento para payload de ContactEvent.
 func (e AdConversionTrackedEvent) ToContactEventPayload() map[string]interface{} {
 	payload := make(map[string]interface{})
-	
+
 	if e.ConversionSource != "" {
 		payload["conversion_source"] = e.ConversionSource
 	}
@@ -87,7 +91,7 @@ func (e AdConversionTrackedEvent) ToContactEventPayload() map[string]interface{}
 	if e.CTWAClickID != "" {
 		payload["ctwa_click_id"] = e.CTWAClickID
 	}
-	
+
 	return payload
 }
 

@@ -29,8 +29,8 @@ func (r *RLSMiddleware) SetUserContext() gin.HandlerFunc {
 
 		// Armazenar user_id no contexto Gin para o GORM callback usar
 		c.Set("rls_user_id", authCtx.UserID.String())
-		
-		r.logger.Debug("RLS user context stored in Gin context", 
+
+		r.logger.Debug("RLS user context stored in Gin context",
 			zap.String("user_id", authCtx.UserID.String()),
 			zap.String("project_id", authCtx.ProjectID.String()))
 

@@ -9,17 +9,17 @@ import (
 
 // Message é o Aggregate Root para mensagens individuais.
 type Message struct {
-	id               uuid.UUID
-	timestamp        time.Time
-	customerID       uuid.UUID
-	projectID        uuid.UUID
-	channelTypeID    *int
-	fromMe           bool
-	channelID        uuid.UUID    // OBRIGATÓRIO - toda mensagem vem de um canal
-	contactID        uuid.UUID
-	sessionID        *uuid.UUID
-	contentType      ContentType
-	text             *string
+	id            uuid.UUID
+	timestamp     time.Time
+	customerID    uuid.UUID
+	projectID     uuid.UUID
+	channelTypeID *int
+	fromMe        bool
+	channelID     uuid.UUID // OBRIGATÓRIO - toda mensagem vem de um canal
+	contactID     uuid.UUID
+	sessionID     *uuid.UUID
+	contentType   ContentType
+	text          *string
 	// Campos técnicos de mídia (preenchidos pela camada de infraestrutura)
 	mediaURL         *string
 	mediaMimetype    *string
@@ -31,7 +31,7 @@ type Message struct {
 	metadata         map[string]interface{}
 	deliveredAt      *time.Time
 	readAt           *time.Time
-	
+
 	events []DomainEvent
 }
 
@@ -68,12 +68,7 @@ func NewMessage(
 		events:      []DomainEvent{},
 	}
 
-	msg.addEvent(MessageCreatedEvent{
-		MessageID: msg.id,
-		ContactID: contactID,
-		FromMe:    fromMe,
-		CreatedAt: now,
-	})
+	msg.addEvent(NewMessageCreatedEvent(msg.id, contactID, fromMe))
 
 	return msg, nil
 }
@@ -180,7 +175,7 @@ func (m *Message) MarkAsDelivered() {
 	now := time.Now()
 	m.status = StatusDelivered
 	m.deliveredAt = &now
-	
+
 	m.addEvent(MessageDeliveredEvent{
 		MessageID:   m.id,
 		DeliveredAt: now,
@@ -192,7 +187,7 @@ func (m *Message) MarkAsRead() {
 	now := time.Now()
 	m.status = StatusRead
 	m.readAt = &now
-	
+
 	m.addEvent(MessageReadEvent{
 		MessageID: m.id,
 		ReadAt:    now,
@@ -215,24 +210,24 @@ func (m *Message) IsOutbound() bool {
 }
 
 // Getters
-func (m *Message) ID() uuid.UUID              { return m.id }
-func (m *Message) Timestamp() time.Time       { return m.timestamp }
-func (m *Message) CustomerID() uuid.UUID      { return m.customerID }
-func (m *Message) ProjectID() uuid.UUID       { return m.projectID }
-func (m *Message) ChannelTypeID() *int        { return m.channelTypeID }
-func (m *Message) FromMe() bool               { return m.fromMe }
-func (m *Message) ChannelID() uuid.UUID       { return m.channelID }
-func (m *Message) ContactID() uuid.UUID       { return m.contactID }
-func (m *Message) SessionID() *uuid.UUID      { return m.sessionID }
-func (m *Message) ContentType() ContentType   { return m.contentType }
-func (m *Message) Text() *string              { return m.text }
-func (m *Message) MediaMimetype() *string     { return m.mediaMimetype }
-func (m *Message) MediaURL() *string          { return m.mediaURL }
-func (m *Message) ChannelMessageID() *string  { return m.channelMessageID }
-func (m *Message) ReplyToID() *uuid.UUID      { return m.replyToID }
-func (m *Message) Status() Status             { return m.status }
-func (m *Message) Language() *string          { return m.language }
-func (m *Message) AgentID() *uuid.UUID        { return m.agentID }
+func (m *Message) ID() uuid.UUID             { return m.id }
+func (m *Message) Timestamp() time.Time      { return m.timestamp }
+func (m *Message) CustomerID() uuid.UUID     { return m.customerID }
+func (m *Message) ProjectID() uuid.UUID      { return m.projectID }
+func (m *Message) ChannelTypeID() *int       { return m.channelTypeID }
+func (m *Message) FromMe() bool              { return m.fromMe }
+func (m *Message) ChannelID() uuid.UUID      { return m.channelID }
+func (m *Message) ContactID() uuid.UUID      { return m.contactID }
+func (m *Message) SessionID() *uuid.UUID     { return m.sessionID }
+func (m *Message) ContentType() ContentType  { return m.contentType }
+func (m *Message) Text() *string             { return m.text }
+func (m *Message) MediaMimetype() *string    { return m.mediaMimetype }
+func (m *Message) MediaURL() *string         { return m.mediaURL }
+func (m *Message) ChannelMessageID() *string { return m.channelMessageID }
+func (m *Message) ReplyToID() *uuid.UUID     { return m.replyToID }
+func (m *Message) Status() Status            { return m.status }
+func (m *Message) Language() *string         { return m.language }
+func (m *Message) AgentID() *uuid.UUID       { return m.agentID }
 func (m *Message) Metadata() map[string]interface{} {
 	copy := make(map[string]interface{})
 	for k, v := range m.metadata {
@@ -254,4 +249,93 @@ func (m *Message) ClearEvents() {
 
 func (m *Message) addEvent(event DomainEvent) {
 	m.events = append(m.events, event)
+}
+
+// RequestAIProcessing dispara eventos de processamento de IA baseado no tipo de conteúdo
+// e nas configurações do canal. Deve ser chamado após a mensagem ser criada/recebida.
+func (m *Message) RequestAIProcessing(channelConfig AIProcessingConfig) {
+	// Só processa se tiver mídia
+	if m.mediaURL == nil || *m.mediaURL == "" {
+		return
+	}
+
+	// Só processa mensagens recebidas (não enviadas)
+	if m.fromMe {
+		return
+	}
+
+	// Garantir que temos session_id
+	if m.sessionID == nil {
+		return
+	}
+
+	mimeType := ""
+	if m.mediaMimetype != nil {
+		mimeType = *m.mediaMimetype
+	}
+
+	// Disparar evento baseado no tipo de conteúdo e configuração do canal
+	switch m.contentType {
+	case ContentTypeImage:
+		if channelConfig.ProcessImage {
+			m.addEvent(NewAIProcessImageRequestedEvent(
+				m.id,
+				m.channelID,
+				m.contactID,
+				*m.sessionID,
+				*m.mediaURL,
+				mimeType,
+			))
+		}
+
+	case ContentTypeVideo:
+		if channelConfig.ProcessVideo {
+			duration := 0 // TODO: extrair duração do metadata se disponível
+			m.addEvent(NewAIProcessVideoRequestedEvent(
+				m.id,
+				m.channelID,
+				m.contactID,
+				*m.sessionID,
+				*m.mediaURL,
+				mimeType,
+				duration,
+			))
+		}
+
+	case ContentTypeAudio:
+		if channelConfig.ProcessAudio {
+			duration := 0 // TODO: extrair duração do metadata se disponível
+			m.addEvent(NewAIProcessAudioRequestedEvent(
+				m.id,
+				m.channelID,
+				m.contactID,
+				*m.sessionID,
+				*m.mediaURL,
+				mimeType,
+				duration,
+			))
+		}
+
+	case ContentTypeVoice:
+		if channelConfig.ProcessVoice {
+			duration := 0 // TODO: extrair duração do metadata se disponível
+			m.addEvent(NewAIProcessVoiceRequestedEvent(
+				m.id,
+				m.channelID,
+				m.contactID,
+				*m.sessionID,
+				*m.mediaURL,
+				mimeType,
+				duration,
+			))
+		}
+	}
+}
+
+// AIProcessingConfig contém as configurações de processamento de IA do canal
+type AIProcessingConfig struct {
+	ProcessImage bool
+	ProcessVideo bool
+	ProcessAudio bool
+	ProcessVoice bool
 }

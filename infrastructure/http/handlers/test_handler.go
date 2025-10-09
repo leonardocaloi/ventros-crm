@@ -105,14 +105,15 @@ func (h *TestHandler) cleanupTestData(tx *gorm.DB) error {
 }
 
 // SetupTestEnvironment configura ambiente de teste completo
-// @Summary Setup test environment
-// @Description Limpa e cria project, pipeline, channel types e webhook para testes
-// @Tags test
-// @Produce json
-// @Param webhook_url query string false "URL do webhook externo (opcional)"
-// @Param api_base_url query string false "Base URL da API (opcional, default: http://localhost:8080)"
-// @Success 200 {object} map[string]interface{}
-// @Router /test/setup [post]
+//
+//	@Summary		Setup test environment
+//	@Description	Limpa e cria project, pipeline, channel types e webhook para testes
+//	@Tags			test
+//	@Produce		json
+//	@Param			webhook_url		query		string	false	"URL do webhook externo (opcional)"
+//	@Param			api_base_url	query		string	false	"Base URL da API (opcional, default: http://localhost:8080)"
+//	@Success		200				{object}	map[string]interface{}
+//	@Router			/test/setup [post]
 func (h *TestHandler) SetupTestEnvironment(c *gin.Context) {
 	// Obter webhook URL do query param (opcional)
 	webhookURL := c.Query("webhook_url")
@@ -220,7 +221,7 @@ func (h *TestHandler) SetupTestEnvironment(c *gin.Context) {
 		Color:                 "#3B82F6",
 		Position:              1,
 		Active:                true,
-		SessionTimeoutMinutes: 30, // Padrão: 30 minutos (será atualizado para 1 min no teste)
+		SessionTimeoutMinutes: nil, // NULL = herda do channel/project
 		CreatedAt:             time.Now(),
 		UpdatedAt:             time.Now(),
 	}
@@ -359,12 +360,13 @@ func (h *TestHandler) SetupTestEnvironment(c *gin.Context) {
 }
 
 // CleanupTestEnvironment remove todas as entidades de teste
-// @Summary Cleanup test environment
-// @Description Remove todos os dados de teste criados
-// @Tags test
-// @Produce json
-// @Success 200 {object} map[string]interface{}
-// @Router /test/cleanup [post]
+//
+//	@Summary		Cleanup test environment
+//	@Description	Remove todos os dados de teste criados
+//	@Tags			test
+//	@Produce		json
+//	@Success		200	{object}	map[string]interface{}
+//	@Router			/test/cleanup [post]
 func (h *TestHandler) CleanupTestEnvironment(c *gin.Context) {
 	tx := h.db.Begin()
 	defer func() {
@@ -390,13 +392,14 @@ func (h *TestHandler) CleanupTestEnvironment(c *gin.Context) {
 }
 
 // TestWAHAMessage envia mensagem WAHA de teste com tracking
-// @Summary Test WAHA message with tracking
-// @Description Envia mensagem WAHA de teste com dados de tracking do Facebook/Instagram
-// @Tags test
-// @Produce json
-// @Param type query string false "Message type: fb_ads, text, image (default: fb_ads)"
-// @Success 200 {object} map[string]interface{}
-// @Router /test/waha-message [post]
+//
+//	@Summary		Test WAHA message with tracking
+//	@Description	Envia mensagem WAHA de teste com dados de tracking do Facebook/Instagram
+//	@Tags			test
+//	@Produce		json
+//	@Param			type	query		string	false	"Message type: fb_ads, text, image (default: fb_ads)"
+//	@Success		200		{object}	map[string]interface{}
+//	@Router			/test/waha-message [post]
 func (h *TestHandler) TestWAHAMessage(c *gin.Context) {
 	messageType := c.Query("type")
 	if messageType == "" {
@@ -438,13 +441,14 @@ func (h *TestHandler) TestWAHAMessage(c *gin.Context) {
 }
 
 // SendWAHAMessage envia mensagem WAHA automaticamente para o webhook
-// @Summary Send WAHA message automatically
-// @Description Envia mensagem WAHA automaticamente para o webhook interno
-// @Tags test
-// @Produce json
-// @Param type query string false "Message type: fb_ads, text, image (default: fb_ads)"
-// @Success 200 {object} map[string]interface{}
-// @Router /test/send-waha-message [post]
+//
+//	@Summary		Send WAHA message automatically
+//	@Description	Envia mensagem WAHA automaticamente para o webhook interno
+//	@Tags			test
+//	@Produce		json
+//	@Param			type	query		string	false	"Message type: fb_ads, text, image (default: fb_ads)"
+//	@Success		200		{object}	map[string]interface{}
+//	@Router			/test/send-waha-message [post]
 func (h *TestHandler) SendWAHAMessage(c *gin.Context) {
 	messageType := c.Query("type")
 	if messageType == "" {
@@ -694,14 +698,15 @@ func (h *TestHandler) getImageMessagePayload() map[string]interface{} {
 }
 
 // TestWAHAConnection testa a conexão com a WAHA
-// @Summary Test WAHA connection
-// @Description Testa a conexão com a API WAHA usando token e base URL
-// @Tags test
-// @Accept json
-// @Produce json
-// @Param request body TestWAHARequest true "WAHA connection data"
-// @Success 200 {object} map[string]interface{} "Connection test result"
-// @Router /api/v1/test/waha-connection [post]
+//
+//	@Summary		Test WAHA connection
+//	@Description	Testa a conexão com a API WAHA usando token e base URL
+//	@Tags			test
+//	@Accept			json
+//	@Produce		json
+//	@Param			request	body		TestWAHARequest			true	"WAHA connection data"
+//	@Success		200		{object}	map[string]interface{}	"Connection test result"
+//	@Router			/api/v1/test/waha-connection [post]
 func (h *TestHandler) TestWAHAConnection(c *gin.Context) {
 	var req TestWAHARequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -758,14 +763,15 @@ func (h *TestHandler) TestWAHAConnection(c *gin.Context) {
 }
 
 // TestWAHAQRCode simula recebimento de QR code da WAHA
-// @Summary Test WAHA QR code
-// @Description Simula recebimento de um QR code da WAHA para teste
-// @Tags test
-// @Accept json
-// @Produce json
-// @Param request body TestQRCodeRequest true "QR code test data"
-// @Success 200 {object} map[string]interface{} "QR code test result"
-// @Router /api/v1/test/waha-qr [post]
+//
+//	@Summary		Test WAHA QR code
+//	@Description	Simula recebimento de um QR code da WAHA para teste
+//	@Tags			test
+//	@Accept			json
+//	@Produce		json
+//	@Param			request	body		TestQRCodeRequest		true	"QR code test data"
+//	@Success		200		{object}	map[string]interface{}	"QR code test result"
+//	@Router			/api/v1/test/waha-qr [post]
 func (h *TestHandler) TestWAHAQRCode(c *gin.Context) {
 	var req TestQRCodeRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -837,29 +843,29 @@ func generateRandomString(length int) string {
 func (h *TestHandler) UpdatePipelineTimeout(c *gin.Context) {
 	pipelineID := c.Param("id")
 	minutes := c.DefaultQuery("minutes", "1")
-	
-	h.logger.Info("Updating pipeline timeout", 
+
+	h.logger.Info("Updating pipeline timeout",
 		zap.String("pipeline_id", pipelineID),
 		zap.String("minutes", minutes))
-	
+
 	// Atualiza o timeout do pipeline
 	result := h.db.Exec(`
 		UPDATE pipelines 
 		SET session_timeout_minutes = ?, updated_at = NOW() 
 		WHERE id = ?
 	`, minutes, pipelineID)
-	
+
 	if result.Error != nil {
 		h.logger.Error("Failed to update pipeline timeout", zap.Error(result.Error))
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update pipeline timeout"})
 		return
 	}
-	
+
 	if result.RowsAffected == 0 {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Pipeline not found"})
 		return
 	}
-	
+
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"message": fmt.Sprintf("Pipeline timeout updated to %s minutes", minutes),

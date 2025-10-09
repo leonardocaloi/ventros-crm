@@ -144,12 +144,12 @@ func (e ContactStatusChangedEvent) OccurredAt() time.Time { return e.ChangedAt }
 
 // ContactEnteredPipelineEvent - Contato entrou no pipeline
 type ContactEnteredPipelineEvent struct {
-	ContactID   uuid.UUID
-	PipelineID  uuid.UUID
-	StatusID    uuid.UUID
-	StatusName  string
-	EnteredAt   time.Time
-	EnteredBy   *uuid.UUID // ID do usuário que adicionou
+	ContactID  uuid.UUID
+	PipelineID uuid.UUID
+	StatusID   uuid.UUID
+	StatusName string
+	EnteredAt  time.Time
+	EnteredBy  *uuid.UUID // ID do usuário que adicionou
 }
 
 func (e ContactEnteredPipelineEvent) EventName() string     { return "contact.entered_pipeline" }
@@ -157,14 +157,84 @@ func (e ContactEnteredPipelineEvent) OccurredAt() time.Time { return e.EnteredAt
 
 // ContactExitedPipelineEvent - Contato saiu do pipeline
 type ContactExitedPipelineEvent struct {
-	ContactID    uuid.UUID
-	PipelineID   uuid.UUID
-	LastStatusID uuid.UUID
+	ContactID      uuid.UUID
+	PipelineID     uuid.UUID
+	LastStatusID   uuid.UUID
 	LastStatusName string
-	ExitedAt     time.Time
-	ExitedBy     *uuid.UUID // ID do usuário que removeu
-	Reason       string     // Motivo da saída
+	ExitedAt       time.Time
+	ExitedBy       *uuid.UUID // ID do usuário que removeu
+	Reason         string     // Motivo da saída
 }
 
 func (e ContactExitedPipelineEvent) EventName() string     { return "contact.exited_pipeline" }
 func (e ContactExitedPipelineEvent) OccurredAt() time.Time { return e.ExitedAt }
+
+// Follow-up Rule Events
+
+// AutomationCreatedEvent - Regra de follow-up criada
+type AutomationCreatedEvent struct {
+	RuleID     uuid.UUID
+	PipelineID uuid.UUID
+	TenantID   string
+	Name       string
+	Trigger    AutomationTrigger
+	CreatedAt  time.Time
+}
+
+func (e AutomationCreatedEvent) EventName() string     { return "automation.created" }
+func (e AutomationCreatedEvent) OccurredAt() time.Time { return e.CreatedAt }
+
+// AutomationEnabledEvent - Automação ativada
+type AutomationEnabledEvent struct {
+	RuleID    uuid.UUID
+	EnabledAt time.Time
+}
+
+func (e AutomationEnabledEvent) EventName() string     { return "automation.enabled" }
+func (e AutomationEnabledEvent) OccurredAt() time.Time { return e.EnabledAt }
+
+// AutomationDisabledEvent - Automação desativada
+type AutomationDisabledEvent struct {
+	RuleID     uuid.UUID
+	DisabledAt time.Time
+}
+
+func (e AutomationDisabledEvent) EventName() string     { return "automation.disabled" }
+func (e AutomationDisabledEvent) OccurredAt() time.Time { return e.DisabledAt }
+
+// AutomationRuleTriggeredEvent - Regra de follow-up disparada
+type AutomationRuleTriggeredEvent struct {
+	RuleID      uuid.UUID
+	SessionID   *uuid.UUID
+	ContactID   *uuid.UUID
+	TriggerType AutomationTrigger
+	Context     map[string]interface{}
+	TriggeredAt time.Time
+}
+
+func (e AutomationRuleTriggeredEvent) EventName() string     { return "automation_rule.triggered" }
+func (e AutomationRuleTriggeredEvent) OccurredAt() time.Time { return e.TriggeredAt }
+
+// AutomationRuleExecutedEvent - Regra de follow-up executada com sucesso
+type AutomationRuleExecutedEvent struct {
+	RuleID       uuid.UUID
+	SessionID    *uuid.UUID
+	ContactID    *uuid.UUID
+	ActionsCount int
+	ExecutedAt   time.Time
+}
+
+func (e AutomationRuleExecutedEvent) EventName() string     { return "automation_rule.executed" }
+func (e AutomationRuleExecutedEvent) OccurredAt() time.Time { return e.ExecutedAt }
+
+// AutomationRuleFailedEvent - Regra de follow-up falhou ao executar
+type AutomationRuleFailedEvent struct {
+	RuleID    uuid.UUID
+	SessionID *uuid.UUID
+	ContactID *uuid.UUID
+	Error     string
+	FailedAt  time.Time
+}
+
+func (e AutomationRuleFailedEvent) EventName() string     { return "automation_rule.failed" }
+func (e AutomationRuleFailedEvent) OccurredAt() time.Time { return e.FailedAt }

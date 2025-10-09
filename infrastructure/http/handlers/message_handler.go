@@ -35,29 +35,30 @@ type CreateMessageRequest struct {
 
 // UpdateMessageRequest representa o payload para atualizar uma mensagem
 type UpdateMessageRequest struct {
-	Content   *string                `json:"content,omitempty"`
-	Status    *string                `json:"status,omitempty"`
-	Metadata  map[string]interface{} `json:"metadata,omitempty"`
-	ReadAt    *string                `json:"read_at,omitempty"`
-	DeliveredAt *string              `json:"delivered_at,omitempty"`
+	Content     *string                `json:"content,omitempty"`
+	Status      *string                `json:"status,omitempty"`
+	Metadata    map[string]interface{} `json:"metadata,omitempty"`
+	ReadAt      *string                `json:"read_at,omitempty"`
+	DeliveredAt *string                `json:"delivered_at,omitempty"`
 }
 
 // ListMessages lists messages with optional filters
-// @Summary List messages
-// @Description Lista mensagens com filtros opcionais
-// @Tags messages
-// @Produce json
-// @Param session_id query string false "Filter by session ID (UUID)"
-// @Param contact_id query string false "Filter by contact ID (UUID)"
-// @Param direction query string false "Filter by direction (inbound, outbound)"
-// @Param message_type query string false "Filter by message type"
-// @Param status query string false "Filter by status"
-// @Param limit query int false "Limit results" default(50)
-// @Param offset query int false "Offset for pagination" default(0)
-// @Success 200 {array} map[string]interface{} "List of messages"
-// @Failure 400 {object} map[string]interface{} "Invalid parameters"
-// @Failure 500 {object} map[string]interface{} "Internal server error"
-// @Router /api/v1/messages [get]
+//
+//	@Summary		List messages
+//	@Description	Lista mensagens com filtros opcionais
+//	@Tags			messages
+//	@Produce		json
+//	@Param			session_id		query		string					false	"Filter by session ID (UUID)"
+//	@Param			contact_id		query		string					false	"Filter by contact ID (UUID)"
+//	@Param			direction		query		string					false	"Filter by direction (inbound, outbound)"
+//	@Param			message_type	query		string					false	"Filter by message type"
+//	@Param			status			query		string					false	"Filter by status"
+//	@Param			limit			query		int						false	"Limit results"			default(50)
+//	@Param			offset			query		int						false	"Offset for pagination"	default(0)
+//	@Success		200				{array}		map[string]interface{}	"List of messages"
+//	@Failure		400				{object}	map[string]interface{}	"Invalid parameters"
+//	@Failure		500				{object}	map[string]interface{}	"Internal server error"
+//	@Router			/api/v1/messages [get]
 func (h *MessageHandler) ListMessages(c *gin.Context) {
 	// TODO: Implement proper message listing with filters
 	c.JSON(http.StatusOK, gin.H{
@@ -67,16 +68,17 @@ func (h *MessageHandler) ListMessages(c *gin.Context) {
 }
 
 // CreateMessage creates a new message
-// @Summary Create message
-// @Description Cria uma nova mensagem
-// @Tags messages
-// @Accept json
-// @Produce json
-// @Param message body CreateMessageRequest true "Message data"
-// @Success 201 {object} map[string]interface{} "Message created successfully"
-// @Failure 400 {object} map[string]interface{} "Invalid request"
-// @Failure 500 {object} map[string]interface{} "Internal server error"
-// @Router /api/v1/messages [post]
+//
+//	@Summary		Create message
+//	@Description	Cria uma nova mensagem
+//	@Tags			messages
+//	@Accept			json
+//	@Produce		json
+//	@Param			message	body		CreateMessageRequest	true	"Message data"
+//	@Success		201		{object}	map[string]interface{}	"Message created successfully"
+//	@Failure		400		{object}	map[string]interface{}	"Invalid request"
+//	@Failure		500		{object}	map[string]interface{}	"Internal server error"
+//	@Router			/api/v1/messages [post]
 func (h *MessageHandler) CreateMessage(c *gin.Context) {
 	var req CreateMessageRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -98,16 +100,17 @@ func (h *MessageHandler) CreateMessage(c *gin.Context) {
 }
 
 // GetMessage gets a message by ID
-// @Summary Get message by ID
-// @Description Obtém detalhes de uma mensagem específica
-// @Tags messages
-// @Produce json
-// @Param id path string true "Message ID (UUID)"
-// @Success 200 {object} map[string]interface{} "Message details"
-// @Failure 400 {object} map[string]interface{} "Invalid message ID"
-// @Failure 404 {object} map[string]interface{} "Message not found"
-// @Failure 500 {object} map[string]interface{} "Internal server error"
-// @Router /api/v1/messages/{id} [get]
+//
+//	@Summary		Get message by ID
+//	@Description	Obtém detalhes de uma mensagem específica
+//	@Tags			messages
+//	@Produce		json
+//	@Param			id	path		string					true	"Message ID (UUID)"
+//	@Success		200	{object}	map[string]interface{}	"Message details"
+//	@Failure		400	{object}	map[string]interface{}	"Invalid message ID"
+//	@Failure		404	{object}	map[string]interface{}	"Message not found"
+//	@Failure		500	{object}	map[string]interface{}	"Internal server error"
+//	@Router			/api/v1/messages/{id} [get]
 func (h *MessageHandler) GetMessage(c *gin.Context) {
 	idStr := c.Param("id")
 	messageID, err := uuid.Parse(idStr)
@@ -125,18 +128,19 @@ func (h *MessageHandler) GetMessage(c *gin.Context) {
 }
 
 // UpdateMessage updates a message
-// @Summary Update message
-// @Description Atualiza uma mensagem existente
-// @Tags messages
-// @Accept json
-// @Produce json
-// @Param id path string true "Message ID (UUID)"
-// @Param message body UpdateMessageRequest true "Message update data"
-// @Success 200 {object} map[string]interface{} "Message updated successfully"
-// @Failure 400 {object} map[string]interface{} "Invalid request"
-// @Failure 404 {object} map[string]interface{} "Message not found"
-// @Failure 500 {object} map[string]interface{} "Internal server error"
-// @Router /api/v1/messages/{id} [put]
+//
+//	@Summary		Update message
+//	@Description	Atualiza uma mensagem existente
+//	@Tags			messages
+//	@Accept			json
+//	@Produce		json
+//	@Param			id		path		string					true	"Message ID (UUID)"
+//	@Param			message	body		UpdateMessageRequest	true	"Message update data"
+//	@Success		200		{object}	map[string]interface{}	"Message updated successfully"
+//	@Failure		400		{object}	map[string]interface{}	"Invalid request"
+//	@Failure		404		{object}	map[string]interface{}	"Message not found"
+//	@Failure		500		{object}	map[string]interface{}	"Internal server error"
+//	@Router			/api/v1/messages/{id} [put]
 func (h *MessageHandler) UpdateMessage(c *gin.Context) {
 	idStr := c.Param("id")
 	messageID, err := uuid.Parse(idStr)
@@ -160,16 +164,17 @@ func (h *MessageHandler) UpdateMessage(c *gin.Context) {
 }
 
 // DeleteMessage deletes a message
-// @Summary Delete message
-// @Description Remove uma mensagem (soft delete)
-// @Tags messages
-// @Produce json
-// @Param id path string true "Message ID (UUID)"
-// @Success 204 "Message deleted successfully"
-// @Failure 400 {object} map[string]interface{} "Invalid message ID"
-// @Failure 404 {object} map[string]interface{} "Message not found"
-// @Failure 500 {object} map[string]interface{} "Internal server error"
-// @Router /api/v1/messages/{id} [delete]
+//
+//	@Summary		Delete message
+//	@Description	Remove uma mensagem (soft delete)
+//	@Tags			messages
+//	@Produce		json
+//	@Param			id	path	string	true	"Message ID (UUID)"
+//	@Success		204	"Message deleted successfully"
+//	@Failure		400	{object}	map[string]interface{}	"Invalid message ID"
+//	@Failure		404	{object}	map[string]interface{}	"Message not found"
+//	@Failure		500	{object}	map[string]interface{}	"Internal server error"
+//	@Router			/api/v1/messages/{id} [delete]
 func (h *MessageHandler) DeleteMessage(c *gin.Context) {
 	idStr := c.Param("id")
 	messageID, err := uuid.Parse(idStr)
@@ -186,17 +191,18 @@ func (h *MessageHandler) DeleteMessage(c *gin.Context) {
 }
 
 // GetMessagesBySession gets messages for a specific session
-// @Summary Get messages by session
-// @Description Obtém todas as mensagens de uma sessão específica
-// @Tags messages
-// @Produce json
-// @Param session_id path string true "Session ID (UUID)"
-// @Param limit query int false "Limit results" default(100)
-// @Param offset query int false "Offset for pagination" default(0)
-// @Success 200 {array} map[string]interface{} "List of messages"
-// @Failure 400 {object} map[string]interface{} "Invalid session ID"
-// @Failure 500 {object} map[string]interface{} "Internal server error"
-// @Router /api/v1/sessions/{session_id}/messages [get]
+//
+//	@Summary		Get messages by session
+//	@Description	Obtém todas as mensagens de uma sessão específica
+//	@Tags			messages
+//	@Produce		json
+//	@Param			session_id	path		string					true	"Session ID (UUID)"
+//	@Param			limit		query		int						false	"Limit results"			default(100)
+//	@Param			offset		query		int						false	"Offset for pagination"	default(0)
+//	@Success		200			{array}		map[string]interface{}	"List of messages"
+//	@Failure		400			{object}	map[string]interface{}	"Invalid session ID"
+//	@Failure		500			{object}	map[string]interface{}	"Internal server error"
+//	@Router			/api/v1/sessions/{session_id}/messages [get]
 func (h *MessageHandler) GetMessagesBySession(c *gin.Context) {
 	sessionIDStr := c.Param("session_id")
 	sessionID, err := uuid.Parse(sessionIDStr)

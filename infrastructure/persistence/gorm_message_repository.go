@@ -39,14 +39,14 @@ func (r *GormMessageRepository) FindByID(ctx context.Context, id uuid.UUID) (*me
 func (r *GormMessageRepository) FindBySession(ctx context.Context, sessionID uuid.UUID, limit, offset int) ([]*message.Message, error) {
 	var entities []entities.MessageEntity
 	query := r.db.WithContext(ctx).Where("session_id = ?", sessionID).Order("timestamp ASC")
-	
+
 	if limit > 0 {
 		query = query.Limit(limit)
 	}
 	if offset > 0 {
 		query = query.Offset(offset)
 	}
-	
+
 	err := query.Find(&entities).Error
 	if err != nil {
 		return nil, err
@@ -62,14 +62,14 @@ func (r *GormMessageRepository) FindBySession(ctx context.Context, sessionID uui
 func (r *GormMessageRepository) FindByContact(ctx context.Context, contactID uuid.UUID, limit, offset int) ([]*message.Message, error) {
 	var entities []entities.MessageEntity
 	query := r.db.WithContext(ctx).Where("contact_id = ?", contactID).Order("timestamp DESC")
-	
+
 	if limit > 0 {
 		query = query.Limit(limit)
 	}
 	if offset > 0 {
 		query = query.Offset(offset)
 	}
-	
+
 	err := query.Find(&entities).Error
 	if err != nil {
 		return nil, err
@@ -98,6 +98,52 @@ func (r *GormMessageRepository) CountBySession(ctx context.Context, sessionID uu
 	var count int64
 	err := r.db.WithContext(ctx).Model(&entities.MessageEntity{}).Where("session_id = ?", sessionID).Count(&count).Error
 	return int(count), err
+}
+
+// FindBySessionIDForEnrichment retorna informações simplificadas das mensagens para enrichment de eventos
+func (r *GormMessageRepository) FindBySessionIDForEnrichment(ctx context.Context, sessionID uuid.UUID) ([]MessageInfoForEnrichment, error) {
+	type Result struct {
+		ID        uuid.UUID
+		ChannelID *uuid.UUID
+		FromMe    bool
+		Timestamp time.Time
+	}
+
+	var results []Result
+	err := r.db.WithContext(ctx).
+		Model(&entities.MessageEntity{}).
+		Select("id, channel_id, from_me, timestamp").
+		Where("session_id = ?", sessionID).
+		Order("timestamp ASC").
+		Find(&results).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	messages := make([]MessageInfoForEnrichment, len(results))
+	for i, r := range results {
+		direction := "inbound"
+		if r.FromMe {
+			direction = "outbound"
+		}
+		messages[i] = MessageInfoForEnrichment{
+			ID:        r.ID,
+			ChannelID: r.ChannelID,
+			Direction: direction,
+			Timestamp: r.Timestamp,
+		}
+	}
+
+	return messages, nil
+}
+
+// MessageInfoForEnrichment informações simplificadas de mensagem para enrichment
+type MessageInfoForEnrichment struct {
+	ID        uuid.UUID
+	ChannelID *uuid.UUID
+	Direction string
+	Timestamp time.Time
 }
 
 // Mappers: Domain → Entity

@@ -12,11 +12,11 @@ import (
 type WAHARawEvent struct {
 	ID        string            `json:"id"`
 	Timestamp time.Time         `json:"timestamp"`
-	Session   string            `json:"session"`   // Query param ?session=xxx
-	Body      []byte            `json:"body"`      // JSON bruto do webhook
-	Headers   map[string]string `json:"headers"`   // Headers HTTP relevantes
-	Source    string            `json:"source"`    // "webhook", "retry", etc
-	Metadata  map[string]string `json:"metadata"`  // Dados extras para debug
+	Session   string            `json:"session"`  // Query param ?session=xxx
+	Body      []byte            `json:"body"`     // JSON bruto do webhook
+	Headers   map[string]string `json:"headers"`  // Headers HTTP relevantes
+	Source    string            `json:"source"`   // "webhook", "retry", etc
+	Metadata  map[string]string `json:"metadata"` // Dados extras para debug
 }
 
 // NewWAHARawEvent cria um novo evento raw a partir de dados do webhook
@@ -38,8 +38,8 @@ type WAHAProcessedEvent struct {
 	EventType  string                 `json:"event_type"`   // "message", "call", etc
 	Session    string                 `json:"session"`
 	ParsedAt   time.Time              `json:"parsed_at"`
-	Payload    map[string]interface{} `json:"payload"`      // Payload parseado
-	Metadata   map[string]interface{} `json:"metadata"`     // Metadados extras
+	Payload    map[string]interface{} `json:"payload"`  // Payload parseado
+	Metadata   map[string]interface{} `json:"metadata"` // Metadados extras
 }
 
 // WAHAParseError representa um erro de parsing com contexto

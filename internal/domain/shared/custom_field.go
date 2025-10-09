@@ -23,8 +23,8 @@ const (
 // IsValid verifica se o tipo de campo é válido.
 func (ft FieldType) IsValid() bool {
 	switch ft {
-	case FieldTypeText, FieldTypeNumber, FieldTypeBoolean, 
-		FieldTypeDate, FieldTypeJSON, FieldTypeURL, 
+	case FieldTypeText, FieldTypeNumber, FieldTypeBoolean,
+		FieldTypeDate, FieldTypeJSON, FieldTypeURL,
 		FieldTypeEmail, FieldTypePhone:
 		return true
 	default:
@@ -222,7 +222,7 @@ func (cf *CustomField) Equals(other *CustomField) bool {
 	if other == nil {
 		return false
 	}
-	
+
 	if cf.key != other.key || cf.fieldType != other.fieldType {
 		return false
 	}

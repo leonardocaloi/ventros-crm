@@ -39,20 +39,21 @@ type UpdateProjectRequest struct {
 }
 
 // ListProjects lists all projects with optional filters
-// @Summary List projects
-// @Description Lista todos os projetos do usuário autenticado
-// @Tags projects
-// @Produce json
-// @Security ApiKeyAuth
-// @Param tenant_id query string false "Filter by tenant ID"
-// @Param active query bool false "Filter by active status"
-// @Param limit query int false "Limit results" default(50)
-// @Param offset query int false "Offset for pagination" default(0)
-// @Success 200 {array} map[string]interface{} "List of projects"
-// @Failure 400 {object} map[string]interface{} "Invalid parameters"
-// @Failure 401 {object} map[string]interface{} "Not authenticated"
-// @Failure 500 {object} map[string]interface{} "Internal server error"
-// @Router /api/v1/projects [get]
+//
+//	@Summary		List projects
+//	@Description	Lista todos os projetos do usuário autenticado
+//	@Tags			projects
+//	@Produce		json
+//	@Security		ApiKeyAuth
+//	@Param			tenant_id	query		string					false	"Filter by tenant ID"
+//	@Param			active		query		bool					false	"Filter by active status"
+//	@Param			limit		query		int						false	"Limit results"			default(50)
+//	@Param			offset		query		int						false	"Offset for pagination"	default(0)
+//	@Success		200			{array}		map[string]interface{}	"List of projects"
+//	@Failure		400			{object}	map[string]interface{}	"Invalid parameters"
+//	@Failure		401			{object}	map[string]interface{}	"Not authenticated"
+//	@Failure		500			{object}	map[string]interface{}	"Internal server error"
+//	@Router			/api/v1/projects [get]
 func (h *ProjectHandler) ListProjects(c *gin.Context) {
 	// Verificar autenticação
 	authCtx, ok := ownershipHelper.RequireAuth(c)
@@ -72,16 +73,17 @@ func (h *ProjectHandler) ListProjects(c *gin.Context) {
 }
 
 // CreateProject creates a new project
-// @Summary Create project
-// @Description Cria um novo projeto
-// @Tags projects
-// @Accept json
-// @Produce json
-// @Param project body CreateProjectRequest true "Project data"
-// @Success 201 {object} map[string]interface{} "Project created successfully"
-// @Failure 400 {object} map[string]interface{} "Invalid request"
-// @Failure 500 {object} map[string]interface{} "Internal server error"
-// @Router /api/v1/projects [post]
+//
+//	@Summary		Create project
+//	@Description	Cria um novo projeto
+//	@Tags			projects
+//	@Accept			json
+//	@Produce		json
+//	@Param			project	body		CreateProjectRequest	true	"Project data"
+//	@Success		201		{object}	map[string]interface{}	"Project created successfully"
+//	@Failure		400		{object}	map[string]interface{}	"Invalid request"
+//	@Failure		500		{object}	map[string]interface{}	"Internal server error"
+//	@Router			/api/v1/projects [post]
 func (h *ProjectHandler) CreateProject(c *gin.Context) {
 	var req CreateProjectRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -100,16 +102,17 @@ func (h *ProjectHandler) CreateProject(c *gin.Context) {
 }
 
 // GetProject gets a project by ID
-// @Summary Get project by ID
-// @Description Obtém detalhes de um projeto específico
-// @Tags projects
-// @Produce json
-// @Param id path string true "Project ID (UUID)"
-// @Success 200 {object} map[string]interface{} "Project details"
-// @Failure 400 {object} map[string]interface{} "Invalid project ID"
-// @Failure 404 {object} map[string]interface{} "Project not found"
-// @Failure 500 {object} map[string]interface{} "Internal server error"
-// @Router /api/v1/projects/{id} [get]
+//
+//	@Summary		Get project by ID
+//	@Description	Obtém detalhes de um projeto específico
+//	@Tags			projects
+//	@Produce		json
+//	@Param			id	path		string					true	"Project ID (UUID)"
+//	@Success		200	{object}	map[string]interface{}	"Project details"
+//	@Failure		400	{object}	map[string]interface{}	"Invalid project ID"
+//	@Failure		404	{object}	map[string]interface{}	"Project not found"
+//	@Failure		500	{object}	map[string]interface{}	"Internal server error"
+//	@Router			/api/v1/projects/{id} [get]
 func (h *ProjectHandler) GetProject(c *gin.Context) {
 	idStr := c.Param("id")
 	projectID, err := uuid.Parse(idStr)
@@ -127,18 +130,19 @@ func (h *ProjectHandler) GetProject(c *gin.Context) {
 }
 
 // UpdateProject updates a project
-// @Summary Update project
-// @Description Atualiza um projeto existente
-// @Tags projects
-// @Accept json
-// @Produce json
-// @Param id path string true "Project ID (UUID)"
-// @Param project body UpdateProjectRequest true "Project update data"
-// @Success 200 {object} map[string]interface{} "Project updated successfully"
-// @Failure 400 {object} map[string]interface{} "Invalid request"
-// @Failure 404 {object} map[string]interface{} "Project not found"
-// @Failure 500 {object} map[string]interface{} "Internal server error"
-// @Router /api/v1/projects/{id} [put]
+//
+//	@Summary		Update project
+//	@Description	Atualiza um projeto existente
+//	@Tags			projects
+//	@Accept			json
+//	@Produce		json
+//	@Param			id		path		string					true	"Project ID (UUID)"
+//	@Param			project	body		UpdateProjectRequest	true	"Project update data"
+//	@Success		200		{object}	map[string]interface{}	"Project updated successfully"
+//	@Failure		400		{object}	map[string]interface{}	"Invalid request"
+//	@Failure		404		{object}	map[string]interface{}	"Project not found"
+//	@Failure		500		{object}	map[string]interface{}	"Internal server error"
+//	@Router			/api/v1/projects/{id} [put]
 func (h *ProjectHandler) UpdateProject(c *gin.Context) {
 	idStr := c.Param("id")
 	projectID, err := uuid.Parse(idStr)
@@ -162,16 +166,17 @@ func (h *ProjectHandler) UpdateProject(c *gin.Context) {
 }
 
 // DeleteProject deletes a project
-// @Summary Delete project
-// @Description Remove um projeto (soft delete)
-// @Tags projects
-// @Produce json
-// @Param id path string true "Project ID (UUID)"
-// @Success 204 "Project deleted successfully"
-// @Failure 400 {object} map[string]interface{} "Invalid project ID"
-// @Failure 404 {object} map[string]interface{} "Project not found"
-// @Failure 500 {object} map[string]interface{} "Internal server error"
-// @Router /api/v1/projects/{id} [delete]
+//
+//	@Summary		Delete project
+//	@Description	Remove um projeto (soft delete)
+//	@Tags			projects
+//	@Produce		json
+//	@Param			id	path	string	true	"Project ID (UUID)"
+//	@Success		204	"Project deleted successfully"
+//	@Failure		400	{object}	map[string]interface{}	"Invalid project ID"
+//	@Failure		404	{object}	map[string]interface{}	"Project not found"
+//	@Failure		500	{object}	map[string]interface{}	"Internal server error"
+//	@Router			/api/v1/projects/{id} [delete]
 func (h *ProjectHandler) DeleteProject(c *gin.Context) {
 	idStr := c.Param("id")
 	projectID, err := uuid.Parse(idStr)

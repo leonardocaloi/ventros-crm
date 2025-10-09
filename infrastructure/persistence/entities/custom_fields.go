@@ -9,14 +9,14 @@ import (
 
 // ContactCustomFieldEntity representa campos customizados de contatos
 type ContactCustomFieldEntity struct {
-	ID         uuid.UUID   `gorm:"type:uuid;primary_key;default:gen_random_uuid()"`
-	ContactID  uuid.UUID   `gorm:"type:uuid;not null;index"`
-	TenantID   string      `gorm:"not null;index"`
-	FieldKey   string      `gorm:"not null;index"`
-	FieldType  string      `gorm:"not null"`
-	FieldValue interface{} `gorm:"type:jsonb"`
-	CreatedAt  time.Time   `gorm:"autoCreateTime"`
-	UpdatedAt  time.Time   `gorm:"autoUpdateTime"`
+	ID         uuid.UUID      `gorm:"type:uuid;primary_key;default:gen_random_uuid()"`
+	ContactID  uuid.UUID      `gorm:"type:uuid;not null;index"`
+	TenantID   string         `gorm:"not null;index"`
+	FieldKey   string         `gorm:"not null;index"`
+	FieldType  string         `gorm:"not null"`
+	FieldValue interface{}    `gorm:"type:jsonb"`
+	CreatedAt  time.Time      `gorm:"autoCreateTime"`
+	UpdatedAt  time.Time      `gorm:"autoUpdateTime"`
 	DeletedAt  gorm.DeletedAt `gorm:"index"`
 
 	// Relacionamentos
@@ -29,14 +29,14 @@ func (ContactCustomFieldEntity) TableName() string {
 
 // SessionCustomFieldEntity representa campos customizados de sessões
 type SessionCustomFieldEntity struct {
-	ID         uuid.UUID   `gorm:"type:uuid;primary_key;default:gen_random_uuid()"`
-	SessionID  uuid.UUID   `gorm:"type:uuid;not null;index"`
-	TenantID   string      `gorm:"not null;index"`
-	FieldKey   string      `gorm:"not null;index"`
-	FieldType  string      `gorm:"not null"`
-	FieldValue interface{} `gorm:"type:jsonb"`
-	CreatedAt  time.Time   `gorm:"autoCreateTime"`
-	UpdatedAt  time.Time   `gorm:"autoUpdateTime"`
+	ID         uuid.UUID      `gorm:"type:uuid;primary_key;default:gen_random_uuid()"`
+	SessionID  uuid.UUID      `gorm:"type:uuid;not null;index"`
+	TenantID   string         `gorm:"not null;index"`
+	FieldKey   string         `gorm:"not null;index"`
+	FieldType  string         `gorm:"not null"`
+	FieldValue interface{}    `gorm:"type:jsonb"`
+	CreatedAt  time.Time      `gorm:"autoCreateTime"`
+	UpdatedAt  time.Time      `gorm:"autoUpdateTime"`
 	DeletedAt  gorm.DeletedAt `gorm:"index"`
 
 	// Relacionamentos

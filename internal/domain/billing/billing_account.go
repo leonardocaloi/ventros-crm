@@ -11,44 +11,44 @@ import (
 type PaymentStatus string
 
 const (
-	PaymentStatusPending  PaymentStatus = "pending"   // Aguardando configuração de pagamento
-	PaymentStatusActive   PaymentStatus = "active"    // Pagamento configurado e verificado
+	PaymentStatusPending   PaymentStatus = "pending"   // Aguardando configuração de pagamento
+	PaymentStatusActive    PaymentStatus = "active"    // Pagamento configurado e verificado
 	PaymentStatusSuspended PaymentStatus = "suspended" // Suspensa por falta de pagamento
-	PaymentStatusCanceled PaymentStatus = "canceled"  // Cancelada pelo usuário
+	PaymentStatusCanceled  PaymentStatus = "canceled"  // Cancelada pelo usuário
 )
 
 // PaymentMethod representa o método de pagamento (fake por enquanto)
 type PaymentMethod struct {
-	Type       string    // "credit_card", "boleto", "pix", etc
-	LastDigits string    // Últimos 4 dígitos do cartão, etc
+	Type       string // "credit_card", "boleto", "pix", etc
+	LastDigits string // Últimos 4 dígitos do cartão, etc
 	ExpiresAt  *time.Time
 	IsDefault  bool
 }
 
 // BillingAccount é o Aggregate Root para contas de faturamento
 type BillingAccount struct {
-	id              uuid.UUID
-	userID          uuid.UUID
-	name            string
-	paymentStatus   PaymentStatus
-	paymentMethods  []PaymentMethod
-	billingEmail    string
-	suspended       bool
-	suspendedAt     *time.Time
+	id               uuid.UUID
+	userID           uuid.UUID
+	name             string
+	paymentStatus    PaymentStatus
+	paymentMethods   []PaymentMethod
+	billingEmail     string
+	suspended        bool
+	suspendedAt      *time.Time
 	suspensionReason string
-	createdAt       time.Time
-	updatedAt       time.Time
-	
+	createdAt        time.Time
+	updatedAt        time.Time
+
 	events []DomainEvent
 }
 
 var (
-	ErrInvalidUserID     = errors.New("user ID cannot be nil")
-	ErrInvalidName       = errors.New("name cannot be empty")
-	ErrInvalidEmail      = errors.New("billing email cannot be empty")
-	ErrAccountSuspended  = errors.New("billing account is suspended")
-	ErrAccountCanceled   = errors.New("billing account is canceled")
-	ErrPaymentNotActive  = errors.New("payment method not active")
+	ErrInvalidUserID    = errors.New("user ID cannot be nil")
+	ErrInvalidName      = errors.New("name cannot be empty")
+	ErrInvalidEmail     = errors.New("billing email cannot be empty")
+	ErrAccountSuspended = errors.New("billing account is suspended")
+	ErrAccountCanceled  = errors.New("billing account is canceled")
+	ErrPaymentNotActive = errors.New("payment method not active")
 )
 
 // NewBillingAccount cria uma nova conta de faturamento
@@ -107,28 +107,29 @@ func ReconstructBillingAccount(
 	}
 
 	return &BillingAccount{
-		id:              id,
-		userID:          userID,
-		name:            name,
-		paymentStatus:   paymentStatus,
-		paymentMethods:  paymentMethods,
-		billingEmail:    billingEmail,
-		suspended:       suspended,
-		suspendedAt:     suspendedAt,
+		id:               id,
+		userID:           userID,
+		name:             name,
+		paymentStatus:    paymentStatus,
+		paymentMethods:   paymentMethods,
+		billingEmail:     billingEmail,
+		suspended:        suspended,
+		suspendedAt:      suspendedAt,
 		suspensionReason: suspensionReason,
-		createdAt:       createdAt,
-		updatedAt:       updatedAt,
-		events:          []DomainEvent{},
+		createdAt:        createdAt,
+		updatedAt:        updatedAt,
+		events:           []DomainEvent{},
 	}
 }
 
 // ActivatePayment ativa o método de pagamento (fake por enquanto)
 func (b *BillingAccount) ActivatePayment(method PaymentMethod) error {
-	if b.suspended {
-		return ErrAccountSuspended
-	}
+	// Check canceled first (more specific than suspended)
 	if b.paymentStatus == PaymentStatusCanceled {
 		return ErrAccountCanceled
+	}
+	if b.suspended {
+		return ErrAccountSuspended
 	}
 
 	// Marca outros métodos como não-default
@@ -186,7 +187,7 @@ func (b *BillingAccount) Reactivate() error {
 	b.updatedAt = time.Now()
 
 	b.addEvent(BillingAccountReactivatedEvent{
-		AccountID:    b.id,
+		AccountID:     b.id,
 		ReactivatedAt: time.Now(),
 	})
 
@@ -229,17 +230,19 @@ func (b *BillingAccount) IsActive() bool {
 }
 
 // Getters
-func (b *BillingAccount) ID() uuid.UUID                   { return b.id }
-func (b *BillingAccount) UserID() uuid.UUID               { return b.userID }
-func (b *BillingAccount) Name() string                    { return b.name }
-func (b *BillingAccount) PaymentStatus() PaymentStatus    { return b.paymentStatus }
-func (b *BillingAccount) PaymentMethods() []PaymentMethod { return append([]PaymentMethod{}, b.paymentMethods...) }
-func (b *BillingAccount) BillingEmail() string            { return b.billingEmail }
-func (b *BillingAccount) IsSuspended() bool               { return b.suspended }
-func (b *BillingAccount) SuspendedAt() *time.Time         { return b.suspendedAt }
-func (b *BillingAccount) SuspensionReason() string        { return b.suspensionReason }
-func (b *BillingAccount) CreatedAt() time.Time            { return b.createdAt }
-func (b *BillingAccount) UpdatedAt() time.Time            { return b.updatedAt }
+func (b *BillingAccount) ID() uuid.UUID                { return b.id }
+func (b *BillingAccount) UserID() uuid.UUID            { return b.userID }
+func (b *BillingAccount) Name() string                 { return b.name }
+func (b *BillingAccount) PaymentStatus() PaymentStatus { return b.paymentStatus }
+func (b *BillingAccount) PaymentMethods() []PaymentMethod {
+	return append([]PaymentMethod{}, b.paymentMethods...)
+}
+func (b *BillingAccount) BillingEmail() string     { return b.billingEmail }
+func (b *BillingAccount) IsSuspended() bool        { return b.suspended }
+func (b *BillingAccount) SuspendedAt() *time.Time  { return b.suspendedAt }
+func (b *BillingAccount) SuspensionReason() string { return b.suspensionReason }
+func (b *BillingAccount) CreatedAt() time.Time     { return b.createdAt }
+func (b *BillingAccount) UpdatedAt() time.Time     { return b.updatedAt }
 
 // Domain Events
 func (b *BillingAccount) DomainEvents() []DomainEvent {

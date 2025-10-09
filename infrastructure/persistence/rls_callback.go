@@ -100,7 +100,7 @@ func setRLSContext(db *gorm.DB) {
 
 	// Executar SET LOCAL diretamente na conexão SQL para evitar recursão
 	sql := fmt.Sprintf("SET LOCAL app.current_user_id = '%s'", userIDStr)
-	
+
 	// Usar a conexão SQL direta do statement
 	if db.Statement.ConnPool != nil {
 		_, err := db.Statement.ConnPool.ExecContext(db.Statement.Context, sql)

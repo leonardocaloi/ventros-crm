@@ -20,12 +20,12 @@ func SetupRoutesMinimal(router *gin.Engine, logger *zap.Logger, healthChecker *h
 
 	// Health check handlers
 	healthHandler := handlers.NewHealthHandler(logger, healthChecker)
-	
+
 	// Health endpoints - General
 	router.GET("/health", healthHandler.Health)
 	router.GET("/ready", healthHandler.Ready)
 	router.GET("/live", healthHandler.Live)
-	
+
 	// Health endpoints - Specific components
 	healthGroup := router.Group("/health")
 	{
@@ -39,19 +39,19 @@ func SetupRoutesMinimal(router *gin.Engine, logger *zap.Logger, healthChecker *h
 	// Swagger documentation
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
-	// API v1 routes (minimal)
-	v1 := router.Group("/api/v1")
+	// API v1 CRM routes (minimal)
+	v1 := router.Group("/api/v1/crm")
 	{
 		// Queue management
 		v1.GET("/queues", queueHandler.ListQueues)
-		
+
 		// Session management
 		sessions := v1.Group("/sessions")
 		{
 			sessions.GET("/:id", sessionHandler.GetSession)
 			sessions.GET("/", sessionHandler.ListSessions)
 		}
-		
+
 		// Contact management (protected routes)
 		contacts := v1.Group("/contacts")
 		contacts.Use(authMiddleware.Authenticate())
@@ -63,7 +63,7 @@ func SetupRoutesMinimal(router *gin.Engine, logger *zap.Logger, healthChecker *h
 	}
 }
 
-func SetupRoutes(router *gin.Engine, logger *zap.Logger, healthChecker *health.HealthChecker, wahaHandler *handlers.WAHAWebhookHandler, webhookHandler *handlers.WebhookSubscriptionHandler, queueHandler *handlers.QueueHandler, sessionHandler *handlers.SessionHandler, contactHandler *handlers.ContactHandler, pipelineHandler *handlers.PipelineHandler, projectHandler *handlers.ProjectHandler, agentHandler *handlers.AgentHandler, messageHandler *handlers.MessageHandler, customerHandler *handlers.CustomerHandler, channelHandler *handlers.ChannelHandler) {
+func SetupRoutes(router *gin.Engine, logger *zap.Logger, healthChecker *health.HealthChecker, wahaHandler *handlers.WAHAWebhookHandler, webhookHandler *handlers.WebhookSubscriptionHandler, queueHandler *handlers.QueueHandler, sessionHandler *handlers.SessionHandler, contactHandler *handlers.ContactHandler, pipelineHandler *handlers.PipelineHandler, projectHandler *handlers.ProjectHandler, agentHandler *handlers.AgentHandler, messageHandler *handlers.MessageHandler, customerHandler *handlers.CustomerHandler, channelHandler *handlers.ChannelHandler, trackingHandler *handlers.TrackingHandler) {
 	// Middlewares
 	router.Use(gin.Recovery())
 	router.Use(LoggerMiddleware(logger))
@@ -71,7 +71,7 @@ func SetupRoutes(router *gin.Engine, logger *zap.Logger, healthChecker *health.H
 
 	// Health check handlers
 	healthHandler := handlers.NewHealthHandler(logger, healthChecker)
-	
+
 	// Webhook routes (sem auth para receber da WAHA)
 	webhooks := router.Group("/api/v1/webhooks")
 	{
@@ -83,7 +83,7 @@ func SetupRoutes(router *gin.Engine, logger *zap.Logger, healthChecker *health.H
 	router.GET("/health", healthHandler.Health)
 	router.GET("/ready", healthHandler.Ready)
 	router.GET("/live", healthHandler.Live)
-	
+
 	// Health endpoints - Specific components
 	healthGroup := router.Group("/health")
 	{
@@ -137,6 +137,9 @@ func SetupRoutes(router *gin.Engine, logger *zap.Logger, healthChecker *health.H
 			contacts.GET("/:id", contactHandler.GetContact)
 			contacts.PUT("/:id", contactHandler.UpdateContact)
 			contacts.DELETE("/:id", contactHandler.DeleteContact)
+
+			// Tracking routes dentro de contacts
+			contacts.GET("/:contact_id/trackings", trackingHandler.GetContactTrackings)
 		}
 
 		// Channel routes
@@ -148,7 +151,7 @@ func SetupRoutes(router *gin.Engine, logger *zap.Logger, healthChecker *health.H
 			channels.POST("/:id/activate", channelHandler.ActivateChannel)
 			channels.POST("/:id/deactivate", channelHandler.DeactivateChannel)
 			channels.DELETE("/:id", channelHandler.DeleteChannel)
-			
+
 			// Webhook endpoints for channels
 			channels.GET("/:id/webhook-url", channelHandler.GetChannelWebhookURL)
 			channels.POST("/:id/configure-webhook", channelHandler.ConfigureChannelWebhook)
@@ -169,20 +172,30 @@ func SetupRoutes(router *gin.Engine, logger *zap.Logger, healthChecker *health.H
 			pipelines.GET("", pipelineHandler.ListPipelines)
 			pipelines.POST("", pipelineHandler.CreatePipeline)
 			pipelines.GET("/:id", pipelineHandler.GetPipeline)
-			
+
 			// Status routes within pipelines
 			pipelines.POST("/:id/statuses", pipelineHandler.CreateStatus)
-			
+
 			// Contact status routes
 			pipelines.PUT("/:pipeline_id/contacts/:contact_id/status", pipelineHandler.ChangeContactStatus)
 			pipelines.GET("/:pipeline_id/contacts/:contact_id/status", pipelineHandler.GetContactStatus)
+		}
+
+		// Tracking routes
+		trackings := v1.Group("/trackings")
+		{
+			trackings.GET("/enums", trackingHandler.GetTrackingEnums) // Must be before /:id
+			trackings.POST("/encode", trackingHandler.EncodeTracking)
+			trackings.POST("/decode", trackingHandler.DecodeTracking)
+			trackings.POST("", trackingHandler.CreateTracking)
+			trackings.GET("/:id", trackingHandler.GetTracking)
 		}
 
 		// Message routes
 		// messages := v1.Group("/messages")
 		// {
 		// }
-}
+	}
 }
 
 // SetupRoutesBasic configura as rotas básicas sem pipeline handler (temporário)
@@ -194,7 +207,7 @@ func SetupRoutesBasic(router *gin.Engine, logger *zap.Logger, healthChecker *hea
 
 	// Health check handlers
 	healthHandler := handlers.NewHealthHandler(logger, healthChecker)
-	
+
 	// Webhook routes (sem auth para receber da WAHA)
 	webhooks := router.Group("/api/v1/webhooks")
 	{
@@ -206,7 +219,7 @@ func SetupRoutesBasic(router *gin.Engine, logger *zap.Logger, healthChecker *hea
 	router.GET("/health", healthHandler.Health)
 	router.GET("/ready", healthHandler.Ready)
 	router.GET("/live", healthHandler.Live)
-	
+
 	// Health endpoints - Specific components
 	healthGroup := router.Group("/health")
 	{
@@ -259,10 +272,14 @@ func SetupRoutesBasic(router *gin.Engine, logger *zap.Logger, healthChecker *hea
 			contacts.GET("/:id", contactHandler.GetContact)
 			contacts.PUT("/:id", contactHandler.UpdateContact)
 			contacts.DELETE("/:id", contactHandler.DeleteContact)
-			
+
 			// Nested session routes under contact (using :id for contact)
 			contacts.GET("/:id/sessions", sessionHandler.ListSessions)
 			contacts.GET("/:id/sessions/:session_id", sessionHandler.GetSession)
+
+			// Pipeline status routes under contact
+			// PUT /api/v1/contacts/:id/pipelines/:pipeline_id/status
+			contacts.PUT("/:id/pipelines/:pipeline_id/status", contactHandler.ChangePipelineStatus)
 		}
 
 		// Session routes (protected) - global with required filters
@@ -270,7 +287,7 @@ func SetupRoutesBasic(router *gin.Engine, logger *zap.Logger, healthChecker *hea
 		sessions.Use(authMiddleware.Authenticate())
 		sessions.Use(rlsMiddleware.SetUserContext())
 		{
-			sessions.GET("", sessionHandler.ListSessions)        // Requires ?contact_id or ?channel_id
+			sessions.GET("", sessionHandler.ListSessions) // Requires ?contact_id or ?channel_id
 			sessions.GET("/:id", sessionHandler.GetSession)
 			sessions.POST("/:id/close", sessionHandler.CloseSession) // Agente encerra sessão manualmente
 			sessions.GET("/stats", sessionHandler.GetSessionStats)
@@ -283,21 +300,22 @@ func SetupRoutesBasic(router *gin.Engine, logger *zap.Logger, healthChecker *hea
 	}
 }
 
-// SetupRoutesBasicWithTest configura as rotas básicas com endpoints de teste, auth, channels e projects
-func SetupRoutesBasicWithTest(router *gin.Engine, logger *zap.Logger, healthChecker *health.HealthChecker, authHandler *handlers.AuthHandler, channelHandler *handlers.ChannelHandler, projectHandler *handlers.ProjectHandler, wahaHandler *handlers.WAHAWebhookHandler, webhookHandler *handlers.WebhookSubscriptionHandler, queueHandler *handlers.QueueHandler, sessionHandler *handlers.SessionHandler, contactHandler *handlers.ContactHandler, gormDB *gorm.DB, authMiddleware *middleware.AuthMiddleware, rlsMiddleware *middleware.RLSMiddleware) {
+// SetupRoutesBasicWithTest configura as rotas básicas com endpoints de teste, auth, channels, projects e pipelines
+// LEGACY: Mantido para compatibilidade
+func SetupRoutesBasicWithTest(router *gin.Engine, logger *zap.Logger, healthChecker *health.HealthChecker, authHandler *handlers.AuthHandler, channelHandler *handlers.ChannelHandler, projectHandler *handlers.ProjectHandler, pipelineHandler *handlers.PipelineHandler, wahaHandler *handlers.WAHAWebhookHandler, webhookHandler *handlers.WebhookSubscriptionHandler, queueHandler *handlers.QueueHandler, sessionHandler *handlers.SessionHandler, contactHandler *handlers.ContactHandler, trackingHandler *handlers.TrackingHandler, automationDiscoveryHandler *handlers.AutomationDiscoveryHandler, gormDB *gorm.DB, authMiddleware *middleware.AuthMiddleware, rlsMiddleware *middleware.RLSMiddleware) {
 	// Add GORM context middleware FIRST (before any other middleware)
 	router.Use(middleware.GORMContextMiddleware(gormDB))
-	
+
 	// Use the basic setup first
 	SetupRoutesBasic(router, logger, healthChecker, wahaHandler, webhookHandler, queueHandler, sessionHandler, contactHandler, authMiddleware, rlsMiddleware)
-	
+
 	// Add auth routes (public routes)
-	authRoutes := router.Group("/api/v1/auth")
+	authRoutes := router.Group("/api/v1/crm/auth")
 	{
 		authRoutes.POST("/register", authHandler.CreateUser)
 		authRoutes.POST("/login", authHandler.Login)
 		authRoutes.GET("/info", authHandler.GetAuthInfo)
-		
+
 		// Protected auth routes
 		authProtected := authRoutes.Group("")
 		authProtected.Use(authMiddleware.Authenticate())
@@ -306,9 +324,9 @@ func SetupRoutesBasicWithTest(router *gin.Engine, logger *zap.Logger, healthChec
 			authProtected.POST("/api-key", authHandler.GenerateAPIKey)
 		}
 	}
-	
+
 	// Add channel routes (all protected)
-	channels := router.Group("/api/v1/channels")
+	channels := router.Group("/api/v1/crm/channels")
 	channels.Use(authMiddleware.Authenticate())
 	channels.Use(rlsMiddleware.SetUserContext())
 	{
@@ -318,19 +336,23 @@ func SetupRoutesBasicWithTest(router *gin.Engine, logger *zap.Logger, healthChec
 		channels.POST("/:id/activate", channelHandler.ActivateChannel)
 		channels.POST("/:id/deactivate", channelHandler.DeactivateChannel)
 		channels.DELETE("/:id", channelHandler.DeleteChannel)
-		
+
 		// Webhook endpoints for channels
 		channels.GET("/:id/webhook-url", channelHandler.GetChannelWebhookURL)
 		channels.POST("/:id/configure-webhook", channelHandler.ConfigureChannelWebhook)
 		channels.GET("/:id/webhook-info", channelHandler.GetChannelWebhookInfo)
-		
+
+		// WAHA-specific endpoints
+		channels.POST("/:id/activate-waha", channelHandler.ActivateWAHAChannel)
+		channels.POST("/:id/import-history", channelHandler.ImportWAHAHistory)
+
 		// Nested session routes under channel (using :id for channel)
 		channels.GET("/:id/sessions", sessionHandler.ListSessions)
 		channels.GET("/:id/sessions/:session_id", sessionHandler.GetSession)
 	}
-	
+
 	// Add project routes (all protected)
-	projects := router.Group("/api/v1/projects")
+	projects := router.Group("/api/v1/crm/projects")
 	projects.Use(authMiddleware.Authenticate())
 	projects.Use(rlsMiddleware.SetUserContext())
 	{
@@ -340,9 +362,58 @@ func SetupRoutesBasicWithTest(router *gin.Engine, logger *zap.Logger, healthChec
 		projects.PUT("/:id", projectHandler.UpdateProject)
 		projects.DELETE("/:id", projectHandler.DeleteProject)
 	}
-	
+
+	// Add pipeline routes (all protected)
+	pipelines := router.Group("/api/v1/crm/pipelines")
+	pipelines.Use(authMiddleware.Authenticate())
+	pipelines.Use(rlsMiddleware.SetUserContext())
+	{
+		pipelines.GET("", pipelineHandler.ListPipelines)
+		pipelines.POST("", pipelineHandler.CreatePipeline)
+		pipelines.GET("/:id", pipelineHandler.GetPipeline)
+
+		// Status routes within pipelines
+		pipelines.POST("/:id/statuses", pipelineHandler.CreateStatus)
+
+		// Contact status routes (usando :id para pipeline)
+		pipelines.PUT("/:id/contacts/:contact_id/status", pipelineHandler.ChangeContactStatus)
+		pipelines.GET("/:id/contacts/:contact_id/status", pipelineHandler.GetContactStatus)
+	}
+
+	// Add tracking routes (all protected)
+	trackings := router.Group("/api/v1/crm/trackings")
+	trackings.Use(authMiddleware.Authenticate())
+	trackings.Use(rlsMiddleware.SetUserContext())
+	{
+		trackings.GET("/enums", trackingHandler.GetTrackingEnums) // Must be before /:id
+		trackings.POST("/encode", trackingHandler.EncodeTracking)
+		trackings.POST("/decode", trackingHandler.DecodeTracking)
+		trackings.POST("", trackingHandler.CreateTracking)
+		trackings.GET("/:id", trackingHandler.GetTracking)
+	}
+
+	// Add automation discovery routes (all protected)
+	if automationDiscoveryHandler != nil {
+		automation := router.Group("/api/v1/crm/automation")
+		automation.Use(authMiddleware.Authenticate())
+		{
+			// Discovery endpoints - read-only (no RLS needed)
+			automation.GET("/types", automationDiscoveryHandler.GetAutomationTypes)
+			automation.GET("/triggers", automationDiscoveryHandler.GetTriggers)
+			automation.GET("/triggers/:code", automationDiscoveryHandler.GetTriggerDetails)
+			automation.GET("/actions", automationDiscoveryHandler.GetActions)
+			automation.GET("/conditions/operators", automationDiscoveryHandler.GetConditionOperators)
+			automation.GET("/logic-operators", automationDiscoveryHandler.GetLogicOperators)
+			automation.GET("/discovery", automationDiscoveryHandler.GetFullDiscovery)
+
+			// Custom trigger management (admin only - add RBAC middleware if needed)
+			automation.POST("/triggers/custom", automationDiscoveryHandler.RegisterCustomTrigger)
+			automation.DELETE("/triggers/custom/:code", automationDiscoveryHandler.UnregisterCustomTrigger)
+		}
+	}
+
 	// Add test routes
-	v1 := router.Group("/api/v1")
+	v1 := router.Group("/api/v1/crm")
 	{
 		// Test routes
 		testHandler := handlers.NewTestHandler(gormDB, logger)

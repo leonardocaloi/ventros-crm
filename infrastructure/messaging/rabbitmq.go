@@ -3,6 +3,7 @@ package messaging
 import (
 	"context"
 	"fmt"
+	"sync"
 	"time"
 
 	amqp "github.com/rabbitmq/amqp091-go"
@@ -10,18 +11,19 @@ import (
 
 // RabbitMQConfig contém a configuração do RabbitMQ.
 type RabbitMQConfig struct {
-	URL             string
-	ReconnectDelay  time.Duration
-	MaxReconnects   int
+	URL            string
+	ReconnectDelay time.Duration
+	MaxReconnects  int
 }
 
 // RabbitMQConnection gerencia a conexão com RabbitMQ com auto-reconnect.
 type RabbitMQConnection struct {
-	config     RabbitMQConfig
-	conn       *amqp.Connection
-	channel    *amqp.Channel
+	config      RabbitMQConfig
+	conn        *amqp.Connection
+	channel     *amqp.Channel
 	notifyClose chan *amqp.Error
 	isConnected bool
+	mu          sync.Mutex // Protege operações no canal
 }
 
 // NewRabbitMQConnection cria uma nova conexão com RabbitMQ.
@@ -29,14 +31,14 @@ func NewRabbitMQConnection(config RabbitMQConfig) (*RabbitMQConnection, error) {
 	r := &RabbitMQConnection{
 		config: config,
 	}
-	
+
 	if err := r.connect(); err != nil {
 		return nil, err
 	}
-	
+
 	// Inicia goroutine para auto-reconnect
 	go r.handleReconnect()
-	
+
 	return r, nil
 }
 
@@ -46,19 +48,19 @@ func (r *RabbitMQConnection) connect() error {
 	if err != nil {
 		return fmt.Errorf("failed to connect to RabbitMQ: %w", err)
 	}
-	
+
 	ch, err := conn.Channel()
 	if err != nil {
 		conn.Close()
 		return fmt.Errorf("failed to open channel: %w", err)
 	}
-	
+
 	r.conn = conn
 	r.channel = ch
 	r.notifyClose = make(chan *amqp.Error)
 	r.channel.NotifyClose(r.notifyClose)
 	r.isConnected = true
-	
+
 	return nil
 }
 
@@ -69,16 +71,16 @@ func (r *RabbitMQConnection) handleReconnect() {
 		if err != nil {
 			r.isConnected = false
 			fmt.Printf("Connection closed: %v. Reconnecting...\n", err)
-			
+
 			// Tenta reconectar
 			for i := 0; i < r.config.MaxReconnects; i++ {
 				time.Sleep(r.config.ReconnectDelay)
-				
+
 				if err := r.connect(); err == nil {
 					fmt.Println("Reconnected successfully")
 					break
 				}
-				
+
 				fmt.Printf("Reconnect attempt %d failed\n", i+1)
 			}
 		}
@@ -86,7 +88,10 @@ func (r *RabbitMQConnection) handleReconnect() {
 }
 
 // Channel retorna o canal RabbitMQ.
+// AVISO: Use com cuidado - o canal pode ser fechado/reaberto por outras operações
 func (r *RabbitMQConnection) Channel() *amqp.Channel {
+	r.mu.Lock()
+	defer r.mu.Unlock()
 	return r.channel
 }
 
@@ -110,10 +115,13 @@ func (r *RabbitMQConnection) IsConnected() bool {
 // A declaração é idempotente - se a fila já existe com os mesmos argumentos, não faz nada.
 // Se existir com argumentos diferentes, retorna erro (comportamento padrão do RabbitMQ).
 func (r *RabbitMQConnection) DeclareQueue(name string) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
 	args := amqp.Table{
 		"x-queue-type": "quorum", // Alta disponibilidade
 	}
-	
+
 	// Declaração idempotente - RabbitMQ aceita se a fila já existe com mesmos args
 	_, err := r.channel.QueueDeclare(
 		name,  // name
@@ -123,24 +131,24 @@ func (r *RabbitMQConnection) DeclareQueue(name string) error {
 		false, // no-wait
 		args,
 	)
-	
+
 	if err != nil {
 		// Se falhar por incompatibilidade de argumentos, loga mas não falha
 		// Isso permite usar filas legadas que foram criadas sem quorum
 		if isQueuePreconditionError(err) {
 			fmt.Printf("⚠️  Queue %s exists with different args (legacy queue), using it anyway\n", name)
-			
+
 			// Reabre o canal (PRECONDITION_FAILED fecha o canal)
 			if reopenErr := r.reopenChannel(); reopenErr != nil {
 				return fmt.Errorf("failed to reopen channel: %w", reopenErr)
 			}
-			
+
 			return nil // Aceita a fila legada
 		}
-		
+
 		return fmt.Errorf("failed to declare queue: %w", err)
 	}
-	
+
 	return nil
 }
 
@@ -149,42 +157,49 @@ func isQueuePreconditionError(err error) bool {
 	if err == nil {
 		return false
 	}
-	
+
 	// Verifica se é um erro AMQP 406 (PRECONDITION_FAILED)
 	if amqpErr, ok := err.(*amqp.Error); ok {
 		return amqpErr.Code == 406
 	}
-	
+
 	return false
 }
 
 // reopenChannel reabre o canal após um erro que o fechou
+// DEVE ser chamado com o mutex já adquirido
 func (r *RabbitMQConnection) reopenChannel() error {
 	if r.conn == nil || r.conn.IsClosed() {
 		return fmt.Errorf("connection is closed")
 	}
-	
+
+	// Fecha o canal antigo se ainda estiver aberto
+	if r.channel != nil {
+		r.channel.Close()
+	}
+
 	ch, err := r.conn.Channel()
 	if err != nil {
 		return fmt.Errorf("failed to reopen channel: %w", err)
 	}
-	
+
 	r.channel = ch
 	r.notifyClose = make(chan *amqp.Error)
 	r.channel.NotifyClose(r.notifyClose)
-	
 	return nil
 }
 
-// DeclareQueueWithDLQ declara fila com Dead Letter Queue.
-// Suporta retry automático antes de enviar para DLQ.
+// DeclareQueueWithDLQ declara uma fila com Dead Letter Queue (DLQ) configurada.
+// maxRetries: número de tentativas antes de ir para DLQ (0 = sem retry)
 func (r *RabbitMQConnection) DeclareQueueWithDLQ(name string, maxRetries int) error {
-	// Cria DLQ primeiro
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
 	dlqName := name + ".dlq"
 	dlqArgs := amqp.Table{
 		"x-queue-type": "quorum",
 	}
-	
+
 	// Declaração idempotente da DLQ
 	_, err := r.channel.QueueDeclare(
 		dlqName,
@@ -194,36 +209,36 @@ func (r *RabbitMQConnection) DeclareQueueWithDLQ(name string, maxRetries int) er
 		false,
 		dlqArgs,
 	)
-	
+
 	if err != nil {
 		// Se falhar por incompatibilidade, aceita a fila legada
 		if isQueuePreconditionError(err) {
 			fmt.Printf("⚠️  DLQ %s exists with different args (legacy), using it anyway\n", dlqName)
-			
+
 			if reopenErr := r.reopenChannel(); reopenErr != nil {
 				return fmt.Errorf("failed to reopen channel: %w", reopenErr)
 			}
-			
+
 			err = nil // Aceita a DLQ legada
 		} else {
 			return fmt.Errorf("failed to declare DLQ: %w", err)
 		}
 	}
-	
+
 	// Cria fila principal com DLQ configurada
 	queueArgs := amqp.Table{
-		"x-queue-type":             "quorum",
-		"x-dead-letter-exchange":   "",       // Default exchange
+		"x-queue-type":              "quorum",
+		"x-dead-letter-exchange":    "",      // Default exchange
 		"x-dead-letter-routing-key": dlqName, // Roteia para DLQ
 	}
-	
+
 	// Se maxRetries > 0, configura delay para retry
 	if maxRetries > 0 {
 		// Após N rejeições, vai para DLQ
 		// RabbitMQ 3.13+ suporta x-delivery-limit
 		queueArgs["x-delivery-limit"] = maxRetries
 	}
-	
+
 	// Declaração idempotente da fila principal
 	_, err = r.channel.QueueDeclare(
 		name,
@@ -233,40 +248,106 @@ func (r *RabbitMQConnection) DeclareQueueWithDLQ(name string, maxRetries int) er
 		false,
 		queueArgs,
 	)
-	
+
 	if err != nil {
 		// Se falhar por incompatibilidade, aceita a fila legada
 		if isQueuePreconditionError(err) {
 			fmt.Printf("⚠️  Queue %s exists with different args (legacy), using it anyway\n", name)
-			
+
 			if reopenErr := r.reopenChannel(); reopenErr != nil {
 				return fmt.Errorf("failed to reopen channel: %w", reopenErr)
 			}
-			
+
 			return nil // Aceita a fila legada
 		}
-		
+
 		return fmt.Errorf("failed to declare queue: %w", err)
 	}
-	
+
 	return nil
 }
 
-// Publish publica uma mensagem.
+// PublishRaw publica dados brutos (raw bytes) em uma fila RabbitMQ.
+// Usado pelo Outbox Processor para publicar eventos já serializados.
+func (r *RabbitMQConnection) PublishRaw(ctx context.Context, queue string, eventData []byte) error {
+	return r.Publish(ctx, queue, eventData)
+}
+
+// Publish publica uma mensagem com retry automático em caso de canal fechado.
 func (r *RabbitMQConnection) Publish(ctx context.Context, queue string, body []byte) error {
-	return r.channel.PublishWithContext(
-		ctx,
-		"",    // exchange
-		queue, // routing key
-		false, // mandatory
-		false, // immediate
-		amqp.Publishing{
-			DeliveryMode: amqp.Persistent,
-			ContentType:  "application/json",
-			Body:         body,
-			Timestamp:    time.Now(),
-		},
-	)
+	maxRetries := 3
+	retryDelay := 100 * time.Millisecond
+
+	for attempt := 0; attempt < maxRetries; attempt++ {
+		r.mu.Lock()
+
+		// Verifica se o canal está aberto
+		if r.channel == nil || r.channel.IsClosed() {
+			r.mu.Unlock()
+
+			// Se não for a última tentativa, aguarda e tenta novamente
+			if attempt < maxRetries-1 {
+				fmt.Printf("⚠️  Channel closed, waiting for reconnection (attempt %d/%d)...\n", attempt+1, maxRetries)
+				time.Sleep(retryDelay * time.Duration(attempt+1)) // Backoff exponencial
+				continue
+			}
+
+			return fmt.Errorf("channel is closed after %d attempts", maxRetries)
+		}
+
+		// Tenta publicar
+		err := r.channel.PublishWithContext(
+			ctx,
+			"",    // exchange
+			queue, // routing key
+			false, // mandatory
+			false, // immediate
+			amqp.Publishing{
+				DeliveryMode: amqp.Persistent,
+				ContentType:  "application/json",
+				Body:         body,
+				Timestamp:    time.Now(),
+			},
+		)
+		r.mu.Unlock()
+
+		// Se publicou com sucesso, retorna
+		if err == nil {
+			if attempt > 0 {
+				fmt.Printf("✅ Message published successfully after %d retries\n", attempt)
+			}
+			return nil
+		}
+
+		// Se o erro é de canal fechado, tenta novamente
+		if isChannelClosedError(err) && attempt < maxRetries-1 {
+			fmt.Printf("⚠️  Publish failed (channel closed), retrying (attempt %d/%d)...\n", attempt+1, maxRetries)
+			time.Sleep(retryDelay * time.Duration(attempt+1))
+			continue
+		}
+
+		// Outro tipo de erro, retorna imediatamente
+		return fmt.Errorf("failed to publish: %w", err)
+	}
+
+	return fmt.Errorf("failed to publish after %d attempts", maxRetries)
+}
+
+// isChannelClosedError verifica se o erro é de canal/conexão fechada
+func isChannelClosedError(err error) bool {
+	if err == nil {
+		return false
+	}
+
+	// Verifica se é um erro AMQP de canal fechado
+	if amqpErr, ok := err.(*amqp.Error); ok {
+		return amqpErr.Code == 504 // CHANNEL_ERROR ou CONNECTION_FORCED
+	}
+
+	// Verifica mensagem de erro
+	errMsg := err.Error()
+	return errMsg == "channel/connection is not open" ||
+		errMsg == "Exception (504) Reason: \"channel/connection is not open\""
 }
 
 // Consumer interface para processadores de mensagens.
@@ -282,11 +363,13 @@ func (r *RabbitMQConnection) StartConsumer(
 	consumer Consumer,
 	prefetchCount int,
 ) error {
+	r.mu.Lock()
 	// Configura QoS (quantas mensagens processar simultaneamente)
 	if err := r.channel.Qos(prefetchCount, 0, false); err != nil {
+		r.mu.Unlock()
 		return fmt.Errorf("failed to set QoS: %w", err)
 	}
-	
+
 	// Inicia consumer
 	msgs, err := r.channel.Consume(
 		queueName,   // queue
@@ -297,10 +380,11 @@ func (r *RabbitMQConnection) StartConsumer(
 		false,       // no-wait
 		nil,         // args
 	)
+	r.mu.Unlock()
 	if err != nil {
 		return fmt.Errorf("failed to register consumer: %w", err)
 	}
-	
+
 	// Processa mensagens
 	go func() {
 		for {
@@ -308,38 +392,38 @@ func (r *RabbitMQConnection) StartConsumer(
 			case <-ctx.Done():
 				fmt.Println("Consumer stopped")
 				return
-							case msg, ok := <-msgs:
-					if !ok {
-						fmt.Println("Channel closed")
-						return
-					}
-					
-					// Processa mensagem
-					if err := consumer.ProcessMessage(ctx, msg); err != nil {
-						fmt.Printf("Error processing message: %v\n", err)
-						
-						// Verifica número de tentativas (x-death header)
-						retryCount := getRetryCount(msg)
-						fmt.Printf("Retry count: %d\n", retryCount)
-						
-						// Se ainda tem retries, requeue
-						// Senão, Nack sem requeue → vai para DLQ
-						if retryCount < 3 {
-							// Nack com requeue (tenta novamente)
-							msg.Nack(false, true)
-						} else {
-							// Após 3 tentativas, envia para DLQ
-							fmt.Printf("Max retries reached, sending to DLQ\n")
-							msg.Nack(false, false) // requeue=false → DLQ
-						}
+			case msg, ok := <-msgs:
+				if !ok {
+					fmt.Println("Channel closed")
+					return
+				}
+
+				// Processa mensagem
+				if err := consumer.ProcessMessage(ctx, msg); err != nil {
+					fmt.Printf("Error processing message: %v\n", err)
+
+					// Verifica número de tentativas (x-death header)
+					retryCount := getRetryCount(msg)
+					fmt.Printf("Retry count: %d\n", retryCount)
+
+					// Se ainda tem retries, requeue
+					// Senão, Nack sem requeue → vai para DLQ
+					if retryCount < 3 {
+						// Nack com requeue (tenta novamente)
+						msg.Nack(false, true)
 					} else {
-						// Ack após sucesso
-						msg.Ack(false)
+						// Após 3 tentativas, envia para DLQ
+						fmt.Printf("Max retries reached, sending to DLQ\n")
+						msg.Nack(false, false) // requeue=false → DLQ
 					}
+				} else {
+					// Ack após sucesso
+					msg.Ack(false)
+				}
 			}
 		}
 	}()
-	
+
 	return nil
 }
 
@@ -350,25 +434,25 @@ func getRetryCount(msg amqp.Delivery) int {
 	if !ok {
 		return 0
 	}
-	
+
 	// Parse x-death (é uma []interface{} de amqp.Table)
 	deaths, ok := xDeath.([]interface{})
 	if !ok || len(deaths) == 0 {
 		return 0
 	}
-	
+
 	// Pega o primeiro elemento (mais recente)
 	firstDeath, ok := deaths[0].(amqp.Table)
 	if !ok {
 		return 0
 	}
-	
+
 	// Conta quantas vezes foi rejeitada
 	count, ok := firstDeath["count"]
 	if !ok {
 		return 0
 	}
-	
+
 	// Converte para int
 	switch v := count.(type) {
 	case int64:
@@ -399,10 +483,9 @@ func (r *RabbitMQConnection) ListQueues() ([]QueueInfo, error) {
 	// Usa a API de management do RabbitMQ para listar filas existentes
 	// Como não temos acesso direto à API de management, vamos usar uma abordagem
 	// baseada nas filas que realmente declaramos no sistema
-	
+
 	var queues []QueueInfo
-	
-	
+
 	// Tenta descobrir filas existentes baseado nos padrões conhecidos
 	potentialQueues := []string{
 		// WAHA Events - Mensagens
@@ -416,7 +499,7 @@ func (r *RabbitMQConnection) ListQueues() ([]QueueInfo, error) {
 		"waha.events.message.reaction.dlq",
 		"waha.events.message.edited",
 		"waha.events.message.edited.dlq",
-		
+
 		// WAHA Events - Chamadas
 		"waha.events.call.received",
 		"waha.events.call.received.dlq",
@@ -424,11 +507,11 @@ func (r *RabbitMQConnection) ListQueues() ([]QueueInfo, error) {
 		"waha.events.call.accepted.dlq",
 		"waha.events.call.rejected",
 		"waha.events.call.rejected.dlq",
-		
+
 		// WAHA Events - Falhas
 		"waha.events.event.response.failed",
 		"waha.events.event.response.failed.dlq",
-		
+
 		// WAHA Events - Labels
 		"waha.events.label.upsert",
 		"waha.events.label.upsert.dlq",
@@ -438,7 +521,7 @@ func (r *RabbitMQConnection) ListQueues() ([]QueueInfo, error) {
 		"waha.events.label.chat.added.dlq",
 		"waha.events.label.chat.deleted",
 		"waha.events.label.chat.deleted.dlq",
-		
+
 		// WAHA Events - Grupos v2
 		"waha.events.group.v2.join",
 		"waha.events.group.v2.join.dlq",
@@ -448,11 +531,11 @@ func (r *RabbitMQConnection) ListQueues() ([]QueueInfo, error) {
 		"waha.events.group.v2.update.dlq",
 		"waha.events.group.v2.participants",
 		"waha.events.group.v2.participants.dlq",
-		
+
 		// Domain Events
 		"domain.events.contact.created",
 		"domain.events.contact.created.dlq",
-		"domain.events.session.started", 
+		"domain.events.session.started",
 		"domain.events.session.started.dlq",
 	}
 
@@ -481,7 +564,7 @@ func (r *RabbitMQConnection) SetupWAHAQueues() error {
 	wahaQueues := []string{
 		// Fila de entrada (raw events) - NOVA ARQUITETURA
 		"waha.events.raw",
-		
+
 		// Filas de saída (eventos processados) - NOVA ARQUITETURA
 		"waha.events.message.parsed",
 		"waha.events.call.parsed",
@@ -490,50 +573,50 @@ func (r *RabbitMQConnection) SetupWAHAQueues() error {
 		"waha.events.label.parsed",
 		"waha.events.unknown.parsed",
 		"waha.events.parse_errors",
-		
+
 		// Filas legadas (manter compatibilidade)
 		"waha.events.message",
 		"waha.events.message.any",
 		"waha.events.message.ack",
 		"waha.events.message.reaction",
 		"waha.events.message.edited",
-		
+
 		// Chamadas
 		"waha.events.call.received",
-		"waha.events.call.accepted", 
+		"waha.events.call.accepted",
 		"waha.events.call.rejected",
-		
+
 		// Eventos de resposta com falha
 		"waha.events.event.response.failed",
-		
+
 		// Labels/Tags
 		"waha.events.label.upsert",
 		"waha.events.label.deleted",
 		"waha.events.label.chat.added",
 		"waha.events.label.chat.deleted",
-		
+
 		// Grupos v2
 		"waha.events.group.v2.join",
-		"waha.events.group.v2.leave", 
+		"waha.events.group.v2.leave",
 		"waha.events.group.v2.update",
 		"waha.events.group.v2.participants",
-		
+
 		// Eventos de sessão/conexão
 		"waha.events.session.status",
-		
+
 		// Presença (online/offline)
 		"waha.events.presence",
-		
+
 		// Eventos desconhecidos (fallback)
 		"waha.events.unknown",
 	}
-	
+
 	for _, queue := range wahaQueues {
 		if err := r.DeclareQueueWithDLQ(queue, 3); err != nil {
 			return fmt.Errorf("failed to declare %s queue: %w", queue, err)
 		}
 	}
-	
+
 	return nil
 }
 
@@ -543,12 +626,39 @@ func (r *RabbitMQConnection) SetupAllQueues() error {
 	if err := r.SetupWAHAQueues(); err != nil {
 		return fmt.Errorf("failed to setup WAHA queues: %w", err)
 	}
-	
+
 	// Setup domain event queues
-	eventBus := NewDomainEventBus(r, nil, nil) // nil webhook notifier and event log repo for setup only
-	if err := eventBus.SetupEventQueues(); err != nil {
-		return fmt.Errorf("failed to setup domain event queues: %w", err)
+	// As filas de domain events serão criadas sob demanda pelo Outbox Processor
+	// ou podem ser declaradas aqui se necessário
+	domainEventQueues := []string{
+		// Contact events
+		"domain.events.contact.created",
+		"domain.events.contact.updated",
+		"domain.events.contact.profile_picture_updated",
+		"domain.events.contact.status_changed",
+		"domain.events.contact.pipeline_status_changed",
+		"domain.events.contact.entered_pipeline",
+		"domain.events.contact.exited_pipeline",
+
+		// Session events
+		"domain.events.session.started",
+		"domain.events.session.ended",
+
+		// Message events
+		"domain.events.message.created",
+
+		// Tracking events
+		"domain.events.tracking.message.meta_ads",
+
+		// Note events
+		"domain.events.note.added",
 	}
-	
+
+	for _, queue := range domainEventQueues {
+		if err := r.DeclareQueueWithDLQ(queue, 3); err != nil {
+			return fmt.Errorf("failed to declare %s queue: %w", queue, err)
+		}
+	}
+
 	return nil
 }

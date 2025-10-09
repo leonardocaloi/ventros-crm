@@ -7,13 +7,14 @@ import (
 
 // Config holds all application configuration
 type Config struct {
-	Server   ServerConfig
-	Database DatabaseConfig
-	Redis    RedisConfig
-	RabbitMQ RabbitMQConfig
-	Temporal TemporalConfig
-	Log      LogConfig
-	Session  SessionConfig
+	Server     ServerConfig
+	Database   DatabaseConfig
+	Redis      RedisConfig
+	RabbitMQ   RabbitMQConfig
+	Temporal   TemporalConfig
+	Log        LogConfig
+	Session    SessionConfig
+	Encryption EncryptionConfig
 }
 
 type ServerConfig struct {
@@ -54,6 +55,10 @@ type SessionConfig struct {
 	DefaultTimeoutMinutes int // Timeout padrão para sessões em minutos
 }
 
+type EncryptionConfig struct {
+	AESKey string // Base64-encoded 32-byte key for AES-256-GCM
+}
+
 // Load loads configuration from environment variables
 func Load() *Config {
 	return &Config{
@@ -82,10 +87,12 @@ func Load() *Config {
 			Host:      getEnv("TEMPORAL_HOST", "localhost:7233"),
 			Namespace: getEnv("TEMPORAL_NAMESPACE", "ventros-crm"),
 		},
-		Log: LogConfig{
-		},
+		Log: LogConfig{},
 		Session: SessionConfig{
 			DefaultTimeoutMinutes: getEnvInt("SESSION_DEFAULT_TIMEOUT_MINUTES", 30),
+		},
+		Encryption: EncryptionConfig{
+			AESKey: getEnv("ENCRYPTION_AES_KEY", ""),
 		},
 	}
 }
@@ -114,12 +121,12 @@ func getRabbitMQURL() string {
 	if url := os.Getenv("RABBITMQ_URL"); url != "" {
 		return url
 	}
-	
+
 	// Caso contrário, constrói a URL usando variáveis separadas
 	host := getEnv("RABBITMQ_HOST", "localhost")
 	port := getEnv("RABBITMQ_PORT", "5672")
 	user := getEnv("RABBITMQ_USER", "guest")
 	password := getEnv("RABBITMQ_PASSWORD", "guest")
-	
+
 	return fmt.Sprintf("amqp://%s:%s@%s:%s/", user, password, host, port)
 }

@@ -30,9 +30,9 @@ func (s EventSource) String() string {
 // Tipos de eventos comuns (constantes para referência)
 const (
 	// Contact events
-	EventTypeContactCreated   = "contact.created"
-	EventTypeContactUpdated   = "contact.updated"
-	EventTypeContactDeleted   = "contact.deleted"
+	EventTypeContactCreated = "contact.created"
+	EventTypeContactUpdated = "contact.updated"
+	EventTypeContactDeleted = "contact.deleted"
 
 	// Session events
 	EventTypeSessionStarted    = "session.started"
@@ -46,9 +46,9 @@ const (
 	EventTypeMessageFailed   = "message.failed"
 
 	// Agent events
-	EventTypeAgentAssigned   = "agent.assigned"
-	EventTypeAgentTransfer   = "agent.transfer"
-	EventTypeAgentTyping     = "agent.typing"
+	EventTypeAgentAssigned = "agent.assigned"
+	EventTypeAgentTransfer = "agent.transfer"
+	EventTypeAgentTyping   = "agent.typing"
 
 	// Custom events
 	EventTypeCustomFieldUpdated = "custom_field.updated"

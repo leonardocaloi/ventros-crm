@@ -11,16 +11,16 @@ import (
 // Implementa relacionamento Many-to-Many entre Agent e Session.
 // Importante para Google ADK e orquestração de múltiplos agentes (humanos + IA).
 type AgentSession struct {
-	id              uuid.UUID
-	agentID         uuid.UUID
-	sessionID       uuid.UUID
-	roleInSession   *RoleInSession
-	joinedAt        time.Time
-	leftAt          *time.Time
-	isActive        bool
-	metadata        map[string]interface{} // Para integração ADK
-	createdAt       time.Time
-	updatedAt       time.Time
+	id            uuid.UUID
+	agentID       uuid.UUID
+	sessionID     uuid.UUID
+	roleInSession *RoleInSession
+	joinedAt      time.Time
+	leftAt        *time.Time
+	isActive      bool
+	metadata      map[string]interface{} // Para integração ADK
+	createdAt     time.Time
+	updatedAt     time.Time
 
 	// Domain Events
 	events []DomainEvent
@@ -142,14 +142,14 @@ func (as *AgentSession) ChangeRole(newRole RoleInSession) error {
 }
 
 // Getters
-func (as *AgentSession) ID() uuid.UUID                       { return as.id }
-func (as *AgentSession) AgentID() uuid.UUID                  { return as.agentID }
-func (as *AgentSession) SessionID() uuid.UUID                { return as.sessionID }
-func (as *AgentSession) RoleInSession() *RoleInSession       { return as.roleInSession }
-func (as *AgentSession) JoinedAt() time.Time                 { return as.joinedAt }
-func (as *AgentSession) LeftAt() *time.Time                  { return as.leftAt }
-func (as *AgentSession) IsActive() bool                      { return as.isActive }
-func (as *AgentSession) Metadata() map[string]interface{}    {
+func (as *AgentSession) ID() uuid.UUID                 { return as.id }
+func (as *AgentSession) AgentID() uuid.UUID            { return as.agentID }
+func (as *AgentSession) SessionID() uuid.UUID          { return as.sessionID }
+func (as *AgentSession) RoleInSession() *RoleInSession { return as.roleInSession }
+func (as *AgentSession) JoinedAt() time.Time           { return as.joinedAt }
+func (as *AgentSession) LeftAt() *time.Time            { return as.leftAt }
+func (as *AgentSession) IsActive() bool                { return as.isActive }
+func (as *AgentSession) Metadata() map[string]interface{} {
 	// Return copy to preserve immutability
 	copy := make(map[string]interface{})
 	for k, v := range as.metadata {
@@ -157,8 +157,8 @@ func (as *AgentSession) Metadata() map[string]interface{}    {
 	}
 	return copy
 }
-func (as *AgentSession) CreatedAt() time.Time                { return as.createdAt }
-func (as *AgentSession) UpdatedAt() time.Time                { return as.updatedAt }
+func (as *AgentSession) CreatedAt() time.Time { return as.createdAt }
+func (as *AgentSession) UpdatedAt() time.Time { return as.updatedAt }
 
 // Domain Events
 func (as *AgentSession) DomainEvents() []DomainEvent {

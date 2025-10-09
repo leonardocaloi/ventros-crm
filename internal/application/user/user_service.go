@@ -32,12 +32,12 @@ type CreateUserRequest struct {
 
 // CreateUserResponse representa a resposta da criação de usuário
 type CreateUserResponse struct {
-	UserID    uuid.UUID `json:"user_id"`
-	Name      string    `json:"name"`
-	Email     string    `json:"email"`
-	Role      string    `json:"role"`
-	APIKey    string    `json:"api_key"`
-	ProjectID uuid.UUID `json:"default_project_id"`
+	UserID     uuid.UUID `json:"user_id"`
+	Name       string    `json:"name"`
+	Email      string    `json:"email"`
+	Role       string    `json:"role"`
+	APIKey     string    `json:"api_key"`
+	ProjectID  uuid.UUID `json:"default_project_id"`
 	PipelineID uuid.UUID `json:"default_pipeline_id"`
 }
 
@@ -63,7 +63,7 @@ func (s *UserService) CreateUser(req CreateUserRequest) (*CreateUserResponse, er
 	if req.Role == "" {
 		req.Role = "user"
 	}
-	
+
 	// Validar se a role é válida
 	if _, err := user.ParseRole(req.Role); err != nil {
 		return nil, fmt.Errorf("invalid role: %s", req.Role)
@@ -177,7 +177,7 @@ func (s *UserService) CreateUser(req CreateUserRequest) (*CreateUserResponse, er
 		return nil, fmt.Errorf("failed to create default project: %w", err)
 	}
 
-	// 4. Cria pipeline default (com timeout de 30 minutos)
+	// 4. Cria pipeline default (sem timeout override - herda do projeto)
 	pipeline := entities.PipelineEntity{
 		ID:                    uuid.New(),
 		ProjectID:             project.ID,
@@ -187,7 +187,7 @@ func (s *UserService) CreateUser(req CreateUserRequest) (*CreateUserResponse, er
 		Color:                 "#3B82F6",
 		Position:              0,
 		Active:                true,
-		SessionTimeoutMinutes: 30, // Timeout padrão de 30 minutos
+		SessionTimeoutMinutes: nil, // NULL = herda do projeto (default: 30 min)
 	}
 
 	if err := tx.Create(&pipeline).Error; err != nil {
@@ -254,7 +254,7 @@ func (s *UserService) Login(req LoginRequest) (*LoginResponse, error) {
 	// Busca API key ativa ou cria uma nova
 	var apiKeyEntity entities.UserAPIKeyEntity
 	err := s.db.Where("user_id = ? AND active = true", user.ID).First(&apiKeyEntity).Error
-	
+
 	var apiKey string
 	if err == gorm.ErrRecordNotFound {
 		// Cria nova API key
@@ -330,9 +330,9 @@ func (s *UserService) generateAPIKey(tx *gorm.DB, userID uuid.UUID, name string)
 	if _, err := rand.Read(keyBytes); err != nil {
 		return "", fmt.Errorf("failed to generate random key: %w", err)
 	}
-	
+
 	apiKey := hex.EncodeToString(keyBytes)
-	
+
 	// Hash da API key para armazenamento
 	hasher := sha256.New()
 	hasher.Write([]byte(apiKey))

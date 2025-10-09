@@ -35,7 +35,7 @@ func (bus *WAHARawEventBus) PublishRawEvent(ctx context.Context, rawEvent waha.W
 			zap.Error(err),
 			zap.String("event_id", rawEvent.ID),
 			zap.String("session", rawEvent.Session))
-		
+
 		// Cria evento de erro mínimo que sempre pode ser serializado
 		errorEvent := waha.WAHARawEvent{
 			ID:        rawEvent.ID,
@@ -46,7 +46,7 @@ func (bus *WAHARawEventBus) PublishRawEvent(ctx context.Context, rawEvent waha.W
 			Source:    "marshal_error",
 			Metadata:  map[string]string{"original_error": err.Error()},
 		}
-		
+
 		payload, _ = json.Marshal(errorEvent) // Este sempre funciona
 	}
 
@@ -58,7 +58,7 @@ func (bus *WAHARawEventBus) PublishRawEvent(ctx context.Context, rawEvent waha.W
 			zap.Error(err),
 			zap.String("queue", queueName),
 			zap.String("event_id", rawEvent.ID))
-		
+
 		// Mesmo assim, não retorna erro para não quebrar o webhook
 		// O evento será perdido, mas o webhook não falhará
 		return nil
@@ -121,12 +121,12 @@ func (bus *WAHARawEventBus) SetupRawEventQueues() error {
 
 	// Filas de saída (eventos processados)
 	processedQueues := []string{
-		"waha.events.message.parsed",     // Mensagens válidas
-		"waha.events.call.parsed",        // Chamadas válidas  
-		"waha.events.presence.parsed",    // Presença válida
-		"waha.events.group.parsed",       // Eventos de grupo válidos
-		"waha.events.label.parsed",       // Eventos de label válidos
-		"waha.events.unknown.parsed",     // Eventos desconhecidos mas válidos
+		"waha.events.message.parsed",  // Mensagens válidas
+		"waha.events.call.parsed",     // Chamadas válidas
+		"waha.events.presence.parsed", // Presença válida
+		"waha.events.group.parsed",    // Eventos de grupo válidos
+		"waha.events.label.parsed",    // Eventos de label válidos
+		"waha.events.unknown.parsed",  // Eventos desconhecidos mas válidos
 	}
 
 	for _, queue := range processedQueues {
@@ -136,7 +136,7 @@ func (bus *WAHARawEventBus) SetupRawEventQueues() error {
 	}
 
 	// Fila para erros de parsing
-	if err := bus.conn.DeclareQueueWithDLQ("waha.events.parse_errors", 5); err != nil {
+	if err := bus.conn.DeclareQueueWithDLQ("waha.events.parse_errors", 3); err != nil {
 		return fmt.Errorf("failed to declare parse errors queue: %w", err)
 	}
 

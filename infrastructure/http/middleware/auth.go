@@ -91,17 +91,28 @@ func (a *AuthMiddleware) handleDevAuth(c *gin.Context) *AuthContext {
 		tenantID = "dev-tenant"
 	}
 
-	a.logger.Info("Dev auth bypass", 
+	// Pegar project_id do header
+	projectIDStr := c.GetHeader("X-Dev-Project-ID")
+	var projectID uuid.UUID
+	if projectIDStr != "" {
+		parsedProjectID, err := uuid.Parse(projectIDStr)
+		if err == nil {
+			projectID = parsedProjectID
+		}
+	}
+
+	a.logger.Info("Dev auth bypass",
 		zap.String("user_id", userID),
 		zap.String("email", email),
 		zap.String("role", role),
 	)
 
 	return &AuthContext{
-		UserID:   parsedUserID,
-		Email:    email,
-		Role:     role,
-		TenantID: tenantID,
+		UserID:    parsedUserID,
+		Email:     email,
+		Role:      role,
+		TenantID:  tenantID,
+		ProjectID: projectID,
 	}
 }
 
@@ -193,9 +204,9 @@ func RequireRole(role string) gin.HandlerFunc {
 
 		if authCtx.Role != role && authCtx.Role != "admin" {
 			c.JSON(http.StatusForbidden, gin.H{
-				"error": "Insufficient permissions",
+				"error":         "Insufficient permissions",
 				"required_role": role,
-				"your_role": authCtx.Role,
+				"your_role":     authCtx.Role,
 			})
 			c.Abort()
 			return

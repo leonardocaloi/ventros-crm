@@ -38,7 +38,7 @@ func NewWAHAClientFromEnv(logger *zap.Logger) *WAHAClient {
 	// A API key vem de variável de ambiente
 	baseURL := getEnvOrDefault("WAHA_BASE_URL", "http://localhost:3000")
 	token := getEnvOrDefault("WAHA_API_KEY", "")
-	
+
 	return NewWAHAClient(baseURL, token, logger)
 }
 
@@ -92,106 +92,110 @@ type MessagePayload struct {
 	ID        string `json:"id"`
 	Timestamp int64  `json:"timestamp"`
 	From      string `json:"from"`
+	FromMe    bool   `json:"fromMe"`
 	To        string `json:"to"`
 	Body      string `json:"body"`
 	Type      string `json:"type"`
 	MimeType  string `json:"mimeType,omitempty"`
 	MediaURL  string `json:"mediaUrl,omitempty"`
+	HasMedia  bool   `json:"hasMedia"`
+	Ack       int    `json:"ack,omitempty"`
+	AckName   string `json:"ackName,omitempty"`
 }
 
 // GetSessions retorna todas as sessões
 func (c *WAHAClient) GetSessions(ctx context.Context) ([]SessionInfo, error) {
 	url := fmt.Sprintf("%s/api/sessions", c.baseURL)
-	
+
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
-	
+
 	c.setAuthHeaders(req)
-	
+
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to make request: %w", err)
 	}
 	defer resp.Body.Close()
-	
+
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
 		return nil, fmt.Errorf("API error %d: %s", resp.StatusCode, string(body))
 	}
-	
+
 	var sessions []SessionInfo
 	if err := json.NewDecoder(resp.Body).Decode(&sessions); err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
-	
+
 	return sessions, nil
 }
 
 // GetSession retorna informações de uma sessão específica
 func (c *WAHAClient) GetSession(ctx context.Context, sessionID string) (*SessionInfo, error) {
 	url := fmt.Sprintf("%s/api/sessions/%s", c.baseURL, sessionID)
-	
+
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
-	
+
 	c.setAuthHeaders(req)
-	
+
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to make request: %w", err)
 	}
 	defer resp.Body.Close()
-	
+
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
 		return nil, fmt.Errorf("API error %d: %s", resp.StatusCode, string(body))
 	}
-	
+
 	var session SessionInfo
 	if err := json.NewDecoder(resp.Body).Decode(&session); err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
-	
+
 	return &session, nil
 }
 
 // StartSession inicia uma nova sessão
 func (c *WAHAClient) StartSession(ctx context.Context, sessionID string, config map[string]interface{}) error {
 	url := fmt.Sprintf("%s/api/sessions/%s/start", c.baseURL, sessionID)
-	
+
 	payload := map[string]interface{}{
 		"name":   sessionID,
 		"config": config,
 	}
-	
+
 	jsonData, err := json.Marshal(payload)
 	if err != nil {
 		return fmt.Errorf("failed to marshal payload: %w", err)
 	}
-	
+
 	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(jsonData))
 	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)
 	}
-	
+
 	c.setAuthHeaders(req)
 	req.Header.Set("Content-Type", "application/json")
-	
+
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return fmt.Errorf("failed to make request: %w", err)
 	}
 	defer resp.Body.Close()
-	
+
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
 		body, _ := io.ReadAll(resp.Body)
 		return fmt.Errorf("API error %d: %s", resp.StatusCode, string(body))
 	}
-	
+
 	c.logger.Info("WAHA session started", zap.String("session_id", sessionID))
 	return nil
 }
@@ -199,25 +203,25 @@ func (c *WAHAClient) StartSession(ctx context.Context, sessionID string, config 
 // StopSession para uma sessão
 func (c *WAHAClient) StopSession(ctx context.Context, sessionID string) error {
 	url := fmt.Sprintf("%s/api/sessions/%s/stop", c.baseURL, sessionID)
-	
+
 	req, err := http.NewRequestWithContext(ctx, "POST", url, nil)
 	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)
 	}
-	
+
 	c.setAuthHeaders(req)
-	
+
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return fmt.Errorf("failed to make request: %w", err)
 	}
 	defer resp.Body.Close()
-	
+
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
 		return fmt.Errorf("API error %d: %s", resp.StatusCode, string(body))
 	}
-	
+
 	c.logger.Info("WAHA session stopped", zap.String("session_id", sessionID))
 	return nil
 }
@@ -225,7 +229,7 @@ func (c *WAHAClient) StopSession(ctx context.Context, sessionID string) error {
 // SetWebhook configura webhook para uma sessão
 func (c *WAHAClient) SetWebhook(ctx context.Context, sessionID, webhookURL string, events []string) error {
 	url := fmt.Sprintf("%s/api/sessions/%s/config", c.baseURL, sessionID)
-	
+
 	payload := map[string]interface{}{
 		"webhooks": []WebhookConfig{
 			{
@@ -234,114 +238,114 @@ func (c *WAHAClient) SetWebhook(ctx context.Context, sessionID, webhookURL strin
 			},
 		},
 	}
-	
+
 	jsonData, err := json.Marshal(payload)
 	if err != nil {
 		return fmt.Errorf("failed to marshal payload: %w", err)
 	}
-	
+
 	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(jsonData))
 	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)
 	}
-	
+
 	c.setAuthHeaders(req)
 	req.Header.Set("Content-Type", "application/json")
-	
+
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return fmt.Errorf("failed to make request: %w", err)
 	}
 	defer resp.Body.Close()
-	
+
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
 		return fmt.Errorf("API error %d: %s", resp.StatusCode, string(body))
 	}
-	
-	c.logger.Info("WAHA webhook configured", 
+
+	c.logger.Info("WAHA webhook configured",
 		zap.String("session_id", sessionID),
 		zap.String("webhook_url", webhookURL),
 		zap.Strings("events", events))
-	
+
 	return nil
 }
 
 // SendMessage envia uma mensagem de texto
 func (c *WAHAClient) SendMessage(ctx context.Context, sessionID string, req SendMessageRequest) (*SendMessageResponse, error) {
 	url := fmt.Sprintf("%s/api/sessions/%s/messages/text", c.baseURL, sessionID)
-	
+
 	jsonData, err := json.Marshal(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
 	}
-	
+
 	httpReq, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(jsonData))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
-	
+
 	c.setAuthHeaders(httpReq)
 	httpReq.Header.Set("Content-Type", "application/json")
-	
+
 	resp, err := c.httpClient.Do(httpReq)
 	if err != nil {
 		return nil, fmt.Errorf("failed to make request: %w", err)
 	}
 	defer resp.Body.Close()
-	
+
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
 		body, _ := io.ReadAll(resp.Body)
 		return nil, fmt.Errorf("API error %d: %s", resp.StatusCode, string(body))
 	}
-	
+
 	var response SendMessageResponse
 	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
-	
-	c.logger.Debug("Message sent via WAHA", 
+
+	c.logger.Debug("Message sent via WAHA",
 		zap.String("session_id", sessionID),
 		zap.String("chat_id", req.ChatID),
 		zap.String("message_id", response.ID))
-	
+
 	return &response, nil
 }
 
 // GetQRCode obtém o QR code para autenticação
 func (c *WAHAClient) GetQRCode(ctx context.Context, sessionID string) ([]byte, error) {
 	url := fmt.Sprintf("%s/api/sessions/%s/auth/qr", c.baseURL, sessionID)
-	
+
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
-	
+
 	c.setAuthHeaders(req)
-	
+
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to make request: %w", err)
 	}
 	defer resp.Body.Close()
-	
+
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
 		return nil, fmt.Errorf("API error %d: %s", resp.StatusCode, string(body))
 	}
-	
+
 	qrData, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read QR code: %w", err)
 	}
-	
+
 	return qrData, nil
 }
 
 // setAuthHeaders define os headers de autenticação
 func (c *WAHAClient) setAuthHeaders(req *http.Request) {
 	if c.token != "" {
-		req.Header.Set("Authorization", "Bearer "+c.token)
+		req.Header.Set("X-Api-Key", c.token)
 	}
 }
 
@@ -351,7 +355,7 @@ func ParseWebhookEvent(body []byte) (*WAHAWebhookEvent, error) {
 	if err := json.Unmarshal(body, &event); err != nil {
 		return nil, fmt.Errorf("failed to parse webhook event: %w", err)
 	}
-	
+
 	return &event, nil
 }
 
@@ -363,6 +367,7 @@ func GetDefaultWebhookEvents() []string {
 		"message.ack",
 		"message.reaction",
 		"message.edited",
+		"session.status", // Importante para detectar quando sessão fica ativa
 		"call.received",
 		"call.accepted",
 		"call.rejected",
@@ -377,3 +382,120 @@ func GetDefaultWebhookEvents() []string {
 	}
 }
 
+// ChatOverview representa um chat na visão geral
+type ChatOverview struct {
+	ID          string          `json:"id"`
+	Name        string          `json:"name"`
+	Picture     string          `json:"picture"`
+	LastMessage *MessagePayload `json:"lastMessage"`
+}
+
+// GetChatsOverview retorna visão geral de todos os chats
+func (c *WAHAClient) GetChatsOverview(ctx context.Context, sessionID string, limit, offset int) ([]ChatOverview, error) {
+	url := fmt.Sprintf("%s/api/%s/chats/overview?limit=%d&offset=%d", c.baseURL, sessionID, limit, offset)
+
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	c.setAuthHeaders(req)
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to make request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("API error %d: %s", resp.StatusCode, string(body))
+	}
+
+	var chats []ChatOverview
+	if err := json.NewDecoder(resp.Body).Decode(&chats); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	return chats, nil
+}
+
+// GetChatMessages retorna mensagens de um chat específico
+func (c *WAHAClient) GetChatMessages(ctx context.Context, sessionID, chatID string, limit int, downloadMedia bool) ([]MessagePayload, error) {
+	url := fmt.Sprintf("%s/api/%s/chats/%s/messages?limit=%d&downloadMedia=%t",
+		c.baseURL, sessionID, chatID, limit, downloadMedia)
+
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	c.setAuthHeaders(req)
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to make request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("API error %d: %s", resp.StatusCode, string(body))
+	}
+
+	var messages []MessagePayload
+	if err := json.NewDecoder(resp.Body).Decode(&messages); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	return messages, nil
+}
+
+// HealthCheck verifica se a sessão está ativa e funcionando
+func (c *WAHAClient) HealthCheck(ctx context.Context, sessionID string) (bool, string, error) {
+	sessionInfo, err := c.GetSession(ctx, sessionID)
+	if err != nil {
+		return false, "error", fmt.Errorf("failed to get session: %w", err)
+	}
+
+	// Status WORKING significa que está ativo e conectado
+	isHealthy := sessionInfo.Status == "WORKING"
+	return isHealthy, sessionInfo.Status, nil
+}
+
+// CreateSession cria uma nova sessão WAHA
+func (c *WAHAClient) CreateSession(ctx context.Context, sessionID string, config map[string]interface{}) error {
+	url := fmt.Sprintf("%s/api/sessions", c.baseURL)
+
+	payload := map[string]interface{}{
+		"name":   sessionID,
+		"config": config,
+	}
+
+	jsonData, err := json.Marshal(payload)
+	if err != nil {
+		return fmt.Errorf("failed to marshal payload: %w", err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(jsonData))
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
+	}
+
+	c.setAuthHeaders(req)
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to make request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
+		body, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("API error %d: %s", resp.StatusCode, string(body))
+	}
+
+	c.logger.Info("WAHA session created", zap.String("session_id", sessionID))
+	return nil
+}

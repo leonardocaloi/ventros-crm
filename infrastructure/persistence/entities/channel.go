@@ -24,55 +24,66 @@ const (
 type ChannelStatus string
 
 const (
-	ChannelStatusActive      ChannelStatus = "active"
-	ChannelStatusInactive    ChannelStatus = "inactive"
-	ChannelStatusConnecting  ChannelStatus = "connecting"
+	ChannelStatusActive       ChannelStatus = "active"
+	ChannelStatusInactive     ChannelStatus = "inactive"
+	ChannelStatusConnecting   ChannelStatus = "connecting"
 	ChannelStatusDisconnected ChannelStatus = "disconnected"
-	ChannelStatusError       ChannelStatus = "error"
+	ChannelStatusError        ChannelStatus = "error"
 )
 
 // ChannelEntity representa um canal de comunicação no banco de dados
 type ChannelEntity struct {
-	ID          uuid.UUID              `gorm:"type:uuid;primary_key;default:gen_random_uuid()"`
-	UserID      uuid.UUID              `gorm:"type:uuid;not null;index"`
-	ProjectID   uuid.UUID              `gorm:"type:uuid;not null;index"`
-	TenantID    string                 `gorm:"not null;index"`
-	Name        string                 `gorm:"not null"`
-	Type        ChannelType            `gorm:"not null;index"`
-	Status      ChannelStatus          `gorm:"default:'inactive';index"`
-	
+	ID        uuid.UUID     `gorm:"type:uuid;primary_key;default:gen_random_uuid()"`
+	UserID    uuid.UUID     `gorm:"type:uuid;not null;index"`
+	ProjectID uuid.UUID     `gorm:"type:uuid;not null;index"`
+	TenantID  string        `gorm:"not null;index"`
+	Name      string        `gorm:"not null"`
+	Type      ChannelType   `gorm:"not null;index"`
+	Status    ChannelStatus `gorm:"default:'inactive';index"`
+
 	// ExternalID: ID do canal na plataforma externa
 	// - WAHA: session_id (ex: "ask-dermato-imersao")
 	// - Telegram: bot_id
 	// - Messenger: page_id
 	// - WhatsApp Business: phone_number_id
 	ExternalID string `gorm:"index"` // Indexed para buscas rápidas por session
-	
+
 	// Config: Configurações específicas de cada tipo de canal em JSONB
 	// Exemplo WAHA: {"base_url": "...", "token": "...", "webhook_url": "..."}
 	// Exemplo Telegram: {"bot_token": "...", "webhook_url": "..."}
+	// Exemplo AI: {"ai_process_image": true, "ai_process_video": false, ...}
 	Config datatypes.JSON `gorm:"type:jsonb"`
-	
-	// Webhook configuration (campos dedicados para facilitar queries e frontend)
-	WebhookURL         string     `gorm:"index"` // URL do webhook configurada
+
+	WebhookURL          string     `gorm:"index"` // URL do webhook configurada
 	WebhookConfiguredAt *time.Time // Quando o webhook foi configurado
-	WebhookActive      bool       `gorm:"default:false"` // Se o webhook está ativo
-	
+	WebhookActive       bool       `gorm:"default:false"` // Se o webhook está ativo
+
+	// Pipeline Association
+	PipelineID *uuid.UUID `gorm:"type:uuid;index"` // Pipeline associado (opcional)
+
+	// Session Timeout Override (NULL = inherit from project)
+	SessionTimeoutMinutes *int `gorm:"index"` // Override do timeout do projeto (NULL = herda do projeto)
+
+	// AI Features (mantido para compatibilidade, mas processamento vai para message_enriched)
+	AIEnabled       bool `gorm:"default:false"` // Canal Inteligente - habilita processamento
+	AIAgentsEnabled bool `gorm:"default:false"` // Agentes IA - permite respostas automáticas
+
 	// Estatísticas genéricas (aplicam a todos os tipos)
 	MessagesReceived int `gorm:"default:0"`
 	MessagesSent     int `gorm:"default:0"`
 	LastMessageAt    *time.Time
 	LastErrorAt      *time.Time
 	LastError        string
-	
+
 	// Timestamps
 	CreatedAt time.Time      `gorm:"autoCreateTime"`
 	UpdatedAt time.Time      `gorm:"autoUpdateTime"`
 	DeletedAt gorm.DeletedAt `gorm:"index"`
 
 	// Relacionamentos
-	User    UserEntity    `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE"`
-	Project ProjectEntity `gorm:"foreignKey:ProjectID;constraint:OnDelete:CASCADE"`
+	User     UserEntity      `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE"`
+	Project  ProjectEntity   `gorm:"foreignKey:ProjectID;constraint:OnDelete:CASCADE"`
+	Pipeline *PipelineEntity `gorm:"foreignKey:PipelineID;constraint:OnDelete:SET NULL"`
 }
 
 func (ChannelEntity) TableName() string {
@@ -94,10 +105,10 @@ func (c *ChannelEntity) GetWAHAConfig() map[string]string {
 	if !c.IsWAHA() {
 		return nil
 	}
-	
+
 	config := make(map[string]string)
 	var jsonConfig map[string]interface{}
-	
+
 	if len(c.Config) > 0 {
 		if err := json.Unmarshal(c.Config, &jsonConfig); err == nil {
 			// Extrai campos do JSONB
@@ -115,6 +126,6 @@ func (c *ChannelEntity) GetWAHAConfig() map[string]string {
 			}
 		}
 	}
-	
+
 	return config
 }

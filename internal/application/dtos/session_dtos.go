@@ -49,11 +49,11 @@ type SessionDetailDTO struct {
 	OutcomeTags         []string               `json:"outcome_tags,omitempty"`
 	CreatedAt           time.Time              `json:"created_at"`
 	UpdatedAt           time.Time              `json:"updated_at"`
-	
+
 	// Relacionamentos
-	Contact        *ContactSummaryDTO    `json:"contact,omitempty"`
-	RecentMessages []MessageSummaryDTO   `json:"recent_messages,omitempty"`
-	Agents         []AgentSummaryDTO     `json:"agents,omitempty"`
+	Contact        *ContactSummaryDTO  `json:"contact,omitempty"`
+	RecentMessages []MessageSummaryDTO `json:"recent_messages,omitempty"`
+	Agents         []AgentSummaryDTO   `json:"agents,omitempty"`
 }
 
 // ContactSummaryDTO - DTO resumido para contato (usado em sessões)
@@ -77,17 +77,17 @@ type SessionStatisticsDTO struct {
 
 // SessionFilters - Filtros para busca de sessões
 type SessionFilters struct {
-	ContactID      *uuid.UUID `form:"contact_id"`
-	ChannelTypeID  *int       `form:"channel_type_id"`
-	Status         *string    `form:"status"`
-	StartedAfter   *time.Time `form:"started_after"`
-	StartedBefore  *time.Time `form:"started_before"`
-	Resolved       *bool      `form:"resolved"`
-	Escalated      *bool      `form:"escalated"`
-	Converted      *bool      `form:"converted"`
-	HasAgents      *bool      `form:"has_agents"`
-	Limit          int        `form:"limit" binding:"min=1,max=100"`
-	Offset         int        `form:"offset" binding:"min=0"`
-	SortBy         string     `form:"sort_by"` // started_at, ended_at, message_count
-	SortOrder      string     `form:"sort_order"` // asc, desc
+	ContactID     *uuid.UUID `form:"contact_id"`
+	ChannelTypeID *int       `form:"channel_type_id"`
+	Status        *string    `form:"status"`
+	StartedAfter  *time.Time `form:"started_after"`
+	StartedBefore *time.Time `form:"started_before"`
+	Resolved      *bool      `form:"resolved"`
+	Escalated     *bool      `form:"escalated"`
+	Converted     *bool      `form:"converted"`
+	HasAgents     *bool      `form:"has_agents"`
+	Limit         int        `form:"limit" binding:"min=1,max=100"`
+	Offset        int        `form:"offset" binding:"min=0"`
+	SortBy        string     `form:"sort_by"`    // started_at, ended_at, message_count
+	SortOrder     string     `form:"sort_order"` // asc, desc
 }

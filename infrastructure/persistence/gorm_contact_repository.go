@@ -39,14 +39,14 @@ func (r *GormContactRepository) FindByID(ctx context.Context, id uuid.UUID) (*co
 func (r *GormContactRepository) FindByProject(ctx context.Context, projectID uuid.UUID, limit, offset int) ([]*contact.Contact, error) {
 	var entities []entities.ContactEntity
 	query := r.db.WithContext(ctx).Where("project_id = ? AND deleted_at IS NULL", projectID)
-	
+
 	if limit > 0 {
 		query = query.Limit(limit)
 	}
 	if offset > 0 {
 		query = query.Offset(offset)
 	}
-	
+
 	err := query.Find(&entities).Error
 	if err != nil {
 		return nil, err
@@ -140,6 +140,10 @@ func (r *GormContactRepository) domainToEntity(c *contact.Contact) *entities.Con
 		entity.Timezone = *timezone
 	}
 
+	// Handle profile picture fields
+	entity.ProfilePictureURL = c.ProfilePictureURL()
+	entity.ProfilePictureFetchedAt = c.ProfilePictureFetchedAt()
+
 	if c.DeletedAt() != nil {
 		entity.DeletedAt = gorm.DeletedAt{Time: *c.DeletedAt(), Valid: true}
 	}
@@ -198,6 +202,8 @@ func (r *GormContactRepository) entityToDomain(entity *entities.ContactEntity) *
 		entity.Language,
 		timezone,
 		[]string(entity.Tags),
+		entity.ProfilePictureURL,
+		entity.ProfilePictureFetchedAt,
 		entity.FirstInteractionAt,
 		entity.LastInteractionAt,
 		entity.CreatedAt,

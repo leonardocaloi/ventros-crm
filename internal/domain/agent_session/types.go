@@ -5,11 +5,11 @@ type RoleInSession string
 
 const (
 	// Papéis primários
-	RolePrimary   RoleInSession = "primary"    // Agente principal da sessão
-	RoleSupport   RoleInSession = "support"    // Agente de suporte
-	RoleObserver  RoleInSession = "observer"   // Apenas observando (supervisor, analytics)
-	RoleHandoff   RoleInSession = "handoff"    // Recebendo transferência
-	
+	RolePrimary  RoleInSession = "primary"  // Agente principal da sessão
+	RoleSupport  RoleInSession = "support"  // Agente de suporte
+	RoleObserver RoleInSession = "observer" // Apenas observando (supervisor, analytics)
+	RoleHandoff  RoleInSession = "handoff"  // Recebendo transferência
+
 	// Papéis de IA (Google ADK)
 	RoleAIAssistant RoleInSession = "ai_assistant" // AI assistindo agente humano
 	RoleAIPrimary   RoleInSession = "ai_primary"   // AI como agente principal

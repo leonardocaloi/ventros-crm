@@ -14,11 +14,12 @@ import (
 
 // SessionWorker gerencia o worker Temporal para workflows de sessão
 type SessionWorker struct {
-	client         client.Client
-	worker         worker.Worker
-	sessionRepo    session.Repository
-	eventBus       EventBus
-	logger         *zap.Logger
+	client      client.Client
+	worker      worker.Worker
+	sessionRepo session.Repository
+	messageRepo sessionworkflow.MessageRepository
+	eventBus    EventBus
+	logger      *zap.Logger
 }
 
 // EventBus interface para publicar eventos
@@ -31,16 +32,18 @@ type EventBus interface {
 func NewSessionWorker(
 	temporalClient client.Client,
 	sessionRepo session.Repository,
+	messageRepo sessionworkflow.MessageRepository,
 	eventBus EventBus,
 	logger *zap.Logger,
 ) *SessionWorker {
 	// Cria worker para task queue de sessões
 	w := worker.New(temporalClient, "session-management", worker.Options{})
-	
+
 	return &SessionWorker{
 		client:      temporalClient,
 		worker:      w,
 		sessionRepo: sessionRepo,
+		messageRepo: messageRepo,
 		eventBus:    eventBus,
 		logger:      logger,
 	}
@@ -51,22 +54,22 @@ func (sw *SessionWorker) Start(ctx context.Context) error {
 	// Registra workflows
 	sw.worker.RegisterWorkflow(sessionworkflow.SessionLifecycleWorkflow)
 	sw.worker.RegisterWorkflow(sessionworkflow.SessionCleanupWorkflow)
-	
+
 	// Cria e registra activities
-	activities := sessionworkflow.NewSessionActivities(sw.sessionRepo, sw.eventBus)
+	activities := sessionworkflow.NewSessionActivities(sw.sessionRepo, sw.messageRepo, sw.eventBus)
 	for _, activity := range activities.RegisterActivities() {
 		sw.worker.RegisterActivity(activity)
 	}
-	
-	sw.logger.Info("Starting session worker", 
+
+	sw.logger.Info("Starting session worker",
 		zap.String("task_queue", "session-management"))
-	
+
 	// Inicia o worker
 	err := sw.worker.Start()
 	if err != nil {
 		return fmt.Errorf("failed to start session worker: %w", err)
 	}
-	
+
 	sw.logger.Info("Session worker started successfully")
 	return nil
 }
@@ -80,13 +83,13 @@ func (sw *SessionWorker) Stop() {
 // ScheduleCleanup agenda a limpeza periódica de sessões
 func (sw *SessionWorker) ScheduleCleanup(ctx context.Context) error {
 	sessionManager := sessionworkflow.NewSessionManager(sw.client)
-	
+
 	err := sessionManager.ScheduleSessionCleanup(ctx)
 	if err != nil {
 		sw.logger.Error("Failed to schedule session cleanup", zap.Error(err))
 		return err
 	}
-	
+
 	sw.logger.Info("Session cleanup scheduled successfully")
 	return nil
 }

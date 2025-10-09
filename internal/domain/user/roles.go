@@ -8,13 +8,13 @@ type Role string
 const (
 	// RoleAdmin - Administrador do sistema (acesso total)
 	RoleAdmin Role = "admin"
-	
+
 	// RoleUser - Usuário padrão (acesso aos próprios recursos)
 	RoleUser Role = "user"
-	
+
 	// RoleManager - Gerente (pode ver recursos de sua equipe)
 	RoleManager Role = "manager"
-	
+
 	// RoleReadOnly - Apenas leitura
 	RoleReadOnly Role = "readonly"
 )

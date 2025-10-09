@@ -11,6 +11,7 @@ import (
 	domainmessage "github.com/caloi/ventros-crm/internal/domain/message"
 	domainsession "github.com/caloi/ventros-crm/internal/domain/session"
 	"github.com/caloi/ventros-crm/internal/domain/shared"
+	"github.com/caloi/ventros-crm/internal/domain/tracking"
 	sessionworkflow "github.com/caloi/ventros-crm/internal/workflows/session"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -29,11 +30,11 @@ type ProcessInboundMessageCommand struct {
 	MediaURL         string
 	MediaType        string
 	// Channel context (OBRIGATÓRIO - toda mensagem vem de um canal)
-	ChannelID     uuid.UUID // UUID do canal de onde a mensagem veio
+	ChannelID uuid.UUID // UUID do canal de onde a mensagem veio
 	// User context (obtido do canal)
-	ProjectID     uuid.UUID
-	CustomerID    uuid.UUID
-	TenantID      string
+	ProjectID  uuid.UUID
+	CustomerID uuid.UUID
+	TenantID   string
 	// Additional fields
 	ContactPhone  string
 	ContactName   string
@@ -53,15 +54,22 @@ type EventBus interface {
 	PublishBatch(ctx context.Context, events []shared.DomainEvent) error
 }
 
+// SessionTimeoutResolver interface para resolver timeout de sessão
+type SessionTimeoutResolver interface {
+	ResolveForChannel(ctx context.Context, channelID uuid.UUID) (time.Duration, *uuid.UUID, error)
+}
+
 // ProcessInboundMessageUseCase handles processing of inbound messages
 type ProcessInboundMessageUseCase struct {
-	contactRepo      contact.Repository
-	sessionRepo      domainsession.Repository
-	messageRepo      domainmessage.Repository
-	contactEventRepo contact_event.Repository
-	eventBus         EventBus
-	sessionManager   *sessionworkflow.SessionManager
-	db               *gorm.DB
+	contactRepo       contact.Repository
+	sessionRepo       domainsession.Repository
+	messageRepo       domainmessage.Repository
+	contactEventRepo  contact_event.Repository
+	eventBus          EventBus
+	sessionManager    *sessionworkflow.SessionManager
+	timeoutResolver   SessionTimeoutResolver
+	db                *gorm.DB // Usado apenas para invisible tracking detection
+	ternaryEncoder    *tracking.TernaryEncoder
 }
 
 // NewProcessInboundMessageUseCase creates a new use case instance
@@ -72,7 +80,8 @@ func NewProcessInboundMessageUseCase(
 	contactEventRepo contact_event.Repository,
 	eventBus EventBus,
 	sessionManager *sessionworkflow.SessionManager,
-	db *gorm.DB,
+	timeoutResolver SessionTimeoutResolver,
+	db *gorm.DB, // Manter apenas para invisible tracking detection
 ) *ProcessInboundMessageUseCase {
 	return &ProcessInboundMessageUseCase{
 		contactRepo:      contactRepo,
@@ -81,7 +90,9 @@ func NewProcessInboundMessageUseCase(
 		contactEventRepo: contactEventRepo,
 		eventBus:         eventBus,
 		sessionManager:   sessionManager,
+		timeoutResolver:  timeoutResolver,
 		db:               db,
+		ternaryEncoder:   tracking.NewTernaryEncoder(),
 	}
 }
 
@@ -92,27 +103,27 @@ func (uc *ProcessInboundMessageUseCase) Execute(ctx context.Context, cmd Process
 	if err != nil {
 		return fmt.Errorf("failed to find or create contact: %w", err)
 	}
-	
+
 	// 2. FindOrCreate Active Session
 	s, err := uc.findOrCreateSession(ctx, c, cmd)
 	if err != nil {
 		return fmt.Errorf("failed to find or create session: %w", err)
 	}
-	
+
 	// 3. Create and Save Message
 	m, err := uc.createMessage(ctx, c, s, cmd)
 	if err != nil {
 		return fmt.Errorf("failed to create message: %w", err)
 	}
-	
+
 	// 4. Record message in session (updates metrics)
-	if err := s.RecordMessage(true); err != nil {
+	if err := s.RecordMessage(true, cmd.Timestamp); err != nil {
 		return fmt.Errorf("failed to record message in session: %w", err)
 	}
-	
+
 	// 5. Update contact interaction timestamp
 	c.RecordInteraction()
-	
+
 	// 6. Persist updates
 	if err := uc.sessionRepo.Save(ctx, s); err != nil {
 		return fmt.Errorf("failed to update session: %w", err)
@@ -120,29 +131,35 @@ func (uc *ProcessInboundMessageUseCase) Execute(ctx context.Context, cmd Process
 	if err := uc.contactRepo.Save(ctx, c); err != nil {
 		return fmt.Errorf("failed to update contact: %w", err)
 	}
-	
+
 	// 7. Create ContactEvent for timeline - DISABLED: Messages should not create contact events
 	// Only important events like first contact, session start/end, tracking, etc should create contact events
 	// if err := uc.createContactEvent(ctx, c, s, m, cmd); err != nil {
 	//	// Log but don't fail - timeline is not critical
 	//	fmt.Printf("Warning: failed to create contact event: %v\n", err)
 	// }
-	
+
 	// 8. Publish domain events (choreography)
 	if err := uc.publishDomainEvents(ctx, c, s, m); err != nil {
 		// Log but don't fail - event publishing is async
 		fmt.Printf("Warning: failed to publish domain events: %v\n", err)
 	}
-	
+
 	// 9. Track ad conversion if applicable
 	if err := uc.trackAdConversion(ctx, c, s, cmd); err != nil {
 		// Log but don't fail
 		fmt.Printf("Warning: failed to track ad conversion: %v\n", err)
 	}
-	
+
+	// 10. Detect and process invisible tracking code
+	if err := uc.detectInvisibleTracking(ctx, c, s, cmd); err != nil {
+		// Log but don't fail
+		fmt.Printf("Warning: failed to detect invisible tracking: %v\n", err)
+	}
+
 	fmt.Printf("✅ Message processed: contact=%s, session=%s, message=%s\n",
 		c.ID(), s.ID(), m.ID())
-	
+
 	return nil
 }
 
@@ -153,7 +170,7 @@ func (uc *ProcessInboundMessageUseCase) findOrCreateContact(ctx context.Context,
 	if err != nil && err != domaincontact.ErrContactNotFound {
 		return nil, err
 	}
-	
+
 	if existing != nil {
 		// Atualiza nome se necessário
 		if cmd.ContactName != "" && existing.Name() != cmd.ContactName {
@@ -161,31 +178,31 @@ func (uc *ProcessInboundMessageUseCase) findOrCreateContact(ctx context.Context,
 		}
 		return existing, nil
 	}
-	
+
 	// Cria novo contato
 	name := cmd.ContactName
 	if name == "" {
 		name = cmd.ContactPhone // Fallback
 	}
-	
+
 	c, err := domaincontact.NewContact(cmd.ProjectID, cmd.TenantID, name)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// Define telefone
 	if err := c.SetPhone(cmd.ContactPhone); err != nil {
 		return nil, fmt.Errorf("invalid phone number: %w", err)
 	}
-	
+
 	// Adiciona tag do canal
 	c.AddTag("whatsapp")
-	
+
 	// Persiste
 	if err := uc.contactRepo.Save(ctx, c); err != nil {
 		return nil, err
 	}
-	
+
 	return c, nil
 }
 
@@ -197,7 +214,7 @@ func (uc *ProcessInboundMessageUseCase) findOrCreateSession(ctx context.Context,
 	if err != nil && err != domainsession.ErrSessionNotFound {
 		return nil, err
 	}
-	
+
 	if existing != nil {
 		// Verifica timeout
 		if existing.CheckTimeout() {
@@ -220,28 +237,55 @@ func (uc *ProcessInboundMessageUseCase) findOrCreateSession(ctx context.Context,
 			return existing, nil
 		}
 	}
-	
-	// Determina timeout da sessão baseado no pipeline do projeto
-	// Padrão: valor configurado em SESSION_DEFAULT_TIMEOUT_MINUTES (30 minutos)
-	timeoutMinutes := 30 // Fallback hardcoded caso config não esteja disponível
-	
-	// Busca o pipeline ativo do projeto para obter o timeout configurado
-	pipeline, err := uc.findProjectPipeline(ctx, c.ProjectID())
-	if err == nil && pipeline != nil && pipeline.SessionTimeoutMinutes > 0 {
-		timeoutMinutes = pipeline.SessionTimeoutMinutes
-	}
-	
-	timeoutDuration := time.Duration(timeoutMinutes) * time.Minute
-	s, err := domainsession.NewSession(c.ID(), cmd.TenantID, channelTypeID, timeoutDuration)
+
+	// 🎯 TIMEOUT HIERARCHY: Project (base) → Channel (override) → Pipeline (final override)
+	// Usa SessionTimeoutResolver para seguir a hierarquia de forma elegante
+	timeoutDuration, pipelineID, err := uc.timeoutResolver.ResolveForChannel(ctx, cmd.ChannelID)
 	if err != nil {
-		return nil, err
+		fmt.Printf("Warning: failed to resolve timeout, using default 30 min: %v\n", err)
+		timeoutDuration = 30 * time.Minute
+		pipelineID = nil
 	}
-	
+
+	timeoutMinutes := int(timeoutDuration.Minutes())
+	fmt.Printf("⏱️  Resolved session timeout: %d minutes (pipelineID: %v)\n", timeoutMinutes, pipelineID)
+
+	var s *domainsession.Session
+
+	// 🎯 Cria Session com ou sem pipeline baseado no resultado do resolver
+	if pipelineID != nil && *pipelineID != uuid.Nil {
+		// ✅ Pipeline encontrado: Cria Session COM pipeline_id
+		s, err = domainsession.NewSessionWithPipeline(
+			c.ID(),
+			cmd.TenantID,
+			channelTypeID,
+			*pipelineID,
+			timeoutDuration,
+		)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		// ⚠️ SEM PIPELINE ATIVO: Cria Session SEM pipeline_id
+		// Sessão será criada apenas para agrupar mensagens, sem associação a pipeline
+		fmt.Printf("⚠️  No active pipeline found for project %s, creating session without pipeline association\n", c.ProjectID())
+
+		s, err = domainsession.NewSession(
+			c.ID(),
+			cmd.TenantID,
+			channelTypeID,
+			timeoutDuration,
+		)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	// Persiste
 	if err := uc.sessionRepo.Save(ctx, s); err != nil {
 		return nil, err
 	}
-	
+
 	// Inicia workflow Temporal para gerenciar o ciclo de vida da sessão
 	if uc.sessionManager != nil {
 		err = uc.sessionManager.StartSessionLifecycle(
@@ -257,7 +301,7 @@ func (uc *ProcessInboundMessageUseCase) findOrCreateSession(ctx context.Context,
 			fmt.Printf("Warning: failed to start session lifecycle workflow: %v\n", err)
 		}
 	}
-	
+
 	return s, nil
 }
 
@@ -273,135 +317,83 @@ func (uc *ProcessInboundMessageUseCase) createMessage(ctx context.Context, c *do
 		}
 		// Se não encontrou ou deu erro, continua criação
 	}
-	
+
 	// Parse content type
 	contentType, err := domainmessage.ParseContentType(cmd.ContentType)
 	if err != nil {
 		return nil, fmt.Errorf("invalid content type: %w", err)
 	}
-	
+
 	// Cria mensagem (usa cmd.FromMe para determinar direção)
 	m, err := domainmessage.NewMessage(c.ID(), cmd.ProjectID, cmd.CustomerID, contentType, cmd.FromMe)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// Associa ao canal (OBRIGATÓRIO)
 	m.AssignToChannel(cmd.ChannelID, &cmd.ChannelTypeID)
-	
+
 	// Associa à sessão
 	m.AssignToSession(s.ID())
-	
+
 	// Define channel_message_id (ID externo do WhatsApp)
 	if cmd.ChannelMessageID != "" {
 		m.SetChannelMessageID(cmd.ChannelMessageID)
 	}
-	
+
 	// Define conteúdo
 	if contentType.IsText() && cmd.Text != "" {
 		if err := m.SetText(cmd.Text); err != nil {
 			return nil, err
 		}
 	}
-	
+
 	// Define mídia se aplicável
 	if contentType.IsMedia() && cmd.MediaURL != "" {
 		if err := m.SetMediaContent(cmd.MediaURL, cmd.MediaMimetype); err != nil {
 			return nil, err
 		}
 	}
-	
+
 	// Persiste
 	if err := uc.messageRepo.Save(ctx, m); err != nil {
 		return nil, err
 	}
-	
+
 	return m, nil
 }
 
-// createContactEvent cria evento na timeline
-func (uc *ProcessInboundMessageUseCase) createContactEvent(ctx context.Context, c *domaincontact.Contact, s *domainsession.Session, m *domainmessage.Message, cmd ProcessInboundMessageCommand) error {
-	// Cria evento básico
-	event, err := contact_event.NewContactEvent(
-		c.ID(),
-		cmd.TenantID,
-		"message.received",
-		contact_event.CategoryMessage,
-		contact_event.PriorityNormal,
-		contact_event.SourceWebhook,
-	)
-	if err != nil {
-		return err
-	}
-	
-	// Associa à sessão
-	sessionID := s.ID()
-	if err := event.AttachToSession(sessionID); err != nil {
-		return err
-	}
-	
-	// Define título baseado no tipo
-	var title string
-	if m.ContentType().IsText() {
-		title = "Nova mensagem recebida"
-	} else {
-		title = fmt.Sprintf("Mídia recebida (%s)", m.ContentType())
-	}
-	event.SetTitle(title)
-	
-	// Adiciona payload com informações da mensagem
-	event.AddPayloadField("message_id", m.ID().String())
-	event.AddPayloadField("content_type", string(m.ContentType()))
-	event.AddPayloadField("has_media", m.HasMediaURL())
-	
-	if m.Text() != nil {
-		event.AddPayloadField("text_preview", truncate(*m.Text(), 100))
-	}
-	
-	// Tracking data se disponível
-	if len(cmd.TrackingData) > 0 {
-		event.AddPayloadField("tracking", cmd.TrackingData)
-	}
-	
-	// Metadata
-	event.AddMetadataField("source", "whatsapp")
-	
-	// Visível para agente e cliente
-	event.SetVisibility(true, true)
-	
-	// Entrega em tempo real
-	event.SetRealtimeDelivery(true)
-	
-	return uc.contactEventRepo.Save(ctx, event)
-}
+// createContactEvent was removed - messages should not create contact events
+// Only important contact-related events (status changes, pipeline movements, assignments, etc)
+// should create contact events for streaming
 
 // publishDomainEvents publica todos os eventos de domínio
 func (uc *ProcessInboundMessageUseCase) publishDomainEvents(ctx context.Context, c *domaincontact.Contact, s *domainsession.Session, m *domainmessage.Message) error {
 	var events []shared.DomainEvent
-	
+
 	// Coleta eventos do contato
 	for _, e := range c.DomainEvents() {
 		events = append(events, e)
 	}
 	c.ClearEvents()
-	
+
 	// Coleta eventos da sessão
 	for _, e := range s.DomainEvents() {
 		events = append(events, e)
 	}
 	s.ClearEvents()
-	
+
 	// Coleta eventos da mensagem
 	for _, e := range m.DomainEvents() {
 		events = append(events, e)
 	}
 	m.ClearEvents()
-	
+
 	// Publica em batch
 	if len(events) > 0 {
 		return uc.eventBus.PublishBatch(ctx, events)
 	}
-	
+
 	return nil
 }
 
@@ -412,13 +404,13 @@ func (uc *ProcessInboundMessageUseCase) trackAdConversion(ctx context.Context, c
 	if !ok || !isFromAd {
 		return nil // Não é de ad
 	}
-	
+
 	// Extrai tracking data
 	trackingData := cmd.TrackingData
 	if len(trackingData) == 0 {
 		return nil
 	}
-	
+
 	// Converte map[string]interface{} para map[string]string
 	trackingDataStr := make(map[string]string)
 	for k, v := range trackingData {
@@ -426,7 +418,7 @@ func (uc *ProcessInboundMessageUseCase) trackAdConversion(ctx context.Context, c
 			trackingDataStr[k] = str
 		}
 	}
-	
+
 	// Cria evento de conversão
 	conversionEvent := domaincontact.NewAdConversionTrackedEvent(
 		c.ID(),
@@ -434,38 +426,9 @@ func (uc *ProcessInboundMessageUseCase) trackAdConversion(ctx context.Context, c
 		cmd.TenantID,
 		trackingDataStr,
 	)
-	
+
 	// Publica evento
 	return uc.eventBus.Publish(ctx, conversionEvent)
-}
-
-// findProjectPipeline busca o pipeline ativo do projeto
-func (uc *ProcessInboundMessageUseCase) findProjectPipeline(ctx context.Context, projectID uuid.UUID) (*PipelineInfo, error) {
-	// Query direto no banco para buscar pipeline ativo do projeto
-	var result struct {
-		SessionTimeoutMinutes int
-	}
-	
-	err := uc.db.Raw(`
-		SELECT session_timeout_minutes 
-		FROM pipelines 
-		WHERE project_id = ? AND active = true AND deleted_at IS NULL 
-		ORDER BY position ASC 
-		LIMIT 1
-	`, projectID).Scan(&result).Error
-	
-	if err != nil {
-		return nil, err
-	}
-	
-	return &PipelineInfo{
-		SessionTimeoutMinutes: result.SessionTimeoutMinutes,
-	}, nil
-}
-
-// PipelineInfo contém informações do pipeline necessárias para criar sessão
-type PipelineInfo struct {
-	SessionTimeoutMinutes int
 }
 
 // truncate trunca string para max caracteres
@@ -474,4 +437,63 @@ func truncate(s string, max int) string {
 		return s
 	}
 	return s[:max] + "..."
+}
+
+// detectInvisibleTracking detecta código invisível ternário na mensagem e cria tracking automaticamente
+func (uc *ProcessInboundMessageUseCase) detectInvisibleTracking(ctx context.Context, c *domaincontact.Contact, s *domainsession.Session, cmd ProcessInboundMessageCommand) error {
+	// Verifica se mensagem tem texto
+	if cmd.Text == "" {
+		return nil // Não é mensagem de texto
+	}
+
+	// Verifica se mensagem contém código invisível
+	if !uc.ternaryEncoder.HasInvisibleCode(cmd.Text) {
+		return nil // Não tem código invisível
+	}
+
+	// Tenta decodificar mensagem
+	trackingIDPtr, cleanMessage, err := uc.ternaryEncoder.DecodeMessage(cmd.Text)
+	if err != nil || trackingIDPtr == nil {
+		// Não conseguiu decodificar, ignora
+		return nil
+	}
+
+	trackingID := *trackingIDPtr
+
+	fmt.Printf("🔍 Invisible tracking code detected: tracking_id=%d, contact=%s, clean_message=%s\n",
+		trackingID, c.ID(), truncate(cleanMessage, 50))
+
+	// Busca o tracking no banco pelo ID (convertido de base 3 para base 10)
+	var trackingExists bool
+	err = uc.db.Raw(`
+		SELECT EXISTS(SELECT 1 FROM trackings WHERE id = ?)
+	`, trackingID).Scan(&trackingExists).Error
+
+	if err != nil {
+		return fmt.Errorf("failed to check tracking existence: %w", err)
+	}
+
+	if !trackingExists {
+		fmt.Printf("⚠️  Tracking ID %d not found in database, skipping association\n", trackingID)
+		return nil
+	}
+
+	// Associa tracking ao contato e sessão
+	err = uc.db.Exec(`
+		UPDATE trackings
+		SET
+			contact_id = ?,
+			session_id = ?,
+			updated_at = NOW()
+		WHERE id = ? AND contact_id IS NULL
+	`, c.ID(), s.ID(), trackingID).Error
+
+	if err != nil {
+		return fmt.Errorf("failed to associate tracking: %w", err)
+	}
+
+	fmt.Printf("✅ Tracking %d associated with contact %s and session %s\n",
+		trackingID, c.ID(), s.ID())
+
+	return nil
 }

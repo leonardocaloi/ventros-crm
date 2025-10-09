@@ -34,7 +34,7 @@ func (m *RBACMiddleware) RequirePermission(resource user.ResourceType, operation
 		// Parse da role do usuário
 		userRole, err := user.ParseRole(authCtx.Role)
 		if err != nil {
-			m.logger.Error("Invalid user role", 
+			m.logger.Error("Invalid user role",
 				zap.String("role", authCtx.Role),
 				zap.String("user_id", authCtx.UserID.String()),
 				zap.Error(err))
@@ -45,12 +45,12 @@ func (m *RBACMiddleware) RequirePermission(resource user.ResourceType, operation
 
 		// Verificar permissão
 		if !userRole.CanAccessResource(resource, operation) {
-			m.logger.Warn("Access denied", 
+			m.logger.Warn("Access denied",
 				zap.String("user_id", authCtx.UserID.String()),
 				zap.String("role", authCtx.Role),
 				zap.String("resource", string(resource)),
 				zap.String("operation", string(operation)))
-			
+
 			c.JSON(http.StatusForbidden, gin.H{
 				"error": "Access denied",
 				"details": map[string]string{
@@ -64,7 +64,7 @@ func (m *RBACMiddleware) RequirePermission(resource user.ResourceType, operation
 		}
 
 		// Log acesso autorizado
-		m.logger.Debug("Access granted", 
+		m.logger.Debug("Access granted",
 			zap.String("user_id", authCtx.UserID.String()),
 			zap.String("role", authCtx.Role),
 			zap.String("resource", string(resource)),
@@ -87,7 +87,7 @@ func (m *RBACMiddleware) RequireRole(requiredRole user.Role) gin.HandlerFunc {
 		userRole, err := user.ParseRole(authCtx.Role)
 		if err != nil || userRole != requiredRole {
 			c.JSON(http.StatusForbidden, gin.H{
-				"error": "Insufficient role",
+				"error":    "Insufficient role",
 				"required": string(requiredRole),
 				"current":  authCtx.Role,
 			})
@@ -125,7 +125,7 @@ func (m *RBACMiddleware) RequireAnyRole(roles ...user.Role) gin.HandlerFunc {
 		}
 
 		c.JSON(http.StatusForbidden, gin.H{
-			"error": "Insufficient role",
+			"error":        "Insufficient role",
 			"required_any": roles,
 			"current":      authCtx.Role,
 		})

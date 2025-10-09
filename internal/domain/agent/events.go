@@ -3,81 +3,114 @@ package agent
 import (
 	"time"
 
+	"github.com/caloi/ventros-crm/internal/domain/shared"
 	"github.com/google/uuid"
 )
 
 // DomainEvent é a interface base para eventos de domínio.
-type DomainEvent interface {
-	EventName() string
-	OccurredAt() time.Time
-}
+type DomainEvent = shared.DomainEvent
 
 // AgentCreatedEvent - Agente criado no sistema.
 type AgentCreatedEvent struct {
-	AgentID   uuid.UUID
-	TenantID  string
-	Name      string
-	Email     string
-	Role      Role
-	CreatedAt time.Time
+	shared.BaseEvent
+	AgentID  uuid.UUID
+	TenantID string
+	Name     string
+	Email    string
+	Role     Role
 }
 
-func (e AgentCreatedEvent) EventName() string     { return "agent.created" }
-func (e AgentCreatedEvent) OccurredAt() time.Time { return e.CreatedAt }
+func NewAgentCreatedEvent(agentID uuid.UUID, tenantID, name, email string, role Role) AgentCreatedEvent {
+	return AgentCreatedEvent{
+		BaseEvent: shared.NewBaseEvent("agent.created", time.Now()),
+		AgentID:   agentID,
+		TenantID:  tenantID,
+		Name:      name,
+		Email:     email,
+		Role:      role,
+	}
+}
 
 // AgentUpdatedEvent - Informações do agente atualizadas.
 type AgentUpdatedEvent struct {
-	AgentID   uuid.UUID
-	Changes   map[string]interface{}
-	UpdatedAt time.Time
+	shared.BaseEvent
+	AgentID uuid.UUID
+	Changes map[string]interface{}
 }
 
-func (e AgentUpdatedEvent) EventName() string     { return "agent.updated" }
-func (e AgentUpdatedEvent) OccurredAt() time.Time { return e.UpdatedAt }
+func NewAgentUpdatedEvent(agentID uuid.UUID, changes map[string]interface{}) AgentUpdatedEvent {
+	return AgentUpdatedEvent{
+		BaseEvent: shared.NewBaseEvent("agent.updated", time.Now()),
+		AgentID:   agentID,
+		Changes:   changes,
+	}
+}
 
 // AgentActivatedEvent - Agente ativado.
 type AgentActivatedEvent struct {
-	AgentID     uuid.UUID
-	ActivatedAt time.Time
+	shared.BaseEvent
+	AgentID uuid.UUID
 }
 
-func (e AgentActivatedEvent) EventName() string     { return "agent.activated" }
-func (e AgentActivatedEvent) OccurredAt() time.Time { return e.ActivatedAt }
+func NewAgentActivatedEvent(agentID uuid.UUID) AgentActivatedEvent {
+	return AgentActivatedEvent{
+		BaseEvent: shared.NewBaseEvent("agent.activated", time.Now()),
+		AgentID:   agentID,
+	}
+}
 
 // AgentDeactivatedEvent - Agente desativado.
 type AgentDeactivatedEvent struct {
-	AgentID       uuid.UUID
-	DeactivatedAt time.Time
+	shared.BaseEvent
+	AgentID uuid.UUID
 }
 
-func (e AgentDeactivatedEvent) EventName() string     { return "agent.deactivated" }
-func (e AgentDeactivatedEvent) OccurredAt() time.Time { return e.DeactivatedAt }
+func NewAgentDeactivatedEvent(agentID uuid.UUID) AgentDeactivatedEvent {
+	return AgentDeactivatedEvent{
+		BaseEvent: shared.NewBaseEvent("agent.deactivated", time.Now()),
+		AgentID:   agentID,
+	}
+}
 
 // AgentLoggedInEvent - Agente fez login.
 type AgentLoggedInEvent struct {
-	AgentID    uuid.UUID
-	LoggedInAt time.Time
+	shared.BaseEvent
+	AgentID uuid.UUID
 }
 
-func (e AgentLoggedInEvent) EventName() string     { return "agent.logged_in" }
-func (e AgentLoggedInEvent) OccurredAt() time.Time { return e.LoggedInAt }
+func NewAgentLoggedInEvent(agentID uuid.UUID) AgentLoggedInEvent {
+	return AgentLoggedInEvent{
+		BaseEvent: shared.NewBaseEvent("agent.logged_in", time.Now()),
+		AgentID:   agentID,
+	}
+}
 
 // AgentPermissionGrantedEvent - Permissão concedida ao agente.
 type AgentPermissionGrantedEvent struct {
+	shared.BaseEvent
 	AgentID    uuid.UUID
 	Permission string
-	GrantedAt  time.Time
 }
 
-func (e AgentPermissionGrantedEvent) EventName() string     { return "agent.permission_granted" }
-func (e AgentPermissionGrantedEvent) OccurredAt() time.Time { return e.GrantedAt }
+func NewAgentPermissionGrantedEvent(agentID uuid.UUID, permission string) AgentPermissionGrantedEvent {
+	return AgentPermissionGrantedEvent{
+		BaseEvent:  shared.NewBaseEvent("agent.permission_granted", time.Now()),
+		AgentID:    agentID,
+		Permission: permission,
+	}
+}
 
 // AgentPermissionRevokedEvent - Permissão revogada do agente.
 type AgentPermissionRevokedEvent struct {
+	shared.BaseEvent
 	AgentID    uuid.UUID
 	Permission string
-	RevokedAt  time.Time
 }
 
-func (e AgentPermissionRevokedEvent) EventName() string     { return "agent.permission_revoked" }
-func (e AgentPermissionRevokedEvent) OccurredAt() time.Time { return e.RevokedAt }
+func NewAgentPermissionRevokedEvent(agentID uuid.UUID, permission string) AgentPermissionRevokedEvent {
+	return AgentPermissionRevokedEvent{
+		BaseEvent:  shared.NewBaseEvent("agent.permission_revoked", time.Now()),
+		AgentID:    agentID,
+		Permission: permission,
+	}
+}

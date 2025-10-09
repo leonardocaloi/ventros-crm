@@ -23,13 +23,14 @@ func NewDomainEventHandler(eventLogRepo *persistence.DomainEventLogRepository, l
 }
 
 // ListDomainEventsByContact lista eventos de domínio de um contato
-// @Summary List domain events by contact
-// @Description Lista todos os eventos de domínio disparados para um contato
-// @Tags domain-events
-// @Produce json
-// @Param contact_id path string true "Contact ID"
-// @Success 200 {object} map[string]interface{}
-// @Router /api/v1/contacts/{contact_id}/domain-events [get]
+//
+//	@Summary		List domain events by contact
+//	@Description	Lista todos os eventos de domínio disparados para um contato
+//	@Tags			domain-events
+//	@Produce		json
+//	@Param			contact_id	path		string	true	"Contact ID"
+//	@Success		200			{object}	map[string]interface{}
+//	@Router			/api/v1/contacts/{contact_id}/domain-events [get]
 func (h *DomainEventHandler) ListDomainEventsByContact(c *gin.Context) {
 	contactIDStr := c.Param("contact_id")
 	contactID, err := uuid.Parse(contactIDStr)
@@ -53,13 +54,14 @@ func (h *DomainEventHandler) ListDomainEventsByContact(c *gin.Context) {
 }
 
 // ListDomainEventsBySession lista eventos de domínio de uma sessão
-// @Summary List domain events by session
-// @Description Lista todos os eventos de domínio disparados para uma sessão
-// @Tags domain-events
-// @Produce json
-// @Param session_id path string true "Session ID"
-// @Success 200 {object} map[string]interface{}
-// @Router /api/v1/sessions/{session_id}/domain-events [get]
+//
+//	@Summary		List domain events by session
+//	@Description	Lista todos os eventos de domínio disparados para uma sessão
+//	@Tags			domain-events
+//	@Produce		json
+//	@Param			session_id	path		string	true	"Session ID"
+//	@Success		200			{object}	map[string]interface{}
+//	@Router			/api/v1/sessions/{session_id}/domain-events [get]
 func (h *DomainEventHandler) ListDomainEventsBySession(c *gin.Context) {
 	sessionIDStr := c.Param("session_id")
 	sessionID, err := uuid.Parse(sessionIDStr)
@@ -83,14 +85,15 @@ func (h *DomainEventHandler) ListDomainEventsBySession(c *gin.Context) {
 }
 
 // ListDomainEventsByProject lista eventos de domínio de um projeto
-// @Summary List domain events by project
-// @Description Lista todos os eventos de domínio disparados em um projeto
-// @Tags domain-events
-// @Produce json
-// @Param project_id query string true "Project ID"
-// @Param limit query int false "Limit (default: 100)"
-// @Success 200 {object} map[string]interface{}
-// @Router /api/v1/domain-events [get]
+//
+//	@Summary		List domain events by project
+//	@Description	Lista todos os eventos de domínio disparados em um projeto
+//	@Tags			domain-events
+//	@Produce		json
+//	@Param			project_id	query		string	true	"Project ID"
+//	@Param			limit		query		int		false	"Limit (default: 100)"
+//	@Success		200			{object}	map[string]interface{}
+//	@Router			/api/v1/domain-events [get]
 func (h *DomainEventHandler) ListDomainEventsByProject(c *gin.Context) {
 	projectIDStr := c.Query("project_id")
 	if projectIDStr == "" {
@@ -127,14 +130,15 @@ func (h *DomainEventHandler) ListDomainEventsByProject(c *gin.Context) {
 }
 
 // ListDomainEventsByType lista eventos de domínio por tipo
-// @Summary List domain events by type
-// @Description Lista eventos de domínio filtrados por tipo
-// @Tags domain-events
-// @Produce json
-// @Param event_type query string true "Event Type (e.g., contact.created, session.started)"
-// @Param limit query int false "Limit (default: 100)"
-// @Success 200 {object} map[string]interface{}
-// @Router /api/v1/domain-events/by-type [get]
+//
+//	@Summary		List domain events by type
+//	@Description	Lista eventos de domínio filtrados por tipo
+//	@Tags			domain-events
+//	@Produce		json
+//	@Param			event_type	query		string	true	"Event Type (e.g., contact.created, session.started)"
+//	@Param			limit		query		int		false	"Limit (default: 100)"
+//	@Success		200			{object}	map[string]interface{}
+//	@Router			/api/v1/domain-events/by-type [get]
 func (h *DomainEventHandler) ListDomainEventsByType(c *gin.Context) {
 	eventType := c.Query("event_type")
 	if eventType == "" {

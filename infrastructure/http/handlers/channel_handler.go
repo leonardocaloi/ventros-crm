@@ -1,57 +1,64 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/caloi/ventros-crm/infrastructure/http/middleware"
 	channelapp "github.com/caloi/ventros-crm/internal/application/channel"
+	channelworkflow "github.com/caloi/ventros-crm/internal/workflows/channel"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"go.temporal.io/sdk/client"
 	"go.uber.org/zap"
 )
 
 type ChannelHandler struct {
 	logger         *zap.Logger
 	channelService *channelapp.ChannelService
+	temporalClient interface{} // Temporal client for workflows (interface para não acoplar)
 }
 
-func NewChannelHandler(logger *zap.Logger, channelService *channelapp.ChannelService) *ChannelHandler {
+func NewChannelHandler(logger *zap.Logger, channelService *channelapp.ChannelService, temporalClient interface{}) *ChannelHandler {
 	return &ChannelHandler{
 		logger:         logger,
 		channelService: channelService,
+		temporalClient: temporalClient,
 	}
 }
 
 // CreateChannelRequest representa o payload para criar um canal
 type CreateChannelRequest struct {
-	Name       string                        `json:"name" binding:"required" example:"WhatsApp Principal"`
-	Type       string                        `json:"type" binding:"required" example:"waha"`
-	WAHAConfig *CreateWAHAConfigRequest      `json:"waha_config,omitempty"`
+	Name                  string                   `json:"name" binding:"required" example:"WhatsApp Principal"`
+	Type                  string                   `json:"type" binding:"required" example:"waha"`
+	SessionTimeoutMinutes *int                     `json:"session_timeout_minutes,omitempty" example:"30"` // Timeout das sessões em minutos (sobrescreve pipeline se ambos existirem)
+	WAHAConfig            *CreateWAHAConfigRequest `json:"waha_config,omitempty"`
 }
 
 // CreateWAHAConfigRequest representa a configuração WAHA
 type CreateWAHAConfigRequest struct {
 	BaseURL    string `json:"base_url" binding:"required" example:"http://localhost:3000"`
-	APIKey     string `json:"api_key" example:"your-waha-api-key"`     // Chave da API para autenticação
-	Token      string `json:"token" example:"your-waha-token"`         // Token de acesso (alternativo)
-	SessionID  string `json:"session_id" example:"default"`            // ID da sessão (equivale ao ExternalID)
+	APIKey     string `json:"api_key" example:"your-waha-api-key"` // Chave da API para autenticação
+	Token      string `json:"token" example:"your-waha-token"`     // Token de acesso (alternativo)
+	SessionID  string `json:"session_id" example:"default"`        // ID da sessão (equivale ao ExternalID)
 	WebhookURL string `json:"webhook_url" example:"http://localhost:8080/api/v1/webhooks/waha"`
 }
 
 // CreateChannel creates a new communication channel
-// @Summary Create channel
-// @Description Cria um novo canal de comunicação (WAHA, WhatsApp, etc.)
-// @Tags channels
-// @Accept json
-// @Produce json
-// @Security ApiKeyAuth
-// @Param channel body CreateChannelRequest true "Channel data"
-// @Success 201 {object} map[string]interface{} "Channel created successfully"
-// @Failure 400 {object} map[string]interface{} "Invalid request"
-// @Failure 401 {object} map[string]interface{} "Authentication required"
-// @Failure 403 {object} map[string]interface{} "Access denied"
-// @Failure 500 {object} map[string]interface{} "Internal server error"
-// @Router /api/v1/channels [post]
+//
+//	@Summary		Create channel
+//	@Description	Cria um novo canal de comunicação (WAHA, WhatsApp, etc.)
+//	@Tags			channels
+//	@Accept			json
+//	@Produce		json
+//	@Security		ApiKeyAuth
+//	@Param			channel	body		CreateChannelRequest	true	"Channel data"
+//	@Success		201		{object}	map[string]interface{}	"Channel created successfully"
+//	@Failure		400		{object}	map[string]interface{}	"Invalid request"
+//	@Failure		401		{object}	map[string]interface{}	"Authentication required"
+//	@Failure		403		{object}	map[string]interface{}	"Access denied"
+//	@Failure		500		{object}	map[string]interface{}	"Internal server error"
+//	@Router			/api/v1/channels [post]
 func (h *ChannelHandler) CreateChannel(c *gin.Context) {
 	// Obter contexto do usuário autenticado
 	authCtx, exists := middleware.GetAuthContext(c)
@@ -69,11 +76,12 @@ func (h *ChannelHandler) CreateChannel(c *gin.Context) {
 
 	// Preparar request para o service
 	serviceReq := channelapp.CreateChannelRequest{
-		UserID:    authCtx.UserID,
-		ProjectID: authCtx.ProjectID,
-		TenantID:  authCtx.TenantID,
-		Name:      req.Name,
-		Type:      req.Type,
+		UserID:                authCtx.UserID,
+		ProjectID:             authCtx.ProjectID,
+		TenantID:              authCtx.TenantID,
+		Name:                  req.Name,
+		Type:                  req.Type,
+		SessionTimeoutMinutes: req.SessionTimeoutMinutes, // Timeout do canal (opcional)
 	}
 
 	// Configuração WAHA se fornecida
@@ -102,15 +110,16 @@ func (h *ChannelHandler) CreateChannel(c *gin.Context) {
 }
 
 // ListChannels lists all channels for the authenticated user
-// @Summary List channels
-// @Description Lista todos os canais do usuário autenticado
-// @Tags channels
-// @Produce json
-// @Security ApiKeyAuth
-// @Success 200 {object} map[string]interface{} "Channels list"
-// @Failure 401 {object} map[string]interface{} "Authentication required"
-// @Failure 500 {object} map[string]interface{} "Internal server error"
-// @Router /api/v1/channels [get]
+//
+//	@Summary		List channels
+//	@Description	Lista todos os canais do usuário autenticado
+//	@Tags			channels
+//	@Produce		json
+//	@Security		ApiKeyAuth
+//	@Success		200	{object}	map[string]interface{}	"Channels list"
+//	@Failure		401	{object}	map[string]interface{}	"Authentication required"
+//	@Failure		500	{object}	map[string]interface{}	"Internal server error"
+//	@Router			/api/v1/channels [get]
 func (h *ChannelHandler) ListChannels(c *gin.Context) {
 	authCtx, exists := middleware.GetAuthContext(c)
 	if !exists {
@@ -132,18 +141,19 @@ func (h *ChannelHandler) ListChannels(c *gin.Context) {
 }
 
 // GetChannel gets a specific channel
-// @Summary Get channel
-// @Description Obtém detalhes de um canal específico
-// @Tags channels
-// @Produce json
-// @Security ApiKeyAuth
-// @Param id path string true "Channel ID"
-// @Success 200 {object} map[string]interface{} "Channel details"
-// @Failure 400 {object} map[string]interface{} "Invalid channel ID"
-// @Failure 401 {object} map[string]interface{} "Authentication required"
-// @Failure 404 {object} map[string]interface{} "Channel not found"
-// @Failure 500 {object} map[string]interface{} "Internal server error"
-// @Router /api/v1/channels/{id} [get]
+//
+//	@Summary		Get channel
+//	@Description	Obtém detalhes de um canal específico
+//	@Tags			channels
+//	@Produce		json
+//	@Security		ApiKeyAuth
+//	@Param			id	path		string					true	"Channel ID"
+//	@Success		200	{object}	map[string]interface{}	"Channel details"
+//	@Failure		400	{object}	map[string]interface{}	"Invalid channel ID"
+//	@Failure		401	{object}	map[string]interface{}	"Authentication required"
+//	@Failure		404	{object}	map[string]interface{}	"Channel not found"
+//	@Failure		500	{object}	map[string]interface{}	"Internal server error"
+//	@Router			/api/v1/channels/{id} [get]
 func (h *ChannelHandler) GetChannel(c *gin.Context) {
 	authCtx, exists := middleware.GetAuthContext(c)
 	if !exists {
@@ -176,18 +186,19 @@ func (h *ChannelHandler) GetChannel(c *gin.Context) {
 }
 
 // ActivateChannel activates a channel
-// @Summary Activate channel
-// @Description Ativa um canal de comunicação
-// @Tags channels
-// @Produce json
-// @Security ApiKeyAuth
-// @Param id path string true "Channel ID"
-// @Success 200 {object} map[string]interface{} "Channel activated"
-// @Failure 400 {object} map[string]interface{} "Invalid channel ID"
-// @Failure 401 {object} map[string]interface{} "Authentication required"
-// @Failure 404 {object} map[string]interface{} "Channel not found"
-// @Failure 500 {object} map[string]interface{} "Internal server error"
-// @Router /api/v1/channels/{id}/activate [post]
+//
+//	@Summary		Activate channel
+//	@Description	Ativa um canal de comunicação
+//	@Tags			channels
+//	@Produce		json
+//	@Security		ApiKeyAuth
+//	@Param			id	path		string					true	"Channel ID"
+//	@Success		200	{object}	map[string]interface{}	"Channel activated"
+//	@Failure		400	{object}	map[string]interface{}	"Invalid channel ID"
+//	@Failure		401	{object}	map[string]interface{}	"Authentication required"
+//	@Failure		404	{object}	map[string]interface{}	"Channel not found"
+//	@Failure		500	{object}	map[string]interface{}	"Internal server error"
+//	@Router			/api/v1/channels/{id}/activate [post]
 func (h *ChannelHandler) ActivateChannel(c *gin.Context) {
 	authCtx, exists := middleware.GetAuthContext(c)
 	if !exists {
@@ -225,18 +236,19 @@ func (h *ChannelHandler) ActivateChannel(c *gin.Context) {
 }
 
 // DeactivateChannel deactivates a channel
-// @Summary Deactivate channel
-// @Description Desativa um canal de comunicação
-// @Tags channels
-// @Produce json
-// @Security ApiKeyAuth
-// @Param id path string true "Channel ID"
-// @Success 200 {object} map[string]interface{} "Channel deactivated"
-// @Failure 400 {object} map[string]interface{} "Invalid channel ID"
-// @Failure 401 {object} map[string]interface{} "Authentication required"
-// @Failure 404 {object} map[string]interface{} "Channel not found"
-// @Failure 500 {object} map[string]interface{} "Internal server error"
-// @Router /api/v1/channels/{id}/deactivate [post]
+//
+//	@Summary		Deactivate channel
+//	@Description	Desativa um canal de comunicação
+//	@Tags			channels
+//	@Produce		json
+//	@Security		ApiKeyAuth
+//	@Param			id	path		string					true	"Channel ID"
+//	@Success		200	{object}	map[string]interface{}	"Channel deactivated"
+//	@Failure		400	{object}	map[string]interface{}	"Invalid channel ID"
+//	@Failure		401	{object}	map[string]interface{}	"Authentication required"
+//	@Failure		404	{object}	map[string]interface{}	"Channel not found"
+//	@Failure		500	{object}	map[string]interface{}	"Internal server error"
+//	@Router			/api/v1/channels/{id}/deactivate [post]
 func (h *ChannelHandler) DeactivateChannel(c *gin.Context) {
 	authCtx, exists := middleware.GetAuthContext(c)
 	if !exists {
@@ -274,18 +286,19 @@ func (h *ChannelHandler) DeactivateChannel(c *gin.Context) {
 }
 
 // DeleteChannel deletes a channel
-// @Summary Delete channel
-// @Description Deleta um canal de comunicação
-// @Tags channels
-// @Produce json
-// @Security ApiKeyAuth
-// @Param id path string true "Channel ID"
-// @Success 200 {object} map[string]interface{} "Channel deleted"
-// @Failure 400 {object} map[string]interface{} "Invalid channel ID"
-// @Failure 401 {object} map[string]interface{} "Authentication required"
-// @Failure 404 {object} map[string]interface{} "Channel not found"
-// @Failure 500 {object} map[string]interface{} "Internal server error"
-// @Router /api/v1/channels/{id} [delete]
+//
+//	@Summary		Delete channel
+//	@Description	Deleta um canal de comunicação
+//	@Tags			channels
+//	@Produce		json
+//	@Security		ApiKeyAuth
+//	@Param			id	path		string					true	"Channel ID"
+//	@Success		200	{object}	map[string]interface{}	"Channel deleted"
+//	@Failure		400	{object}	map[string]interface{}	"Invalid channel ID"
+//	@Failure		401	{object}	map[string]interface{}	"Authentication required"
+//	@Failure		404	{object}	map[string]interface{}	"Channel not found"
+//	@Failure		500	{object}	map[string]interface{}	"Internal server error"
+//	@Router			/api/v1/channels/{id} [delete]
 func (h *ChannelHandler) DeleteChannel(c *gin.Context) {
 	authCtx, exists := middleware.GetAuthContext(c)
 	if !exists {
@@ -323,17 +336,18 @@ func (h *ChannelHandler) DeleteChannel(c *gin.Context) {
 }
 
 // GetChannelWebhookURL obtém a URL do webhook para configurar no canal externo
-// @Summary Get channel webhook URL
-// @Description Retorna a URL do webhook que deve ser configurada no canal externo (WAHA, WhatsApp, etc)
-// @Tags channels
-// @Produce json
-// @Security ApiKeyAuth
-// @Param id path string true "Channel ID"
-// @Success 200 {object} map[string]interface{} "Webhook URL"
-// @Failure 400 {object} map[string]interface{} "Invalid channel ID"
-// @Failure 401 {object} map[string]interface{} "Authentication required"
-// @Failure 404 {object} map[string]interface{} "Channel not found"
-// @Router /api/v1/channels/{id}/webhook-url [get]
+//
+//	@Summary		Get channel webhook URL
+//	@Description	Retorna a URL do webhook que deve ser configurada no canal externo (WAHA, WhatsApp, etc)
+//	@Tags			channels
+//	@Produce		json
+//	@Security		ApiKeyAuth
+//	@Param			id	path		string					true	"Channel ID"
+//	@Success		200	{object}	map[string]interface{}	"Webhook URL"
+//	@Failure		400	{object}	map[string]interface{}	"Invalid channel ID"
+//	@Failure		401	{object}	map[string]interface{}	"Authentication required"
+//	@Failure		404	{object}	map[string]interface{}	"Channel not found"
+//	@Router			/api/v1/channels/{id}/webhook-url [get]
 func (h *ChannelHandler) GetChannelWebhookURL(c *gin.Context) {
 	authCtx, exists := middleware.GetAuthContext(c)
 	if !exists {
@@ -378,28 +392,29 @@ func (h *ChannelHandler) GetChannelWebhookURL(c *gin.Context) {
 		"channel_type": channel.Type,
 		"webhook_url":  webhookURL,
 		"instructions": map[string]string{
-			"waha":      "Configure this URL in WAHA session webhooks",
-			"whatsapp":  "Configure this URL in WhatsApp Business API webhooks",
-			"telegram":  "Use this URL when setting up Telegram bot webhook",
+			"waha":     "Configure this URL in WAHA session webhooks",
+			"whatsapp": "Configure this URL in WhatsApp Business API webhooks",
+			"telegram": "Use this URL when setting up Telegram bot webhook",
 		}[channel.Type],
 	})
 }
 
 // ConfigureChannelWebhook configura o webhook automaticamente no canal externo
-// @Summary Configure channel webhook
-// @Description Configura automaticamente o webhook no canal externo (ex: WAHA)
-// @Tags channels
-// @Accept json
-// @Produce json
-// @Security ApiKeyAuth
-// @Param id path string true "Channel ID"
-// @Param request body ConfigureWebhookRequest false "Webhook configuration (optional, uses default if not provided)"
-// @Success 200 {object} map[string]interface{} "Webhook configured"
-// @Failure 400 {object} map[string]interface{} "Invalid request"
-// @Failure 401 {object} map[string]interface{} "Authentication required"
-// @Failure 404 {object} map[string]interface{} "Channel not found"
-// @Failure 500 {object} map[string]interface{} "Configuration failed"
-// @Router /api/v1/channels/{id}/configure-webhook [post]
+//
+//	@Summary		Configure channel webhook
+//	@Description	Configura automaticamente o webhook no canal externo (ex: WAHA)
+//	@Tags			channels
+//	@Accept			json
+//	@Produce		json
+//	@Security		ApiKeyAuth
+//	@Param			id		path		string					true	"Channel ID"
+//	@Param			request	body		ConfigureWebhookRequest	false	"Webhook configuration (optional, uses default if not provided)"
+//	@Success		200		{object}	map[string]interface{}	"Webhook configured"
+//	@Failure		400		{object}	map[string]interface{}	"Invalid request"
+//	@Failure		401		{object}	map[string]interface{}	"Authentication required"
+//	@Failure		404		{object}	map[string]interface{}	"Channel not found"
+//	@Failure		500		{object}	map[string]interface{}	"Configuration failed"
+//	@Router			/api/v1/channels/{id}/configure-webhook [post]
 func (h *ChannelHandler) ConfigureChannelWebhook(c *gin.Context) {
 	authCtx, exists := middleware.GetAuthContext(c)
 	if !exists {
@@ -464,17 +479,18 @@ func (h *ChannelHandler) ConfigureChannelWebhook(c *gin.Context) {
 }
 
 // GetChannelWebhookInfo obtém informações sobre o webhook do canal
-// @Summary Get channel webhook info
-// @Description Retorna informações detalhadas sobre o webhook do canal
-// @Tags channels
-// @Produce json
-// @Security ApiKeyAuth
-// @Param id path string true "Channel ID"
-// @Success 200 {object} map[string]interface{} "Webhook info"
-// @Failure 400 {object} map[string]interface{} "Invalid channel ID"
-// @Failure 401 {object} map[string]interface{} "Authentication required"
-// @Failure 404 {object} map[string]interface{} "Channel not found"
-// @Router /api/v1/channels/{id}/webhook-info [get]
+//
+//	@Summary		Get channel webhook info
+//	@Description	Retorna informações detalhadas sobre o webhook do canal
+//	@Tags			channels
+//	@Produce		json
+//	@Security		ApiKeyAuth
+//	@Param			id	path		string					true	"Channel ID"
+//	@Success		200	{object}	map[string]interface{}	"Webhook info"
+//	@Failure		400	{object}	map[string]interface{}	"Invalid channel ID"
+//	@Failure		401	{object}	map[string]interface{}	"Authentication required"
+//	@Failure		404	{object}	map[string]interface{}	"Channel not found"
+//	@Router			/api/v1/channels/{id}/webhook-info [get]
 func (h *ChannelHandler) GetChannelWebhookInfo(c *gin.Context) {
 	authCtx, exists := middleware.GetAuthContext(c)
 	if !exists {
@@ -564,7 +580,7 @@ func (h *ChannelHandler) GetChannelQRCode(c *gin.Context) {
 
 	// Verificar status da sessão
 	status := channel.GetWAHASessionStatus()
-	
+
 	response := gin.H{
 		"channel_id": channel.ID,
 		"session_id": channel.ExternalID,
@@ -601,3 +617,220 @@ func (h *ChannelHandler) GetChannelQRCode(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 */
+
+// ActivateWAHAChannel ativa um canal WAHA específico
+//
+//	@Summary		Activate WAHA channel
+//	@Description	Ativa e inicializa uma sessão WAHA para um canal
+//	@Tags			channels
+//	@Accept			json
+//	@Produce		json
+//	@Security		ApiKeyAuth
+//	@Param			id	path		string					true	"Channel ID"
+//	@Success		200	{object}	map[string]interface{}	"WAHA channel activated"
+//	@Failure		400	{object}	map[string]interface{}	"Invalid request or not WAHA channel"
+//	@Failure		401	{object}	map[string]interface{}	"Authentication required"
+//	@Failure		404	{object}	map[string]interface{}	"Channel not found"
+//	@Failure		500	{object}	map[string]interface{}	"Internal server error"
+//	@Router			/api/v1/channels/{id}/activate-waha [post]
+func (h *ChannelHandler) ActivateWAHAChannel(c *gin.Context) {
+	authCtx, exists := middleware.GetAuthContext(c)
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Authentication required"})
+		return
+	}
+
+	channelID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid channel ID"})
+		return
+	}
+
+	// Verificar se o canal existe e pertence ao usuário
+	channel, err := h.channelService.GetChannel(c.Request.Context(), channelID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Channel not found"})
+		return
+	}
+
+	if channel.UserID != authCtx.UserID {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Access denied"})
+		return
+	}
+
+	// Verificar se é canal WAHA
+	if channel.Type != "waha" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Channel is not WAHA type"})
+		return
+	}
+
+	// Ativar canal WAHA (isso configurará o webhook e iniciará a sessão)
+	if err := h.channelService.ActivateChannel(c.Request.Context(), channelID); err != nil {
+		h.logger.Error("Failed to activate WAHA channel", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to activate WAHA channel: " + err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message":    "WAHA channel activated successfully",
+		"channel_id": channelID,
+		"next_steps": []string{
+			"Scan QR code if not already authenticated",
+			"Check webhook configuration",
+			"Send test message",
+		},
+	})
+}
+
+// ImportWAHAHistoryRequest representa o request para importar histórico
+type ImportWAHAHistoryRequest struct {
+	Strategy string `json:"strategy" example:"recent"` // "all", "recent", "custom"
+	Limit    int    `json:"limit" example:"100"`       // Número de mensagens por chat (0 = todas)
+}
+
+// ImportWAHAHistory importa histórico de mensagens de um canal WAHA
+//
+//	@Summary		Import WAHA message history
+//	@Description	Importa histórico de mensagens de um canal WAHA (chats e mensagens)
+//	@Tags			channels
+//	@Accept			json
+//	@Produce		json
+//	@Security		ApiKeyAuth
+//	@Param			id		path		string						true	"Channel ID"
+//	@Param			request	body		ImportWAHAHistoryRequest	false	"Import configuration (optional)"
+//	@Success		202		{object}	map[string]interface{}		"Import started (async)"
+//	@Failure		400		{object}	map[string]interface{}		"Invalid request or not WAHA channel"
+//	@Failure		401		{object}	map[string]interface{}		"Authentication required"
+//	@Failure		404		{object}	map[string]interface{}		"Channel not found"
+//	@Failure		500		{object}	map[string]interface{}		"Internal server error"
+//	@Router			/api/v1/channels/{id}/import-history [post]
+func (h *ChannelHandler) ImportWAHAHistory(c *gin.Context) {
+	authCtx, exists := middleware.GetAuthContext(c)
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Authentication required"})
+		return
+	}
+
+	channelID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid channel ID"})
+		return
+	}
+
+	// Verificar se o canal existe e pertence ao usuário
+	channel, err := h.channelService.GetChannel(c.Request.Context(), channelID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Channel not found"})
+		return
+	}
+
+	if channel.UserID != authCtx.UserID {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Access denied"})
+		return
+	}
+
+	// Verificar se é canal WAHA
+	if channel.Type != "waha" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Channel is not WAHA type"})
+		return
+	}
+
+	// Parse request (opcional)
+	var req ImportWAHAHistoryRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		// Se não tiver body, usa valores padrão
+		req.Strategy = "recent"
+		req.Limit = 100
+	}
+
+	// Default values
+	if req.Strategy == "" {
+		req.Strategy = "recent"
+	}
+	if req.Limit == 0 {
+		req.Limit = 100
+	}
+
+	// Get WAHA config from channel Config
+	// Channel response has Config as map[string]interface{}
+	sessionID := channel.ExternalID
+	if sessionID == "" {
+		// Try to get from config
+		if sessionIDVal, exists := channel.Config["session_id"]; exists {
+			var ok bool
+			sessionID, ok = sessionIDVal.(string)
+			if !ok {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid WAHA session_id in configuration"})
+				return
+			}
+		} else {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "WAHA session_id not configured"})
+			return
+		}
+	}
+
+	// Verificar se Temporal client está configurado
+	if h.temporalClient == nil {
+		h.logger.Error("Temporal client not configured")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Workflow engine not configured"})
+		return
+	}
+
+	// Type assertion para client.Client
+	temporalClient, ok := h.temporalClient.(client.Client)
+	if !ok {
+		h.logger.Error("Invalid Temporal client type")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid workflow engine configuration"})
+		return
+	}
+
+	// Preparar input para o workflow
+	workflowInput := channelworkflow.WAHAHistoryImportWorkflowInput{
+		ChannelID: channelID.String(),
+		SessionID: sessionID,
+		Strategy:  req.Strategy,
+		Limit:     req.Limit,
+		ProjectID: authCtx.ProjectID.String(),
+		TenantID:  authCtx.TenantID,
+		UserID:    authCtx.UserID.String(),
+	}
+
+	// Iniciar workflow Temporal
+	workflowID := fmt.Sprintf("waha-import-%s", channelID.String())
+	workflowOptions := client.StartWorkflowOptions{
+		ID:        workflowID,
+		TaskQueue: "waha-imports",
+	}
+
+	we, err := temporalClient.ExecuteWorkflow(
+		c.Request.Context(),
+		workflowOptions,
+		channelworkflow.WAHAHistoryImportWorkflow,
+		workflowInput,
+	)
+	if err != nil {
+		h.logger.Error("Failed to start WAHA history import workflow",
+			zap.Error(err),
+			zap.String("channel_id", channelID.String()))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to start history import: " + err.Error()})
+		return
+	}
+
+	h.logger.Info("WAHA history import workflow started",
+		zap.String("channel_id", channelID.String()),
+		zap.String("workflow_id", we.GetID()),
+		zap.String("run_id", we.GetRunID()),
+		zap.String("strategy", req.Strategy),
+		zap.Int("limit", req.Limit))
+
+	c.JSON(http.StatusAccepted, gin.H{
+		"message":     "History import started",
+		"channel_id":  channelID,
+		"workflow_id": we.GetID(),
+		"run_id":      we.GetRunID(),
+		"strategy":    req.Strategy,
+		"limit":       req.Limit,
+		"status":      "processing",
+		"note":        "Import is running in the background via Temporal workflow. Query workflow for progress.",
+	})
+}

@@ -142,7 +142,7 @@ func (a *WebhookRepositoryAdapter) RecordTrigger(ctx context.Context, id uuid.UU
 	if err != nil {
 		return err
 	}
-	
+
 	w.RecordTrigger(success)
 	return a.Update(ctx, w)
 }

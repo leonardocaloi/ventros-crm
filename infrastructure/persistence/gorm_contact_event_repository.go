@@ -41,19 +41,19 @@ func (r *GormContactEventRepository) FindByContactID(ctx context.Context, contac
 	query := r.db.WithContext(ctx).
 		Where("contact_id = ?", contactID).
 		Order("occurred_at DESC")
-	
+
 	if limit > 0 {
 		query = query.Limit(limit)
 	}
 	if offset > 0 {
 		query = query.Offset(offset)
 	}
-	
+
 	err := query.Find(&entities).Error
 	if err != nil {
 		return nil, err
 	}
-	
+
 	events := make([]*contact_event.ContactEvent, len(entities))
 	for i, entity := range entities {
 		events[i] = r.entityToDomain(&entity)
@@ -66,19 +66,19 @@ func (r *GormContactEventRepository) FindBySessionID(ctx context.Context, sessio
 	query := r.db.WithContext(ctx).
 		Where("session_id = ?", sessionID).
 		Order("occurred_at DESC")
-	
+
 	if limit > 0 {
 		query = query.Limit(limit)
 	}
 	if offset > 0 {
 		query = query.Offset(offset)
 	}
-	
+
 	err := query.Find(&entities).Error
 	if err != nil {
 		return nil, err
 	}
-	
+
 	events := make([]*contact_event.ContactEvent, len(entities))
 	for i, entity := range entities {
 		events[i] = r.entityToDomain(&entity)
@@ -91,16 +91,16 @@ func (r *GormContactEventRepository) FindUndeliveredRealtime(ctx context.Context
 	query := r.db.WithContext(ctx).
 		Where("is_realtime = ? AND delivered = ? AND (expires_at IS NULL OR expires_at > NOW())", true, false).
 		Order("occurred_at ASC")
-	
+
 	if limit > 0 {
 		query = query.Limit(limit)
 	}
-	
+
 	err := query.Find(&entities).Error
 	if err != nil {
 		return nil, err
 	}
-	
+
 	events := make([]*contact_event.ContactEvent, len(entities))
 	for i, entity := range entities {
 		events[i] = r.entityToDomain(&entity)
@@ -124,19 +124,19 @@ func (r *GormContactEventRepository) FindByContactIDVisible(ctx context.Context,
 	query := r.db.WithContext(ctx).
 		Where("contact_id = ? AND visible_to_client = ?", contactID, visibleToClient).
 		Order("occurred_at DESC")
-	
+
 	if limit > 0 {
 		query = query.Limit(limit)
 	}
 	if offset > 0 {
 		query = query.Offset(offset)
 	}
-	
+
 	err := query.Find(&entities).Error
 	if err != nil {
 		return nil, err
 	}
-	
+
 	events := make([]*contact_event.ContactEvent, len(entities))
 	for i, entity := range entities {
 		events[i] = r.entityToDomain(&entity)
@@ -150,11 +150,11 @@ func (r *GormContactEventRepository) FindUndeliveredForContact(ctx context.Conte
 		Where("contact_id = ? AND delivered = ? AND (expires_at IS NULL OR expires_at > NOW())", contactID, false).
 		Order("occurred_at ASC").
 		Find(&entities).Error
-	
+
 	if err != nil {
 		return nil, err
 	}
-	
+
 	events := make([]*contact_event.ContactEvent, len(entities))
 	for i, entity := range entities {
 		events[i] = r.entityToDomain(&entity)
@@ -189,6 +189,81 @@ func (r *GormContactEventRepository) CountByContact(ctx context.Context, contact
 		Where("contact_id = ?", contactID).
 		Count(&count).Error
 	return int(count), err
+}
+
+// FindByContactWithFilters busca eventos com filtros avançados
+func (r *GormContactEventRepository) FindByContactWithFilters(
+	ctx context.Context,
+	contactID uuid.UUID,
+	sessionID *uuid.UUID,
+	eventTypes []string,
+	categories []string,
+	priority string,
+	startDate *time.Time,
+	endDate *time.Time,
+	limit int,
+	offset int,
+) ([]*entities.ContactEventEntity, int64, error) {
+	query := r.db.WithContext(ctx).Model(&entities.ContactEventEntity{})
+
+	// Filtro obrigatório: contact_id
+	query = query.Where("contact_id = ?", contactID)
+
+	// Filtro opcional: session_id
+	if sessionID != nil {
+		query = query.Where("session_id = ?", *sessionID)
+	}
+
+	// Filtro opcional: event_types
+	if len(eventTypes) > 0 {
+		query = query.Where("event_type IN ?", eventTypes)
+	}
+
+	// Filtro opcional: categories
+	if len(categories) > 0 {
+		query = query.Where("category IN ?", categories)
+	}
+
+	// Filtro opcional: priority
+	if priority != "" {
+		query = query.Where("priority = ?", priority)
+	}
+
+	// Filtro opcional: data range
+	if startDate != nil {
+		query = query.Where("occurred_at >= ?", *startDate)
+	}
+	if endDate != nil {
+		query = query.Where("occurred_at <= ?", *endDate)
+	}
+
+	// Contar total
+	var total int64
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	// Buscar com paginação
+	var entities []*entities.ContactEventEntity
+	err := query.
+		Order("occurred_at DESC").
+		Limit(limit).
+		Offset(offset).
+		Find(&entities).Error
+
+	return entities, total, err
+}
+
+// MarkAsRead marca um evento como lido
+func (r *GormContactEventRepository) MarkAsRead(ctx context.Context, eventID uuid.UUID) error {
+	now := time.Now()
+	return r.db.WithContext(ctx).
+		Model(&entities.ContactEventEntity{}).
+		Where("id = ?", eventID).
+		Updates(map[string]interface{}{
+			"read":    true,
+			"read_at": now,
+		}).Error
 }
 
 // domainToEntity converte domain model para entity

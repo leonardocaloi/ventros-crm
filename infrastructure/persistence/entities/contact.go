@@ -12,22 +12,27 @@ import (
 
 // ContactEntity representa a entidade Contact no banco de dados
 type ContactEntity struct {
-	ID                   uuid.UUID   `gorm:"type:uuid;primary_key;default:gen_random_uuid()"`
-	ProjectID            uuid.UUID   `gorm:"type:uuid;not null;index"`
-	TenantID             string      `gorm:"not null;index"`
-	Name                 string      `gorm:""`
-	Email                string      `gorm:"index"`
-	Phone                string      `gorm:"index"`
-	ExternalID           string      `gorm:"index"`
-	SourceChannel        string      `gorm:""`
-	Language             string      `gorm:"default:'en'"`
-	Timezone             string      `gorm:""`
-	Tags                 StringArray `gorm:"type:jsonb"`
-	FirstInteractionAt   *time.Time  `gorm:""`
-	LastInteractionAt    *time.Time  `gorm:""`
-	CreatedAt            time.Time   `gorm:"autoCreateTime"`
-	UpdatedAt            time.Time   `gorm:"autoUpdateTime"`
-	DeletedAt            gorm.DeletedAt `gorm:"index"`
+	ID            uuid.UUID   `gorm:"type:uuid;primary_key;default:gen_random_uuid()"`
+	ProjectID     uuid.UUID   `gorm:"type:uuid;not null;index"`
+	TenantID      string      `gorm:"not null;index"`
+	Name          string      `gorm:""`
+	Email         string      `gorm:"index"`
+	Phone         string      `gorm:"index"`
+	ExternalID    string      `gorm:"index"`
+	SourceChannel string      `gorm:""`
+	Language      string      `gorm:"default:'en'"`
+	Timezone      string      `gorm:""`
+	Tags          StringArray `gorm:"type:jsonb"`
+
+	// WhatsApp Profile
+	ProfilePictureURL       *string    `gorm:""` // URL da foto de perfil do WhatsApp
+	ProfilePictureFetchedAt *time.Time `gorm:""` // Última vez que a foto foi buscada
+
+	FirstInteractionAt *time.Time     `gorm:""`
+	LastInteractionAt  *time.Time     `gorm:""`
+	CreatedAt          time.Time      `gorm:"autoCreateTime"`
+	UpdatedAt          time.Time      `gorm:"autoUpdateTime"`
+	DeletedAt          gorm.DeletedAt `gorm:"index"`
 
 	// Relacionamentos
 	Project      ProjectEntity              `gorm:"foreignKey:ProjectID"`
@@ -53,12 +58,12 @@ func (s *StringArray) Scan(value interface{}) error {
 		*s = nil
 		return nil
 	}
-	
+
 	bytes, ok := value.([]byte)
 	if !ok {
 		return fmt.Errorf("cannot scan %T into StringArray", value)
 	}
-	
+
 	return json.Unmarshal(bytes, s)
 }
 

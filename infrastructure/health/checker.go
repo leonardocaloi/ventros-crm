@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/redis/go-redis/v9"
 	amqp "github.com/rabbitmq/amqp091-go"
+	"github.com/redis/go-redis/v9"
 	"go.temporal.io/sdk/client"
 	"gorm.io/gorm"
 )
@@ -243,7 +243,7 @@ func (hc *HealthChecker) CheckRabbitMQ(ctx context.Context) CheckResult {
 		// Check if critical queues exist
 		criticalQueues := []string{
 			"waha.events.message",
-			"waha.events.message.ack", 
+			"waha.events.message.ack",
 			"domain.events.contact.created",
 			"domain.events.session.started",
 		}

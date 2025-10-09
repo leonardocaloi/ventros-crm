@@ -24,7 +24,7 @@ func NewWAHAIntegration(
 ) *WAHAIntegration {
 	// Cria o event bus para eventos raw
 	rawEventBus := NewWAHARawEventBus(rabbitConn, logger)
-	
+
 	// Cria o processor para eventos raw
 	rawEventProcessor := NewWAHARawEventProcessor(
 		logger,
@@ -49,12 +49,12 @@ func (w *WAHAIntegration) SetupQueues() error {
 // StartProcessors inicia todos os consumers/processors
 func (w *WAHAIntegration) StartProcessors(ctx context.Context, rabbitConn *RabbitMQConnection) error {
 	w.logger.Info("Starting WAHA raw event processors...")
-	
+
 	// Inicia o processor de eventos raw
 	if err := w.RawEventProcessor.Start(ctx, rabbitConn); err != nil {
 		return err
 	}
-	
+
 	w.logger.Info("WAHA integration started successfully")
 	return nil
 }

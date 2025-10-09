@@ -4,13 +4,13 @@ package user
 type ResourceType string
 
 const (
-	ResourceProject    ResourceType = "project"
-	ResourceContact    ResourceType = "contact"
-	ResourceMessage    ResourceType = "message"
-	ResourceWebhook    ResourceType = "webhook"
-	ResourcePipeline   ResourceType = "pipeline"
-	ResourceUser       ResourceType = "user"
-	ResourceAnalytics  ResourceType = "analytics"
+	ResourceProject   ResourceType = "project"
+	ResourceContact   ResourceType = "contact"
+	ResourceMessage   ResourceType = "message"
+	ResourceWebhook   ResourceType = "webhook"
+	ResourcePipeline  ResourceType = "pipeline"
+	ResourceUser      ResourceType = "user"
+	ResourceAnalytics ResourceType = "analytics"
 )
 
 // Operation representa as operações possíveis
