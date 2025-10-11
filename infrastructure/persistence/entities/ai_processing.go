@@ -61,5 +61,5 @@ type AIProcessingEntity struct {
 }
 
 func (AIProcessingEntity) TableName() string {
-	return "ai_processings"
+	return "ai_processes"
 }

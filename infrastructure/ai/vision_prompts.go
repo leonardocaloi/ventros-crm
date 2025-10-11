@@ -5,25 +5,25 @@ type VisionPromptContext string
 
 const (
 	// Chat contexts - mensagens de conversa
-	ContextChatMessage        VisionPromptContext = "chat_message"           // Imagem enviada em conversa
-	ContextChatProduct        VisionPromptContext = "chat_product"           // Produto compartilhado em chat
-	ContextChatDocument       VisionPromptContext = "chat_document"          // Documento/screenshot em chat
-	ContextChatReceipt        VisionPromptContext = "chat_receipt"           // Nota fiscal/recibo
+	ContextChatMessage  VisionPromptContext = "chat_message"  // Imagem enviada em conversa
+	ContextChatProduct  VisionPromptContext = "chat_product"  // Produto compartilhado em chat
+	ContextChatDocument VisionPromptContext = "chat_document" // Documento/screenshot em chat
+	ContextChatReceipt  VisionPromptContext = "chat_receipt"  // Nota fiscal/recibo
 
 	// Profile contexts - dados de perfil
-	ContextProfilePicture     VisionPromptContext = "profile_picture"        // Foto de perfil do contato
-	ContextProfileDocument    VisionPromptContext = "profile_document"       // Documento de identificação
-	ContextProfileBusiness    VisionPromptContext = "profile_business"       // Logo/imagem de empresa
+	ContextProfilePicture  VisionPromptContext = "profile_picture"  // Foto de perfil do contato
+	ContextProfileDocument VisionPromptContext = "profile_document" // Documento de identificação
+	ContextProfileBusiness VisionPromptContext = "profile_business" // Logo/imagem de empresa
 
 	// Pipeline contexts - funil de vendas
-	ContextPipelineProduct    VisionPromptContext = "pipeline_product"       // Produto no pipeline
-	ContextPipelineCatalog    VisionPromptContext = "pipeline_catalog"       // Catálogo de produtos
-	ContextPipelineContract   VisionPromptContext = "pipeline_contract"      // Contrato/proposta
+	ContextPipelineProduct  VisionPromptContext = "pipeline_product"  // Produto no pipeline
+	ContextPipelineCatalog  VisionPromptContext = "pipeline_catalog"  // Catálogo de produtos
+	ContextPipelineContract VisionPromptContext = "pipeline_contract" // Contrato/proposta
 
 	// Automation contexts - automações
-	ContextAutomationForm     VisionPromptContext = "automation_form"        // Formulário preenchido
-	ContextAutomationID       VisionPromptContext = "automation_id"          // Documento de identidade
-	ContextAutomationInvoice  VisionPromptContext = "automation_invoice"     // Nota fiscal/fatura
+	ContextAutomationForm    VisionPromptContext = "automation_form"    // Formulário preenchido
+	ContextAutomationID      VisionPromptContext = "automation_id"      // Documento de identidade
+	ContextAutomationInvoice VisionPromptContext = "automation_invoice" // Nota fiscal/fatura
 )
 
 // VisionPrompt representa um prompt específico para análise de imagem

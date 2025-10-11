@@ -3,7 +3,7 @@ package waha
 import (
 	"errors"
 
-	"github.com/caloi/ventros-crm/internal/domain/message"
+	"github.com/caloi/ventros-crm/internal/domain/crm/message"
 )
 
 // WhatsAppAck representa o valor de ACK (acknowledgment) do WhatsApp/WAHA.
@@ -14,11 +14,12 @@ import (
 // O ciclo de vida de uma mensagem no WhatsApp passa por diferentes estados:
 //
 // -1 (ERROR)   → Erro ao enviar a mensagem
-//  0 (PENDING) → Mensagem pendente (ainda não enviada)
-//  1 (SERVER)  → Mensagem foi enviada ao servidor WhatsApp
-//  2 (DEVICE)  → Mensagem foi entregue ao dispositivo do destinatário (✓✓)
-//  3 (READ)    → Mensagem foi lida pelo destinatário (✓✓ azul)
-//  4 (PLAYED)  → Mensagem de mídia foi reproduzida/visualizada
+//
+//	0 (PENDING) → Mensagem pendente (ainda não enviada)
+//	1 (SERVER)  → Mensagem foi enviada ao servidor WhatsApp
+//	2 (DEVICE)  → Mensagem foi entregue ao dispositivo do destinatário (✓✓)
+//	3 (READ)    → Mensagem foi lida pelo destinatário (✓✓ azul)
+//	4 (PLAYED)  → Mensagem de mídia foi reproduzida/visualizada
 type WhatsAppAck int
 
 const (

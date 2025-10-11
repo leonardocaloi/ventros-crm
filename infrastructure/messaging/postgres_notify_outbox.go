@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/caloi/ventros-crm/internal/domain/outbox"
+	"github.com/caloi/ventros-crm/internal/domain/core/outbox"
 	"github.com/lib/pq"
 	"go.uber.org/zap"
 	"gorm.io/gorm"

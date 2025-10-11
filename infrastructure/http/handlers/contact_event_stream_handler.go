@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/caloi/ventros-crm/infrastructure/persistence"
-	"github.com/caloi/ventros-crm/internal/domain/contact_event"
+	"github.com/caloi/ventros-crm/internal/domain/crm/contact_event"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"go.uber.org/zap"

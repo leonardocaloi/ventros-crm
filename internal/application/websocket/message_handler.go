@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	ws "github.com/caloi/ventros-crm/infrastructure/websocket"
-	"github.com/caloi/ventros-crm/internal/domain/message"
+	"github.com/caloi/ventros-crm/internal/domain/crm/message"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 )

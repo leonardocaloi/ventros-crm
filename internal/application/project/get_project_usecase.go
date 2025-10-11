@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/caloi/ventros-crm/internal/domain/project"
+	"github.com/caloi/ventros-crm/internal/domain/core/project"
 	"github.com/google/uuid"
 )
 

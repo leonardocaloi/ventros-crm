@@ -9,8 +9,8 @@ import (
 	"github.com/caloi/ventros-crm/infrastructure/http/middleware"
 	"github.com/caloi/ventros-crm/internal/application/commands/message"
 	"github.com/caloi/ventros-crm/internal/application/queries"
-	domainMessage "github.com/caloi/ventros-crm/internal/domain/message"
-	"github.com/caloi/ventros-crm/internal/domain/shared"
+	"github.com/caloi/ventros-crm/internal/domain/core/shared"
+	domainMessage "github.com/caloi/ventros-crm/internal/domain/crm/message"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
@@ -84,7 +84,7 @@ type UpdateMessageRequest struct {
 //
 //	@Summary		List messages
 //	@Description	List messages with optional filters
-//	@Tags			messages
+//	@Tags			CRM - Messages
 //	@Produce		json
 //	@Param			session_id		query		string					false	"Filter by session ID (UUID)"
 //	@Param			contact_id		query		string					false	"Filter by contact ID (UUID)"
@@ -108,7 +108,7 @@ func (h *MessageHandler) ListMessages(c *gin.Context) {
 //
 //	@Summary		Create message
 //	@Description	Create a new message
-//	@Tags			messages
+//	@Tags			CRM - Messages
 //	@Accept			json
 //	@Produce		json
 //	@Param			message	body		CreateMessageRequest	true	"Message data"
@@ -139,7 +139,7 @@ func (h *MessageHandler) CreateMessage(c *gin.Context) {
 //
 //	@Summary		Send message
 //	@Description	Send a message to a contact via specific channel
-//	@Tags			messages
+//	@Tags			CRM - Messages
 //	@Accept			json
 //	@Produce		json
 //	@Param			message	body		SendMessageRequest		true	"Message data"
@@ -222,7 +222,7 @@ func (h *MessageHandler) SendMessage(c *gin.Context) {
 //
 //	@Summary		Get message by ID
 //	@Description	Get details of a specific message
-//	@Tags			messages
+//	@Tags			CRM - Messages
 //	@Produce		json
 //	@Param			id	path		string					true	"Message ID (UUID)"
 //	@Success		200	{object}	map[string]interface{}	"Message details"
@@ -249,7 +249,7 @@ func (h *MessageHandler) GetMessage(c *gin.Context) {
 //
 //	@Summary		Update message
 //	@Description	Update an existing message
-//	@Tags			messages
+//	@Tags			CRM - Messages
 //	@Accept			json
 //	@Produce		json
 //	@Param			id		path		string					true	"Message ID (UUID)"
@@ -284,7 +284,7 @@ func (h *MessageHandler) UpdateMessage(c *gin.Context) {
 //
 //	@Summary		Delete message
 //	@Description	Remove a message (soft delete)
-//	@Tags			messages
+//	@Tags			CRM - Messages
 //	@Produce		json
 //	@Param			id	path	string	true	"Message ID (UUID)"
 //	@Success		204	"Message deleted successfully"
@@ -310,7 +310,7 @@ func (h *MessageHandler) DeleteMessage(c *gin.Context) {
 //
 //	@Summary		Get messages by session
 //	@Description	Get all messages from a specific session
-//	@Tags			messages
+//	@Tags			CRM - Messages
 //	@Produce		json
 //	@Param			session_id	path		string					true	"Session ID (UUID)"
 //	@Param			limit		query		int						false	"Limit results"			default(100)
@@ -348,7 +348,7 @@ type ConfirmMessageDeliveryRequest struct {
 //
 //	@Summary		Confirm message delivery
 //	@Description	Confirm delivery, reading or failure of a sent message
-//	@Tags			messages
+//	@Tags			CRM - Messages
 //	@Accept			json
 //	@Produce		json
 //	@Param			confirmation	body		ConfirmMessageDeliveryRequest	true	"Delivery confirmation data"
@@ -461,26 +461,26 @@ func (h *MessageHandler) ConfirmMessageDelivery(c *gin.Context) {
 //	@Description	- GIN index on JSONB metadata field for custom attribute searches
 //	@Description	- Maximum 100 messages per page for optimal response times
 //	@Description	- Efficiently handles millions of messages per tenant
-//	@Tags			messages
+//	@Tags			CRM - Messages
 //	@Accept			json
 //	@Produce		json
 //	@Security		BearerAuth
-//	@Param			contact_id			query		string	false	"Filter by contact UUID - Example: 550e8400-e29b-41d4-a716-446655440000"
-//	@Param			session_id			query		string	false	"Filter by session UUID to get full conversation - Example: 660e8400-e29b-41d4-a716-446655440001"
-//	@Param			channel_id			query		string	false	"Filter by channel UUID (specific WhatsApp number, email account, etc)"
-//	@Param			project_id			query		string	false	"Filter by project UUID to segment by business unit"
-//	@Param			channel_type_id		query		int		false	"Filter by channel type - 1:WhatsApp, 2:Email, 3:SMS, 4:Web Chat" example(1)
-//	@Param			from_me				query		bool	false	"Filter by direction - true: agent sent, false: customer sent" example(false)
-//	@Param			content_type		query		string	false	"Filter by content type" Enums(text, image, video, audio, document, location, contact, sticker) example(text)
-//	@Param			status				query		string	false	"Filter by delivery status" Enums(pending, sent, delivered, read, failed) example(delivered)
-//	@Param			agent_id			query		string	false	"Filter by agent UUID for performance tracking"
-//	@Param			timestamp_after		query		string	false	"Messages sent after this timestamp - Format: 2006-01-02T15:04:05Z" example(2024-01-01T00:00:00Z)
-//	@Param			timestamp_before	query		string	false	"Messages sent before this timestamp" example(2024-12-31T23:59:59Z)
-//	@Param			has_media			query		bool	false	"Filter messages with media attachments - true: only with media" example(true)
-//	@Param			page				query		int		false	"Page number for pagination (starts at 1)" default(1) minimum(1) example(1)
-//	@Param			limit				query		int		false	"Messages per page (max 100)" default(20) minimum(1) maximum(100) example(50)
-//	@Param			sort_by				query		string	false	"Field to sort by" Enums(timestamp, created_at) default(timestamp) example(timestamp)
-//	@Param			sort_dir			query		string	false	"Sort direction" Enums(asc, desc) default(desc) example(desc)
+//	@Param			contact_id			query		string							false	"Filter by contact UUID - Example: 550e8400-e29b-41d4-a716-446655440000"
+//	@Param			session_id			query		string							false	"Filter by session UUID to get full conversation - Example: 660e8400-e29b-41d4-a716-446655440001"
+//	@Param			channel_id			query		string							false	"Filter by channel UUID (specific WhatsApp number, email account, etc)"
+//	@Param			project_id			query		string							false	"Filter by project UUID to segment by business unit"
+//	@Param			channel_type_id		query		int								false	"Filter by channel type - 1:WhatsApp, 2:Email, 3:SMS, 4:Web Chat"	example(1)
+//	@Param			from_me				query		bool							false	"Filter by direction - true: agent sent, false: customer sent"		example(false)
+//	@Param			content_type		query		string							false	"Filter by content type"											Enums(text, image, video, audio, document, location, contact, sticker)	example(text)
+//	@Param			status				query		string							false	"Filter by delivery status"											Enums(pending, sent, delivered, read, failed)							example(delivered)
+//	@Param			agent_id			query		string							false	"Filter by agent UUID for performance tracking"
+//	@Param			timestamp_after		query		string							false	"Messages sent after this timestamp - Format: 2006-01-02T15:04:05Z"	example(2024-01-01T00:00:00Z)
+//	@Param			timestamp_before	query		string							false	"Messages sent before this timestamp"								example(2024-12-31T23:59:59Z)
+//	@Param			has_media			query		bool							false	"Filter messages with media attachments - true: only with media"	example(true)
+//	@Param			page				query		int								false	"Page number for pagination (starts at 1)"							default(1)						minimum(1)			example(1)
+//	@Param			limit				query		int								false	"Messages per page (max 100)"										default(20)						minimum(1)			maximum(100)	example(50)
+//	@Param			sort_by				query		string							false	"Field to sort by"													Enums(timestamp, created_at)	default(timestamp)	example(timestamp)
+//	@Param			sort_dir			query		string							false	"Sort direction"													Enums(asc, desc)				default(desc)		example(desc)
 //	@Success		200					{object}	queries.ListMessagesResponse	"Successfully retrieved messages with pagination and filter metadata"
 //	@Failure		400					{object}	map[string]interface{}			"Bad Request - Invalid UUID format, invalid enum values, or limit exceeds 100"
 //	@Failure		401					{object}	map[string]interface{}			"Unauthorized - Missing or invalid authentication token"
@@ -616,12 +616,12 @@ func (h *MessageHandler) ListMessagesAdvanced(c *gin.Context) {
 //	@Description	- ILIKE operator uses PostgreSQL's text search capabilities
 //	@Description	- Maximum 100 results to ensure sub-second response times
 //	@Description	- Handles searches across millions of messages efficiently
-//	@Tags			messages
+//	@Tags			CRM - Messages
 //	@Accept			json
 //	@Produce		json
 //	@Security		BearerAuth
-//	@Param			q		query		string	true	"Search query - minimum 1 character, case-insensitive, supports partial matches - Examples: 'refund', 'order #12345', 'password reset', 'urgent'" minlength(1) example(refund request)
-//	@Param			limit	query		int		false	"Maximum number of results (max 100)" default(20) minimum(1) maximum(100) example(20)
+//	@Param			q		query		string							true	"Search query - minimum 1 character, case-insensitive, supports partial matches - Examples: 'refund', 'order #12345', 'password reset', 'urgent'"	minlength(1)	example(refund request)
+//	@Param			limit	query		int								false	"Maximum number of results (max 100)"																												default(20)		minimum(1)	maximum(100)	example(20)
 //	@Success		200		{object}	queries.SearchMessagesResponse	"Successfully found matching messages with text excerpts and context"
 //	@Failure		400		{object}	map[string]interface{}			"Bad Request - Missing or empty search query, or limit exceeds 100"
 //	@Failure		401		{object}	map[string]interface{}			"Unauthorized - Missing or invalid authentication token"

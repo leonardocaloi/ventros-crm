@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 
 	"github.com/caloi/ventros-crm/infrastructure/persistence/entities"
-	"github.com/caloi/ventros-crm/internal/domain/webhook"
+	"github.com/caloi/ventros-crm/internal/domain/crm/webhook"
 	"github.com/google/uuid"
 	"github.com/lib/pq"
 	"gorm.io/gorm"

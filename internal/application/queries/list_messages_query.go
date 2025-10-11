@@ -4,31 +4,31 @@ import (
 	"context"
 	"time"
 
-	"github.com/caloi/ventros-crm/internal/domain/message"
-	"github.com/caloi/ventros-crm/internal/domain/shared"
+	"github.com/caloi/ventros-crm/internal/domain/core/shared"
+	"github.com/caloi/ventros-crm/internal/domain/crm/message"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 )
 
 // ListMessagesQuery query to list messages with filters, pagination, and sorting
 type ListMessagesQuery struct {
-	TenantID       shared.TenantID
-	ContactID      *uuid.UUID
-	SessionID      *uuid.UUID
-	ChannelID      *uuid.UUID
-	ProjectID      *uuid.UUID
-	ChannelTypeID  *int
-	FromMe         *bool
-	ContentType    *string
-	Status         *string
-	AgentID        *uuid.UUID
-	TimestampAfter *time.Time
+	TenantID        shared.TenantID
+	ContactID       *uuid.UUID
+	SessionID       *uuid.UUID
+	ChannelID       *uuid.UUID
+	ProjectID       *uuid.UUID
+	ChannelTypeID   *int
+	FromMe          *bool
+	ContentType     *string
+	Status          *string
+	AgentID         *uuid.UUID
+	TimestampAfter  *time.Time
 	TimestampBefore *time.Time
-	HasMedia       *bool
-	Page           int
-	Limit          int
-	SortBy         string
-	SortDir        string
+	HasMedia        *bool
+	Page            int
+	Limit           int
+	SortBy          string
+	SortDir         string
 }
 
 // ListMessagesResponse response for list messages query
@@ -42,18 +42,18 @@ type ListMessagesResponse struct {
 
 // ListMessageDTO data transfer object for message in list
 type ListMessageDTO struct {
-	ID               string                 `json:"id"`
-	Timestamp        string                 `json:"timestamp"`
-	ContactID        string                 `json:"contact_id"`
-	SessionID        *string                `json:"session_id,omitempty"`
-	ChannelID        string                 `json:"channel_id"`
-	FromMe           bool                   `json:"from_me"`
-	ContentType      string                 `json:"content_type"`
-	Text             *string                `json:"text,omitempty"`
-	MediaURL         *string                `json:"media_url,omitempty"`
-	Status           string                 `json:"status"`
-	AgentID          *string                `json:"agent_id,omitempty"`
-	Metadata         map[string]interface{} `json:"metadata,omitempty"`
+	ID          string                 `json:"id"`
+	Timestamp   string                 `json:"timestamp"`
+	ContactID   string                 `json:"contact_id"`
+	SessionID   *string                `json:"session_id,omitempty"`
+	ChannelID   string                 `json:"channel_id"`
+	FromMe      bool                   `json:"from_me"`
+	ContentType string                 `json:"content_type"`
+	Text        *string                `json:"text,omitempty"`
+	MediaURL    *string                `json:"media_url,omitempty"`
+	Status      string                 `json:"status"`
+	AgentID     *string                `json:"agent_id,omitempty"`
+	Metadata    map[string]interface{} `json:"metadata,omitempty"`
 }
 
 // ListMessagesQueryHandler handles ListMessagesQuery

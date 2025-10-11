@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/caloi/ventros-crm/infrastructure/channels/waha"
-	"github.com/caloi/ventros-crm/internal/domain/channel"
+	"github.com/caloi/ventros-crm/internal/domain/crm/channel"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 )
@@ -44,9 +44,9 @@ type CreateChannelRequest struct {
 	Type                  string             `json:"type" binding:"required"`
 	SessionTimeoutMinutes *int               `json:"session_timeout_minutes,omitempty"` // Timeout das sessões em minutos (sobrescreve pipeline se ambos existirem)
 	WAHAConfig            *WAHAConfigRequest `json:"waha_config,omitempty"`
-	AIEnabled             bool               `json:"ai_enabled"`        // Canal Inteligente
-	AIAgentsEnabled       bool               `json:"ai_agents_enabled"` // Agentes IA
-	AllowGroups           *bool              `json:"allow_groups,omitempty"`    // Se aceita mensagens de grupos WhatsApp
+	AIEnabled             bool               `json:"ai_enabled"`                 // Canal Inteligente
+	AIAgentsEnabled       bool               `json:"ai_agents_enabled"`          // Agentes IA
+	AllowGroups           *bool              `json:"allow_groups,omitempty"`     // Se aceita mensagens de grupos WhatsApp
 	TrackingEnabled       *bool              `json:"tracking_enabled,omitempty"` // Se rastreia origem das mensagens
 }
 
@@ -80,8 +80,8 @@ type ChannelResponse struct {
 	// AI Features
 	AIEnabled       bool `json:"ai_enabled,omitempty"`        // Canal Inteligente
 	AIAgentsEnabled bool `json:"ai_agents_enabled,omitempty"` // Agentes IA
-	AllowGroups     bool `json:"allow_groups"`                 // Se aceita mensagens de grupos WhatsApp
-	TrackingEnabled bool `json:"tracking_enabled"`             // Se rastreia origem das mensagens
+	AllowGroups     bool `json:"allow_groups"`                // Se aceita mensagens de grupos WhatsApp
+	TrackingEnabled bool `json:"tracking_enabled"`            // Se rastreia origem das mensagens
 
 	// Statistics
 	MessagesReceived int     `json:"messages_received"`
@@ -634,8 +634,8 @@ func (s *ChannelService) createWhatsAppBusinessChannel(ctx context.Context, req 
 		"auth": map[string]string{
 			"api_key": wahaAPIKey,
 		},
-		"webhook_url":      webhookURL,
-		"import_strategy":  string(channel.WAHAImportNone),
+		"webhook_url":         webhookURL,
+		"import_strategy":     string(channel.WAHAImportNone),
 		"waha_session_status": session.Status,
 	}
 

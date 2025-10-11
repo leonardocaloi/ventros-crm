@@ -17,11 +17,11 @@ type MessageEnrichmentEntity struct {
 	Provider       string         `gorm:"type:varchar(50);not null"`                                    // whisper, deepgram, vision, llamaparse, ffmpeg
 	MediaURL       string         `gorm:"type:text;not null"`
 	Status         string         `gorm:"type:varchar(50);not null;default:'pending';index:idx_enrichments_status"` // pending, processing, completed, failed
-	ExtractedText  *string        `gorm:"type:text"`                                                                 // Texto extraído (transcrição, OCR, parsing)
-	Metadata       datatypes.JSON `gorm:"type:jsonb"`                                                                // Metadados do provider (segments, objects, etc)
-	ProcessingTime *int           `gorm:"column:processing_time_ms"`                                                 // Tempo de processamento em milliseconds
-	Error          *string        `gorm:"type:text"`                                                                 // Mensagem de erro (se falhou)
-	Context        *string        `gorm:"type:varchar(50)"`                                                          // Contexto de processamento (chat_message, profile_picture, etc)
+	ExtractedText  *string        `gorm:"type:text"`                                                                // Texto extraído (transcrição, OCR, parsing)
+	Metadata       datatypes.JSON `gorm:"type:jsonb"`                                                               // Metadados do provider (segments, objects, etc)
+	ProcessingTime *int           `gorm:"column:processing_time_ms"`                                                // Tempo de processamento em milliseconds
+	Error          *string        `gorm:"type:text"`                                                                // Mensagem de erro (se falhou)
+	Context        *string        `gorm:"type:varchar(50)"`                                                         // Contexto de processamento (chat_message, profile_picture, etc)
 	CreatedAt      time.Time      `gorm:"not null;default:now();index:idx_enrichments_created"`
 	ProcessedAt    *time.Time
 

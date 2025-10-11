@@ -8,9 +8,9 @@ import (
 
 	"github.com/caloi/ventros-crm/infrastructure/persistence"
 	"github.com/caloi/ventros-crm/infrastructure/webhooks"
-	"github.com/caloi/ventros-crm/internal/domain/outbox"
-	"github.com/caloi/ventros-crm/internal/domain/saga"
-	"github.com/caloi/ventros-crm/internal/domain/shared"
+	"github.com/caloi/ventros-crm/internal/domain/core/outbox"
+	"github.com/caloi/ventros-crm/internal/domain/core/saga"
+	"github.com/caloi/ventros-crm/internal/domain/core/shared"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
@@ -57,13 +57,18 @@ func NewDomainEventBus(
 
 // Publish salva um evento de domínio no outbox (Transactional Outbox Pattern).
 //
-// **IMPORTANTE**: Este método DEVE ser chamado dentro da mesma transação que salva o agregado.
-// Exemplo:
+// **IMPORTANTE**: Este método DEVE ser chamado dentro de ExecuteInTransaction().
+// Exemplo correto:
 //
-//	tx := db.Begin()
-//	contactRepo.SaveInTransaction(tx, contact)
-//	eventBus.PublishInTransaction(tx, contact.DomainEvents()...)
-//	tx.Commit()
+//	txManager.ExecuteInTransaction(ctx, func(ctx context.Context) error {
+//	    if err := contactRepo.Save(ctx, contact); err != nil {
+//	        return err
+//	    }
+//	    return eventBus.Publish(ctx, contact.DomainEvents()...)
+//	})
+//
+// O método automaticamente detecta se há uma transação ativa no contexto e a usa.
+// Se não houver transação, usa a conexão padrão (não recomendado para consistência).
 //
 // **Fluxo após commit**:
 // 1. Serializa o evento como JSON

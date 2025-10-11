@@ -3,7 +3,7 @@ package tracking
 import (
 	"time"
 
-	"github.com/caloi/ventros-crm/internal/domain/tracking"
+	"github.com/caloi/ventros-crm/internal/domain/crm/tracking"
 	"github.com/google/uuid"
 )
 

@@ -31,17 +31,17 @@ func NewSessionManager(client *Client, logger *zap.Logger) *SessionManager {
 
 // SessionConfig represents WAHA session configuration
 type SessionConfig struct {
-	Name     string                 `json:"name"`
-	Start    bool                   `json:"start"`
-	Config   SessionConfigOptions   `json:"config"`
+	Name   string               `json:"name"`
+	Start  bool                 `json:"start"`
+	Config SessionConfigOptions `json:"config"`
 }
 
 // SessionConfigOptions represents session configuration options
 type SessionConfigOptions struct {
-	Metadata map[string]string        `json:"metadata,omitempty"`
-	Proxy    *string                  `json:"proxy,omitempty"`
-	Debug    bool                     `json:"debug,omitempty"`
-	Webhooks []SessionWebhookConfig   `json:"webhooks"`
+	Metadata map[string]string      `json:"metadata,omitempty"`
+	Proxy    *string                `json:"proxy,omitempty"`
+	Debug    bool                   `json:"debug,omitempty"`
+	Webhooks []SessionWebhookConfig `json:"webhooks"`
 }
 
 // SessionWebhookConfig represents webhook configuration for a session
@@ -55,16 +55,16 @@ type SessionWebhookConfig struct {
 
 // SessionResponse represents a WAHA session response
 type SessionResponse struct {
-	Name     string               `json:"name"`
-	Status   string               `json:"status"` // STOPPED, STARTING, SCAN_QR_CODE, WORKING, FAILED
-	Me       *SessionMe           `json:"me,omitempty"`
-	Config   SessionConfigOptions `json:"config"`
+	Name   string               `json:"name"`
+	Status string               `json:"status"` // STOPPED, STARTING, SCAN_QR_CODE, WORKING, FAILED
+	Me     *SessionMe           `json:"me,omitempty"`
+	Config SessionConfigOptions `json:"config"`
 }
 
 // SessionMe represents authenticated user info
 type SessionMe struct {
-	ID       string `json:"id"`        // 11111111111@c.us
-	LID      string `json:"lid"`       // 123123@lid
+	ID       string `json:"id"`  // 11111111111@c.us
+	LID      string `json:"lid"` // 123123@lid
 	PushName string `json:"pushName"`
 }
 
@@ -74,17 +74,18 @@ type SessionMe struct {
 // After creation, the session will emit QR code events that need to be handled.
 //
 // Example:
-//   config := SessionConfig{
-//       Name: "channel-123",
-//       Start: true,
-//       Config: SessionConfigOptions{
-//           Webhooks: []WebhookConfig{{
-//               URL: "https://api.crm.ventros.cloud/webhooks/waha",
-//               Events: []string{"message", "session.status"},
-//           }},
-//       },
-//   }
-//   session, err := sm.CreateSession(ctx, config)
+//
+//	config := SessionConfig{
+//	    Name: "channel-123",
+//	    Start: true,
+//	    Config: SessionConfigOptions{
+//	        Webhooks: []WebhookConfig{{
+//	            URL: "https://api.crm.ventros.cloud/webhooks/waha",
+//	            Events: []string{"message", "session.status"},
+//	        }},
+//	    },
+//	}
+//	session, err := sm.CreateSession(ctx, config)
 func (sm *SessionManager) CreateSession(ctx context.Context, config SessionConfig) (*SessionResponse, error) {
 	sm.logger.Info("Creating WAHA session",
 		zap.String("session_name", config.Name),

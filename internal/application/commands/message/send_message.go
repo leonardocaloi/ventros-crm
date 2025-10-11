@@ -6,9 +6,9 @@ import (
 	"time"
 
 	"github.com/caloi/ventros-crm/internal/application/message"
-	"github.com/caloi/ventros-crm/internal/domain/contact"
-	domainMessage "github.com/caloi/ventros-crm/internal/domain/message"
-	"github.com/caloi/ventros-crm/internal/domain/session"
+	"github.com/caloi/ventros-crm/internal/domain/crm/contact"
+	domainMessage "github.com/caloi/ventros-crm/internal/domain/crm/message"
+	"github.com/caloi/ventros-crm/internal/domain/crm/session"
 	"github.com/google/uuid"
 )
 
@@ -89,12 +89,18 @@ type MessageRepository interface {
 	Save(ctx context.Context, msg *domainMessage.Message) error
 }
 
+// TransactionManager gerencia transações de banco de dados.
+type TransactionManager interface {
+	ExecuteInTransaction(ctx context.Context, fn func(ctx context.Context) error) error
+}
+
 // SendMessageHandler processa o comando de envio de mensagem
 type SendMessageHandler struct {
 	contactRepo   ContactRepository
 	sessionRepo   SessionRepository
 	messageRepo   MessageRepository
 	messageSender message.MessageSender
+	txManager     TransactionManager
 }
 
 // NewSendMessageHandler cria um novo handler
@@ -103,12 +109,14 @@ func NewSendMessageHandler(
 	sessionRepo SessionRepository,
 	messageRepo MessageRepository,
 	messageSender message.MessageSender,
+	txManager TransactionManager,
 ) *SendMessageHandler {
 	return &SendMessageHandler{
 		contactRepo:   contactRepo,
 		sessionRepo:   sessionRepo,
 		messageRepo:   messageRepo,
 		messageSender: messageSender,
+		txManager:     txManager,
 	}
 }
 
@@ -125,73 +133,116 @@ func (h *SendMessageHandler) Handle(ctx context.Context, cmd *SendMessageCommand
 		return nil, errors.New("contact not found")
 	}
 
-	// 3. Obter ou criar sessão ativa
-	activeSession, err := h.sessionRepo.GetActiveSessionByContact(ctx, cmd.ContactID)
-	if err != nil || activeSession == nil {
-		// Criar nova sessão se não existir
-		// TODO: Get channelTypeID from channel repository
-		var channelTypeID *int = nil
-		timeoutDuration := 30 * time.Minute // Default timeout
+	// 3-6. ✅ TRANSAÇÃO 1: Criar sessão (se necessário) + criar mensagem atomicamente
+	var msg *domainMessage.Message
+	var activeSession *session.Session
 
-		newSession, err := session.NewSession(
+	err = h.txManager.ExecuteInTransaction(ctx, func(txCtx context.Context) error {
+		// 3. Obter ou criar sessão ativa
+		activeSession, err = h.sessionRepo.GetActiveSessionByContact(txCtx, cmd.ContactID)
+		if err != nil || activeSession == nil {
+			// Criar nova sessão se não existir
+			// TODO: Get channelTypeID from channel repository
+			var channelTypeID *int = nil
+			timeoutDuration := 30 * time.Minute // Default timeout
+
+			newSession, err := session.NewSession(
+				cmd.ContactID,
+				cmd.TenantID,
+				channelTypeID,
+				timeoutDuration,
+			)
+			if err != nil {
+				return err
+			}
+
+			if err := h.sessionRepo.Save(txCtx, newSession); err != nil {
+				return err
+			}
+
+			activeSession = newSession
+		}
+
+		// 4. Criar mensagem de domínio (fromMe = true para mensagens enviadas)
+		msg, err = domainMessage.NewMessage(
 			cmd.ContactID,
-			cmd.TenantID,
-			channelTypeID,
-			timeoutDuration,
+			cmd.ProjectID,
+			cmd.CustomerID,
+			cmd.ContentType,
+			true, // fromMe = true
 		)
 		if err != nil {
-			return nil, err
+			return err
 		}
 
-		if err := h.sessionRepo.Save(ctx, newSession); err != nil {
-			return nil, err
+		// 5. Configurar conteúdo da mensagem
+		msg.AssignToChannel(cmd.ChannelID, nil)
+		msg.AssignToSession(activeSession.ID())
+
+		if cmd.Text != nil && cmd.ContentType.IsText() {
+			if err := msg.SetText(*cmd.Text); err != nil {
+				return err
+			}
 		}
 
-		activeSession = newSession
-	}
+		if cmd.MediaURL != nil && cmd.ContentType.IsMedia() {
+			// Media mimetype será determinado pelo adapter
+			if err := msg.SetMediaContent(*cmd.MediaURL, ""); err != nil {
+				return err
+			}
+		}
 
-	// 4. Criar mensagem de domínio (fromMe = true para mensagens enviadas)
-	msg, err := domainMessage.NewMessage(
-		cmd.ContactID,
-		cmd.ProjectID,
-		cmd.CustomerID,
-		cmd.ContentType,
-		true, // fromMe = true
-	)
+		// 6. Persistir mensagem (com status pending)
+		if err := h.messageRepo.Save(txCtx, msg); err != nil {
+			return err
+		}
+
+		return nil
+	})
+
 	if err != nil {
 		return nil, err
 	}
 
-	// 5. Configurar conteúdo da mensagem
-	msg.AssignToChannel(cmd.ChannelID, nil)
-	msg.AssignToSession(activeSession.ID())
-
-	if cmd.Text != nil && cmd.ContentType.IsText() {
-		if err := msg.SetText(*cmd.Text); err != nil {
-			return nil, err
-		}
-	}
-
-	if cmd.MediaURL != nil && cmd.ContentType.IsMedia() {
-		// Media mimetype será determinado pelo adapter
-		if err := msg.SetMediaContent(*cmd.MediaURL, ""); err != nil {
-			return nil, err
-		}
-	}
-
-	// 6. Persistir mensagem
-	if err := h.messageRepo.Save(ctx, msg); err != nil {
-		return nil, err
-	}
-
-	// 7. Enviar mensagem via adapter
+	// 7. Enviar mensagem via adapter (FORA da transação - pode demorar)
 	outboundMsg := h.convertToOutboundMessage(cmd, msg, existingContact)
 	sendResult, err := h.messageSender.SendMessage(ctx, outboundMsg)
-	if err != nil {
-		// Marcar mensagem como falha
-		msg.MarkAsFailed()
-		_ = h.messageRepo.Save(ctx, msg) // Best effort update
 
+	// 8-9. ✅ TRANSAÇÃO 2: Atualizar status da mensagem + contato atomicamente
+	err2 := h.txManager.ExecuteInTransaction(ctx, func(txCtx context.Context) error {
+		if err != nil {
+			// Marcar mensagem como falha
+			msg.MarkAsFailed()
+			if err := h.messageRepo.Save(txCtx, msg); err != nil {
+				return err
+			}
+			return nil // Não propaga erro do SendMessage aqui
+		}
+
+		// Atualizar mensagem com ID externo
+		if sendResult.ExternalID != nil {
+			msg.SetChannelMessageID(*sendResult.ExternalID)
+		}
+		msg.MarkAsDelivered()
+		if err := h.messageRepo.Save(txCtx, msg); err != nil {
+			return err
+		}
+
+		// Registrar interação no contato
+		existingContact.RecordInteraction()
+		// Note: ContactRepository.Save não está sendo chamado porque Contact
+		// não tem método Save exposto. RecordInteraction apenas atualiza timestamp interno.
+		// TODO: Adicionar Save do contato se necessário.
+
+		return nil
+	})
+
+	if err2 != nil {
+		// Log erro mas retorna resultado da mensagem
+		// Em produção: usar logging adequado
+	}
+
+	if err != nil {
 		errMsg := err.Error()
 		return &SendMessageResult{
 			MessageID: msg.ID(),
@@ -200,16 +251,6 @@ func (h *SendMessageHandler) Handle(ctx context.Context, cmd *SendMessageCommand
 			Error:     &errMsg,
 		}, err
 	}
-
-	// 8. Atualizar mensagem com ID externo
-	if sendResult.ExternalID != nil {
-		msg.SetChannelMessageID(*sendResult.ExternalID)
-	}
-	msg.MarkAsDelivered()
-	_ = h.messageRepo.Save(ctx, msg) // Best effort update
-
-	// 9. Registrar interação no contato
-	existingContact.RecordInteraction()
 
 	return &SendMessageResult{
 		MessageID:  msg.ID(),

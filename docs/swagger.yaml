@@ -12,36 +12,7 @@ definitions:
         example: Invalid email format
         type: string
     type: object
-  github_com_caloi_ventros-crm_infrastructure_health.CheckResult:
-    properties:
-      duration_ms:
-        example: 15
-        type: integer
-      message:
-        example: database is operational
-        type: string
-      metadata:
-        additionalProperties: true
-        type: object
-      status:
-        allOf:
-        - $ref: '#/definitions/github_com_caloi_ventros-crm_infrastructure_health.Status'
-        example: healthy
-      timestamp:
-        example: "2024-01-01T00:00:00Z"
-        type: string
-    type: object
-  github_com_caloi_ventros-crm_infrastructure_health.Status:
-    enum:
-    - healthy
-    - degraded
-    - unhealthy
-    type: string
-    x-enum-varnames:
-    - StatusHealthy
-    - StatusDegraded
-    - StatusUnhealthy
-  github_com_caloi_ventros-crm_infrastructure_http_dto.ActionParameterDTO:
+  dto.ActionParameterDTO:
     properties:
       default: {}
       description:
@@ -53,7 +24,7 @@ definitions:
       type:
         type: string
     type: object
-  github_com_caloi_ventros-crm_infrastructure_http_dto.ActionResponse:
+  dto.ActionResponse:
     properties:
       category:
         type: string
@@ -68,33 +39,33 @@ definitions:
         type: string
       parameters:
         items:
-          $ref: '#/definitions/github_com_caloi_ventros-crm_infrastructure_http_dto.ActionParameterDTO'
+          $ref: '#/definitions/dto.ActionParameterDTO'
         type: array
     type: object
-  github_com_caloi_ventros-crm_infrastructure_http_dto.AutomationDiscoveryResponse:
+  dto.AutomationDiscoveryResponse:
     properties:
       actions:
         items:
-          $ref: '#/definitions/github_com_caloi_ventros-crm_infrastructure_http_dto.ActionResponse'
+          $ref: '#/definitions/dto.ActionResponse'
         type: array
       logic_types:
         items:
-          $ref: '#/definitions/github_com_caloi_ventros-crm_infrastructure_http_dto.LogicOperatorResponse'
+          $ref: '#/definitions/dto.LogicOperatorResponse'
         type: array
       operators:
         items:
-          $ref: '#/definitions/github_com_caloi_ventros-crm_infrastructure_http_dto.ConditionOperatorResponse'
+          $ref: '#/definitions/dto.ConditionOperatorResponse'
         type: array
       triggers:
         items:
-          $ref: '#/definitions/github_com_caloi_ventros-crm_infrastructure_http_dto.TriggerResponse'
+          $ref: '#/definitions/dto.TriggerResponse'
         type: array
       types:
         items:
-          $ref: '#/definitions/github_com_caloi_ventros-crm_infrastructure_http_dto.AutomationTypeResponse'
+          $ref: '#/definitions/dto.AutomationTypeResponse'
         type: array
     type: object
-  github_com_caloi_ventros-crm_infrastructure_http_dto.AutomationTypeResponse:
+  dto.AutomationTypeResponse:
     properties:
       code:
         type: string
@@ -109,7 +80,7 @@ definitions:
       name:
         type: string
     type: object
-  github_com_caloi_ventros-crm_infrastructure_http_dto.ConditionOperatorResponse:
+  dto.ConditionOperatorResponse:
     properties:
       code:
         type: string
@@ -120,7 +91,7 @@ definitions:
       name:
         type: string
     type: object
-  github_com_caloi_ventros-crm_infrastructure_http_dto.LogicOperatorResponse:
+  dto.LogicOperatorResponse:
     properties:
       code:
         type: string
@@ -129,7 +100,7 @@ definitions:
       name:
         type: string
     type: object
-  github_com_caloi_ventros-crm_infrastructure_http_dto.TriggerParameter:
+  dto.TriggerParameter:
     properties:
       description:
         type: string
@@ -140,7 +111,7 @@ definitions:
       type:
         type: string
     type: object
-  github_com_caloi_ventros-crm_infrastructure_http_dto.TriggerResponse:
+  dto.TriggerResponse:
     properties:
       category:
         type: string
@@ -154,551 +125,10 @@ definitions:
         type: string
       parameters:
         items:
-          $ref: '#/definitions/github_com_caloi_ventros-crm_infrastructure_http_dto.TriggerParameter'
+          $ref: '#/definitions/dto.TriggerParameter'
         type: array
     type: object
-  github_com_caloi_ventros-crm_internal_application_queries.AgentDTO:
-    properties:
-      active:
-        type: boolean
-      created_at:
-        type: string
-      email:
-        type: string
-      id:
-        type: string
-      name:
-        type: string
-      updated_at:
-        type: string
-    type: object
-  github_com_caloi_ventros-crm_internal_application_queries.AgentSearchResultDTO:
-    properties:
-      active:
-        type: boolean
-      email:
-        type: string
-      id:
-        type: string
-      match_field:
-        type: string
-      match_score:
-        type: number
-      name:
-        type: string
-    type: object
-  github_com_caloi_ventros-crm_internal_application_queries.ListAgentsResponse:
-    properties:
-      agents:
-        items:
-          $ref: '#/definitions/github_com_caloi_ventros-crm_internal_application_queries.AgentDTO'
-        type: array
-      limit:
-        type: integer
-      page:
-        type: integer
-      totalCount:
-        format: int64
-        type: integer
-      totalPages:
-        type: integer
-    type: object
-  github_com_caloi_ventros-crm_internal_application_queries.ListMessageDTO:
-    properties:
-      agent_id:
-        type: string
-      channel_id:
-        type: string
-      contact_id:
-        type: string
-      content_type:
-        type: string
-      from_me:
-        type: boolean
-      id:
-        type: string
-      media_url:
-        type: string
-      metadata:
-        additionalProperties: true
-        type: object
-      session_id:
-        type: string
-      status:
-        type: string
-      text:
-        type: string
-      timestamp:
-        type: string
-    type: object
-  github_com_caloi_ventros-crm_internal_application_queries.ListMessagesResponse:
-    properties:
-      limit:
-        type: integer
-      messages:
-        items:
-          $ref: '#/definitions/github_com_caloi_ventros-crm_internal_application_queries.ListMessageDTO'
-        type: array
-      page:
-        type: integer
-      totalCount:
-        format: int64
-        type: integer
-      totalPages:
-        type: integer
-    type: object
-  github_com_caloi_ventros-crm_internal_application_queries.ListNotesResponse:
-    properties:
-      limit:
-        type: integer
-      notes:
-        items:
-          $ref: '#/definitions/github_com_caloi_ventros-crm_internal_application_queries.NoteDTO'
-        type: array
-      page:
-        type: integer
-      totalCount:
-        format: int64
-        type: integer
-      totalPages:
-        type: integer
-    type: object
-  github_com_caloi_ventros-crm_internal_application_queries.ListPipelinesResponse:
-    properties:
-      limit:
-        type: integer
-      page:
-        type: integer
-      pipelines:
-        items:
-          $ref: '#/definitions/github_com_caloi_ventros-crm_internal_application_queries.PipelineDTO'
-        type: array
-      totalCount:
-        format: int64
-        type: integer
-      totalPages:
-        type: integer
-    type: object
-  github_com_caloi_ventros-crm_internal_application_queries.ListProjectsResponse:
-    properties:
-      limit:
-        type: integer
-      page:
-        type: integer
-      projects:
-        items:
-          $ref: '#/definitions/github_com_caloi_ventros-crm_internal_application_queries.ProjectDTO'
-        type: array
-      totalCount:
-        format: int64
-        type: integer
-      totalPages:
-        type: integer
-    type: object
-  github_com_caloi_ventros-crm_internal_application_queries.ListSessionsResponse:
-    properties:
-      limit:
-        type: integer
-      page:
-        type: integer
-      sessions:
-        items:
-          $ref: '#/definitions/github_com_caloi_ventros-crm_internal_application_queries.SessionDTO'
-        type: array
-      totalCount:
-        format: int64
-        type: integer
-      totalPages:
-        type: integer
-    type: object
-  github_com_caloi_ventros-crm_internal_application_queries.MessageSearchResultDTO:
-    properties:
-      contact_id:
-        type: string
-      content_type:
-        type: string
-      from_me:
-        type: boolean
-      id:
-        type: string
-      match_score:
-        type: number
-      text:
-        type: string
-      timestamp:
-        type: string
-    type: object
-  github_com_caloi_ventros-crm_internal_application_queries.NoteDTO:
-    properties:
-      author_id:
-        type: string
-      author_name:
-        type: string
-      author_type:
-        type: string
-      contact_id:
-        type: string
-      content:
-        type: string
-      created_at:
-        type: string
-      id:
-        type: string
-      note_type:
-        type: string
-      pinned:
-        type: boolean
-      priority:
-        type: string
-      session_id:
-        type: string
-      tags:
-        items:
-          type: string
-        type: array
-      updated_at:
-        type: string
-      visible_to_client:
-        type: boolean
-    type: object
-  github_com_caloi_ventros-crm_internal_application_queries.NoteSearchResultDTO:
-    properties:
-      author_name:
-        type: string
-      contact_id:
-        type: string
-      content:
-        type: string
-      created_at:
-        type: string
-      id:
-        type: string
-      match_field:
-        type: string
-      match_score:
-        type: number
-      note_type:
-        type: string
-      pinned:
-        type: boolean
-      priority:
-        type: string
-    type: object
-  github_com_caloi_ventros-crm_internal_application_queries.PipelineDTO:
-    properties:
-      active:
-        type: boolean
-      color:
-        type: string
-      created_at:
-        type: string
-      description:
-        type: string
-      id:
-        type: string
-      name:
-        type: string
-      position:
-        type: integer
-      project_id:
-        type: string
-      session_timeout_minutes:
-        type: integer
-      updated_at:
-        type: string
-    type: object
-  github_com_caloi_ventros-crm_internal_application_queries.PipelineSearchResultDTO:
-    properties:
-      active:
-        type: boolean
-      color:
-        type: string
-      description:
-        type: string
-      id:
-        type: string
-      match_field:
-        type: string
-      match_score:
-        type: number
-      name:
-        type: string
-    type: object
-  github_com_caloi_ventros-crm_internal_application_queries.ProjectDTO:
-    properties:
-      active:
-        type: boolean
-      billing_account_id:
-        type: string
-      configuration:
-        additionalProperties: true
-        type: object
-      created_at:
-        type: string
-      customer_id:
-        type: string
-      description:
-        type: string
-      id:
-        type: string
-      name:
-        type: string
-      session_timeout_minutes:
-        type: integer
-      updated_at:
-        type: string
-    type: object
-  github_com_caloi_ventros-crm_internal_application_queries.ProjectSearchResultDTO:
-    properties:
-      active:
-        type: boolean
-      description:
-        type: string
-      id:
-        type: string
-      match_field:
-        type: string
-      match_score:
-        type: number
-      name:
-        type: string
-    type: object
-  github_com_caloi_ventros-crm_internal_application_queries.SearchAgentsResponse:
-    properties:
-      agents:
-        items:
-          $ref: '#/definitions/github_com_caloi_ventros-crm_internal_application_queries.AgentSearchResultDTO'
-        type: array
-      count:
-        type: integer
-    type: object
-  github_com_caloi_ventros-crm_internal_application_queries.SearchMessagesResponse:
-    properties:
-      count:
-        type: integer
-      messages:
-        items:
-          $ref: '#/definitions/github_com_caloi_ventros-crm_internal_application_queries.MessageSearchResultDTO'
-        type: array
-    type: object
-  github_com_caloi_ventros-crm_internal_application_queries.SearchNotesResponse:
-    properties:
-      count:
-        type: integer
-      notes:
-        items:
-          $ref: '#/definitions/github_com_caloi_ventros-crm_internal_application_queries.NoteSearchResultDTO'
-        type: array
-    type: object
-  github_com_caloi_ventros-crm_internal_application_queries.SearchPipelinesResponse:
-    properties:
-      count:
-        type: integer
-      pipelines:
-        items:
-          $ref: '#/definitions/github_com_caloi_ventros-crm_internal_application_queries.PipelineSearchResultDTO'
-        type: array
-    type: object
-  github_com_caloi_ventros-crm_internal_application_queries.SearchProjectsResponse:
-    properties:
-      count:
-        type: integer
-      projects:
-        items:
-          $ref: '#/definitions/github_com_caloi_ventros-crm_internal_application_queries.ProjectSearchResultDTO'
-        type: array
-    type: object
-  github_com_caloi_ventros-crm_internal_application_queries.SearchSessionsResponse:
-    properties:
-      count:
-        type: integer
-      sessions:
-        items:
-          $ref: '#/definitions/github_com_caloi_ventros-crm_internal_application_queries.SessionSearchResultDTO'
-        type: array
-    type: object
-  github_com_caloi_ventros-crm_internal_application_queries.SessionDTO:
-    properties:
-      contact_id:
-        type: string
-      converted:
-        type: boolean
-      duration_seconds:
-        type: integer
-      ended_at:
-        type: string
-      escalated:
-        type: boolean
-      id:
-        type: string
-      message_count:
-        type: integer
-      messages_from_agent:
-        type: integer
-      messages_from_contact:
-        type: integer
-      outcome_tags:
-        items:
-          type: string
-        type: array
-      pipeline_id:
-        type: string
-      resolved:
-        type: boolean
-      sentiment:
-        type: string
-      started_at:
-        type: string
-      status:
-        type: string
-      summary:
-        type: string
-      topics:
-        items:
-          type: string
-        type: array
-    type: object
-  github_com_caloi_ventros-crm_internal_application_queries.SessionSearchResultDTO:
-    properties:
-      contact_id:
-        type: string
-      id:
-        type: string
-      match_field:
-        type: string
-      match_score:
-        type: number
-      message_count:
-        type: integer
-      started_at:
-        type: string
-      status:
-        type: string
-      summary:
-        type: string
-      topics:
-        items:
-          type: string
-        type: array
-    type: object
-  github_com_caloi_ventros-crm_internal_application_tracking.DecodeTrackingRequest:
-    properties:
-      message:
-        type: string
-    required:
-    - message
-    type: object
-  github_com_caloi_ventros-crm_internal_application_tracking.DecodeTrackingResponse:
-    properties:
-      analysis:
-        additionalProperties: true
-        type: object
-      clean_message:
-        type: string
-      confidence:
-        type: string
-      decoded_decimal:
-        type: integer
-      decoded_ternary:
-        type: string
-      error:
-        type: string
-      original_message:
-        type: string
-      success:
-        type: boolean
-    type: object
-  github_com_caloi_ventros-crm_internal_application_tracking.EncodeTrackingRequest:
-    properties:
-      message:
-        type: string
-      phone:
-        type: string
-      tracking_id:
-        type: integer
-    required:
-    - message
-    - tracking_id
-    type: object
-  github_com_caloi_ventros-crm_internal_application_tracking.EncodeTrackingResponse:
-    properties:
-      debug:
-        additionalProperties: true
-        type: object
-      decimal_value:
-        type: integer
-      invisible_code:
-        type: string
-      message_with_code:
-        type: string
-      original_message:
-        type: string
-      phone:
-        type: string
-      success:
-        type: boolean
-      ternary_encoded:
-        type: string
-      tracking_id:
-        type: integer
-      whatsapp_link:
-        type: string
-    type: object
-  github_com_caloi_ventros-crm_internal_application_tracking.TrackingDTO:
-    properties:
-      ad_id:
-        type: string
-      ad_url:
-        type: string
-      campaign:
-        type: string
-      click_id:
-        type: string
-      contact_id:
-        type: string
-      conversion_data:
-        type: string
-      created_at:
-        type: string
-      id:
-        type: string
-      metadata:
-        additionalProperties: true
-        type: object
-      platform:
-        type: string
-      project_id:
-        type: string
-      session_id:
-        type: string
-      source:
-        type: string
-      tenant_id:
-        type: string
-      updated_at:
-        type: string
-      utm_campaign:
-        type: string
-      utm_content:
-        type: string
-      utm_medium:
-        type: string
-      utm_source:
-        type: string
-      utm_term:
-        type: string
-    type: object
-  github_com_caloi_ventros-crm_internal_domain_pipeline.StatusType:
-    enum:
-    - open
-    - active
-    - closed
-    type: string
-    x-enum-varnames:
-    - StatusTypeOpen
-    - StatusTypeActive
-    - StatusTypeClosed
-  infrastructure_http_handlers.AddParticipantRequest:
+  handlers.AddParticipantRequest:
     properties:
       participant_id:
         type: string
@@ -709,7 +139,7 @@ definitions:
     - participant_id
     - participant_type
     type: object
-  infrastructure_http_handlers.ChangeContactStatusRequest:
+  handlers.ChangeContactStatusRequest:
     properties:
       notes:
         example: Cliente interessado no produto X
@@ -722,7 +152,7 @@ definitions:
     required:
     - status_id
     type: object
-  infrastructure_http_handlers.ChangePipelineStatusRequest:
+  handlers.ChangePipelineStatusRequest:
     properties:
       reason:
         type: string
@@ -731,7 +161,7 @@ definitions:
     required:
     - status_id
     type: object
-  infrastructure_http_handlers.CloseSessionRequest:
+  handlers.CloseSessionRequest:
     properties:
       notes:
         type: string
@@ -741,13 +171,13 @@ definitions:
     required:
     - reason
     type: object
-  infrastructure_http_handlers.ConfigureWebhookRequest:
+  handlers.ConfigureWebhookRequest:
     properties:
       base_url:
         example: https://api.ventros.com
         type: string
     type: object
-  infrastructure_http_handlers.ConfirmMessageDeliveryRequest:
+  handlers.ConfirmMessageDeliveryRequest:
     properties:
       delivered_at:
         example: "2025-10-09T10:30:00Z"
@@ -770,7 +200,7 @@ definitions:
     - external_id
     - status
     type: object
-  infrastructure_http_handlers.CreateAgentRequest:
+  handlers.CreateAgentRequest:
     properties:
       department:
         example: vendas
@@ -812,7 +242,58 @@ definitions:
     - name
     - tenant_id
     type: object
-  infrastructure_http_handlers.CreateChannelRequest:
+  handlers.CreateAutomationRequest:
+    properties:
+      actions:
+        items:
+          $ref: '#/definitions/pipeline.RuleAction'
+        type: array
+      automation_type:
+        example: event
+        type: string
+      conditions:
+        items:
+          $ref: '#/definitions/pipeline.RuleCondition'
+        type: array
+      description:
+        example: Automatically send welcome message to new contacts
+        type: string
+      enabled:
+        example: true
+        type: boolean
+      name:
+        example: Send welcome message
+        type: string
+      pipeline_id:
+        type: string
+      priority:
+        example: 10
+        type: integer
+      trigger:
+        example: contact.created
+        type: string
+    required:
+    - actions
+    - automation_type
+    - name
+    - trigger
+    type: object
+  handlers.CreateBroadcastRequest:
+    properties:
+      list_id:
+        type: string
+      message_template:
+        $ref: '#/definitions/handlers.MessageTemplateRequest'
+      name:
+        type: string
+      rate_limit:
+        type: integer
+    required:
+    - list_id
+    - message_template
+    - name
+    type: object
+  handlers.CreateChannelRequest:
     properties:
       allow_groups:
         example: false
@@ -830,12 +311,12 @@ definitions:
         example: waha
         type: string
       waha_config:
-        $ref: '#/definitions/infrastructure_http_handlers.CreateWAHAConfigRequest'
+        $ref: '#/definitions/handlers.CreateWAHAConfigRequest'
     required:
     - name
     - type
     type: object
-  infrastructure_http_handlers.CreateChatRequest:
+  handlers.CreateChatRequest:
     properties:
       chat_type:
         example: individual
@@ -850,7 +331,7 @@ definitions:
     required:
     - chat_type
     type: object
-  infrastructure_http_handlers.CreateContactRequest:
+  handlers.CreateContactRequest:
     properties:
       custom_fields:
         additionalProperties:
@@ -889,7 +370,7 @@ definitions:
     required:
     - name
     type: object
-  infrastructure_http_handlers.CreateMessageRequest:
+  handlers.CreateMessageRequest:
     properties:
       channel_type_id:
         type: string
@@ -924,7 +405,7 @@ definitions:
     - content
     - session_id
     type: object
-  infrastructure_http_handlers.CreatePipelineRequest:
+  handlers.CreatePipelineRequest:
     properties:
       color:
         example: '#3B82F6'
@@ -941,7 +422,7 @@ definitions:
     required:
     - name
     type: object
-  infrastructure_http_handlers.CreateProjectRequest:
+  handlers.CreateProjectRequest:
     properties:
       description:
         example: Projeto principal de vendas
@@ -956,7 +437,7 @@ definitions:
     - name
     - tenant_id
     type: object
-  infrastructure_http_handlers.CreateStatusRequest:
+  handlers.CreateStatusRequest:
     properties:
       color:
         example: '#10B981'
@@ -972,13 +453,13 @@ definitions:
         type: integer
       status_type:
         allOf:
-        - $ref: '#/definitions/github_com_caloi_ventros-crm_internal_domain_pipeline.StatusType'
+        - $ref: '#/definitions/pipeline.StatusType'
         example: open
     required:
     - name
     - status_type
     type: object
-  infrastructure_http_handlers.CreateTrackingRequest:
+  handlers.CreateTrackingRequest:
     properties:
       ad_id:
         type: string
@@ -1021,7 +502,7 @@ definitions:
     - project_id
     - source
     type: object
-  infrastructure_http_handlers.CreateUserRequest:
+  handlers.CreateUserRequest:
     properties:
       email:
         example: joao@empresa.com
@@ -1040,7 +521,7 @@ definitions:
     - name
     - password
     type: object
-  infrastructure_http_handlers.CreateWAHAConfigRequest:
+  handlers.CreateWAHAConfigRequest:
     properties:
       api_key:
         example: your-waha-api-key
@@ -1060,7 +541,7 @@ definitions:
     required:
     - base_url
     type: object
-  infrastructure_http_handlers.CreateWebhookRequest:
+  handlers.CreateWebhookRequest:
     properties:
       events:
         example:
@@ -1096,7 +577,7 @@ definitions:
     - name
     - url
     type: object
-  infrastructure_http_handlers.EnumValue:
+  handlers.EnumValue:
     properties:
       description:
         example: Facebook, Instagram, Messenger, Audience Network
@@ -1108,17 +589,17 @@ definitions:
         example: meta
         type: string
     type: object
-  infrastructure_http_handlers.GenerateAPIKeyRequest:
+  handlers.GenerateAPIKeyRequest:
     properties:
       name:
         example: Minha API Key
         type: string
     type: object
-  infrastructure_http_handlers.HealthResponse:
+  handlers.HealthResponse:
     properties:
       dependencies:
         additionalProperties:
-          $ref: '#/definitions/github_com_caloi_ventros-crm_infrastructure_health.CheckResult'
+          $ref: '#/definitions/health.CheckResult'
         type: object
       service:
         example: ventros-crm
@@ -1133,7 +614,7 @@ definitions:
         example: 0.1.0
         type: string
     type: object
-  infrastructure_http_handlers.ImportWAHAHistoryRequest:
+  handlers.ImportWAHAHistoryRequest:
     properties:
       limit:
         example: 100
@@ -1142,7 +623,7 @@ definitions:
         example: recent
         type: string
     type: object
-  infrastructure_http_handlers.LoginRequest:
+  handlers.LoginRequest:
     properties:
       email:
         example: joao@empresa.com
@@ -1154,7 +635,24 @@ definitions:
     - email
     - password
     type: object
-  infrastructure_http_handlers.PlatformCompatibilityInfo:
+  handlers.MessageTemplateRequest:
+    properties:
+      content:
+        type: string
+      media_url:
+        type: string
+      template_id:
+        type: string
+      type:
+        type: string
+      variables:
+        additionalProperties:
+          type: string
+        type: object
+    required:
+    - type
+    type: object
+  handlers.PlatformCompatibilityInfo:
     properties:
       description:
         type: string
@@ -1163,7 +661,14 @@ definitions:
           type: string
         type: array
     type: object
-  infrastructure_http_handlers.SendMessageRequest:
+  handlers.ScheduleBroadcastRequest:
+    properties:
+      scheduled_for:
+        type: string
+    required:
+    - scheduled_for
+    type: object
+  handlers.SendMessageRequest:
     properties:
       channel_id:
         example: 550e8400-e29b-41d4-a716-446655440001
@@ -1190,7 +695,7 @@ definitions:
     - contact_id
     - content_type
     type: object
-  infrastructure_http_handlers.SendMessageResponse:
+  handlers.SendMessageResponse:
     properties:
       error:
         type: string
@@ -1207,7 +712,7 @@ definitions:
         example: sent
         type: string
     type: object
-  infrastructure_http_handlers.TestQRCodeRequest:
+  handlers.TestQRCodeRequest:
     properties:
       channel_name:
         example: WhatsApp Teste
@@ -1219,7 +724,7 @@ definitions:
     - channel_name
     - session_id
     type: object
-  infrastructure_http_handlers.TestWAHARequest:
+  handlers.TestWAHARequest:
     properties:
       base_url:
         example: http://localhost:3000
@@ -1230,46 +735,46 @@ definitions:
     required:
     - base_url
     type: object
-  infrastructure_http_handlers.TrackingEnumsResponse:
+  handlers.TrackingEnumsResponse:
     properties:
       creative_formats:
         items:
-          $ref: '#/definitions/infrastructure_http_handlers.EnumValue'
+          $ref: '#/definitions/handlers.EnumValue'
         type: array
       google_sources:
         items:
-          $ref: '#/definitions/infrastructure_http_handlers.EnumValue'
+          $ref: '#/definitions/handlers.EnumValue'
         type: array
       marketing_tactics:
         items:
-          $ref: '#/definitions/infrastructure_http_handlers.EnumValue'
+          $ref: '#/definitions/handlers.EnumValue'
         type: array
       mediums:
         items:
-          $ref: '#/definitions/infrastructure_http_handlers.EnumValue'
+          $ref: '#/definitions/handlers.EnumValue'
         type: array
       meta_sources:
         items:
-          $ref: '#/definitions/infrastructure_http_handlers.EnumValue'
+          $ref: '#/definitions/handlers.EnumValue'
         type: array
       mkt_direto_sources:
         items:
-          $ref: '#/definitions/infrastructure_http_handlers.EnumValue'
+          $ref: '#/definitions/handlers.EnumValue'
         type: array
       offline_sources:
         items:
-          $ref: '#/definitions/infrastructure_http_handlers.EnumValue'
+          $ref: '#/definitions/handlers.EnumValue'
         type: array
       platform_compatibility:
         additionalProperties:
-          $ref: '#/definitions/infrastructure_http_handlers.PlatformCompatibilityInfo'
+          $ref: '#/definitions/handlers.PlatformCompatibilityInfo'
         type: object
       platforms:
         items:
-          $ref: '#/definitions/infrastructure_http_handlers.EnumValue'
+          $ref: '#/definitions/handlers.EnumValue'
         type: array
     type: object
-  infrastructure_http_handlers.UpdateAgentRequest:
+  handlers.UpdateAgentRequest:
     properties:
       active:
         type: boolean
@@ -1294,7 +799,35 @@ definitions:
           type: string
         type: array
     type: object
-  infrastructure_http_handlers.UpdateContactRequest:
+  handlers.UpdateAutomationRequest:
+    properties:
+      actions:
+        items:
+          $ref: '#/definitions/pipeline.RuleAction'
+        type: array
+      conditions:
+        items:
+          $ref: '#/definitions/pipeline.RuleCondition'
+        type: array
+      description:
+        type: string
+      enabled:
+        type: boolean
+      name:
+        type: string
+      priority:
+        type: integer
+    type: object
+  handlers.UpdateBroadcastRequest:
+    properties:
+      message_template:
+        $ref: '#/definitions/handlers.MessageTemplateRequest'
+      name:
+        type: string
+      rate_limit:
+        type: integer
+    type: object
+  handlers.UpdateContactRequest:
     properties:
       custom_fields:
         additionalProperties:
@@ -1319,7 +852,7 @@ definitions:
       timezone:
         type: string
     type: object
-  infrastructure_http_handlers.UpdateMessageRequest:
+  handlers.UpdateMessageRequest:
     properties:
       content:
         type: string
@@ -1333,7 +866,7 @@ definitions:
       status:
         type: string
     type: object
-  infrastructure_http_handlers.UpdateProjectRequest:
+  handlers.UpdateProjectRequest:
     properties:
       active:
         type: boolean
@@ -1342,7 +875,7 @@ definitions:
       name:
         type: string
     type: object
-  infrastructure_http_handlers.UpdateSubjectRequest:
+  handlers.UpdateSubjectRequest:
     properties:
       subject:
         example: New Team Discussion
@@ -1350,7 +883,7 @@ definitions:
     required:
     - subject
     type: object
-  infrastructure_http_handlers.UpdateWebhookRequest:
+  handlers.UpdateWebhookRequest:
     properties:
       active:
         type: boolean
@@ -1373,7 +906,630 @@ definitions:
       url:
         type: string
     type: object
-host: localhost:8080
+  health.CheckResult:
+    properties:
+      duration_ms:
+        example: 15
+        type: integer
+      message:
+        example: database is operational
+        type: string
+      metadata:
+        additionalProperties: true
+        type: object
+      status:
+        allOf:
+        - $ref: '#/definitions/health.Status'
+        example: healthy
+      timestamp:
+        example: "2024-01-01T00:00:00Z"
+        type: string
+    type: object
+  health.Status:
+    enum:
+    - healthy
+    - degraded
+    - unhealthy
+    type: string
+    x-enum-varnames:
+    - StatusHealthy
+    - StatusDegraded
+    - StatusUnhealthy
+  pipeline.AutomationAction:
+    enum:
+    - send_message
+    - send_template
+    - change_pipeline_status
+    - assign_agent
+    - assign_to_queue
+    - create_task
+    - add_tag
+    - remove_tag
+    - update_custom_field
+    - create_note
+    - create_agent_report
+    - send_webhook
+    - trigger_workflow
+    - notify_agent
+    - notify_coordinator
+    - send_email
+    type: string
+    x-enum-varnames:
+    - ActionSendMessage
+    - ActionSendTemplate
+    - ActionChangeStatus
+    - ActionAssignAgent
+    - ActionAssignToQueue
+    - ActionCreateTask
+    - ActionAddTag
+    - ActionRemoveTag
+    - ActionUpdateCustomField
+    - ActionCreateNote
+    - ActionCreateAgentReport
+    - ActionSendWebhook
+    - ActionTriggerWorkflow
+    - ActionNotifyAgent
+    - ActionNotifyCoordinator
+    - ActionSendEmail
+  pipeline.RuleAction:
+    properties:
+      delay_minutes:
+        type: integer
+      params:
+        additionalProperties: true
+        type: object
+      type:
+        $ref: '#/definitions/pipeline.AutomationAction'
+    type: object
+  pipeline.RuleCondition:
+    properties:
+      field:
+        type: string
+      operator:
+        type: string
+      value: {}
+    type: object
+  pipeline.StatusType:
+    enum:
+    - open
+    - active
+    - closed
+    type: string
+    x-enum-varnames:
+    - StatusTypeOpen
+    - StatusTypeActive
+    - StatusTypeClosed
+  queries.AgentDTO:
+    properties:
+      active:
+        type: boolean
+      created_at:
+        type: string
+      email:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  queries.AgentSearchResultDTO:
+    properties:
+      active:
+        type: boolean
+      email:
+        type: string
+      id:
+        type: string
+      match_field:
+        type: string
+      match_score:
+        type: number
+      name:
+        type: string
+    type: object
+  queries.ListAgentsResponse:
+    properties:
+      agents:
+        items:
+          $ref: '#/definitions/queries.AgentDTO'
+        type: array
+      limit:
+        type: integer
+      page:
+        type: integer
+      totalCount:
+        format: int64
+        type: integer
+      totalPages:
+        type: integer
+    type: object
+  queries.ListMessageDTO:
+    properties:
+      agent_id:
+        type: string
+      channel_id:
+        type: string
+      contact_id:
+        type: string
+      content_type:
+        type: string
+      from_me:
+        type: boolean
+      id:
+        type: string
+      media_url:
+        type: string
+      metadata:
+        additionalProperties: true
+        type: object
+      session_id:
+        type: string
+      status:
+        type: string
+      text:
+        type: string
+      timestamp:
+        type: string
+    type: object
+  queries.ListMessagesResponse:
+    properties:
+      limit:
+        type: integer
+      messages:
+        items:
+          $ref: '#/definitions/queries.ListMessageDTO'
+        type: array
+      page:
+        type: integer
+      totalCount:
+        format: int64
+        type: integer
+      totalPages:
+        type: integer
+    type: object
+  queries.ListNotesResponse:
+    properties:
+      limit:
+        type: integer
+      notes:
+        items:
+          $ref: '#/definitions/queries.NoteDTO'
+        type: array
+      page:
+        type: integer
+      totalCount:
+        format: int64
+        type: integer
+      totalPages:
+        type: integer
+    type: object
+  queries.ListPipelinesResponse:
+    properties:
+      limit:
+        type: integer
+      page:
+        type: integer
+      pipelines:
+        items:
+          $ref: '#/definitions/queries.PipelineDTO'
+        type: array
+      totalCount:
+        format: int64
+        type: integer
+      totalPages:
+        type: integer
+    type: object
+  queries.ListProjectsResponse:
+    properties:
+      limit:
+        type: integer
+      page:
+        type: integer
+      projects:
+        items:
+          $ref: '#/definitions/queries.ProjectDTO'
+        type: array
+      totalCount:
+        format: int64
+        type: integer
+      totalPages:
+        type: integer
+    type: object
+  queries.ListSessionsResponse:
+    properties:
+      limit:
+        type: integer
+      page:
+        type: integer
+      sessions:
+        items:
+          $ref: '#/definitions/queries.SessionDTO'
+        type: array
+      totalCount:
+        format: int64
+        type: integer
+      totalPages:
+        type: integer
+    type: object
+  queries.MessageSearchResultDTO:
+    properties:
+      contact_id:
+        type: string
+      content_type:
+        type: string
+      from_me:
+        type: boolean
+      id:
+        type: string
+      match_score:
+        type: number
+      text:
+        type: string
+      timestamp:
+        type: string
+    type: object
+  queries.NoteDTO:
+    properties:
+      author_id:
+        type: string
+      author_name:
+        type: string
+      author_type:
+        type: string
+      contact_id:
+        type: string
+      content:
+        type: string
+      created_at:
+        type: string
+      id:
+        type: string
+      note_type:
+        type: string
+      pinned:
+        type: boolean
+      priority:
+        type: string
+      session_id:
+        type: string
+      tags:
+        items:
+          type: string
+        type: array
+      updated_at:
+        type: string
+      visible_to_client:
+        type: boolean
+    type: object
+  queries.NoteSearchResultDTO:
+    properties:
+      author_name:
+        type: string
+      contact_id:
+        type: string
+      content:
+        type: string
+      created_at:
+        type: string
+      id:
+        type: string
+      match_field:
+        type: string
+      match_score:
+        type: number
+      note_type:
+        type: string
+      pinned:
+        type: boolean
+      priority:
+        type: string
+    type: object
+  queries.PipelineDTO:
+    properties:
+      active:
+        type: boolean
+      color:
+        type: string
+      created_at:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      position:
+        type: integer
+      project_id:
+        type: string
+      session_timeout_minutes:
+        type: integer
+      updated_at:
+        type: string
+    type: object
+  queries.PipelineSearchResultDTO:
+    properties:
+      active:
+        type: boolean
+      color:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      match_field:
+        type: string
+      match_score:
+        type: number
+      name:
+        type: string
+    type: object
+  queries.ProjectDTO:
+    properties:
+      active:
+        type: boolean
+      billing_account_id:
+        type: string
+      configuration:
+        additionalProperties: true
+        type: object
+      created_at:
+        type: string
+      customer_id:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      session_timeout_minutes:
+        type: integer
+      updated_at:
+        type: string
+    type: object
+  queries.ProjectSearchResultDTO:
+    properties:
+      active:
+        type: boolean
+      description:
+        type: string
+      id:
+        type: string
+      match_field:
+        type: string
+      match_score:
+        type: number
+      name:
+        type: string
+    type: object
+  queries.SearchAgentsResponse:
+    properties:
+      agents:
+        items:
+          $ref: '#/definitions/queries.AgentSearchResultDTO'
+        type: array
+      count:
+        type: integer
+    type: object
+  queries.SearchMessagesResponse:
+    properties:
+      count:
+        type: integer
+      messages:
+        items:
+          $ref: '#/definitions/queries.MessageSearchResultDTO'
+        type: array
+    type: object
+  queries.SearchNotesResponse:
+    properties:
+      count:
+        type: integer
+      notes:
+        items:
+          $ref: '#/definitions/queries.NoteSearchResultDTO'
+        type: array
+    type: object
+  queries.SearchPipelinesResponse:
+    properties:
+      count:
+        type: integer
+      pipelines:
+        items:
+          $ref: '#/definitions/queries.PipelineSearchResultDTO'
+        type: array
+    type: object
+  queries.SearchProjectsResponse:
+    properties:
+      count:
+        type: integer
+      projects:
+        items:
+          $ref: '#/definitions/queries.ProjectSearchResultDTO'
+        type: array
+    type: object
+  queries.SearchSessionsResponse:
+    properties:
+      count:
+        type: integer
+      sessions:
+        items:
+          $ref: '#/definitions/queries.SessionSearchResultDTO'
+        type: array
+    type: object
+  queries.SessionDTO:
+    properties:
+      contact_id:
+        type: string
+      converted:
+        type: boolean
+      duration_seconds:
+        type: integer
+      ended_at:
+        type: string
+      escalated:
+        type: boolean
+      id:
+        type: string
+      message_count:
+        type: integer
+      messages_from_agent:
+        type: integer
+      messages_from_contact:
+        type: integer
+      outcome_tags:
+        items:
+          type: string
+        type: array
+      pipeline_id:
+        type: string
+      resolved:
+        type: boolean
+      sentiment:
+        type: string
+      started_at:
+        type: string
+      status:
+        type: string
+      summary:
+        type: string
+      topics:
+        items:
+          type: string
+        type: array
+    type: object
+  queries.SessionSearchResultDTO:
+    properties:
+      contact_id:
+        type: string
+      id:
+        type: string
+      match_field:
+        type: string
+      match_score:
+        type: number
+      message_count:
+        type: integer
+      started_at:
+        type: string
+      status:
+        type: string
+      summary:
+        type: string
+      topics:
+        items:
+          type: string
+        type: array
+    type: object
+  tracking.DecodeTrackingRequest:
+    properties:
+      message:
+        type: string
+    required:
+    - message
+    type: object
+  tracking.DecodeTrackingResponse:
+    properties:
+      analysis:
+        additionalProperties: true
+        type: object
+      clean_message:
+        type: string
+      confidence:
+        type: string
+      decoded_decimal:
+        type: integer
+      decoded_ternary:
+        type: string
+      error:
+        type: string
+      original_message:
+        type: string
+      success:
+        type: boolean
+    type: object
+  tracking.EncodeTrackingRequest:
+    properties:
+      message:
+        type: string
+      phone:
+        type: string
+      tracking_id:
+        type: integer
+    required:
+    - message
+    - tracking_id
+    type: object
+  tracking.EncodeTrackingResponse:
+    properties:
+      debug:
+        additionalProperties: true
+        type: object
+      decimal_value:
+        type: integer
+      invisible_code:
+        type: string
+      message_with_code:
+        type: string
+      original_message:
+        type: string
+      phone:
+        type: string
+      success:
+        type: boolean
+      ternary_encoded:
+        type: string
+      tracking_id:
+        type: integer
+      whatsapp_link:
+        type: string
+    type: object
+  tracking.TrackingDTO:
+    properties:
+      ad_id:
+        type: string
+      ad_url:
+        type: string
+      campaign:
+        type: string
+      click_id:
+        type: string
+      contact_id:
+        type: string
+      conversion_data:
+        type: string
+      created_at:
+        type: string
+      id:
+        type: string
+      metadata:
+        additionalProperties: true
+        type: object
+      platform:
+        type: string
+      project_id:
+        type: string
+      session_id:
+        type: string
+      source:
+        type: string
+      tenant_id:
+        type: string
+      updated_at:
+        type: string
+      utm_campaign:
+        type: string
+      utm_content:
+        type: string
+      utm_medium:
+        type: string
+      utm_source:
+        type: string
+      utm_term:
+        type: string
+    type: object
 info:
   contact:
     email: support@ventros.com
@@ -1438,7 +1594,7 @@ paths:
             type: object
       summary: List agents
       tags:
-      - agents
+      - CRM - Agents
     post:
       consumes:
       - application/json
@@ -1449,7 +1605,7 @@ paths:
         name: agent
         required: true
         schema:
-          $ref: '#/definitions/infrastructure_http_handlers.CreateAgentRequest'
+          $ref: '#/definitions/handlers.CreateAgentRequest'
       produces:
       - application/json
       responses:
@@ -1470,7 +1626,7 @@ paths:
             type: object
       summary: Create agent
       tags:
-      - agents
+      - CRM - Agents
   /api/v1/agents/{id}:
     delete:
       description: Remove um agente (soft delete)
@@ -1502,7 +1658,7 @@ paths:
             type: object
       summary: Delete agent
       tags:
-      - agents
+      - CRM - Agents
     get:
       description: Obtém detalhes de um agente específico
       parameters:
@@ -1536,7 +1692,7 @@ paths:
             type: object
       summary: Get agent by ID
       tags:
-      - agents
+      - CRM - Agents
     put:
       consumes:
       - application/json
@@ -1552,7 +1708,7 @@ paths:
         name: agent
         required: true
         schema:
-          $ref: '#/definitions/infrastructure_http_handlers.UpdateAgentRequest'
+          $ref: '#/definitions/handlers.UpdateAgentRequest'
       produces:
       - application/json
       responses:
@@ -1578,7 +1734,7 @@ paths:
             type: object
       summary: Update agent
       tags:
-      - agents
+      - CRM - Agents
   /api/v1/agents/{id}/stats:
     get:
       description: Obtém estatísticas de um agente
@@ -1613,7 +1769,7 @@ paths:
             type: object
       summary: Get agent statistics
       tags:
-      - agents
+      - CRM - Agents
   /api/v1/auth/api-key:
     post:
       consumes:
@@ -1625,7 +1781,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/infrastructure_http_handlers.GenerateAPIKeyRequest'
+          $ref: '#/definitions/handlers.GenerateAPIKeyRequest'
       produces:
       - application/json
       responses:
@@ -1641,9 +1797,9 @@ paths:
             type: object
       security:
       - ApiKeyAuth: []
-      summary: Generate API key
+      summary: Gerar API Key
       tags:
-      - auth
+      - AUTH - Authentication
   /api/v1/auth/info:
     get:
       description: Informações sobre autenticação para desenvolvimento
@@ -1655,9 +1811,9 @@ paths:
           schema:
             additionalProperties: true
             type: object
-      summary: Get auth info
+      summary: Informações de Autenticação
       tags:
-      - auth
+      - AUTH - Authentication
   /api/v1/auth/login:
     post:
       consumes:
@@ -1669,7 +1825,7 @@ paths:
         name: credentials
         required: true
         schema:
-          $ref: '#/definitions/infrastructure_http_handlers.LoginRequest'
+          $ref: '#/definitions/handlers.LoginRequest'
       produces:
       - application/json
       responses:
@@ -1688,9 +1844,9 @@ paths:
           schema:
             additionalProperties: true
             type: object
-      summary: User login
+      summary: Login
       tags:
-      - auth
+      - AUTH - Authentication
   /api/v1/auth/profile:
     get:
       description: Obtém o perfil do usuário autenticado
@@ -1709,9 +1865,9 @@ paths:
             type: object
       security:
       - ApiKeyAuth: []
-      summary: Get user profile
+      summary: Obter Perfil
       tags:
-      - auth
+      - AUTH - Authentication
   /api/v1/auth/register:
     post:
       consumes:
@@ -1723,7 +1879,7 @@ paths:
         name: user
         required: true
         schema:
-          $ref: '#/definitions/infrastructure_http_handlers.CreateUserRequest'
+          $ref: '#/definitions/handlers.CreateUserRequest'
       produces:
       - application/json
       responses:
@@ -1742,30 +1898,556 @@ paths:
           schema:
             additionalProperties: true
             type: object
-      summary: Create user
+      summary: Criar Usuário
       tags:
-      - auth
-  /api/v1/automation/actions:
+      - AUTH - Authentication
+  /api/v1/automation:
     get:
-      description: Retorna todas as ações que podem ser executadas nas automações
+      description: Lista todas as automações (cross-product) do tenant autenticado
+        com filtros avançados
       parameters:
-      - description: Filtrar por categoria (messaging, pipeline, assignment, tasks,
-          integration, organization, data, workflow)
+      - description: Filter by automation type
         in: query
-        name: category
+        name: automation_type
+        type: string
+      - description: Filter by enabled status
+        in: query
+        name: enabled
+        type: boolean
+      - description: Filter by pipeline ID (UUID)
+        in: query
+        name: pipeline_id
+        type: string
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 20
+        description: Items per page
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of automations
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Not authenticated
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: List all automations
+      tags:
+      - AUTOMATION - Automations
+    post:
+      consumes:
+      - application/json
+      description: Cria uma nova automação (cross-product ou pipeline-specific)
+      parameters:
+      - description: Automation data
+        in: body
+        name: automation
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.CreateAutomationRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Automation created successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Create automation
+      tags:
+      - AUTOMATION - Automations
+  /api/v1/automation/{id}:
+    delete:
+      description: Deleta uma automação
+      parameters:
+      - description: Automation ID (UUID)
+        in: path
+        name: id
+        required: true
         type: string
       produces:
       - application/json
       responses:
         "200":
-          description: OK
+          description: Automation deleted successfully
           schema:
-            items:
-              $ref: '#/definitions/github_com_caloi_ventros-crm_infrastructure_http_dto.ActionResponse'
-            type: array
-      summary: Lista ações disponíveis
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid automation ID
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Automation not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Delete automation
       tags:
-      - Automation
+      - AUTOMATION - Automations
+    get:
+      description: Obtém detalhes de uma automação específica
+      parameters:
+      - description: Automation ID (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Automation details
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid automation ID
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Automation not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Get automation by ID
+      tags:
+      - AUTOMATION - Automations
+    put:
+      consumes:
+      - application/json
+      description: Atualiza uma automação existente
+      parameters:
+      - description: Automation ID (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Automation data
+        in: body
+        name: automation
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.UpdateAutomationRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Automation updated successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Automation not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Update automation
+      tags:
+      - AUTOMATION - Automations
+  /api/v1/automation/actions:
+    get:
+      description: Lista todas as ações disponíveis para automações
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Available actions
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get available actions
+      tags:
+      - AUTOMATION - Automations
+  /api/v1/automation/broadcasts:
+    get:
+      consumes:
+      - application/json
+      description: Get a paginated list of broadcasts with optional filters
+      parameters:
+      - description: Filter by status (draft, scheduled, running, completed, failed,
+          cancelled)
+        in: query
+        name: status
+        type: string
+      - description: 'Page number (default: 1)'
+        in: query
+        name: page
+        type: integer
+      - description: 'Items per page (default: 20, max: 100)'
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'broadcasts: array of broadcasts, total: total count, page:
+            current page, limit: items per page'
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: 'error: validation error message'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: 'error: internal server error message'
+          schema:
+            additionalProperties: true
+            type: object
+      summary: List broadcasts
+      tags:
+      - AUTOMATION - Broadcasts
+    post:
+      consumes:
+      - application/json
+      description: Create a new broadcast for mass messaging
+      parameters:
+      - description: Broadcast details
+        in: body
+        name: broadcast
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.CreateBroadcastRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: 'broadcast: created broadcast object'
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: 'error: validation error message'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: 'error: internal server error message'
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Create broadcast
+      tags:
+      - AUTOMATION - Broadcasts
+  /api/v1/automation/broadcasts/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a broadcast (only in draft or cancelled status)
+      parameters:
+      - description: Broadcast ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'message: success message'
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: 'error: validation error message'
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: 'error: broadcast not found'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: 'error: internal server error message'
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Delete broadcast
+      tags:
+      - AUTOMATION - Broadcasts
+    get:
+      consumes:
+      - application/json
+      description: Get a broadcast by ID
+      parameters:
+      - description: Broadcast ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'broadcast: broadcast object'
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: 'error: broadcast not found'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: 'error: internal server error message'
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get broadcast
+      tags:
+      - AUTOMATION - Broadcasts
+    put:
+      consumes:
+      - application/json
+      description: Update a broadcast (only allowed in draft status)
+      parameters:
+      - description: Broadcast ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Updated broadcast details
+        in: body
+        name: broadcast
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.UpdateBroadcastRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'broadcast: updated broadcast object'
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: 'error: validation error message'
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: 'error: broadcast not found'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: 'error: internal server error message'
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Update broadcast
+      tags:
+      - AUTOMATION - Broadcasts
+  /api/v1/automation/broadcasts/{id}/cancel:
+    post:
+      consumes:
+      - application/json
+      description: Cancel a broadcast (if not completed)
+      parameters:
+      - description: Broadcast ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'broadcast: cancelled broadcast object'
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: 'error: validation error message'
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: 'error: broadcast not found'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: 'error: internal server error message'
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Cancel broadcast
+      tags:
+      - AUTOMATION - Broadcasts
+  /api/v1/automation/broadcasts/{id}/execute:
+    post:
+      consumes:
+      - application/json
+      description: Start executing a broadcast immediately
+      parameters:
+      - description: Broadcast ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'broadcast: executing broadcast object'
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: 'error: validation error message'
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: 'error: broadcast not found'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: 'error: internal server error message'
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Execute broadcast
+      tags:
+      - AUTOMATION - Broadcasts
+  /api/v1/automation/broadcasts/{id}/schedule:
+    post:
+      consumes:
+      - application/json
+      description: Schedule a broadcast for a specific date/time
+      parameters:
+      - description: Broadcast ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Schedule details
+        in: body
+        name: schedule
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.ScheduleBroadcastRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'broadcast: scheduled broadcast object'
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: 'error: validation error message'
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: 'error: broadcast not found'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: 'error: internal server error message'
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Schedule broadcast
+      tags:
+      - AUTOMATION - Broadcasts
+  /api/v1/automation/broadcasts/{id}/stats:
+    get:
+      consumes:
+      - application/json
+      description: Get statistics for a broadcast
+      parameters:
+      - description: Broadcast ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'stats: broadcast statistics object'
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: 'error: broadcast not found'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: 'error: internal server error message'
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get broadcast stats
+      tags:
+      - AUTOMATION - Broadcasts
   /api/v1/automation/conditions/operators:
     get:
       description: Retorna todos os operadores disponíveis para condições (eq, gt,
@@ -1777,7 +2459,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/github_com_caloi_ventros-crm_infrastructure_http_dto.ConditionOperatorResponse'
+              $ref: '#/definitions/dto.ConditionOperatorResponse'
             type: array
       summary: Lista operadores de condição
       tags:
@@ -1792,7 +2474,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/github_com_caloi_ventros-crm_infrastructure_http_dto.AutomationDiscoveryResponse'
+            $ref: '#/definitions/dto.AutomationDiscoveryResponse'
       summary: Discovery completo de automação
       tags:
       - Automation
@@ -1806,11 +2488,25 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/github_com_caloi_ventros-crm_infrastructure_http_dto.LogicOperatorResponse'
+              $ref: '#/definitions/dto.LogicOperatorResponse'
             type: array
       summary: Lista operadores lógicos
       tags:
       - Automation
+  /api/v1/automation/operators:
+    get:
+      description: Lista todos os operadores disponíveis para condições
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Available operators
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get available operators
+      tags:
+      - AUTOMATION - Automations
   /api/v1/automation/triggers:
     get:
       description: Retorna todos os triggers do sistema e customizados
@@ -1829,11 +2525,11 @@ paths:
             properties:
               custom_triggers:
                 items:
-                  $ref: '#/definitions/github_com_caloi_ventros-crm_infrastructure_http_dto.TriggerResponse'
+                  $ref: '#/definitions/dto.TriggerResponse'
                 type: array
               system_triggers:
                 items:
-                  $ref: '#/definitions/github_com_caloi_ventros-crm_infrastructure_http_dto.TriggerResponse'
+                  $ref: '#/definitions/dto.TriggerResponse'
                 type: array
             type: object
       summary: Lista triggers disponíveis
@@ -1855,7 +2551,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/github_com_caloi_ventros-crm_infrastructure_http_dto.TriggerResponse'
+            $ref: '#/definitions/dto.TriggerResponse'
         "404":
           description: Not Found
           schema:
@@ -1907,7 +2603,7 @@ paths:
               message:
                 type: string
               trigger:
-                $ref: '#/definitions/github_com_caloi_ventros-crm_infrastructure_http_dto.TriggerResponse'
+                $ref: '#/definitions/dto.TriggerResponse'
             type: object
         "400":
           description: Bad Request
@@ -1948,20 +2644,18 @@ paths:
       - Automation
   /api/v1/automation/types:
     get:
-      description: Retorna todos os tipos de automação disponíveis (follow-up, event,
-        scheduled, etc)
+      description: Lista todos os tipos de automação disponíveis
       produces:
       - application/json
       responses:
         "200":
-          description: OK
+          description: Automation types
           schema:
-            items:
-              $ref: '#/definitions/github_com_caloi_ventros-crm_infrastructure_http_dto.AutomationTypeResponse'
-            type: array
-      summary: Lista tipos de automação
+            additionalProperties: true
+            type: object
+      summary: Get automation types
       tags:
-      - Automation
+      - AUTOMATION - Automations
   /api/v1/channels:
     get:
       description: List all channels for authenticated user
@@ -1987,7 +2681,7 @@ paths:
       - ApiKeyAuth: []
       summary: List channels
       tags:
-      - channels
+      - CRM - Channels
     post:
       consumes:
       - application/json
@@ -1998,7 +2692,7 @@ paths:
         name: channel
         required: true
         schema:
-          $ref: '#/definitions/infrastructure_http_handlers.CreateChannelRequest'
+          $ref: '#/definitions/handlers.CreateChannelRequest'
       produces:
       - application/json
       responses:
@@ -2031,7 +2725,7 @@ paths:
       - ApiKeyAuth: []
       summary: Create channel
       tags:
-      - channels
+      - CRM - Channels
   /api/v1/channels/{channel_id}/sessions:
     get:
       description: Lista todas as sessões. Quando usado no endpoint global /sessions,
@@ -2081,7 +2775,7 @@ paths:
       - ApiKeyAuth: []
       summary: List sessions
       tags:
-      - sessions
+      - CRM - Sessions
   /api/v1/channels/{id}:
     delete:
       description: Delete a communication channel
@@ -2123,7 +2817,7 @@ paths:
       - ApiKeyAuth: []
       summary: Delete channel
       tags:
-      - channels
+      - CRM - Channels
     get:
       description: Get details of a specific channel
       parameters:
@@ -2164,7 +2858,7 @@ paths:
       - ApiKeyAuth: []
       summary: Get channel
       tags:
-      - channels
+      - CRM - Channels
   /api/v1/channels/{id}/activate:
     post:
       description: Activate a communication channel
@@ -2206,7 +2900,7 @@ paths:
       - ApiKeyAuth: []
       summary: Activate channel
       tags:
-      - channels
+      - CRM - Channels
   /api/v1/channels/{id}/activate-waha:
     post:
       consumes:
@@ -2250,7 +2944,7 @@ paths:
       - ApiKeyAuth: []
       summary: Activate WAHA channel
       tags:
-      - channels
+      - CRM - Channels
   /api/v1/channels/{id}/configure-webhook:
     post:
       consumes:
@@ -2266,7 +2960,7 @@ paths:
         in: body
         name: request
         schema:
-          $ref: '#/definitions/infrastructure_http_handlers.ConfigureWebhookRequest'
+          $ref: '#/definitions/handlers.ConfigureWebhookRequest'
       produces:
       - application/json
       responses:
@@ -2299,7 +2993,7 @@ paths:
       - ApiKeyAuth: []
       summary: Configure channel webhook
       tags:
-      - channels
+      - CRM - Channels
   /api/v1/channels/{id}/deactivate:
     post:
       description: Deactivate a communication channel
@@ -2341,7 +3035,7 @@ paths:
       - ApiKeyAuth: []
       summary: Deactivate channel
       tags:
-      - channels
+      - CRM - Channels
   /api/v1/channels/{id}/import-history:
     post:
       consumes:
@@ -2357,7 +3051,7 @@ paths:
         in: body
         name: request
         schema:
-          $ref: '#/definitions/infrastructure_http_handlers.ImportWAHAHistoryRequest'
+          $ref: '#/definitions/handlers.ImportWAHAHistoryRequest'
       produces:
       - application/json
       responses:
@@ -2390,7 +3084,7 @@ paths:
       - ApiKeyAuth: []
       summary: Import WAHA message history
       tags:
-      - channels
+      - CRM - Channels
   /api/v1/channels/{id}/sessions/{session_id}:
     get:
       description: Obtém detalhes de uma sessão específica
@@ -2425,7 +3119,7 @@ paths:
             type: object
       summary: Get session by ID
       tags:
-      - sessions
+      - CRM - Sessions
   /api/v1/channels/{id}/webhook-info:
     get:
       description: Return detailed information about channel webhook
@@ -2462,7 +3156,7 @@ paths:
       - ApiKeyAuth: []
       summary: Get channel webhook info
       tags:
-      - channels
+      - CRM - Channels
   /api/v1/channels/{id}/webhook-url:
     get:
       description: Return the webhook URL to be configured in external channel (WAHA,
@@ -2500,7 +3194,7 @@ paths:
       - ApiKeyAuth: []
       summary: Get channel webhook URL
       tags:
-      - channels
+      - CRM - Channels
   /api/v1/chats:
     get:
       consumes:
@@ -2551,7 +3245,7 @@ paths:
       - ApiKeyAuth: []
       summary: List chats
       tags:
-      - chats
+      - CRM - Chats
     post:
       consumes:
       - application/json
@@ -2567,7 +3261,7 @@ paths:
         name: chat
         required: true
         schema:
-          $ref: '#/definitions/infrastructure_http_handlers.CreateChatRequest'
+          $ref: '#/definitions/handlers.CreateChatRequest'
       produces:
       - application/json
       responses:
@@ -2595,7 +3289,7 @@ paths:
       - ApiKeyAuth: []
       summary: Create a new chat
       tags:
-      - chats
+      - CRM - Chats
   /api/v1/chats/{id}:
     get:
       consumes:
@@ -2639,7 +3333,7 @@ paths:
       - ApiKeyAuth: []
       summary: Get chat by ID
       tags:
-      - chats
+      - CRM - Chats
   /api/v1/chats/{id}/archive:
     post:
       consumes:
@@ -2683,7 +3377,7 @@ paths:
       - ApiKeyAuth: []
       summary: Archive chat
       tags:
-      - chats
+      - CRM - Chats
   /api/v1/chats/{id}/close:
     post:
       consumes:
@@ -2727,7 +3421,7 @@ paths:
       - ApiKeyAuth: []
       summary: Close chat
       tags:
-      - chats
+      - CRM - Chats
   /api/v1/chats/{id}/participants:
     post:
       consumes:
@@ -2744,7 +3438,7 @@ paths:
         name: participant
         required: true
         schema:
-          $ref: '#/definitions/infrastructure_http_handlers.AddParticipantRequest'
+          $ref: '#/definitions/handlers.AddParticipantRequest'
       produces:
       - application/json
       responses:
@@ -2777,7 +3471,7 @@ paths:
       - ApiKeyAuth: []
       summary: Add participant to chat
       tags:
-      - chats
+      - CRM - Chats
   /api/v1/chats/{id}/participants/{participant_id}:
     delete:
       consumes:
@@ -2826,7 +3520,7 @@ paths:
       - ApiKeyAuth: []
       summary: Remove participant from chat
       tags:
-      - chats
+      - CRM - Chats
   /api/v1/chats/{id}/subject:
     patch:
       consumes:
@@ -2843,7 +3537,7 @@ paths:
         name: subject
         required: true
         schema:
-          $ref: '#/definitions/infrastructure_http_handlers.UpdateSubjectRequest'
+          $ref: '#/definitions/handlers.UpdateSubjectRequest'
       produces:
       - application/json
       responses:
@@ -2876,7 +3570,7 @@ paths:
       - ApiKeyAuth: []
       summary: Update chat subject
       tags:
-      - chats
+      - CRM - Chats
   /api/v1/chats/{id}/unarchive:
     post:
       consumes:
@@ -2920,7 +3614,7 @@ paths:
       - ApiKeyAuth: []
       summary: Unarchive chat
       tags:
-      - chats
+      - CRM - Chats
   /api/v1/contacts:
     get:
       consumes:
@@ -2972,7 +3666,7 @@ paths:
             type: object
       summary: List contacts
       tags:
-      - contacts
+      - CRM - Contacts
     post:
       consumes:
       - application/json
@@ -2988,7 +3682,7 @@ paths:
         name: contact
         required: true
         schema:
-          $ref: '#/definitions/infrastructure_http_handlers.CreateContactRequest'
+          $ref: '#/definitions/handlers.CreateContactRequest'
       produces:
       - application/json
       responses:
@@ -3009,7 +3703,7 @@ paths:
             type: object
       summary: Create a new contact
       tags:
-      - contacts
+      - CRM - Contacts
   /api/v1/contacts/{contact_id}/domain-events:
     get:
       description: Lista todos os eventos de domínio disparados para um contato
@@ -3181,7 +3875,7 @@ paths:
       - ApiKeyAuth: []
       summary: List sessions
       tags:
-      - sessions
+      - CRM - Sessions
   /api/v1/contacts/{contact_id}/trackings:
     get:
       description: Retorna todos os trackings de um contato específico
@@ -3198,7 +3892,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/github_com_caloi_ventros-crm_internal_application_tracking.TrackingDTO'
+              $ref: '#/definitions/tracking.TrackingDTO'
             type: array
         "400":
           description: Bad Request
@@ -3212,7 +3906,7 @@ paths:
       - BearerAuth: []
       summary: Busca trackings de um contato
       tags:
-      - tracking
+      - CRM - Tracking
   /api/v1/contacts/{id}:
     delete:
       description: Remove um contato (soft delete)
@@ -3244,7 +3938,7 @@ paths:
             type: object
       summary: Delete contact
       tags:
-      - contacts
+      - CRM - Contacts
     get:
       consumes:
       - application/json
@@ -3280,7 +3974,7 @@ paths:
             type: object
       summary: Get contact by ID
       tags:
-      - contacts
+      - CRM - Contacts
     put:
       consumes:
       - application/json
@@ -3296,7 +3990,7 @@ paths:
         name: contact
         required: true
         schema:
-          $ref: '#/definitions/infrastructure_http_handlers.UpdateContactRequest'
+          $ref: '#/definitions/handlers.UpdateContactRequest'
       produces:
       - application/json
       responses:
@@ -3322,7 +4016,7 @@ paths:
             type: object
       summary: Update contact
       tags:
-      - contacts
+      - CRM - Contacts
   /api/v1/contacts/{id}/pipelines/{pipeline_id}/status:
     put:
       consumes:
@@ -3344,7 +4038,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/infrastructure_http_handlers.ChangePipelineStatusRequest'
+          $ref: '#/definitions/handlers.ChangePipelineStatusRequest'
       produces:
       - application/json
       responses:
@@ -3377,7 +4071,7 @@ paths:
       - ApiKeyAuth: []
       summary: Change contact pipeline status
       tags:
-      - contacts
+      - CRM - Contacts
   /api/v1/contacts/{id}/sessions/{session_id}:
     get:
       description: Obtém detalhes de uma sessão específica
@@ -3412,7 +4106,7 @@ paths:
             type: object
       summary: Get session by ID
       tags:
-      - sessions
+      - CRM - Sessions
   /api/v1/contacts/advanced:
     get:
       consumes:
@@ -3497,7 +4191,7 @@ paths:
       - ApiKeyAuth: []
       summary: List contacts with advanced filters
       tags:
-      - contacts
+      - CRM - Contacts
   /api/v1/contacts/search:
     get:
       consumes:
@@ -3542,7 +4236,7 @@ paths:
       - ApiKeyAuth: []
       summary: Search contacts
       tags:
-      - contacts
+      - CRM - Contacts
   /api/v1/crm/agents/advanced:
     get:
       consumes:
@@ -3640,7 +4334,7 @@ paths:
         "200":
           description: Successfully retrieved agents with full details
           schema:
-            $ref: '#/definitions/github_com_caloi_ventros-crm_internal_application_queries.ListAgentsResponse'
+            $ref: '#/definitions/queries.ListAgentsResponse'
         "400":
           description: Bad Request - Invalid UUID or parameter format
           schema:
@@ -3665,7 +4359,7 @@ paths:
       - BearerAuth: []
       summary: List agents with advanced filters and pagination
       tags:
-      - agents
+      - CRM - Agents
   /api/v1/crm/agents/search:
     get:
       consumes:
@@ -3709,7 +4403,7 @@ paths:
         "200":
           description: Found agents with match scores
           schema:
-            $ref: '#/definitions/github_com_caloi_ventros-crm_internal_application_queries.SearchAgentsResponse'
+            $ref: '#/definitions/queries.SearchAgentsResponse'
         "400":
           description: Bad Request - Empty search query
           schema:
@@ -3734,7 +4428,7 @@ paths:
       - BearerAuth: []
       summary: Search agents by name and email
       tags:
-      - agents
+      - CRM - Agents
   /api/v1/crm/messages/advanced:
     get:
       consumes:
@@ -3884,7 +4578,7 @@ paths:
           description: Successfully retrieved messages with pagination and filter
             metadata
           schema:
-            $ref: '#/definitions/github_com_caloi_ventros-crm_internal_application_queries.ListMessagesResponse'
+            $ref: '#/definitions/queries.ListMessagesResponse'
         "400":
           description: Bad Request - Invalid UUID format, invalid enum values, or
             limit exceeds 100
@@ -3911,7 +4605,7 @@ paths:
       - BearerAuth: []
       summary: List messages with advanced filters and pagination
       tags:
-      - messages
+      - CRM - Messages
   /api/v1/crm/messages/search:
     get:
       consumes:
@@ -3976,7 +4670,7 @@ paths:
           description: Successfully found matching messages with text excerpts and
             context
           schema:
-            $ref: '#/definitions/github_com_caloi_ventros-crm_internal_application_queries.SearchMessagesResponse'
+            $ref: '#/definitions/queries.SearchMessagesResponse'
         "400":
           description: Bad Request - Missing or empty search query, or limit exceeds
             100
@@ -4003,7 +4697,7 @@ paths:
       - BearerAuth: []
       summary: Full-text search across message content
       tags:
-      - messages
+      - CRM - Messages
   /api/v1/crm/notes/advanced:
     get:
       consumes:
@@ -4133,7 +4827,7 @@ paths:
         "200":
           description: Successfully retrieved notes with full details
           schema:
-            $ref: '#/definitions/github_com_caloi_ventros-crm_internal_application_queries.ListNotesResponse'
+            $ref: '#/definitions/queries.ListNotesResponse'
         "400":
           description: Bad Request - Invalid UUID or parameter format
           schema:
@@ -4158,7 +4852,7 @@ paths:
       - BearerAuth: []
       summary: List notes with advanced filters and pagination
       tags:
-      - notes
+      - CRM - Notes
   /api/v1/crm/notes/search:
     get:
       consumes:
@@ -4209,7 +4903,7 @@ paths:
         "200":
           description: Found notes with match scores
           schema:
-            $ref: '#/definitions/github_com_caloi_ventros-crm_internal_application_queries.SearchNotesResponse'
+            $ref: '#/definitions/queries.SearchNotesResponse'
         "400":
           description: Bad Request - Empty search query
           schema:
@@ -4234,7 +4928,7 @@ paths:
       - BearerAuth: []
       summary: Search notes by content and author
       tags:
-      - notes
+      - CRM - Notes
   /api/v1/crm/pipelines/advanced:
     get:
       consumes:
@@ -4313,7 +5007,7 @@ paths:
         "200":
           description: Successfully retrieved pipelines with full configuration details
           schema:
-            $ref: '#/definitions/github_com_caloi_ventros-crm_internal_application_queries.ListPipelinesResponse'
+            $ref: '#/definitions/queries.ListPipelinesResponse'
         "400":
           description: Bad Request - Invalid UUID or parameter format
           schema:
@@ -4338,7 +5032,7 @@ paths:
       - BearerAuth: []
       summary: List pipelines with advanced filters
       tags:
-      - pipelines
+      - CRM - Pipelines
   /api/v1/crm/pipelines/search:
     get:
       consumes:
@@ -4381,7 +5075,7 @@ paths:
         "200":
           description: Found pipelines with match scores
           schema:
-            $ref: '#/definitions/github_com_caloi_ventros-crm_internal_application_queries.SearchPipelinesResponse'
+            $ref: '#/definitions/queries.SearchPipelinesResponse'
         "400":
           description: Bad Request - Empty search query
           schema:
@@ -4406,7 +5100,7 @@ paths:
       - BearerAuth: []
       summary: Search pipelines by name and description
       tags:
-      - pipelines
+      - CRM - Pipelines
   /api/v1/crm/projects/advanced:
     get:
       consumes:
@@ -4484,7 +5178,7 @@ paths:
         "200":
           description: Successfully retrieved projects with full details
           schema:
-            $ref: '#/definitions/github_com_caloi_ventros-crm_internal_application_queries.ListProjectsResponse'
+            $ref: '#/definitions/queries.ListProjectsResponse'
         "400":
           description: Bad Request - Invalid UUID or parameter format
           schema:
@@ -4509,7 +5203,7 @@ paths:
       - BearerAuth: []
       summary: List projects with advanced filters and pagination
       tags:
-      - projects
+      - CRM - Projects
   /api/v1/crm/projects/search:
     get:
       consumes:
@@ -4553,7 +5247,7 @@ paths:
         "200":
           description: Found projects with match scores
           schema:
-            $ref: '#/definitions/github_com_caloi_ventros-crm_internal_application_queries.SearchProjectsResponse'
+            $ref: '#/definitions/queries.SearchProjectsResponse'
         "400":
           description: Bad Request - Empty search query
           schema:
@@ -4578,7 +5272,7 @@ paths:
       - BearerAuth: []
       summary: Search projects by name and description
       tags:
-      - projects
+      - CRM - Projects
   /api/v1/crm/sessions/advanced:
     get:
       consumes:
@@ -4708,7 +5402,7 @@ paths:
         "200":
           description: Successfully retrieved sessions with pagination metadata
           schema:
-            $ref: '#/definitions/github_com_caloi_ventros-crm_internal_application_queries.ListSessionsResponse'
+            $ref: '#/definitions/queries.ListSessionsResponse'
         "400":
           description: Bad Request - Invalid parameters (e.g., invalid UUID format,
             invalid page number, limit exceeds maximum)
@@ -4736,7 +5430,7 @@ paths:
       - BearerAuth: []
       summary: List sessions with advanced filters and pagination
       tags:
-      - sessions
+      - CRM - Sessions
   /api/v1/crm/sessions/search:
     get:
       consumes:
@@ -4791,7 +5485,7 @@ paths:
           description: Successfully found matching sessions with relevance scores
             and matched fields
           schema:
-            $ref: '#/definitions/github_com_caloi_ventros-crm_internal_application_queries.SearchSessionsResponse'
+            $ref: '#/definitions/queries.SearchSessionsResponse'
         "400":
           description: Bad Request - Missing or invalid search query, limit exceeds
             maximum
@@ -4819,7 +5513,7 @@ paths:
       - BearerAuth: []
       summary: Full-text search across sessions
       tags:
-      - sessions
+      - CRM - Sessions
   /api/v1/domain-events:
     get:
       description: Lista todos os eventos de domínio disparados em um projeto
@@ -4924,7 +5618,7 @@ paths:
             type: object
       summary: List messages
       tags:
-      - messages
+      - CRM - Messages
     post:
       consumes:
       - application/json
@@ -4935,7 +5629,7 @@ paths:
         name: message
         required: true
         schema:
-          $ref: '#/definitions/infrastructure_http_handlers.CreateMessageRequest'
+          $ref: '#/definitions/handlers.CreateMessageRequest'
       produces:
       - application/json
       responses:
@@ -4956,7 +5650,7 @@ paths:
             type: object
       summary: Create message
       tags:
-      - messages
+      - CRM - Messages
   /api/v1/messages/{id}:
     delete:
       description: Remove a message (soft delete)
@@ -4988,7 +5682,7 @@ paths:
             type: object
       summary: Delete message
       tags:
-      - messages
+      - CRM - Messages
     get:
       description: Get details of a specific message
       parameters:
@@ -5022,7 +5716,7 @@ paths:
             type: object
       summary: Get message by ID
       tags:
-      - messages
+      - CRM - Messages
     put:
       consumes:
       - application/json
@@ -5038,7 +5732,7 @@ paths:
         name: message
         required: true
         schema:
-          $ref: '#/definitions/infrastructure_http_handlers.UpdateMessageRequest'
+          $ref: '#/definitions/handlers.UpdateMessageRequest'
       produces:
       - application/json
       responses:
@@ -5064,7 +5758,7 @@ paths:
             type: object
       summary: Update message
       tags:
-      - messages
+      - CRM - Messages
   /api/v1/messages/confirm-delivery:
     post:
       consumes:
@@ -5076,7 +5770,7 @@ paths:
         name: confirmation
         required: true
         schema:
-          $ref: '#/definitions/infrastructure_http_handlers.ConfirmMessageDeliveryRequest'
+          $ref: '#/definitions/handlers.ConfirmMessageDeliveryRequest'
       produces:
       - application/json
       responses:
@@ -5102,7 +5796,7 @@ paths:
             type: object
       summary: Confirm message delivery
       tags:
-      - messages
+      - CRM - Messages
   /api/v1/messages/send:
     post:
       consumes:
@@ -5114,14 +5808,14 @@ paths:
         name: message
         required: true
         schema:
-          $ref: '#/definitions/infrastructure_http_handlers.SendMessageRequest'
+          $ref: '#/definitions/handlers.SendMessageRequest'
       produces:
       - application/json
       responses:
         "200":
           description: Message sent successfully
           schema:
-            $ref: '#/definitions/infrastructure_http_handlers.SendMessageResponse'
+            $ref: '#/definitions/handlers.SendMessageResponse'
         "400":
           description: Invalid request
           schema:
@@ -5134,7 +5828,7 @@ paths:
             type: object
       summary: Send message
       tags:
-      - messages
+      - CRM - Messages
   /api/v1/pipelines:
     get:
       description: Lista todos os pipelines de um projeto (apenas do usuário autenticado)
@@ -5182,7 +5876,7 @@ paths:
       - ApiKeyAuth: []
       summary: List pipelines
       tags:
-      - pipelines
+      - CRM - Pipelines
     post:
       consumes:
       - application/json
@@ -5198,7 +5892,7 @@ paths:
         name: pipeline
         required: true
         schema:
-          $ref: '#/definitions/infrastructure_http_handlers.CreatePipelineRequest'
+          $ref: '#/definitions/handlers.CreatePipelineRequest'
       produces:
       - application/json
       responses:
@@ -5219,7 +5913,7 @@ paths:
             type: object
       summary: Create pipeline
       tags:
-      - pipelines
+      - CRM - Pipelines
   /api/v1/pipelines/{id}:
     get:
       description: Obtém detalhes de um pipeline específico com seus status
@@ -5254,7 +5948,7 @@ paths:
             type: object
       summary: Get pipeline by ID
       tags:
-      - pipelines
+      - CRM - Pipelines
   /api/v1/pipelines/{id}/statuses:
     post:
       consumes:
@@ -5271,7 +5965,7 @@ paths:
         name: status
         required: true
         schema:
-          $ref: '#/definitions/infrastructure_http_handlers.CreateStatusRequest'
+          $ref: '#/definitions/handlers.CreateStatusRequest'
       produces:
       - application/json
       responses:
@@ -5297,7 +5991,7 @@ paths:
             type: object
       summary: Create status
       tags:
-      - pipelines
+      - CRM - Pipelines
   /api/v1/pipelines/{pipeline_id}/contacts/{contact_id}/status:
     get:
       description: Obtém o status atual de um contato em um pipeline
@@ -5337,7 +6031,7 @@ paths:
             type: object
       summary: Get contact status
       tags:
-      - pipelines
+      - CRM - Pipelines
     put:
       consumes:
       - application/json
@@ -5358,7 +6052,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/infrastructure_http_handlers.ChangeContactStatusRequest'
+          $ref: '#/definitions/handlers.ChangeContactStatusRequest'
       produces:
       - application/json
       responses:
@@ -5384,7 +6078,7 @@ paths:
             type: object
       summary: Change contact status
       tags:
-      - pipelines
+      - CRM - Pipelines
   /api/v1/projects:
     get:
       description: Lista todos os projetos do usuário autenticado
@@ -5436,7 +6130,7 @@ paths:
       - ApiKeyAuth: []
       summary: List projects
       tags:
-      - projects
+      - CRM - Projects
     post:
       consumes:
       - application/json
@@ -5447,7 +6141,7 @@ paths:
         name: project
         required: true
         schema:
-          $ref: '#/definitions/infrastructure_http_handlers.CreateProjectRequest'
+          $ref: '#/definitions/handlers.CreateProjectRequest'
       produces:
       - application/json
       responses:
@@ -5468,7 +6162,7 @@ paths:
             type: object
       summary: Create project
       tags:
-      - projects
+      - CRM - Projects
   /api/v1/projects/{id}:
     delete:
       description: Remove um projeto (soft delete)
@@ -5500,7 +6194,7 @@ paths:
             type: object
       summary: Delete project
       tags:
-      - projects
+      - CRM - Projects
     get:
       description: Obtém detalhes de um projeto específico
       parameters:
@@ -5534,7 +6228,7 @@ paths:
             type: object
       summary: Get project by ID
       tags:
-      - projects
+      - CRM - Projects
     put:
       consumes:
       - application/json
@@ -5550,7 +6244,7 @@ paths:
         name: project
         required: true
         schema:
-          $ref: '#/definitions/infrastructure_http_handlers.UpdateProjectRequest'
+          $ref: '#/definitions/handlers.UpdateProjectRequest'
       produces:
       - application/json
       responses:
@@ -5576,7 +6270,7 @@ paths:
             type: object
       summary: Update project
       tags:
-      - projects
+      - CRM - Projects
   /api/v1/queues:
     get:
       description: Lista todas as filas do RabbitMQ com número de mensagens e consumers
@@ -5645,7 +6339,7 @@ paths:
       - ApiKeyAuth: []
       summary: List sessions
       tags:
-      - sessions
+      - CRM - Sessions
   /api/v1/sessions/{id}:
     get:
       description: Obtém detalhes de uma sessão específica
@@ -5680,7 +6374,7 @@ paths:
             type: object
       summary: Get session by ID
       tags:
-      - sessions
+      - CRM - Sessions
   /api/v1/sessions/{id}/close:
     post:
       consumes:
@@ -5697,7 +6391,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/infrastructure_http_handlers.CloseSessionRequest'
+          $ref: '#/definitions/handlers.CloseSessionRequest'
       produces:
       - application/json
       responses:
@@ -5725,7 +6419,7 @@ paths:
       - ApiKeyAuth: []
       summary: Close session
       tags:
-      - sessions
+      - CRM - Sessions
   /api/v1/sessions/{session_id}/domain-events:
     get:
       description: Lista todos os eventos de domínio disparados para uma sessão
@@ -5787,7 +6481,7 @@ paths:
             type: object
       summary: Get messages by session
       tags:
-      - messages
+      - CRM - Messages
   /api/v1/sessions/stats:
     get:
       description: Obtém estatísticas das sessões por tenant
@@ -5817,7 +6511,7 @@ paths:
             type: object
       summary: Get session statistics
       tags:
-      - sessions
+      - CRM - Sessions
   /api/v1/test/waha-connection:
     post:
       consumes:
@@ -5829,7 +6523,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/infrastructure_http_handlers.TestWAHARequest'
+          $ref: '#/definitions/handlers.TestWAHARequest'
       produces:
       - application/json
       responses:
@@ -5852,7 +6546,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/infrastructure_http_handlers.TestQRCodeRequest'
+          $ref: '#/definitions/handlers.TestQRCodeRequest'
       produces:
       - application/json
       responses:
@@ -5876,14 +6570,14 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/infrastructure_http_handlers.CreateTrackingRequest'
+          $ref: '#/definitions/handlers.CreateTrackingRequest'
       produces:
       - application/json
       responses:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/github_com_caloi_ventros-crm_internal_application_tracking.TrackingDTO'
+            $ref: '#/definitions/tracking.TrackingDTO'
         "400":
           description: Bad Request
           schema:
@@ -5896,7 +6590,7 @@ paths:
       - BearerAuth: []
       summary: Cria um novo tracking de conversão
       tags:
-      - tracking
+      - CRM - Tracking
   /api/v1/trackings/{id}:
     get:
       description: Retorna um tracking específico por ID
@@ -5912,7 +6606,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/github_com_caloi_ventros-crm_internal_application_tracking.TrackingDTO'
+            $ref: '#/definitions/tracking.TrackingDTO'
         "400":
           description: Bad Request
           schema:
@@ -5925,7 +6619,7 @@ paths:
       - BearerAuth: []
       summary: Busca tracking por ID
       tags:
-      - tracking
+      - CRM - Tracking
   /api/v1/trackings/decode:
     post:
       consumes:
@@ -5937,14 +6631,14 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/github_com_caloi_ventros-crm_internal_application_tracking.DecodeTrackingRequest'
+          $ref: '#/definitions/tracking.DecodeTrackingRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/github_com_caloi_ventros-crm_internal_application_tracking.DecodeTrackingResponse'
+            $ref: '#/definitions/tracking.DecodeTrackingResponse'
         "400":
           description: Bad Request
           schema:
@@ -5953,7 +6647,7 @@ paths:
       - BearerAuth: []
       summary: Decodifica mensagem WhatsApp para extrair tracking ID
       tags:
-      - tracking
+      - CRM - Tracking
   /api/v1/trackings/encode:
     post:
       consumes:
@@ -5965,14 +6659,14 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/github_com_caloi_ventros-crm_internal_application_tracking.EncodeTrackingRequest'
+          $ref: '#/definitions/tracking.EncodeTrackingRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/github_com_caloi_ventros-crm_internal_application_tracking.EncodeTrackingResponse'
+            $ref: '#/definitions/tracking.EncodeTrackingResponse'
         "400":
           description: Bad Request
           schema:
@@ -5985,7 +6679,7 @@ paths:
       - BearerAuth: []
       summary: Codifica tracking ID em mensagem WhatsApp
       tags:
-      - tracking
+      - CRM - Tracking
   /api/v1/trackings/enums:
     get:
       description: Retorna todos os valores válidos de enums para construir trackings
@@ -5996,12 +6690,12 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/infrastructure_http_handlers.TrackingEnumsResponse'
+            $ref: '#/definitions/handlers.TrackingEnumsResponse'
       security:
       - BearerAuth: []
       summary: Lista todos os enums disponíveis para tracking
       tags:
-      - tracking
+      - CRM - Tracking
   /api/v1/webhook-subscriptions:
     get:
       description: Lista todas as inscrições de webhooks
@@ -6038,7 +6732,7 @@ paths:
         name: webhook
         required: true
         schema:
-          $ref: '#/definitions/infrastructure_http_handlers.CreateWebhookRequest'
+          $ref: '#/definitions/handlers.CreateWebhookRequest'
       produces:
       - application/json
       responses:
@@ -6131,7 +6825,7 @@ paths:
         name: webhook
         required: true
         schema:
-          $ref: '#/definitions/infrastructure_http_handlers.UpdateWebhookRequest'
+          $ref: '#/definitions/handlers.UpdateWebhookRequest'
       produces:
       - application/json
       responses:
@@ -6285,7 +6979,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/infrastructure_http_handlers.HealthResponse'
+            $ref: '#/definitions/handlers.HealthResponse'
       summary: Health check
       tags:
       - health
@@ -6300,11 +6994,11 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/github_com_caloi_ventros-crm_infrastructure_health.CheckResult'
+            $ref: '#/definitions/health.CheckResult'
         "503":
           description: Service Unavailable
           schema:
-            $ref: '#/definitions/github_com_caloi_ventros-crm_infrastructure_health.CheckResult'
+            $ref: '#/definitions/health.CheckResult'
       summary: Database health check
       tags:
       - health
@@ -6319,11 +7013,11 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/github_com_caloi_ventros-crm_infrastructure_health.CheckResult'
+            $ref: '#/definitions/health.CheckResult'
         "503":
           description: Service Unavailable
           schema:
-            $ref: '#/definitions/github_com_caloi_ventros-crm_infrastructure_health.CheckResult'
+            $ref: '#/definitions/health.CheckResult'
       summary: Database migrations health check
       tags:
       - health
@@ -6338,11 +7032,11 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/github_com_caloi_ventros-crm_infrastructure_health.CheckResult'
+            $ref: '#/definitions/health.CheckResult'
         "503":
           description: Service Unavailable
           schema:
-            $ref: '#/definitions/github_com_caloi_ventros-crm_infrastructure_health.CheckResult'
+            $ref: '#/definitions/health.CheckResult'
       summary: RabbitMQ health check
       tags:
       - health
@@ -6357,11 +7051,11 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/github_com_caloi_ventros-crm_infrastructure_health.CheckResult'
+            $ref: '#/definitions/health.CheckResult'
         "503":
           description: Service Unavailable
           schema:
-            $ref: '#/definitions/github_com_caloi_ventros-crm_infrastructure_health.CheckResult'
+            $ref: '#/definitions/health.CheckResult'
       summary: Redis health check
       tags:
       - health
@@ -6376,11 +7070,11 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/github_com_caloi_ventros-crm_infrastructure_health.CheckResult'
+            $ref: '#/definitions/health.CheckResult'
         "503":
           description: Service Unavailable
           schema:
-            $ref: '#/definitions/github_com_caloi_ventros-crm_infrastructure_health.CheckResult'
+            $ref: '#/definitions/health.CheckResult'
       summary: Temporal health check
       tags:
       - health
@@ -6395,7 +7089,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/infrastructure_http_handlers.HealthResponse'
+            $ref: '#/definitions/handlers.HealthResponse'
       summary: Liveness check
       tags:
       - health
@@ -6411,11 +7105,11 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/infrastructure_http_handlers.HealthResponse'
+            $ref: '#/definitions/handlers.HealthResponse'
         "503":
           description: Service Unavailable
           schema:
-            $ref: '#/definitions/infrastructure_http_handlers.HealthResponse'
+            $ref: '#/definitions/handlers.HealthResponse'
       summary: Readiness check
       tags:
       - health

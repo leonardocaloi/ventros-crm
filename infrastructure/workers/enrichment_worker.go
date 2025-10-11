@@ -8,20 +8,20 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/caloi/ventros-crm/infrastructure/ai"
-	"github.com/caloi/ventros-crm/internal/domain/message_enrichment"
+	"github.com/caloi/ventros-crm/internal/domain/crm/message_enrichment"
 )
 
 // EnrichmentWorker processa enrichments pendentes periodicamente usando polling
 // Arquitetura simples sem RabbitMQ/Temporal - apenas busca enrichments pendentes e processa
 type EnrichmentWorker struct {
-	logger            *zap.Logger
-	enrichmentRepo    message_enrichment.Repository
-	providerFactory   *ai.ProviderFactory
-	tickerInterval    time.Duration // Default: 5s
-	batchSize         int           // Default: 10
-	stopChan          chan struct{}
-	maxRetries        int           // Máximo de retries antes de marcar como failed
-	retryDelay        time.Duration // Delay entre retries
+	logger          *zap.Logger
+	enrichmentRepo  message_enrichment.Repository
+	providerFactory *ai.ProviderFactory
+	tickerInterval  time.Duration // Default: 5s
+	batchSize       int           // Default: 10
+	stopChan        chan struct{}
+	maxRetries      int           // Máximo de retries antes de marcar como failed
+	retryDelay      time.Duration // Delay entre retries
 }
 
 // NewEnrichmentWorker cria um novo worker de processamento de enrichments
@@ -35,9 +35,9 @@ func NewEnrichmentWorker(
 		enrichmentRepo:  enrichmentRepo,
 		providerFactory: providerFactory,
 		tickerInterval:  5 * time.Second,  // Processa a cada 5 segundos
-		batchSize:       10,                // Processa até 10 enrichments por vez
-		maxRetries:      3,                 // Até 3 tentativas
-		retryDelay:      30 * time.Second,  // 30s entre retries
+		batchSize:       10,               // Processa até 10 enrichments por vez
+		maxRetries:      3,                // Até 3 tentativas
+		retryDelay:      30 * time.Second, // 30s entre retries
 		stopChan:        make(chan struct{}),
 	}
 }

@@ -50,7 +50,7 @@ type CreateWAHAConfigRequest struct {
 //
 //	@Summary		Create channel
 //	@Description	Create a new communication channel (WAHA, WhatsApp, etc.)
-//	@Tags			channels
+//	@Tags			CRM - Channels
 //	@Accept			json
 //	@Produce		json
 //	@Security		ApiKeyAuth
@@ -114,7 +114,7 @@ func (h *ChannelHandler) CreateChannel(c *gin.Context) {
 //
 //	@Summary		List channels
 //	@Description	List all channels for authenticated user
-//	@Tags			channels
+//	@Tags			CRM - Channels
 //	@Produce		json
 //	@Security		ApiKeyAuth
 //	@Success		200	{object}	map[string]interface{}	"Channels list"
@@ -145,7 +145,7 @@ func (h *ChannelHandler) ListChannels(c *gin.Context) {
 //
 //	@Summary		Get channel
 //	@Description	Get details of a specific channel
-//	@Tags			channels
+//	@Tags			CRM - Channels
 //	@Produce		json
 //	@Security		ApiKeyAuth
 //	@Param			id	path		string					true	"Channel ID"
@@ -189,7 +189,7 @@ func (h *ChannelHandler) GetChannel(c *gin.Context) {
 //
 //	@Summary		Activate channel
 //	@Description	Activate a communication channel
-//	@Tags			channels
+//	@Tags			CRM - Channels
 //	@Produce		json
 //	@Security		ApiKeyAuth
 //	@Param			id	path		string					true	"Channel ID"
@@ -238,7 +238,7 @@ func (h *ChannelHandler) ActivateChannel(c *gin.Context) {
 //
 //	@Summary		Deactivate channel
 //	@Description	Deactivate a communication channel
-//	@Tags			channels
+//	@Tags			CRM - Channels
 //	@Produce		json
 //	@Security		ApiKeyAuth
 //	@Param			id	path		string					true	"Channel ID"
@@ -287,7 +287,7 @@ func (h *ChannelHandler) DeactivateChannel(c *gin.Context) {
 //
 //	@Summary		Delete channel
 //	@Description	Delete a communication channel
-//	@Tags			channels
+//	@Tags			CRM - Channels
 //	@Produce		json
 //	@Security		ApiKeyAuth
 //	@Param			id	path		string					true	"Channel ID"
@@ -336,7 +336,7 @@ func (h *ChannelHandler) DeleteChannel(c *gin.Context) {
 //
 //	@Summary		Get channel webhook URL
 //	@Description	Return the webhook URL to be configured in external channel (WAHA, WhatsApp, etc)
-//	@Tags			channels
+//	@Tags			CRM - Channels
 //	@Produce		json
 //	@Security		ApiKeyAuth
 //	@Param			id	path		string					true	"Channel ID"
@@ -398,7 +398,7 @@ func (h *ChannelHandler) GetChannelWebhookURL(c *gin.Context) {
 //
 //	@Summary		Configure channel webhook
 //	@Description	Automatically configure webhook in external channel (e.g. WAHA)
-//	@Tags			channels
+//	@Tags			CRM - Channels
 //	@Accept			json
 //	@Produce		json
 //	@Security		ApiKeyAuth
@@ -471,7 +471,7 @@ func (h *ChannelHandler) ConfigureChannelWebhook(c *gin.Context) {
 //
 //	@Summary		Get channel webhook info
 //	@Description	Return detailed information about channel webhook
-//	@Tags			channels
+//	@Tags			CRM - Channels
 //	@Produce		json
 //	@Security		ApiKeyAuth
 //	@Param			id	path		string					true	"Channel ID"
@@ -603,7 +603,7 @@ func (h *ChannelHandler) GetChannelQRCode(c *gin.Context) {
 //
 //	@Summary		Activate WAHA channel
 //	@Description	Activate and initialize a WAHA session for a channel
-//	@Tags			channels
+//	@Tags			CRM - Channels
 //	@Accept			json
 //	@Produce		json
 //	@Security		ApiKeyAuth
@@ -670,7 +670,7 @@ type ImportWAHAHistoryRequest struct {
 //
 //	@Summary		Import WAHA message history
 //	@Description	Import message history from a WAHA channel (chats and messages)
-//	@Tags			channels
+//	@Tags			CRM - Channels
 //	@Accept			json
 //	@Produce		json
 //	@Security		ApiKeyAuth

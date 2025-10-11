@@ -5,8 +5,9 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/caloi/ventros-crm/internal/domain/contact"
-	"github.com/caloi/ventros-crm/internal/domain/pipeline"
+	"github.com/caloi/ventros-crm/internal/application/shared"
+	"github.com/caloi/ventros-crm/internal/domain/crm/contact"
+	"github.com/caloi/ventros-crm/internal/domain/crm/pipeline"
 	"github.com/google/uuid"
 )
 
@@ -15,6 +16,7 @@ type ChangePipelineStatusUseCase struct {
 	contactRepo  contact.Repository
 	pipelineRepo pipeline.Repository
 	eventBus     EventBus
+	txManager    shared.TransactionManager
 }
 
 // NewChangePipelineStatusUseCase cria uma nova instância do use case.
@@ -22,11 +24,13 @@ func NewChangePipelineStatusUseCase(
 	contactRepo contact.Repository,
 	pipelineRepo pipeline.Repository,
 	eventBus EventBus,
+	txManager shared.TransactionManager,
 ) *ChangePipelineStatusUseCase {
 	return &ChangePipelineStatusUseCase{
 		contactRepo:  contactRepo,
 		pipelineRepo: pipelineRepo,
 		eventBus:     eventBus,
+		txManager:    txManager,
 	}
 }
 
@@ -137,29 +141,38 @@ func (uc *ChangePipelineStatusUseCase) Execute(ctx context.Context, input Change
 		}
 	}
 
-	// 10. Atualiza o status do contato no pipeline
-	err = uc.pipelineRepo.SetContactStatus(ctx, input.ContactID, input.PipelineID, input.StatusID)
+	// 10-11. ✅ TRANSAÇÃO ATÔMICA: SetContactStatus + Publish juntos
+	var event contact.ContactPipelineStatusChangedEvent
+	err = uc.txManager.ExecuteInTransaction(ctx, func(txCtx context.Context) error {
+		// 10. Atualiza o status do contato no pipeline (usa transação do contexto)
+		err = uc.pipelineRepo.SetContactStatus(txCtx, input.ContactID, input.PipelineID, input.StatusID)
+		if err != nil {
+			return fmt.Errorf("failed to set contact status: %w", err)
+		}
+
+		// 11. Cria e publica o evento de domínio (usa mesma transação)
+		event = contact.NewContactPipelineStatusChangedEvent(
+			input.ContactID,
+			input.PipelineID,
+			previousStatusID,
+			input.StatusID,
+			previousStatusName,
+			newStatus.Name(),
+			input.TenantID,
+			input.ProjectID,
+			input.ChangedBy,
+			input.Reason,
+		)
+
+		if err := uc.eventBus.Publish(txCtx, &event); err != nil {
+			return fmt.Errorf("failed to publish event: %w", err)
+		}
+
+		return nil
+	})
+
 	if err != nil {
-		return nil, fmt.Errorf("failed to set contact status: %w", err)
-	}
-
-	// 11. Cria e publica o evento de domínio
-	event := contact.NewContactPipelineStatusChangedEvent(
-		input.ContactID,
-		input.PipelineID,
-		previousStatusID,
-		input.StatusID,
-		previousStatusName,
-		newStatus.Name(),
-		input.TenantID,
-		input.ProjectID,
-		input.ChangedBy,
-		input.Reason,
-	)
-
-	if err := uc.eventBus.Publish(ctx, event); err != nil {
-		// Log o erro mas não falha a operação (evento é secundário)
-		fmt.Printf("Failed to publish pipeline status changed event: %v\n", err)
+		return nil, err
 	}
 
 	// 12. Retorna o resultado

@@ -6,8 +6,8 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/caloi/ventros-crm/internal/domain/message_enrichment"
-	"github.com/caloi/ventros-crm/internal/domain/shared"
+	"github.com/caloi/ventros-crm/internal/domain/core/shared"
+	"github.com/caloi/ventros-crm/internal/domain/crm/message_enrichment"
 )
 
 // ProviderRouter roteia requisições para o provider mais adequado
@@ -17,12 +17,12 @@ import (
 // - Groq Whisper: Áudio falado (PTT) - speech-to-text GRATUITO e 216x real-time
 // - OpenAI Whisper: Fallback para Groq (pago mas confiável)
 type ProviderRouter struct {
-	logger                  *zap.Logger
-	llamaParseProvider      *LlamaParseProvider
-	vertexProvider          *VertexVisionProvider
-	groqWhisperProvider     *WhisperProvider // Groq (grátis, prioridade 1)
-	openaiWhisperProvider   *WhisperProvider // OpenAI (pago, fallback)
-	mimeRegistry            shared.MimeTypeRegistry
+	logger                *zap.Logger
+	llamaParseProvider    *LlamaParseProvider
+	vertexProvider        *VertexVisionProvider
+	groqWhisperProvider   *WhisperProvider // Groq (grátis, prioridade 1)
+	openaiWhisperProvider *WhisperProvider // OpenAI (pago, fallback)
+	mimeRegistry          shared.MimeTypeRegistry
 }
 
 // NewProviderRouter cria um novo router de providers
@@ -30,7 +30,7 @@ func NewProviderRouter(
 	logger *zap.Logger,
 	llamaParseProvider *LlamaParseProvider,
 	vertexProvider *VertexVisionProvider,
-	groqWhisperProvider *WhisperProvider,   // Groq (grátis, pode ser nil)
+	groqWhisperProvider *WhisperProvider, // Groq (grátis, pode ser nil)
 	openaiWhisperProvider *WhisperProvider, // OpenAI (pago, pode ser nil)
 	mimeRegistry shared.MimeTypeRegistry,
 ) *ProviderRouter {

@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/caloi/ventros-crm/internal/domain/shared"
+	"github.com/caloi/ventros-crm/internal/domain/core/shared"
 	"github.com/gin-gonic/gin"
 )
 

@@ -45,11 +45,12 @@ const (
 // - raw: Text string
 //
 // Usage:
-//   // Get QR code as image (PNG)
-//   qrImage, err := auth.GetQRCode(ctx, "default", QRCodeFormatImage)
 //
-//   // Get QR code as text
-//   qrText, err := auth.GetQRCode(ctx, "default", QRCodeFormatRaw)
+//	// Get QR code as image (PNG)
+//	qrImage, err := auth.GetQRCode(ctx, "default", QRCodeFormatImage)
+//
+//	// Get QR code as text
+//	qrText, err := auth.GetQRCode(ctx, "default", QRCodeFormatRaw)
 func (a *AuthService) GetQRCode(ctx context.Context, sessionName string, format QRCodeFormat) ([]byte, error) {
 	a.logger.Info("Getting QR code for session",
 		zap.String("session_name", sessionName),
@@ -93,8 +94,9 @@ func (a *AuthService) GetQRCode(ctx context.Context, sessionName string, format 
 // - Embedding QR code in HTML (data URLs)
 //
 // Usage:
-//   qrBase64, err := auth.GetQRCodeAsBase64(ctx, "default", QRCodeFormatImage)
-//   // Use in HTML: <img src="data:image/png;base64,{qrBase64}" />
+//
+//	qrBase64, err := auth.GetQRCodeAsBase64(ctx, "default", QRCodeFormatImage)
+//	// Use in HTML: <img src="data:image/png;base64,{qrBase64}" />
 func (a *AuthService) GetQRCodeAsBase64(ctx context.Context, sessionName string, format QRCodeFormat) (string, error) {
 	qrData, err := a.GetQRCode(ctx, sessionName, format)
 	if err != nil {
@@ -106,7 +108,7 @@ func (a *AuthService) GetQRCodeAsBase64(ctx context.Context, sessionName string,
 
 // AuthCodeRequest represents a request to send authentication code
 type AuthCodeRequest struct {
-	PhoneNumber string  `json:"phoneNumber"` // e.g., "12132132130"
+	PhoneNumber string  `json:"phoneNumber"`      // e.g., "12132132130"
 	Method      *string `json:"method,omitempty"` // "sms" or "voice"
 }
 
@@ -116,11 +118,12 @@ type AuthCodeRequest struct {
 // Use this when you want to authenticate via phone number instead of scanning QR.
 //
 // Example:
-//   req := AuthCodeRequest{
-//       PhoneNumber: "5511999999999",
-//       Method: ptr("sms"), // or "voice"
-//   }
-//   err := auth.RequestAuthCode(ctx, "default", req)
+//
+//	req := AuthCodeRequest{
+//	    PhoneNumber: "5511999999999",
+//	    Method: ptr("sms"), // or "voice"
+//	}
+//	err := auth.RequestAuthCode(ctx, "default", req)
 func (a *AuthService) RequestAuthCode(ctx context.Context, sessionName string, req AuthCodeRequest) error {
 	a.logger.Info("Requesting auth code",
 		zap.String("session_name", sessionName),

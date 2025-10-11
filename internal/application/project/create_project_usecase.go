@@ -4,27 +4,34 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/caloi/ventros-crm/internal/domain/project"
-	"github.com/caloi/ventros-crm/internal/domain/shared"
+	"github.com/caloi/ventros-crm/internal/domain/core/project"
+	"github.com/caloi/ventros-crm/internal/domain/core/shared"
 	"github.com/google/uuid"
 )
-
-// CreateProjectUseCase handles project creation
-type CreateProjectUseCase struct {
-	projectRepo project.Repository
-	eventBus    EventBus
-}
 
 // EventBus interface for publishing events
 type EventBus interface {
 	Publish(ctx context.Context, event shared.DomainEvent) error
 }
 
+// TransactionManager gerencia transações de banco de dados.
+type TransactionManager interface {
+	ExecuteInTransaction(ctx context.Context, fn func(ctx context.Context) error) error
+}
+
+// CreateProjectUseCase handles project creation
+type CreateProjectUseCase struct {
+	projectRepo project.Repository
+	eventBus    EventBus
+	txManager   TransactionManager
+}
+
 // NewCreateProjectUseCase creates a new instance
-func NewCreateProjectUseCase(projectRepo project.Repository, eventBus EventBus) *CreateProjectUseCase {
+func NewCreateProjectUseCase(projectRepo project.Repository, eventBus EventBus, txManager TransactionManager) *CreateProjectUseCase {
 	return &CreateProjectUseCase{
 		projectRepo: projectRepo,
 		eventBus:    eventBus,
+		txManager:   txManager,
 	}
 }
 
@@ -88,19 +95,28 @@ func (uc *CreateProjectUseCase) Execute(ctx context.Context, req CreateProjectRe
 		newProject.SetSessionTimeout(req.SessionTimeout)
 	}
 
-	// Save to repository
-	if err := uc.projectRepo.Save(ctx, newProject); err != nil {
-		return nil, fmt.Errorf("failed to save project: %w", err)
+	// ✅ TRANSAÇÃO ATÔMICA: Save + Publish juntos
+	err = uc.txManager.ExecuteInTransaction(ctx, func(txCtx context.Context) error {
+		// Save to repository (usa transação do contexto)
+		if err := uc.projectRepo.Save(txCtx, newProject); err != nil {
+			return fmt.Errorf("failed to save project: %w", err)
+		}
+
+		// Publish domain events (usa mesma transação)
+		events := newProject.DomainEvents()
+		for _, event := range events {
+			if err := uc.eventBus.Publish(txCtx, event); err != nil {
+				return fmt.Errorf("failed to publish event: %w", err)
+			}
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		return nil, err
 	}
 
-	// Publish domain events
-	events := newProject.DomainEvents()
-	for _, event := range events {
-		if err := uc.eventBus.Publish(ctx, event); err != nil {
-			// Log error but don't fail the use case
-			// Events are not critical for project creation
-		}
-	}
 	newProject.ClearEvents()
 
 	// Return response

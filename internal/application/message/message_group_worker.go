@@ -5,20 +5,20 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/caloi/ventros-crm/internal/domain/message_group"
+	"github.com/caloi/ventros-crm/internal/domain/crm/message_group"
 	"go.uber.org/zap"
 )
 
 // MessageGroupWorker processa grupos de mensagens expirados periodicamente
 type MessageGroupWorker struct {
-	logger                   *zap.Logger
-	debouncerService         *MessageDebouncerService
-	enrichmentService        *MessageEnrichmentService
-	aiAgentService           *AIAgentService
-	messageGroupRepo         message_group.Repository
-	tickerInterval           time.Duration
-	batchSize                int
-	stopChan                 chan struct{}
+	logger            *zap.Logger
+	debouncerService  *MessageDebouncerService
+	enrichmentService *MessageEnrichmentService
+	aiAgentService    *AIAgentService
+	messageGroupRepo  message_group.Repository
+	tickerInterval    time.Duration
+	batchSize         int
+	stopChan          chan struct{}
 }
 
 // NewMessageGroupWorker cria um novo worker de processamento de grupos
@@ -36,7 +36,7 @@ func NewMessageGroupWorker(
 		aiAgentService:    aiAgentService,
 		messageGroupRepo:  messageGroupRepo,
 		tickerInterval:    5 * time.Second, // Processa a cada 5 segundos
-		batchSize:         100,              // Processa até 100 grupos por vez
+		batchSize:         100,             // Processa até 100 grupos por vez
 		stopChan:          make(chan struct{}),
 	}
 }

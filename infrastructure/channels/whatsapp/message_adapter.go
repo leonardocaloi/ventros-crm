@@ -3,7 +3,7 @@ package whatsapp
 import (
 	"errors"
 
-	"github.com/caloi/ventros-crm/internal/domain/message"
+	"github.com/caloi/ventros-crm/internal/domain/crm/message"
 )
 
 // WhatsAppMessagePayload representa a estrutura da API do WhatsApp/Meta.

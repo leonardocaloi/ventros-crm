@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 
-	domainchat "github.com/caloi/ventros-crm/internal/domain/chat"
+	domainchat "github.com/caloi/ventros-crm/internal/domain/crm/chat"
 	"github.com/google/uuid"
 )
 

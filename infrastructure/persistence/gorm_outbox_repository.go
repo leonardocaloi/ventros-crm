@@ -7,7 +7,8 @@ import (
 	"time"
 
 	"github.com/caloi/ventros-crm/infrastructure/persistence/entities"
-	"github.com/caloi/ventros-crm/internal/domain/outbox"
+	"github.com/caloi/ventros-crm/internal/application/shared"
+	"github.com/caloi/ventros-crm/internal/domain/core/outbox"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
@@ -23,6 +24,7 @@ func NewGormOutboxRepository(db *gorm.DB) *GormOutboxRepository {
 }
 
 // Save persiste um evento no outbox.
+// Usa a transação do contexto se existir (para atomicidade com Save do agregado).
 func (r *GormOutboxRepository) Save(ctx context.Context, event *outbox.OutboxEvent) error {
 	// Marshal metadata to JSON
 	var metadataJSON []byte
@@ -49,12 +51,24 @@ func (r *GormOutboxRepository) Save(ctx context.Context, event *outbox.OutboxEve
 		RetryCount:    event.RetryCount,
 	}
 
-	if err := r.db.WithContext(ctx).Create(entity).Error; err != nil {
+	// Usa a transação do contexto se existir, senão usa a conexão padrão
+	db := r.getDB(ctx)
+	if err := db.Create(entity).Error; err != nil {
 		return fmt.Errorf("failed to save outbox event: %w", err)
 	}
 
 	event.ID = entity.ID
 	return nil
+}
+
+// getDB retorna a transação do contexto se existir, senão retorna a conexão padrão.
+func (r *GormOutboxRepository) getDB(ctx context.Context) *gorm.DB {
+	// Tenta extrair transação do contexto (usa shared.TransactionFromContext)
+	if tx := shared.TransactionFromContext(ctx); tx != nil {
+		return tx.WithContext(ctx)
+	}
+	// Se não houver transação, usa conexão padrão
+	return r.db.WithContext(ctx)
 }
 
 // GetPendingEvents retorna eventos aguardando processamento.

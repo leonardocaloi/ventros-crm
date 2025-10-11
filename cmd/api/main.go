@@ -4,7 +4,11 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net/http"
+	"os"
+	"os/signal"
 	"strconv"
+	"syscall"
 	"time"
 
 	_ "github.com/caloi/ventros-crm/docs" // Import swagger docs
@@ -28,17 +32,21 @@ import (
 	contactapp "github.com/caloi/ventros-crm/internal/application/contact"
 	contacteventapp "github.com/caloi/ventros-crm/internal/application/contact_event"
 	messageapp "github.com/caloi/ventros-crm/internal/application/message"
+	pipelineapp "github.com/caloi/ventros-crm/internal/application/pipeline"
 	sessionapp "github.com/caloi/ventros-crm/internal/application/session"
+	"github.com/caloi/ventros-crm/internal/application/shared"
 	trackingapp "github.com/caloi/ventros-crm/internal/application/tracking"
 	"github.com/caloi/ventros-crm/internal/application/user"
 	webhookapp "github.com/caloi/ventros-crm/internal/application/webhook"
 	wsapp "github.com/caloi/ventros-crm/internal/application/websocket"
 
 	// contact_event "github.com/caloi/ventros-crm/internal/domain/contact/events" // Temporariamente comentado
-	domainPipeline "github.com/caloi/ventros-crm/internal/domain/pipeline"
+	domainPipeline "github.com/caloi/ventros-crm/internal/domain/crm/pipeline"
 	channelworkflow "github.com/caloi/ventros-crm/internal/workflows/channel"
+	sagaworkflow "github.com/caloi/ventros-crm/internal/workflows/saga"
 	sessionworkflow "github.com/caloi/ventros-crm/internal/workflows/session"
 	"github.com/gin-gonic/gin"
+	"go.temporal.io/sdk/worker"
 	"go.uber.org/zap"
 )
 
@@ -53,7 +61,6 @@ import (
 //	@license.name	MIT
 //	@license.url	https://opensource.org/licenses/MIT
 
-//	@host		localhost:8080
 //	@BasePath	/
 //	@schemes	http https
 
@@ -66,6 +73,38 @@ import (
 //	@in							header
 //	@name						X-API-Key
 //	@description				API Key authentication for service-to-service communication
+
+// loggerAdapter adapts zap.Logger to pipeline.Logger interface
+type loggerAdapter struct {
+	logger *zap.Logger
+}
+
+func (l *loggerAdapter) Info(msg string, args ...interface{}) {
+	l.logger.Sugar().Infof(msg, args...)
+}
+
+func (l *loggerAdapter) Error(msg string, args ...interface{}) {
+	l.logger.Sugar().Errorf(msg, args...)
+}
+
+func (l *loggerAdapter) Debug(msg string, args ...interface{}) {
+	l.logger.Sugar().Debugf(msg, args...)
+}
+
+// loggingActionExecutor is a minimal MVP executor that only logs actions
+type loggingActionExecutor struct {
+	logger *zap.Logger
+}
+
+func (e *loggingActionExecutor) Execute(ctx context.Context, action domainPipeline.RuleAction, actionCtx pipelineapp.ActionContext) error {
+	e.logger.Info("📋 Scheduled automation action (MVP - logging only)",
+		zap.String("action_type", string(action.Type)),
+		zap.String("rule_id", actionCtx.RuleID.String()),
+		zap.String("tenant_id", actionCtx.TenantID),
+		zap.Any("params", action.Params),
+	)
+	return nil
+}
 
 func main() {
 	// Load configuration
@@ -217,6 +256,7 @@ func main() {
 	agentRepo := persistence.NewGormAgentRepository(gormDB)
 	noteRepo := persistence.NewGormNoteRepository(gormDB)
 	messageGroupRepo := persistence.NewGormMessageGroupRepository(gormDB)
+	automationRepo := persistence.NewGormAutomationRuleRepository(gormDB)
 	logger.Info("Repositories initialized")
 
 	// Initialize webhook repository and use case
@@ -267,20 +307,99 @@ func main() {
 		logger.Warn("Failed to schedule session cleanup", zap.Error(err))
 	}
 
+	// Initialize repositories and services needed for saga (BEFORE worker registration)
+	messageRepo := persistence.NewGormMessageRepository(gormDB)
+	sagaEventBus := messaging.NewSagaEventBusAdapter(eventBus)
+	messageEventBus := messaging.NewMessageEventBusAdapter(eventBus)
+	timeoutResolver := sessionapp.NewSessionTimeoutResolver(channelRepo, pipelineRepo)
+	txManagerShared := shared.NewGormTransactionManager(gormDB)
+
+	// Initialize and start saga worker (Temporal)
+	if cfg.UseSagaOrchestration && temporalClient != nil {
+		sagaWorker := worker.New(temporalClient, "message-processing", worker.Options{
+			MaxConcurrentActivityExecutionSize:    10,
+			MaxConcurrentWorkflowTaskExecutionSize: 10,
+		})
+
+		// Register workflow
+		sagaWorker.RegisterWorkflow(sagaworkflow.ProcessInboundMessageSaga)
+
+		// Create activities instance
+		sagaActivities := sagaworkflow.NewActivities(
+			contactRepo,
+			sessionRepo,
+			messageRepo,
+			txManagerShared,
+			sagaEventBus,
+			timeoutResolver,
+		)
+
+		// Register forward activities
+		sagaWorker.RegisterActivity(sagaActivities.FindOrCreateContactActivity)
+		sagaWorker.RegisterActivity(sagaActivities.FindOrCreateSessionActivity)
+		sagaWorker.RegisterActivity(sagaActivities.CreateMessageActivity)
+		sagaWorker.RegisterActivity(sagaActivities.PublishDomainEventsActivity)
+		sagaWorker.RegisterActivity(sagaActivities.ProcessMessageDebouncerActivity)
+		sagaWorker.RegisterActivity(sagaActivities.TrackAdConversionActivity)
+
+		// Register compensation activities
+		sagaWorker.RegisterActivity(sagaActivities.DeleteContactActivity)
+		sagaWorker.RegisterActivity(sagaActivities.CloseSessionActivity)
+		sagaWorker.RegisterActivity(sagaActivities.DeleteMessageActivity)
+
+		// Start worker in background
+		go func() {
+			err := sagaWorker.Run(worker.InterruptCh())
+			if err != nil {
+				logger.Error("Saga worker stopped", zap.Error(err))
+			}
+		}()
+		logger.Info("✅ Saga Orchestration worker started (Temporal)", zap.String("task_queue", "message-processing"))
+	} else {
+		logger.Info("Saga Orchestration disabled (using transaction-based processing)")
+	}
+
 	// ❌ REMOVIDO: Temporal Outbox Worker (fazia polling a cada 30 segundos)
 	// PostgreSQL LISTEN/NOTIFY é suficiente (push-based, <100ms latency, SEM POLLING!)
 	// Se precisar de fallback no futuro, considerar aumentar PollInterval para 5-10 minutos
 	logger.Info("Outbox processing: Using PostgreSQL LISTEN/NOTIFY only (NO POLLING!)")
+
+	// 🤖 SCHEDULED AUTOMATION WORKER (MVP - Logging Only)
+	// Phase 1: Minimal integration with logging-only action executor
+	// Future: Wire full action executors (MessageSender, PipelineStatusChanger, etc.)
+
+	// Create adapter instances
+	logAdapter := &loggerAdapter{logger: logger}
+	loggingExecutor := &loggingActionExecutor{logger: logger}
+
+	// Initialize automation engine with logging executor
+	automationEngine := pipelineapp.NewAutomationEngine(automationRepo, loggingExecutor, logAdapter)
+
+	// Initialize and start scheduled rules worker
+	scheduledWorker := workflow.NewScheduledRulesWorker(
+		gormDB,
+		automationEngine,
+		1*time.Minute, // Poll every 1 minute
+		logAdapter,
+	)
+
+	// Start worker in background
+	go func() {
+		scheduledWorker.Start(ctx)
+	}()
+	defer scheduledWorker.Stop()
+
+	logger.Info("✅ Scheduled Automation Worker started (polling every 1 minute, MVP mode)")
 
 	// Initialize use cases with event bus adapters (DDD: Application Layer)
 	contactEventBus := messaging.NewContactEventBusAdapter(eventBus)
 	sessionEventBus := messaging.NewSessionEventBusAdapter(eventBus)
 	chatEventBus := messaging.NewChatEventBusAdapter(eventBus)
 
-	createContactUseCase := contactapp.NewCreateContactUseCase(contactRepo, contactEventBus)
-	changePipelineStatusUseCase := contactapp.NewChangePipelineStatusUseCase(contactRepo, pipelineRepo, contactEventBus)
-	createSessionUseCase := sessionapp.NewCreateSessionUseCase(sessionRepo, sessionEventBus)
-	closeSessionUseCase := sessionapp.NewCloseSessionUseCase(sessionRepo, sessionEventBus)
+	createContactUseCase := contactapp.NewCreateContactUseCase(contactRepo, contactEventBus, txManagerShared)
+	changePipelineStatusUseCase := contactapp.NewChangePipelineStatusUseCase(contactRepo, pipelineRepo, contactEventBus, txManagerShared)
+	createSessionUseCase := sessionapp.NewCreateSessionUseCase(sessionRepo, sessionEventBus, txManagerShared)
+	closeSessionUseCase := sessionapp.NewCloseSessionUseCase(sessionRepo, sessionEventBus, txManagerShared)
 
 	// Initialize Chat use cases (DDD: Application Service)
 	createChatUseCase := chatapp.NewCreateChatUseCase(chatRepo, chatEventBus)
@@ -290,7 +409,7 @@ func main() {
 	updateChatUseCase := chatapp.NewUpdateChatUseCase(chatRepo, chatEventBus)
 
 	// Initialize Tracking use cases (DDD: Application Service)
-	createTrackingUseCase := trackingapp.NewCreateTrackingUseCase(trackingRepo, eventBus, logger)
+	createTrackingUseCase := trackingapp.NewCreateTrackingUseCase(trackingRepo, eventBus, logger, txManagerShared)
 	getTrackingUseCase := trackingapp.NewGetTrackingUseCase(trackingRepo, logger)
 	getContactTrackingsUseCase := trackingapp.NewGetContactTrackingsUseCase(trackingRepo, logger)
 
@@ -313,18 +432,10 @@ func main() {
 	logger.Info("Contact Event Consumer started")
 
 	// Initialize processMessageUseCase
-	// Use interface for processMessageUseCase
-	messageRepo := persistence.NewGormMessageRepository(gormDB)
-
-	// Create message event bus adapter
-	messageEventBus := messaging.NewMessageEventBusAdapter(eventBus)
+	// (messageRepo, messageEventBus, timeoutResolver, txManagerShared already created above for Saga)
 
 	// Initialize session manager
 	sessionManager := sessionworkflow.NewSessionManager(temporalClient)
-
-	// Initialize SessionTimeoutResolver (DDD: Application Service)
-	// Resolve session timeout following hierarchy: Project → Channel → Pipeline
-	timeoutResolver := sessionapp.NewSessionTimeoutResolver(channelRepo, pipelineRepo)
 
 	// Note: Project and customer IDs are now obtained from authenticated user context
 	// via the auth middleware and RLS system
@@ -344,7 +455,7 @@ func main() {
 		logger.Warn("Redis not available, message debouncer disabled")
 	}
 
-	// Initialize ProcessInboundMessageUseCase
+	// Initialize ProcessInboundMessageUseCase with Saga support
 	processMessageUseCase := messageapp.NewProcessInboundMessageUseCase(
 		contactRepo,
 		sessionRepo,
@@ -353,8 +464,11 @@ func main() {
 		messageEventBus,
 		sessionManager,
 		timeoutResolver,
-		gormDB, // Usado apenas para invisible tracking detection
+		gormDB,              // Usado apenas para invisible tracking detection
 		messageDebouncerSvc, // Opcional - passa nil se Redis não disponível
+		txManagerShared,
+		temporalClient,
+		cfg.UseSagaOrchestration,
 	)
 
 	// Load AppConfig (channel types, etc)
@@ -490,6 +604,7 @@ func main() {
 		sessionRepoAdapter,
 		messageRepo,
 		wahaMessageSender,
+		txManagerShared,
 	)
 
 	// Initialize message delivery confirmation (CQRS Command)
@@ -535,6 +650,18 @@ func main() {
 	// Initialize automation discovery handler
 	automationDiscoveryHandler := handlers.NewAutomationDiscoveryHandler(triggerRegistry)
 
+	// Initialize automation handler (cross-product AUTOMATION product)
+	automationHandler := handlers.NewAutomationHandler(logger, gormDB)
+
+	// Initialize broadcast handler (AUTOMATION product)
+	broadcastHandler := handlers.NewBroadcastHandler(logger, gormDB)
+
+	// Initialize sequence handler (AUTOMATION product)
+	sequenceHandler := handlers.NewSequenceHandler(logger, gormDB)
+
+	// Initialize campaign handler (AUTOMATION product)
+	campaignHandler := handlers.NewCampaignHandler(logger, gormDB)
+
 	// Initialize WebSocket infrastructure
 	// WebSocket message handler (integra com domain Message)
 	wsMessageHandler := wsapp.NewWebSocketMessageHandler(messageRepo, logger)
@@ -574,14 +701,38 @@ func main() {
 	// Create Gin router
 	router := gin.Default()
 
-	// Setup basic routes (health, queue, session, contact, webhooks, auth, channels, projects, pipelines, trackings, automation discovery, messages, chats, agents, notes, WebSocket)
-	routes.SetupRoutesBasicWithTest(router, logger, healthChecker, authHandler, channelHandler, projectHandler, pipelineHandler, wahaHandler, webhookHandler, queueHandler, sessionHandler, contactHandler, trackingHandler, messageHandler, chatHandler, agentHandler, noteHandler, automationDiscoveryHandler, websocketHandler, wsRateLimiter, gormDB, authMiddleware, wsAuthMiddleware, rlsMiddleware, rateLimiter)
+	// Setup basic routes (health, queue, session, contact, webhooks, auth, automation, broadcasts, sequences, campaigns, channels, projects, pipelines, trackings, automation discovery, messages, chats, agents, notes, WebSocket)
+	routes.SetupRoutesBasicWithTest(router, logger, healthChecker, authHandler, automationHandler, broadcastHandler, sequenceHandler, campaignHandler, channelHandler, projectHandler, pipelineHandler, wahaHandler, webhookHandler, queueHandler, sessionHandler, contactHandler, trackingHandler, messageHandler, chatHandler, agentHandler, noteHandler, automationDiscoveryHandler, websocketHandler, wsRateLimiter, gormDB, authMiddleware, wsAuthMiddleware, rlsMiddleware, rateLimiter)
 
-	// Start server
-	logger.Info(" Server ready to accept connections", zap.String("port", cfg.Server.Port))
-	if err := router.Run(fmt.Sprintf(":%s", cfg.Server.Port)); err != nil {
-		logger.Fatal("Failed to start server", zap.Error(err))
+	// Start server with graceful shutdown
+	srv := &http.Server{
+		Addr:    fmt.Sprintf(":%s", cfg.Server.Port),
+		Handler: router,
 	}
+
+	// Start server in goroutine
+	go func() {
+		logger.Info("🚀 Server ready to accept connections", zap.String("port", cfg.Server.Port))
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			logger.Fatal("Failed to start server", zap.Error(err))
+		}
+	}()
+
+	// Wait for interrupt signal to gracefully shutdown the server with a timeout
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+	logger.Info("🛑 Shutting down server...")
+
+	// Create shutdown context with 5s timeout
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err := srv.Shutdown(shutdownCtx); err != nil {
+		logger.Error("Server forced to shutdown", zap.Error(err))
+	}
+
+	logger.Info("✅ Server exited gracefully")
 }
 
 func initLogger(level, env string) (*zap.Logger, error) {

@@ -9,17 +9,18 @@ import (
 
 // Config holds all application configuration
 type Config struct {
-	Server     ServerConfig
-	Database   DatabaseConfig
-	Redis      RedisConfig
-	RabbitMQ   RabbitMQConfig
-	Temporal   TemporalConfig
-	Log        LogConfig
-	Session    SessionConfig
-	Encryption EncryptionConfig
-	RateLimit  RateLimitConfig
-	WAHA       WAHAConfig
-	AI         AIConfig
+	Server               ServerConfig
+	Database             DatabaseConfig
+	Redis                RedisConfig
+	RabbitMQ             RabbitMQConfig
+	Temporal             TemporalConfig
+	Log                  LogConfig
+	Session              SessionConfig
+	Encryption           EncryptionConfig
+	RateLimit            RateLimitConfig
+	WAHA                 WAHAConfig
+	AI                   AIConfig
+	UseSagaOrchestration bool // Feature flag: Saga Orchestration (Temporal workflows)
 }
 
 type ServerConfig struct {
@@ -99,16 +100,16 @@ type AIConfig struct {
 	VertexModel          string // Model ID (ex: gemini-1.5-flash)
 
 	// LlamaParse (documentos PDF, Word, Excel, PowerPoint)
-	LlamaParseAPIKey    string // LlamaParse API key
+	LlamaParseAPIKey     string // LlamaParse API key
 	LlamaParseWebhookURL string // Webhook URL para callback
-	LlamaParseModel     string // Model (opcional, default: "default")
+	LlamaParseModel      string // Model (opcional, default: "default")
 
 	// Groq Whisper (áudio falado/PTT) - PRIORIDADE 1 - GRATUITO
-	GroqAPIKey     string // Groq API key (gsk_...)
+	GroqAPIKey       string // Groq API key (gsk_...)
 	GroqWhisperModel string // Model (default: whisper-large-v3-turbo)
 
 	// OpenAI Whisper (áudio falado/PTT) - PRIORIDADE 2 - FALLBACK
-	OpenAIAPIKey     string // OpenAI API key (sk_...)
+	OpenAIAPIKey       string // OpenAI API key (sk_...)
 	OpenAIWhisperModel string // Model (default: whisper-1)
 
 	// Claude (text analysis) - opcional
@@ -150,13 +151,10 @@ func Load() *Config {
 			Host:      getEnv("TEMPORAL_HOST", "localhost:7233"),
 			Namespace: getEnv("TEMPORAL_NAMESPACE", "ventros-crm"),
 		},
-		Log: LogConfig{},
-		Session: SessionConfig{
-			DefaultTimeoutMinutes: getEnvInt("SESSION_DEFAULT_TIMEOUT_MINUTES", 30),
-		},
-		Encryption: EncryptionConfig{
-			AESKey: getEnv("ENCRYPTION_AES_KEY", ""),
-		},
+		Log:                  LogConfig{},
+		Session:              SessionConfig{DefaultTimeoutMinutes: getEnvInt("SESSION_DEFAULT_TIMEOUT_MINUTES", 30)},
+		Encryption:           EncryptionConfig{AESKey: getEnv("ENCRYPTION_AES_KEY", "")},
+		UseSagaOrchestration: getEnv("USE_SAGA_ORCHESTRATION", "false") == "true",
 		RateLimit: RateLimitConfig{
 			GlobalMaxRequests:          getEnvInt("RATE_LIMIT_GLOBAL_MAX", 1000),
 			GlobalWindowSeconds:        getEnvInt("RATE_LIMIT_GLOBAL_WINDOW", 60),
@@ -178,9 +176,9 @@ func Load() *Config {
 			VertexModel:          getEnv("VERTEX_MODEL", "gemini-1.5-flash"),
 
 			// LlamaParse (documentos PDF, Word, Excel, PowerPoint)
-			LlamaParseAPIKey:    getEnv("LLAMAPARSE_API_KEY", ""),
+			LlamaParseAPIKey:     getEnv("LLAMAPARSE_API_KEY", ""),
 			LlamaParseWebhookURL: getEnv("LLAMAPARSE_WEBHOOK_URL", ""),
-			LlamaParseModel:     getEnv("LLAMAPARSE_MODEL", "default"),
+			LlamaParseModel:      getEnv("LLAMAPARSE_MODEL", "default"),
 
 			// Groq Whisper (áudio falado/PTT) - PRIORIDADE 1 - GRATUITO
 			GroqAPIKey:       getEnv("GROQ_API_KEY", ""),

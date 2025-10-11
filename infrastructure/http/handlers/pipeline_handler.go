@@ -7,18 +7,18 @@ import (
 	apierrors "github.com/caloi/ventros-crm/infrastructure/http/errors"
 	"github.com/caloi/ventros-crm/infrastructure/http/middleware"
 	"github.com/caloi/ventros-crm/internal/application/queries"
-	"github.com/caloi/ventros-crm/internal/domain/pipeline"
-	"github.com/caloi/ventros-crm/internal/domain/shared"
+	"github.com/caloi/ventros-crm/internal/domain/core/shared"
+	"github.com/caloi/ventros-crm/internal/domain/crm/pipeline"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 )
 
 type PipelineHandler struct {
-	logger                       *zap.Logger
-	pipelineRepo                 pipeline.Repository
-	listPipelinesQueryHandler    *queries.ListPipelinesQueryHandler
-	searchPipelinesQueryHandler  *queries.SearchPipelinesQueryHandler
+	logger                      *zap.Logger
+	pipelineRepo                pipeline.Repository
+	listPipelinesQueryHandler   *queries.ListPipelinesQueryHandler
+	searchPipelinesQueryHandler *queries.SearchPipelinesQueryHandler
 }
 
 func NewPipelineHandler(logger *zap.Logger, pipelineRepo pipeline.Repository) *PipelineHandler {
@@ -78,7 +78,7 @@ type ChangeContactStatusRequest struct {
 //
 //	@Summary		List pipelines
 //	@Description	Lista todos os pipelines de um projeto (apenas do usuário autenticado)
-//	@Tags			pipelines
+//	@Tags			CRM - Pipelines
 //	@Produce		json
 //	@Security		ApiKeyAuth
 //	@Param			project_id	query		string					true	"Project ID (UUID)"
@@ -145,7 +145,7 @@ func (h *PipelineHandler) ListPipelines(c *gin.Context) {
 //
 //	@Summary		Create pipeline
 //	@Description	Cria um novo pipeline
-//	@Tags			pipelines
+//	@Tags			CRM - Pipelines
 //	@Accept			json
 //	@Produce		json
 //	@Param			project_id	query		string					true	"Project ID (UUID)"
@@ -212,7 +212,7 @@ func (h *PipelineHandler) CreatePipeline(c *gin.Context) {
 //
 //	@Summary		Get pipeline by ID
 //	@Description	Obtém detalhes de um pipeline específico com seus status
-//	@Tags			pipelines
+//	@Tags			CRM - Pipelines
 //	@Produce		json
 //	@Param			id	path		string					true	"Pipeline ID (UUID)"
 //	@Success		200	{object}	map[string]interface{}	"Pipeline details with statuses"
@@ -258,7 +258,7 @@ func (h *PipelineHandler) GetPipeline(c *gin.Context) {
 //
 //	@Summary		Create status
 //	@Description	Cria um novo status em um pipeline
-//	@Tags			pipelines
+//	@Tags			CRM - Pipelines
 //	@Accept			json
 //	@Produce		json
 //	@Param			id		path		string					true	"Pipeline ID (UUID)"
@@ -338,7 +338,7 @@ func (h *PipelineHandler) CreateStatus(c *gin.Context) {
 //
 //	@Summary		Change contact status
 //	@Description	Altera o status de um contato em um pipeline
-//	@Tags			pipelines
+//	@Tags			CRM - Pipelines
 //	@Accept			json
 //	@Produce		json
 //	@Param			pipeline_id	path		string						true	"Pipeline ID (UUID)"
@@ -410,7 +410,7 @@ func (h *PipelineHandler) ChangeContactStatus(c *gin.Context) {
 //
 //	@Summary		Get contact status
 //	@Description	Obtém o status atual de um contato em um pipeline
-//	@Tags			pipelines
+//	@Tags			CRM - Pipelines
 //	@Produce		json
 //	@Param			pipeline_id	path		string					true	"Pipeline ID (UUID)"
 //	@Param			contact_id	path		string					true	"Contact ID (UUID)"
@@ -509,17 +509,17 @@ func (h *PipelineHandler) statusToResponse(s *pipeline.Status) map[string]interf
 //	@Description	**Performance:**
 //	@Description	- Optimized GORM indexes on tenant+active for fast active pipeline queries
 //	@Description	- Small result sets (typically < 50 pipelines per tenant) for instant responses
-//	@Tags			pipelines
+//	@Tags			CRM - Pipelines
 //	@Accept			json
 //	@Produce		json
 //	@Security		BearerAuth
-//	@Param			project_id	query		string	false	"Filter by project UUID" example(550e8400-e29b-41d4-a716-446655440000)
-//	@Param			active		query		bool	false	"Filter by active status - true: only active, false: only inactive" example(true)
-//	@Param			color		query		string	false	"Filter by hex color code - Example: #FF5733, #3B82F6" example(#3B82F6)
-//	@Param			page		query		int		false	"Page number (starts at 1)" default(1) minimum(1) example(1)
-//	@Param			limit		query		int		false	"Results per page (max 100)" default(20) minimum(1) maximum(100) example(20)
-//	@Param			sort_by		query		string	false	"Sort field" Enums(name, position, created_at) default(created_at) example(position)
-//	@Param			sort_dir	query		string	false	"Sort direction" Enums(asc, desc) default(desc) example(asc)
+//	@Param			project_id	query		string							false	"Filter by project UUID"											example(550e8400-e29b-41d4-a716-446655440000)
+//	@Param			active		query		bool							false	"Filter by active status - true: only active, false: only inactive"	example(true)
+//	@Param			color		query		string							false	"Filter by hex color code - Example: #FF5733, #3B82F6"				example(#3B82F6)
+//	@Param			page		query		int								false	"Page number (starts at 1)"											default(1)							minimum(1)			example(1)
+//	@Param			limit		query		int								false	"Results per page (max 100)"										default(20)							minimum(1)			maximum(100)	example(20)
+//	@Param			sort_by		query		string							false	"Sort field"														Enums(name, position, created_at)	default(created_at)	example(position)
+//	@Param			sort_dir	query		string							false	"Sort direction"													Enums(asc, desc)					default(desc)		example(asc)
 //	@Success		200			{object}	queries.ListPipelinesResponse	"Successfully retrieved pipelines with full configuration details"
 //	@Failure		400			{object}	map[string]interface{}			"Bad Request - Invalid UUID or parameter format"
 //	@Failure		401			{object}	map[string]interface{}			"Unauthorized - Authentication required"
@@ -623,12 +623,12 @@ func (h *PipelineHandler) ListPipelinesAdvanced(c *gin.Context) {
 //	@Description	- "sales" - Find all sales-related pipelines
 //	@Description	- "support" - Find customer support workflows
 //	@Description	- "onboarding" - Locate onboarding process pipelines
-//	@Tags			pipelines
+//	@Tags			CRM - Pipelines
 //	@Accept			json
 //	@Produce		json
 //	@Security		BearerAuth
-//	@Param			q		query		string	true	"Search query - name or description" minlength(1) example(sales pipeline)
-//	@Param			limit	query		int		false	"Maximum results (max 100)" default(20) minimum(1) maximum(100) example(10)
+//	@Param			q		query		string							true	"Search query - name or description"	minlength(1)	example(sales pipeline)
+//	@Param			limit	query		int								false	"Maximum results (max 100)"				default(20)		minimum(1)	maximum(100)	example(10)
 //	@Success		200		{object}	queries.SearchPipelinesResponse	"Found pipelines with match scores"
 //	@Failure		400		{object}	map[string]interface{}			"Bad Request - Empty search query"
 //	@Failure		401		{object}	map[string]interface{}			"Unauthorized"

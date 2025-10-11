@@ -3,9 +3,10 @@ package persistence
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/caloi/ventros-crm/infrastructure/persistence/entities"
-	"github.com/caloi/ventros-crm/internal/domain/agent"
+	"github.com/caloi/ventros-crm/internal/domain/crm/agent"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
@@ -111,37 +112,102 @@ func (r *GormAgentRepository) Delete(ctx context.Context, id uuid.UUID) error {
 // domainToEntity converte domain model para entity
 func (r *GormAgentRepository) domainToEntity(a *agent.Agent) *entities.AgentEntity {
 	entity := &entities.AgentEntity{
-		ID:       a.ID(),
-		TenantID: a.TenantID(),
-		Name:     a.Name(),
-		Email:    a.Email(),
-		Active:   a.IsActive(),
+		ID:                a.ID(),
+		ProjectID:         a.ProjectID(),
+		UserID:            a.UserID(),
+		TenantID:          a.TenantID(),
+		Name:              a.Name(),
+		Email:             a.Email(),
+		Type:              entities.AgentType(a.Type()),
+		Status:            entities.AgentStatus(a.Status()),
+		Active:            a.IsActive(),
+		Config:            a.Config(),
+		SessionsHandled:   a.SessionsHandled(),
+		AverageResponseMs: a.AverageResponseMs(),
+		LastActivityAt:    a.LastActivityAt(),
+		CreatedAt:         a.CreatedAt(),
+		UpdatedAt:         a.UpdatedAt(),
 	}
 
-	// DeletedAt não está implementado no domain Agent ainda
-	// TODO: Adicionar DeletedAt() ao Agent domain
+	// Serialize VirtualMetadata to JSONB
+	if a.VirtualMetadata() != nil {
+		vm := a.VirtualMetadata()
+		entity.VirtualMetadata = map[string]interface{}{
+			"represents_person_name": vm.RepresentsPersonName,
+			"period_start":           vm.PeriodStart,
+			"period_end":             vm.PeriodEnd,
+			"reason":                 vm.Reason,
+			"source_device":          vm.SourceDevice,
+			"notes":                  vm.Notes,
+		}
+	}
 
 	return entity
 }
 
 // entityToDomain converte entity para domain model
 func (r *GormAgentRepository) entityToDomain(entity *entities.AgentEntity) *agent.Agent {
-	// Deserializar permissions e settings se necessário
+	// Deserialize permissions and settings if needed
 	permissions := make(map[string]bool)
 	settings := make(map[string]interface{})
+	config := entity.Config
+	if config == nil {
+		config = make(map[string]interface{})
+	}
+
+	// Deserialize VirtualMetadata from JSONB
+	var virtualMetadata *agent.VirtualAgentMetadata
+	if entity.VirtualMetadata != nil {
+		vm := entity.VirtualMetadata
+		virtualMetadata = &agent.VirtualAgentMetadata{}
+
+		if v, ok := vm["represents_person_name"].(string); ok {
+			virtualMetadata.RepresentsPersonName = v
+		}
+		if v, ok := vm["period_start"].(string); ok {
+			// Parse time from string
+			if t, err := time.Parse(time.RFC3339, v); err == nil {
+				virtualMetadata.PeriodStart = t
+			}
+		}
+		if v, ok := vm["period_end"].(string); ok && v != "" {
+			// Parse time from string
+			if t, err := time.Parse(time.RFC3339, v); err == nil {
+				virtualMetadata.PeriodEnd = &t
+			}
+		}
+		if v, ok := vm["reason"].(string); ok {
+			virtualMetadata.Reason = v
+		}
+		if v, ok := vm["source_device"].(string); ok && v != "" {
+			virtualMetadata.SourceDevice = &v
+		}
+		if v, ok := vm["notes"].(string); ok {
+			virtualMetadata.Notes = v
+		}
+	}
 
 	return agent.ReconstructAgent(
 		entity.ID,
+		entity.ProjectID,
+		entity.UserID,
 		entity.TenantID,
 		entity.Name,
 		entity.Email,
-		agent.RoleHumanAgent, // Default role
+		agent.AgentType(entity.Type),
+		agent.AgentStatus(entity.Status),
+		agent.RoleHumanAgent, // Default role - TODO: store role in DB
 		entity.Active,
+		config,
 		permissions,
 		settings,
+		entity.SessionsHandled,
+		entity.AverageResponseMs,
+		entity.LastActivityAt,
+		virtualMetadata,
 		entity.CreatedAt,
 		entity.UpdatedAt,
-		nil, // LastLoginAt não existe na entity ainda
+		nil, // LastLoginAt - TODO: add to entity
 	)
 }
 

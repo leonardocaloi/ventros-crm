@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/caloi/ventros-crm/internal/domain/channel"
-	"github.com/caloi/ventros-crm/internal/domain/message"
+	"github.com/caloi/ventros-crm/internal/domain/crm/channel"
+	"github.com/caloi/ventros-crm/internal/domain/crm/message"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 )
@@ -116,20 +116,20 @@ func (p *MessageEnrichmentProcessor) ProcessMessage(ctx context.Context, req Mes
 
 	// 8. Criar job de processamento assíncrono
 	enrichmentJob := EnrichmentJob{
-		MessageID:     req.MessageID,
-		ChannelID:     req.ChannelID,
-		ProjectID:     req.ProjectID,
-		TenantID:      req.TenantID,
-		ContentType:   aiContentType,
-		Provider:      config.Provider,
-		Model:         config.Model,
-		Priority:      config.Priority,
-		MediaURL:      req.MediaURL,
-		Text:          req.Text,
-		IsPTT:         req.IsPTT,
-		SizeBytes:     req.SizeBytes,
-		Config:        *config,
-		CreatedAt:     time.Now(),
+		MessageID:   req.MessageID,
+		ChannelID:   req.ChannelID,
+		ProjectID:   req.ProjectID,
+		TenantID:    req.TenantID,
+		ContentType: aiContentType,
+		Provider:    config.Provider,
+		Model:       config.Model,
+		Priority:    config.Priority,
+		MediaURL:    req.MediaURL,
+		Text:        req.Text,
+		IsPTT:       req.IsPTT,
+		SizeBytes:   req.SizeBytes,
+		Config:      *config,
+		CreatedAt:   time.Now(),
 	}
 
 	// 9. Publicar job para fila de processamento

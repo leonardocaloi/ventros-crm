@@ -18,7 +18,7 @@ type MessageEntity struct {
 	ChannelTypeID *int       `gorm:"index:idx_messages_channel_type"`
 	FromMe        bool       `gorm:"default:false;index:idx_messages_from_me"`
 	ChannelID     uuid.UUID  `gorm:"type:uuid;not null;index:idx_messages_channel"` // OBRIGATÓRIO
-	ChatID        *uuid.UUID `gorm:"type:uuid;index:idx_messages_chat_id"` // Chat this message belongs to
+	ChatID        *uuid.UUID `gorm:"type:uuid;index:idx_messages_chat_id"`          // Chat this message belongs to
 	ContactID     uuid.UUID  `gorm:"type:uuid;not null;index:idx_messages_contact;index:idx_messages_tenant_contact,priority:2"`
 	SessionID     *uuid.UUID `gorm:"type:uuid;index:idx_messages_session;index:idx_messages_tenant_session,priority:2"`
 	ContentType   string     `gorm:"default:'text';not null;index:idx_messages_content_type"`

@@ -5,7 +5,7 @@ import (
 	"errors"
 	"time"
 
-	domainMessage "github.com/caloi/ventros-crm/internal/domain/message"
+	domainMessage "github.com/caloi/ventros-crm/internal/domain/crm/message"
 	"github.com/google/uuid"
 )
 

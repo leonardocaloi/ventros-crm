@@ -6,7 +6,8 @@ import (
 	"time"
 
 	"github.com/caloi/ventros-crm/infrastructure/persistence/entities"
-	"github.com/caloi/ventros-crm/internal/domain/contact"
+	"github.com/caloi/ventros-crm/internal/application/shared"
+	"github.com/caloi/ventros-crm/internal/domain/crm/contact"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
@@ -21,7 +22,20 @@ func NewGormContactRepository(db *gorm.DB) contact.Repository {
 
 func (r *GormContactRepository) Save(ctx context.Context, c *contact.Contact) error {
 	entity := r.domainToEntity(c)
-	return r.db.WithContext(ctx).Save(entity).Error
+	// Usa a transação do contexto se existir, senão usa a conexão padrão
+	db := r.getDB(ctx)
+	return db.Save(entity).Error
+}
+
+// getDB retorna a transação do contexto se existir, senão retorna a conexão padrão.
+// Isso permite que Save() funcione tanto dentro quanto fora de transações.
+func (r *GormContactRepository) getDB(ctx context.Context) *gorm.DB {
+	// Tenta extrair transação do contexto (usa shared.TransactionFromContext)
+	if tx := shared.TransactionFromContext(ctx); tx != nil {
+		return tx.WithContext(ctx)
+	}
+	// Se não houver transação, usa conexão padrão
+	return r.db.WithContext(ctx)
 }
 
 func (r *GormContactRepository) FindByID(ctx context.Context, id uuid.UUID) (*contact.Contact, error) {

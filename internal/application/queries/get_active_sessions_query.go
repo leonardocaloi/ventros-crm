@@ -3,8 +3,8 @@ package queries
 import (
 	"context"
 
-	"github.com/caloi/ventros-crm/internal/domain/session"
-	"github.com/caloi/ventros-crm/internal/domain/shared"
+	"github.com/caloi/ventros-crm/internal/domain/core/shared"
+	"github.com/caloi/ventros-crm/internal/domain/crm/session"
 	"go.uber.org/zap"
 )
 

@@ -54,9 +54,9 @@ type ChannelEntity struct {
 	// Exemplo AI: {"ai_process_image": true, "ai_process_video": false, ...}
 	Config datatypes.JSON `gorm:"type:jsonb;index:idx_channels_config,type:gin"`
 
-	WebhookID           string     `gorm:"uniqueIndex:idx_channels_webhook_id_unique"` // UUID único para webhook inbound (padrão indústria)
-	WebhookURL          string     `gorm:"index:idx_channels_webhook_url"`       // URL do webhook configurada
-	WebhookConfiguredAt *time.Time `gorm:"index:idx_channels_webhook_configured"` // Quando o webhook foi configurado
+	WebhookID           string     `gorm:"uniqueIndex:idx_channels_webhook_id_unique"`      // UUID único para webhook inbound (padrão indústria)
+	WebhookURL          string     `gorm:"index:idx_channels_webhook_url"`                  // URL do webhook configurada
+	WebhookConfiguredAt *time.Time `gorm:"index:idx_channels_webhook_configured"`           // Quando o webhook foi configurado
 	WebhookActive       bool       `gorm:"default:false;index:idx_channels_webhook_active"` // Se o webhook está ativo
 
 	// Pipeline Association
@@ -66,9 +66,9 @@ type ChannelEntity struct {
 	SessionTimeoutMinutes *int `gorm:"index:idx_channels_timeout"` // Override do timeout do projeto (NULL = herda do projeto)
 
 	// AI Features (mantido para compatibilidade, mas processamento vai para message_enriched)
-	AIEnabled       bool `gorm:"default:false;index:idx_channels_ai_enabled"` // Canal Inteligente - habilita processamento
-	AIAgentsEnabled bool `gorm:"default:false;index:idx_channels_ai_agents"` // Agentes IA - permite respostas automáticas
-	AllowGroups     bool `gorm:"default:false;index:idx_channels_allow_groups"` // Se o canal aceita mensagens de grupos WhatsApp
+	AIEnabled       bool `gorm:"default:false;index:idx_channels_ai_enabled"`       // Canal Inteligente - habilita processamento
+	AIAgentsEnabled bool `gorm:"default:false;index:idx_channels_ai_agents"`        // Agentes IA - permite respostas automáticas
+	AllowGroups     bool `gorm:"default:false;index:idx_channels_allow_groups"`     // Se o canal aceita mensagens de grupos WhatsApp
 	TrackingEnabled bool `gorm:"default:false;index:idx_channels_tracking_enabled"` // Se o canal rastreia origem das mensagens
 
 	// Message Debouncer Configuration

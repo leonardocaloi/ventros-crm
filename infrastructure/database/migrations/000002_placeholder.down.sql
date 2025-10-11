@@ -1,0 +1,1 @@
+-- Placeholder migration 000002 rollback

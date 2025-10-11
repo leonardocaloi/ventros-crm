@@ -4,7 +4,8 @@ import (
 	"context"
 	"errors"
 
-	"github.com/caloi/ventros-crm/internal/domain/session"
+	"github.com/caloi/ventros-crm/internal/application/shared"
+	"github.com/caloi/ventros-crm/internal/domain/crm/session"
 	"github.com/google/uuid"
 )
 
@@ -18,16 +19,19 @@ type CloseSessionCommand struct {
 type CloseSessionUseCase struct {
 	sessionRepo session.Repository
 	eventBus    EventBus
+	txManager   shared.TransactionManager
 }
 
 // NewCloseSessionUseCase cria uma nova instância.
 func NewCloseSessionUseCase(
 	sessionRepo session.Repository,
 	eventBus EventBus,
+	txManager shared.TransactionManager,
 ) *CloseSessionUseCase {
 	return &CloseSessionUseCase{
 		sessionRepo: sessionRepo,
 		eventBus:    eventBus,
+		txManager:   txManager,
 	}
 }
 
@@ -38,7 +42,7 @@ func (uc *CloseSessionUseCase) Execute(ctx context.Context, cmd CloseSessionComm
 		return errors.New("sessionID is required")
 	}
 
-	// Buscar sessão
+	// Buscar sessão (fora da transação - read-only)
 	sess, err := uc.sessionRepo.FindByID(ctx, cmd.SessionID)
 	if err != nil {
 		return err
@@ -49,18 +53,28 @@ func (uc *CloseSessionUseCase) Execute(ctx context.Context, cmd CloseSessionComm
 		return err
 	}
 
-	// Persistir
-	if err := uc.sessionRepo.Save(ctx, sess); err != nil {
+	// ✅ TRANSAÇÃO ATÔMICA: Save + Publish juntos
+	err = uc.txManager.ExecuteInTransaction(ctx, func(txCtx context.Context) error {
+		// 1. Persistir sessão (usa transação do contexto)
+		if err := uc.sessionRepo.Save(txCtx, sess); err != nil {
+			return err
+		}
+
+		// 2. Publicar eventos no outbox (usa mesma transação)
+		for _, event := range sess.DomainEvents() {
+			if err := uc.eventBus.Publish(txCtx, event); err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
+
+	if err != nil {
 		return err
 	}
 
-	// Publicar eventos
-	for _, event := range sess.DomainEvents() {
-		if err := uc.eventBus.Publish(ctx, event); err != nil {
-			// Log error
-		}
-	}
-
+	// Limpar eventos após sucesso
 	sess.ClearEvents()
 
 	return nil

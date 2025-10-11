@@ -48,7 +48,7 @@ type ContactListFilterRuleEntity struct {
 }
 
 func (ContactListFilterRuleEntity) TableName() string {
-	return "contact_list_filter_rules"
+	return "contact_list_filters"
 }
 
 // ContactListMemberEntity representa um contato em uma lista estática

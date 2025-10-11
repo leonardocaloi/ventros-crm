@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/caloi/ventros-crm/infrastructure/channels/waha"
-	"github.com/caloi/ventros-crm/internal/domain/channel"
+	"github.com/caloi/ventros-crm/internal/domain/crm/channel"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 )
@@ -19,9 +19,9 @@ type GetQRCodeCommand struct {
 
 // GetQRCodeResult returns the QR code
 type GetQRCodeResult struct {
-	QRCode    string    `json:"qr_code"`     // Base64-encoded if image, raw text if raw
-	Format    string    `json:"format"`      // "image" or "raw"
-	ExpiresAt time.Time `json:"expires_at"`  // QR code expiration time
+	QRCode    string    `json:"qr_code"`    // Base64-encoded if image, raw text if raw
+	Format    string    `json:"format"`     // "image" or "raw"
+	ExpiresAt time.Time `json:"expires_at"` // QR code expiration time
 }
 
 // GetQRCodeUseCase implements the use case to get QR code for WhatsApp Business channels

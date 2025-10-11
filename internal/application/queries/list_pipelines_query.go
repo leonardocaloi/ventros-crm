@@ -3,8 +3,8 @@ package queries
 import (
 	"context"
 
-	"github.com/caloi/ventros-crm/internal/domain/pipeline"
-	"github.com/caloi/ventros-crm/internal/domain/shared"
+	"github.com/caloi/ventros-crm/internal/domain/core/shared"
+	"github.com/caloi/ventros-crm/internal/domain/crm/pipeline"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 )
@@ -32,16 +32,16 @@ type ListPipelinesResponse struct {
 
 // PipelineDTO data transfer object for pipeline
 type PipelineDTO struct {
-	ID                    string  `json:"id"`
-	ProjectID             string  `json:"project_id"`
-	Name                  string  `json:"name"`
-	Description           string  `json:"description"`
-	Color                 string  `json:"color"`
-	Position              int     `json:"position"`
-	Active                bool    `json:"active"`
-	SessionTimeoutMinutes *int    `json:"session_timeout_minutes,omitempty"`
-	CreatedAt             string  `json:"created_at"`
-	UpdatedAt             string  `json:"updated_at"`
+	ID                    string `json:"id"`
+	ProjectID             string `json:"project_id"`
+	Name                  string `json:"name"`
+	Description           string `json:"description"`
+	Color                 string `json:"color"`
+	Position              int    `json:"position"`
+	Active                bool   `json:"active"`
+	SessionTimeoutMinutes *int   `json:"session_timeout_minutes,omitempty"`
+	CreatedAt             string `json:"created_at"`
+	UpdatedAt             string `json:"updated_at"`
 }
 
 // ListPipelinesQueryHandler handles ListPipelinesQuery

@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/caloi/ventros-crm/infrastructure/persistence/entities"
-	"github.com/caloi/ventros-crm/internal/domain/project"
+	"github.com/caloi/ventros-crm/internal/domain/core/project"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
@@ -146,6 +146,8 @@ func (r *GormProjectRepository) domainToEntity(proj *project.Project) *entities.
 
 // entityToDomain converts entity to domain project
 func (r *GormProjectRepository) entityToDomain(entity *entities.ProjectEntity) (*project.Project, error) {
+	// TODO: Store and retrieve agent_assignment from database (JSONB column)
+	// For now, initialize with default config
 	return project.ReconstructProject(
 		entity.ID,
 		entity.UserID, // UserID maps to CustomerID in domain
@@ -156,6 +158,7 @@ func (r *GormProjectRepository) entityToDomain(entity *entities.ProjectEntity) (
 		entity.Configuration,
 		entity.Active,
 		entity.SessionTimeoutMinutes,
+		nil, // agentAssignment - will be initialized with default by ReconstructProject
 		entity.CreatedAt,
 		entity.UpdatedAt,
 	), nil

@@ -9,10 +9,10 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/caloi/ventros-crm/infrastructure/ai"
-	"github.com/caloi/ventros-crm/internal/domain/channel"
-	"github.com/caloi/ventros-crm/internal/domain/message"
-	"github.com/caloi/ventros-crm/internal/domain/message_enrichment"
-	"github.com/caloi/ventros-crm/internal/domain/message_group"
+	"github.com/caloi/ventros-crm/internal/domain/crm/channel"
+	"github.com/caloi/ventros-crm/internal/domain/crm/message"
+	"github.com/caloi/ventros-crm/internal/domain/crm/message_enrichment"
+	"github.com/caloi/ventros-crm/internal/domain/crm/message_group"
 )
 
 // MessageEnrichmentService processa enriquecimentos de mensagens usando DDD

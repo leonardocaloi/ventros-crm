@@ -7,7 +7,6 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -285,46 +284,14 @@ func (s *WAHAWebhookTestSuite) TestImageWithTextMessage() {
 	fmt.Println("✅ IMAGE with TEXT message processed")
 }
 
-// loadEventFile carrega um arquivo de evento JSON
+// loadEventFile carrega um arquivo de evento JSON usando o helper
 func (s *WAHAWebhookTestSuite) loadEventFile(filename string) map[string]interface{} {
-	// Tenta vários caminhos possíveis
-	paths := []string{
-		filepath.Join("../../events_waha", filename),
-		filepath.Join("events_waha", filename),
-		filepath.Join("../events_waha", filename),
-	}
-	
-	var data []byte
-	var err error
-	
-	for _, path := range paths {
-		data, err = os.ReadFile(path)
-		if err == nil {
-			break
-		}
-	}
-	
-	if err != nil {
-		s.T().Fatalf("Failed to load event file %s: %v", filename, err)
-	}
-	
-	var event map[string]interface{}
-	err = json.Unmarshal(data, &event)
-	assert.NoError(s.T(), err, "Failed to parse event JSON")
-	
+	event := LoadWAHAEvent(s.T(), filename)
+
 	// Atualiza session para o canal de teste
-	if payload, ok := event["payload"].(map[string]interface{}); ok {
-		if data, ok := payload["_data"].(map[string]interface{}); ok {
-			if info, ok := data["Info"].(map[string]interface{}); ok {
-				// Extrai session_id do webhook_url
-				// URL format: /api/v1/webhooks/waha/{session_id}
-				sessionID := s.extractSessionFromURL(s.webhookURL)
-				event["session"] = sessionID
-				info["Chat"] = sessionID + "@s.whatsapp.net"
-			}
-		}
-	}
-	
+	sessionID := s.extractSessionFromURL(s.webhookURL)
+	UpdateWAHAEventSession(event, sessionID)
+
 	return event
 }
 

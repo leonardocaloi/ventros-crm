@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/caloi/ventros-crm/internal/domain/pipeline"
+	"github.com/caloi/ventros-crm/internal/domain/crm/pipeline"
 )
 
 // SendWebhookExecutor implementa a ação de enviar webhook

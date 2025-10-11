@@ -10,7 +10,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/caloi/ventros-crm/infrastructure/persistence/entities"
-	"github.com/caloi/ventros-crm/internal/domain/message_enrichment"
+	"github.com/caloi/ventros-crm/internal/domain/crm/message_enrichment"
 )
 
 // GormMessageEnrichmentRepository implementa message_enrichment.Repository

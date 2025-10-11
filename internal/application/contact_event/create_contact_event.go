@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/caloi/ventros-crm/internal/domain/contact_event"
+	"github.com/caloi/ventros-crm/internal/domain/crm/contact_event"
 	"github.com/google/uuid"
 )
 

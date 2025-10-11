@@ -15,6 +15,7 @@ const (
 	AgentTypeAI      AgentType = "ai"      // Agente de IA (externo via provider)
 	AgentTypeBot     AgentType = "bot"     // Bot/automação (interno)
 	AgentTypeChannel AgentType = "channel" // Canal/dispositivo
+	AgentTypeVirtual AgentType = "virtual" // Agente virtual (representa pessoa do passado)
 )
 
 // AgentStatus define os status possíveis de um agente
@@ -41,6 +42,9 @@ type AgentEntity struct {
 
 	// Configurações específicas por tipo
 	Config map[string]interface{} `gorm:"type:jsonb;index:idx_agents_config,type:gin"` // Para AI: provider, model, api_key, etc
+
+	// Virtual agent metadata (for historical representation)
+	VirtualMetadata map[string]interface{} `gorm:"type:jsonb;index:idx_agents_virtual_metadata,type:gin"`
 
 	// Métricas
 	SessionsHandled   int        `gorm:"default:0"`

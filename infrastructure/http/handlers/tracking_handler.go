@@ -5,7 +5,7 @@ import (
 
 	"github.com/caloi/ventros-crm/infrastructure/http/dto"
 	"github.com/caloi/ventros-crm/internal/application/tracking"
-	domainTracking "github.com/caloi/ventros-crm/internal/domain/tracking"
+	domainTracking "github.com/caloi/ventros-crm/internal/domain/crm/tracking"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
@@ -42,7 +42,7 @@ func NewTrackingHandler(
 //
 //	@Summary		Cria um novo tracking de conversão
 //	@Description	Cria um novo registro de tracking para rastrear origem de contato (anúncios, campanhas, etc)
-//	@Tags			tracking
+//	@Tags			CRM - Tracking
 //	@Accept			json
 //	@Produce		json
 //	@Param			request	body		CreateTrackingRequest	true	"Dados do tracking"
@@ -124,7 +124,7 @@ func (h *TrackingHandler) CreateTracking(c *gin.Context) {
 //
 //	@Summary		Busca tracking por ID
 //	@Description	Retorna um tracking específico por ID
-//	@Tags			tracking
+//	@Tags			CRM - Tracking
 //	@Produce		json
 //	@Param			id	path		string	true	"ID do tracking"
 //	@Success		200	{object}	tracking.TrackingDTO
@@ -157,7 +157,7 @@ func (h *TrackingHandler) GetTracking(c *gin.Context) {
 //
 //	@Summary		Busca trackings de um contato
 //	@Description	Retorna todos os trackings de um contato específico
-//	@Tags			tracking
+//	@Tags			CRM - Tracking
 //	@Produce		json
 //	@Param			contact_id	path		string	true	"ID do contato"
 //	@Success		200			{array}		tracking.TrackingDTO
@@ -186,7 +186,7 @@ func (h *TrackingHandler) GetContactTrackings(c *gin.Context) {
 //
 //	@Summary		Lista todos os enums disponíveis para tracking
 //	@Description	Retorna todos os valores válidos de enums para construir trackings (plataformas, mediums, táticas, formatos, etc)
-//	@Tags			tracking
+//	@Tags			CRM - Tracking
 //	@Produce		json
 //	@Success		200	{object}	TrackingEnumsResponse
 //	@Router			/api/v1/trackings/enums [get]
@@ -347,7 +347,7 @@ func GetAllTrackingEnums() TrackingEnumsResponse {
 //
 //	@Summary		Codifica tracking ID em mensagem WhatsApp
 //	@Description	Insere código invisível ternário em mensagem para rastreamento
-//	@Tags			tracking
+//	@Tags			CRM - Tracking
 //	@Accept			json
 //	@Produce		json
 //	@Param			request	body		tracking.EncodeTrackingRequest	true	"Dados para encode"
@@ -377,7 +377,7 @@ func (h *TrackingHandler) EncodeTracking(c *gin.Context) {
 //
 //	@Summary		Decodifica mensagem WhatsApp para extrair tracking ID
 //	@Description	Extrai código invisível ternário de mensagem para identificar tracking
-//	@Tags			tracking
+//	@Tags			CRM - Tracking
 //	@Accept			json
 //	@Produce		json
 //	@Param			request	body		tracking.DecodeTrackingRequest	true	"Mensagem para decode"

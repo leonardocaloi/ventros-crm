@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/caloi/ventros-crm/infrastructure/persistence/entities"
-	"github.com/caloi/ventros-crm/internal/domain/channel_type"
+	"github.com/caloi/ventros-crm/internal/domain/crm/channel_type"
 	"gorm.io/gorm"
 )
 

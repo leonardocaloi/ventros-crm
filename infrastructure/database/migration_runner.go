@@ -33,16 +33,17 @@ type MigrationRunner struct {
 // NewMigrationRunner creates a new migration runner
 //
 // Example:
-//   runner, err := NewMigrationRunner(sqlDB, logger)
-//   if err != nil {
-//       log.Fatal(err)
-//   }
-//   defer runner.Close()
 //
-//   // Apply all pending migrations
-//   if err := runner.Up(); err != nil {
-//       log.Fatal(err)
-//   }
+//	runner, err := NewMigrationRunner(sqlDB, logger)
+//	if err != nil {
+//	    log.Fatal(err)
+//	}
+//	defer runner.Close()
+//
+//	// Apply all pending migrations
+//	if err := runner.Up(); err != nil {
+//	    log.Fatal(err)
+//	}
 func NewMigrationRunner(db *sql.DB, logger *zap.Logger) (*MigrationRunner, error) {
 	// Create postgres driver instance
 	driver, err := postgres.WithInstance(db, &postgres.Config{})
@@ -136,9 +137,10 @@ func (r *MigrationRunner) Down() error {
 // Steps applies N migrations (positive) or rolls back N migrations (negative)
 //
 // Examples:
-//   Steps(2)  - Apply next 2 migrations
-//   Steps(-1) - Rollback 1 migration
-//   Steps(-3) - Rollback 3 migrations
+//
+//	Steps(2)  - Apply next 2 migrations
+//	Steps(-1) - Rollback 1 migration
+//	Steps(-3) - Rollback 3 migrations
 //
 // Returns:
 //   - nil if successful
@@ -226,9 +228,9 @@ func (r *MigrationRunner) Status() (*MigrationStatus, error) {
 // You must manually fix the database schema first, then force the version.
 //
 // Example recovery from dirty state:
-//   1. Manually inspect database and fix issues
-//   2. Force version: runner.Force(currentVersion)
-//   3. Continue with normal migrations
+//  1. Manually inspect database and fix issues
+//  2. Force version: runner.Force(currentVersion)
+//  3. Continue with normal migrations
 //
 // Parameters:
 //   - version: The version to force the database to
@@ -254,11 +256,11 @@ func (r *MigrationRunner) Force(version int) error {
 // This should be called when done with migrations to clean up resources.
 // Always defer this after creating the runner:
 //
-//   runner, err := NewMigrationRunner(db, logger)
-//   if err != nil {
-//       return err
-//   }
-//   defer runner.Close()
+//	runner, err := NewMigrationRunner(db, logger)
+//	if err != nil {
+//	    return err
+//	}
+//	defer runner.Close()
 func (r *MigrationRunner) Close() error {
 	sourceErr, dbErr := r.m.Close()
 	if sourceErr != nil {

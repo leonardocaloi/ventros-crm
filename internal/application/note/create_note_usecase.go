@@ -5,16 +5,22 @@ import (
 	"fmt"
 
 	"github.com/caloi/ventros-crm/infrastructure/messaging"
-	"github.com/caloi/ventros-crm/internal/domain/note"
+	"github.com/caloi/ventros-crm/internal/domain/crm/note"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 )
 
+// TransactionManager gerencia transações de banco de dados.
+type TransactionManager interface {
+	ExecuteInTransaction(ctx context.Context, fn func(ctx context.Context) error) error
+}
+
 // CreateNoteUseCase cria uma nova nota
 type CreateNoteUseCase struct {
-	noteRepo note.Repository
-	eventBus *messaging.DomainEventBus
-	logger   *zap.Logger
+	noteRepo  note.Repository
+	eventBus  *messaging.DomainEventBus
+	logger    *zap.Logger
+	txManager TransactionManager
 }
 
 // NewCreateNoteUseCase cria uma nova instância do use case
@@ -22,11 +28,13 @@ func NewCreateNoteUseCase(
 	noteRepo note.Repository,
 	eventBus *messaging.DomainEventBus,
 	logger *zap.Logger,
+	txManager TransactionManager,
 ) *CreateNoteUseCase {
 	return &CreateNoteUseCase{
-		noteRepo: noteRepo,
-		eventBus: eventBus,
-		logger:   logger,
+		noteRepo:  noteRepo,
+		eventBus:  eventBus,
+		logger:    logger,
+		txManager: txManager,
 	}
 }
 
@@ -89,23 +97,35 @@ func (uc *CreateNoteUseCase) Execute(ctx context.Context, cmd CreateNoteCommand)
 		n.AddAttachment(attachment)
 	}
 
-	// 3. Salvar nota
-	if err := uc.noteRepo.Save(ctx, n); err != nil {
-		uc.logger.Error("Failed to save note",
-			zap.Error(err),
-			zap.String("note_id", n.ID().String()))
-		return nil, fmt.Errorf("failed to save note: %w", err)
-	}
-
-	// 4. Publicar eventos de domínio
-	for _, event := range n.DomainEvents() {
-		if err := uc.eventBus.Publish(ctx, event); err != nil {
-			uc.logger.Error("Failed to publish domain event",
+	// 3-4. ✅ TRANSAÇÃO ATÔMICA: Save + Publish juntos
+	err = uc.txManager.ExecuteInTransaction(ctx, func(txCtx context.Context) error {
+		// 3. Salvar nota (usa transação do contexto)
+		if err := uc.noteRepo.Save(txCtx, n); err != nil {
+			uc.logger.Error("Failed to save note",
 				zap.Error(err),
 				zap.String("note_id", n.ID().String()))
-			// Não retorna erro, pois a nota já foi salva
+			return fmt.Errorf("failed to save note: %w", err)
 		}
+
+		// 4. Publicar eventos de domínio (usa mesma transação)
+		if uc.eventBus != nil {
+			for _, event := range n.DomainEvents() {
+				if err := uc.eventBus.Publish(txCtx, event); err != nil {
+					uc.logger.Error("Failed to publish domain event",
+						zap.Error(err),
+						zap.String("note_id", n.ID().String()))
+					return fmt.Errorf("failed to publish event: %w", err)
+				}
+			}
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		return nil, err
 	}
+
 	n.ClearEvents()
 
 	uc.logger.Info("Note created successfully",

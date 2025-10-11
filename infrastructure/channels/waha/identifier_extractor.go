@@ -1,7 +1,7 @@
 package waha
 
 import (
-	"github.com/caloi/ventros-crm/internal/domain/contact"
+	"github.com/caloi/ventros-crm/internal/domain/crm/contact"
 	"go.uber.org/zap"
 )
 
@@ -22,12 +22,12 @@ func NewIdentifierExtractor(logger *zap.Logger) *IdentifierExtractor {
 func (e *IdentifierExtractor) ExtractFromMessageEvent(event WAHAMessageEvent) (*contact.WhatsAppIdentifiers, error) {
 	// Lista de candidatos para buscar IDs (ordem de prioridade)
 	candidates := []string{
-		event.Payload.From,      // Campo principal (quem enviou)
+		event.Payload.From,             // Campo principal (quem enviou)
 		event.Payload.Data.Info.Chat,   // Info.Chat alternativo
 		event.Payload.Data.Info.Sender, // Info.Sender alternativo
-		event.Me.ID,             // ID do "me" (pode ter formato diferente)
-		event.Me.LID,            // LID do "me"
-		event.Me.JID,            // JID do "me"
+		event.Me.ID,                    // ID do "me" (pode ter formato diferente)
+		event.Me.LID,                   // LID do "me"
+		event.Me.JID,                   // JID do "me"
 	}
 
 	// Remove vazios e filtra candidatos válidos

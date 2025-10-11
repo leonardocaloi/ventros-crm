@@ -4,8 +4,8 @@ import (
 	"context"
 	"strings"
 
-	"github.com/caloi/ventros-crm/internal/domain/session"
-	"github.com/caloi/ventros-crm/internal/domain/shared"
+	"github.com/caloi/ventros-crm/internal/domain/core/shared"
+	"github.com/caloi/ventros-crm/internal/domain/crm/session"
 	"go.uber.org/zap"
 )
 
@@ -24,15 +24,15 @@ type SearchSessionsResponse struct {
 
 // SessionSearchResultDTO search result for session
 type SessionSearchResultDTO struct {
-	ID              string   `json:"id"`
-	ContactID       string   `json:"contact_id"`
-	Status          string   `json:"status"`
-	StartedAt       string   `json:"started_at"`
-	MessageCount    int      `json:"message_count"`
-	Summary         *string  `json:"summary,omitempty"`
-	Topics          []string `json:"topics,omitempty"`
-	MatchScore      float64  `json:"match_score"`
-	MatchField      string   `json:"match_field"`
+	ID           string   `json:"id"`
+	ContactID    string   `json:"contact_id"`
+	Status       string   `json:"status"`
+	StartedAt    string   `json:"started_at"`
+	MessageCount int      `json:"message_count"`
+	Summary      *string  `json:"summary,omitempty"`
+	Topics       []string `json:"topics,omitempty"`
+	MatchScore   float64  `json:"match_score"`
+	MatchField   string   `json:"match_field"`
 }
 
 // SearchSessionsQueryHandler handles SearchSessionsQuery

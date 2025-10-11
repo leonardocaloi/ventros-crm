@@ -183,11 +183,11 @@ func (m *CircuitBreakerManager) HealthStatus() map[string]interface{} {
 		counts := cb.Counts()
 
 		status[name] = map[string]interface{}{
-			"state":          state.String(),
-			"requests":       counts.Requests,
-			"total_failures": counts.TotalFailures,
-			"consecutive_failures": counts.ConsecutiveFailures,
-			"total_successes": counts.TotalSuccesses,
+			"state":                 state.String(),
+			"requests":              counts.Requests,
+			"total_failures":        counts.TotalFailures,
+			"consecutive_failures":  counts.ConsecutiveFailures,
+			"total_successes":       counts.TotalSuccesses,
 			"consecutive_successes": counts.ConsecutiveSuccesses,
 		}
 	}

@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/caloi/ventros-crm/internal/domain/session"
-	"github.com/caloi/ventros-crm/internal/domain/shared"
+	"github.com/caloi/ventros-crm/internal/domain/core/shared"
+	"github.com/caloi/ventros-crm/internal/domain/crm/session"
 	sessionworkflow "github.com/caloi/ventros-crm/internal/workflows/session"
 	"go.temporal.io/sdk/activity"
 	"go.temporal.io/sdk/client"

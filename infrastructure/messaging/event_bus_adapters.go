@@ -3,10 +3,10 @@ package messaging
 import (
 	"context"
 
-	domainchat "github.com/caloi/ventros-crm/internal/domain/chat"
-	domaincontact "github.com/caloi/ventros-crm/internal/domain/contact"
-	domainsession "github.com/caloi/ventros-crm/internal/domain/session"
-	"github.com/caloi/ventros-crm/internal/domain/shared"
+	"github.com/caloi/ventros-crm/internal/domain/core/shared"
+	domainchat "github.com/caloi/ventros-crm/internal/domain/crm/chat"
+	domaincontact "github.com/caloi/ventros-crm/internal/domain/crm/contact"
+	domainsession "github.com/caloi/ventros-crm/internal/domain/crm/session"
 )
 
 // ContactEventBusAdapter adapta DomainEventBus para contact.EventBus
@@ -66,4 +66,32 @@ func NewChatEventBusAdapter(domainEventBus *DomainEventBus) *ChatEventBusAdapter
 func (a *ChatEventBusAdapter) Publish(ctx context.Context, event domainchat.DomainEvent) error {
 	// chat.DomainEvent é agora compatível com shared.DomainEvent, então pode passar direto
 	return a.domainEventBus.Publish(ctx, event)
+}
+
+// SagaEventBusAdapter adapta DomainEventBus para saga.EventBus (interface{} based)
+type SagaEventBusAdapter struct {
+	domainEventBus *DomainEventBus
+}
+
+func NewSagaEventBusAdapter(domainEventBus *DomainEventBus) *SagaEventBusAdapter {
+	return &SagaEventBusAdapter{domainEventBus: domainEventBus}
+}
+
+func (a *SagaEventBusAdapter) Publish(ctx context.Context, event interface{}) error {
+	// Convert interface{} to shared.DomainEvent
+	if domainEvent, ok := event.(shared.DomainEvent); ok {
+		return a.domainEventBus.Publish(ctx, domainEvent)
+	}
+	return nil // Silently ignore non-DomainEvent events
+}
+
+func (a *SagaEventBusAdapter) PublishBatch(ctx context.Context, events []interface{}) error {
+	// Convert []interface{} to []shared.DomainEvent
+	domainEvents := make([]shared.DomainEvent, 0, len(events))
+	for _, event := range events {
+		if domainEvent, ok := event.(shared.DomainEvent); ok {
+			domainEvents = append(domainEvents, domainEvent)
+		}
+	}
+	return a.domainEventBus.PublishBatch(ctx, domainEvents)
 }

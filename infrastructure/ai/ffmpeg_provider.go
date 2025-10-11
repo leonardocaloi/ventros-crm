@@ -12,7 +12,7 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/caloi/ventros-crm/internal/domain/message_enrichment"
+	"github.com/caloi/ventros-crm/internal/domain/crm/message_enrichment"
 )
 
 // FFmpegProvider implementa extração de áudio de vídeos usando FFmpeg
@@ -198,14 +198,14 @@ func (p *FFmpegProvider) extractAudio(ctx context.Context, videoPath string) (st
 
 	// Construir comando FFmpeg
 	args := []string{
-		"-i", videoPath,           // Input file
-		"-vn",                     // Disable video
-		"-acodec", p.audioCodec,   // Audio codec
-		"-ab", p.audioBitrate,     // Audio bitrate
-		"-ar", "16000",            // Sample rate 16kHz (ideal para Whisper)
-		"-ac", "1",                // Mono
-		"-y",                      // Overwrite output
-		audioPath,                 // Output file
+		"-i", videoPath, // Input file
+		"-vn",                   // Disable video
+		"-acodec", p.audioCodec, // Audio codec
+		"-ab", p.audioBitrate, // Audio bitrate
+		"-ar", "16000", // Sample rate 16kHz (ideal para Whisper)
+		"-ac", "1", // Mono
+		"-y",      // Overwrite output
+		audioPath, // Output file
 	}
 
 	p.logger.Debug("Running FFmpeg",

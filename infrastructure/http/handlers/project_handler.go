@@ -7,18 +7,18 @@ import (
 	apierrors "github.com/caloi/ventros-crm/infrastructure/http/errors"
 	"github.com/caloi/ventros-crm/infrastructure/http/middleware"
 	"github.com/caloi/ventros-crm/internal/application/queries"
-	"github.com/caloi/ventros-crm/internal/domain/project"
-	"github.com/caloi/ventros-crm/internal/domain/shared"
+	"github.com/caloi/ventros-crm/internal/domain/core/project"
+	"github.com/caloi/ventros-crm/internal/domain/core/shared"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 )
 
 type ProjectHandler struct {
-	logger                      *zap.Logger
-	projectRepo                 project.Repository
-	listProjectsQueryHandler    *queries.ListProjectsQueryHandler
-	searchProjectsQueryHandler  *queries.SearchProjectsQueryHandler
+	logger                     *zap.Logger
+	projectRepo                project.Repository
+	listProjectsQueryHandler   *queries.ListProjectsQueryHandler
+	searchProjectsQueryHandler *queries.SearchProjectsQueryHandler
 }
 
 func NewProjectHandler(logger *zap.Logger, projectRepo project.Repository) *ProjectHandler {
@@ -50,7 +50,7 @@ type UpdateProjectRequest struct {
 //
 //	@Summary		List projects
 //	@Description	Lista todos os projetos do usuário autenticado
-//	@Tags			projects
+//	@Tags			CRM - Projects
 //	@Produce		json
 //	@Security		ApiKeyAuth
 //	@Param			tenant_id	query		string					false	"Filter by tenant ID"
@@ -78,7 +78,7 @@ func (h *ProjectHandler) ListProjects(c *gin.Context) {
 //
 //	@Summary		Create project
 //	@Description	Cria um novo projeto
-//	@Tags			projects
+//	@Tags			CRM - Projects
 //	@Accept			json
 //	@Produce		json
 //	@Param			project	body		CreateProjectRequest	true	"Project data"
@@ -107,7 +107,7 @@ func (h *ProjectHandler) CreateProject(c *gin.Context) {
 //
 //	@Summary		Get project by ID
 //	@Description	Obtém detalhes de um projeto específico
-//	@Tags			projects
+//	@Tags			CRM - Projects
 //	@Produce		json
 //	@Param			id	path		string					true	"Project ID (UUID)"
 //	@Success		200	{object}	map[string]interface{}	"Project details"
@@ -135,7 +135,7 @@ func (h *ProjectHandler) GetProject(c *gin.Context) {
 //
 //	@Summary		Update project
 //	@Description	Atualiza um projeto existente
-//	@Tags			projects
+//	@Tags			CRM - Projects
 //	@Accept			json
 //	@Produce		json
 //	@Param			id		path		string					true	"Project ID (UUID)"
@@ -171,7 +171,7 @@ func (h *ProjectHandler) UpdateProject(c *gin.Context) {
 //
 //	@Summary		Delete project
 //	@Description	Remove um projeto (soft delete)
-//	@Tags			projects
+//	@Tags			CRM - Projects
 //	@Produce		json
 //	@Param			id	path	string	true	"Project ID (UUID)"
 //	@Success		204	"Project deleted successfully"
@@ -220,16 +220,16 @@ func (h *ProjectHandler) DeleteProject(c *gin.Context) {
 //	@Description	- Optimized GORM indexes on tenant+customer for fast customer project queries
 //	@Description	- Composite indexes on tenant+active for quick active project retrieval
 //	@Description	- Small result sets (typically < 100 projects per tenant) for instant responses
-//	@Tags			projects
+//	@Tags			CRM - Projects
 //	@Accept			json
 //	@Produce		json
 //	@Security		BearerAuth
-//	@Param			customer_id	query		string	false	"Filter by customer UUID - Example: 550e8400-e29b-41d4-a716-446655440000"
-//	@Param			active		query		bool	false	"Filter by active status - true: only active, false: only inactive" example(true)
-//	@Param			page		query		int		false	"Page number for pagination (starts at 1)" default(1) minimum(1) example(1)
-//	@Param			limit		query		int		false	"Results per page (max 100)" default(20) minimum(1) maximum(100) example(20)
-//	@Param			sort_by		query		string	false	"Field to sort by" Enums(name, created_at) default(created_at) example(name)
-//	@Param			sort_dir	query		string	false	"Sort direction" Enums(asc, desc) default(desc) example(asc)
+//	@Param			customer_id	query		string							false	"Filter by customer UUID - Example: 550e8400-e29b-41d4-a716-446655440000"
+//	@Param			active		query		bool							false	"Filter by active status - true: only active, false: only inactive"	example(true)
+//	@Param			page		query		int								false	"Page number for pagination (starts at 1)"							default(1)				minimum(1)			example(1)
+//	@Param			limit		query		int								false	"Results per page (max 100)"										default(20)				minimum(1)			maximum(100)	example(20)
+//	@Param			sort_by		query		string							false	"Field to sort by"													Enums(name, created_at)	default(created_at)	example(name)
+//	@Param			sort_dir	query		string							false	"Sort direction"													Enums(asc, desc)		default(desc)		example(asc)
 //	@Success		200			{object}	queries.ListProjectsResponse	"Successfully retrieved projects with full details"
 //	@Failure		400			{object}	map[string]interface{}			"Bad Request - Invalid UUID or parameter format"
 //	@Failure		401			{object}	map[string]interface{}			"Unauthorized - Authentication required"
@@ -327,12 +327,12 @@ func (h *ProjectHandler) ListProjectsAdvanced(c *gin.Context) {
 //	@Description	- "support" - Find customer support departments
 //	@Description	- "Q1 2024" - Locate quarterly projects
 //	@Description	- "EMEA" - Find regional projects
-//	@Tags			projects
+//	@Tags			CRM - Projects
 //	@Accept			json
 //	@Produce		json
 //	@Security		BearerAuth
-//	@Param			q		query		string	true	"Search query - name or description" minlength(1) example(sales project)
-//	@Param			limit	query		int		false	"Maximum results (max 100)" default(20) minimum(1) maximum(100) example(10)
+//	@Param			q		query		string							true	"Search query - name or description"	minlength(1)	example(sales project)
+//	@Param			limit	query		int								false	"Maximum results (max 100)"				default(20)		minimum(1)	maximum(100)	example(10)
 //	@Success		200		{object}	queries.SearchProjectsResponse	"Found projects with match scores"
 //	@Failure		400		{object}	map[string]interface{}			"Bad Request - Empty search query"
 //	@Failure		401		{object}	map[string]interface{}			"Unauthorized"

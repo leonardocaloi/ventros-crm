@@ -11,16 +11,16 @@ import (
 
 // RabbitMQWithCircuitBreaker wrapper do RabbitMQConnection com circuit breaker
 type RabbitMQWithCircuitBreaker struct {
-	conn            *RabbitMQConnection
-	circuitBreaker  *resilience.CircuitBreaker
-	logger          *zap.Logger
+	conn           *RabbitMQConnection
+	circuitBreaker *resilience.CircuitBreaker
+	logger         *zap.Logger
 }
 
 // NewRabbitMQWithCircuitBreaker cria uma conexão RabbitMQ com circuit breaker
 func NewRabbitMQWithCircuitBreaker(conn *RabbitMQConnection, logger *zap.Logger) *RabbitMQWithCircuitBreaker {
 	config := resilience.CircuitBreakerConfig{
 		Name:        "rabbitmq",
-		MaxRequests: 5,              // Permite 5 requests em half-open
+		MaxRequests: 5,                // Permite 5 requests em half-open
 		Interval:    60 * time.Second, // Reseta contadores a cada 60s
 		Timeout:     30 * time.Second, // Volta para half-open após 30s
 		ReadyToTrip: func(counts gobreaker.Counts) bool {

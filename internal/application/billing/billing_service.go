@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/caloi/ventros-crm/internal/domain/billing"
+	"github.com/caloi/ventros-crm/internal/domain/core/billing"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 )

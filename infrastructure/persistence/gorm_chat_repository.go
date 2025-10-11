@@ -6,7 +6,7 @@ import (
 	"errors"
 
 	"github.com/caloi/ventros-crm/infrastructure/persistence/entities"
-	"github.com/caloi/ventros-crm/internal/domain/chat"
+	"github.com/caloi/ventros-crm/internal/domain/crm/chat"
 	"github.com/google/uuid"
 	"gorm.io/datatypes"
 	"gorm.io/gorm"

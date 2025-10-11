@@ -8,9 +8,9 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/caloi/ventros-crm/infrastructure/ai"
-	"github.com/caloi/ventros-crm/internal/domain/contact"
-	"github.com/caloi/ventros-crm/internal/domain/message_enrichment"
-	"github.com/caloi/ventros-crm/internal/domain/pipeline"
+	"github.com/caloi/ventros-crm/internal/domain/crm/contact"
+	"github.com/caloi/ventros-crm/internal/domain/crm/message_enrichment"
+	"github.com/caloi/ventros-crm/internal/domain/crm/pipeline"
 )
 
 // LeadQualificationConsumer processa eventos de ProfilePictureReceived
@@ -24,12 +24,12 @@ import (
 // 6. Salva no metadata do contato
 // 7. Dispara evento LeadQualified
 type LeadQualificationConsumer struct {
-	logger           *zap.Logger
-	eventBus         *DomainEventBus
-	contactRepo      contact.Repository
-	pipelineRepo     pipeline.Repository
-	enrichmentRepo   message_enrichment.Repository
-	visionProvider   *ai.VertexVisionProvider
+	logger         *zap.Logger
+	eventBus       *DomainEventBus
+	contactRepo    contact.Repository
+	pipelineRepo   pipeline.Repository
+	enrichmentRepo message_enrichment.Repository
+	visionProvider *ai.VertexVisionProvider
 }
 
 // NewLeadQualificationConsumer cria novo consumer
@@ -42,12 +42,12 @@ func NewLeadQualificationConsumer(
 	visionProvider *ai.VertexVisionProvider,
 ) *LeadQualificationConsumer {
 	return &LeadQualificationConsumer{
-		logger:           logger,
-		eventBus:         eventBus,
-		contactRepo:      contactRepo,
-		pipelineRepo:     pipelineRepo,
-		enrichmentRepo:   enrichmentRepo,
-		visionProvider:   visionProvider,
+		logger:         logger,
+		eventBus:       eventBus,
+		contactRepo:    contactRepo,
+		pipelineRepo:   pipelineRepo,
+		enrichmentRepo: enrichmentRepo,
+		visionProvider: visionProvider,
 	}
 }
 
@@ -125,21 +125,21 @@ func (c *LeadQualificationConsumer) handleProfilePictureReceived(ctx context.Con
 	// 8. Disparar evento LeadQualified
 	// TODO: Fix event publishing - DomainEventBus.Publish signature
 	/*
-	qualifiedEvent := pipeline.LeadQualifiedEvent{
-		ContactID:   event.ContactID,
-		PipelineID:  *event.PipelineID,
-		Score:       score.Score(),
-		Qualified:   score.IsQualified(),
-		Answers:     score.Answers(),
-		Confidence:  score.Confidence(),
-		QualifiedAt: time.Now(),
-	}
+		qualifiedEvent := pipeline.LeadQualifiedEvent{
+			ContactID:   event.ContactID,
+			PipelineID:  *event.PipelineID,
+			Score:       score.Score(),
+			Qualified:   score.IsQualified(),
+			Answers:     score.Answers(),
+			Confidence:  score.Confidence(),
+			QualifiedAt: time.Now(),
+		}
 
-	if err := c.eventBus.Publish(ctx, &qualifiedEvent); err != nil {
-		c.logger.Error("Failed to publish LeadQualified event",
-			zap.Error(err),
-			zap.String("contact_id", event.ContactID.String()))
-	}
+		if err := c.eventBus.Publish(ctx, &qualifiedEvent); err != nil {
+			c.logger.Error("Failed to publish LeadQualified event",
+				zap.Error(err),
+				zap.String("contact_id", event.ContactID.String()))
+		}
 	*/
 
 	c.logger.Info("Lead qualification completed",
@@ -219,25 +219,25 @@ func (c *LeadQualificationConsumer) saveQualificationScore(
 		zap.String("confidence", score.Confidence()))
 
 	/*
-	// Serializar score para JSON
-	scoreJSON, err := score.ToJSON()
-	if err != nil {
-		return fmt.Errorf("failed to serialize score: %w", err)
-	}
+		// Serializar score para JSON
+		scoreJSON, err := score.ToJSON()
+		if err != nil {
+			return fmt.Errorf("failed to serialize score: %w", err)
+		}
 
-	// Salvar no custom field (ou metadata interno)
-	// Usando custom field "lead_qualification_score"
-	cont.SetCustomField("lead_qualification_score", string(scoreJSON))
+		// Salvar no custom field (ou metadata interno)
+		// Usando custom field "lead_qualification_score"
+		cont.SetCustomField("lead_qualification_score", string(scoreJSON))
 
-	// Também salvar score simples para facilitar queries/filters
-	cont.SetCustomField("lead_score", fmt.Sprintf("%d", score.Score()))
-	cont.SetCustomField("lead_qualified", fmt.Sprintf("%t", score.IsQualified()))
-	cont.SetCustomField("lead_confidence", score.Confidence())
+		// Também salvar score simples para facilitar queries/filters
+		cont.SetCustomField("lead_score", fmt.Sprintf("%d", score.Score()))
+		cont.SetCustomField("lead_qualified", fmt.Sprintf("%t", score.IsQualified()))
+		cont.SetCustomField("lead_confidence", score.Confidence())
 
-	// Salvar contato
-	if err := c.contactRepo.Save(ctx, cont); err != nil {
-		return fmt.Errorf("failed to save contact: %w", err)
-	}
+		// Salvar contato
+		if err := c.contactRepo.Save(ctx, cont); err != nil {
+			return fmt.Errorf("failed to save contact: %w", err)
+		}
 	*/
 
 	return nil

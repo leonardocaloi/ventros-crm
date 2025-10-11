@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/caloi/ventros-crm/infrastructure/channels/waha"
-	"github.com/caloi/ventros-crm/internal/domain/message"
+	"github.com/caloi/ventros-crm/internal/domain/crm/message"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

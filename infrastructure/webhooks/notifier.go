@@ -12,7 +12,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/caloi/ventros-crm/internal/domain/webhook"
+	"github.com/caloi/ventros-crm/internal/domain/crm/webhook"
 	"go.uber.org/zap"
 )
 

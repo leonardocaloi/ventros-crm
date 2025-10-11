@@ -5,7 +5,7 @@ import (
 
 	"github.com/caloi/ventros-crm/infrastructure/http/middleware"
 	webhookapp "github.com/caloi/ventros-crm/internal/application/webhook"
-	"github.com/caloi/ventros-crm/internal/domain/webhook"
+	"github.com/caloi/ventros-crm/internal/domain/crm/webhook"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"go.uber.org/zap"

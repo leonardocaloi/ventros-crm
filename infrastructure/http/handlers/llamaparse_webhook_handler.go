@@ -1,14 +1,13 @@
 package handlers
 
 import (
-	"encoding/json"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 
 	"github.com/caloi/ventros-crm/infrastructure/ai"
-	"github.com/caloi/ventros-crm/internal/domain/message_enrichment"
+	"github.com/caloi/ventros-crm/internal/domain/crm/message_enrichment"
 )
 
 // LlamaParseWebhookHandler handler para receber resultados do LlamaParse via webhook
@@ -75,7 +74,7 @@ func (h *LlamaParseWebhookHandler) HandleWebhook(c *gin.Context) {
 	// Atualizar com:
 	// - ExtractedText = payload.Markdown (ou payload.Text)
 	// - Status = "completed"
-	// - Metadata com detalhes das p·ginas e imagens
+	// - Metadata com detalhes das p√°ginas e imagens
 
 	// Por enquanto, apenas log
 	h.logger.Info("LlamaParse result processed successfully",
@@ -94,8 +93,8 @@ func (h *LlamaParseWebhookHandler) RegisterRoutes(router *gin.RouterGroup) {
 	webhooks := router.Group("/webhooks")
 	{
 		// POST /api/webhooks/llamaparse
-		// Sem autenticaÁ„o (LlamaParse n„o suporta headers customizados em webhooks)
-		// TODO: Adicionar validaÁ„o por IP whitelist ou signature se necess·rio
+		// Sem autentica√ß√£o (LlamaParse n√£o suporta headers customizados em webhooks)
+		// TODO: Adicionar valida√ß√£o por IP whitelist ou signature se necess√°rio
 		webhooks.POST("/llamaparse", h.HandleWebhook)
 	}
 }

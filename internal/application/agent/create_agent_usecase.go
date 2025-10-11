@@ -4,27 +4,34 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/caloi/ventros-crm/internal/domain/agent"
-	"github.com/caloi/ventros-crm/internal/domain/shared"
+	"github.com/caloi/ventros-crm/internal/domain/core/shared"
+	"github.com/caloi/ventros-crm/internal/domain/crm/agent"
 	"github.com/google/uuid"
 )
-
-// CreateAgentUseCase handles agent creation
-type CreateAgentUseCase struct {
-	agentRepo agent.Repository
-	eventBus  EventBus
-}
 
 // EventBus interface for publishing events
 type EventBus interface {
 	Publish(ctx context.Context, event shared.DomainEvent) error
 }
 
+// TransactionManager gerencia transações de banco de dados.
+type TransactionManager interface {
+	ExecuteInTransaction(ctx context.Context, fn func(ctx context.Context) error) error
+}
+
+// CreateAgentUseCase handles agent creation
+type CreateAgentUseCase struct {
+	agentRepo agent.Repository
+	eventBus  EventBus
+	txManager TransactionManager
+}
+
 // NewCreateAgentUseCase creates a new instance
-func NewCreateAgentUseCase(agentRepo agent.Repository, eventBus EventBus) *CreateAgentUseCase {
+func NewCreateAgentUseCase(agentRepo agent.Repository, eventBus EventBus, txManager TransactionManager) *CreateAgentUseCase {
 	return &CreateAgentUseCase{
 		agentRepo: agentRepo,
 		eventBus:  eventBus,
+		txManager: txManager,
 	}
 }
 
@@ -80,19 +87,28 @@ func (uc *CreateAgentUseCase) Execute(ctx context.Context, req CreateAgentReques
 		}
 	}
 
-	// Save to repository
-	if err := uc.agentRepo.Save(ctx, newAgent); err != nil {
-		return nil, fmt.Errorf("failed to save agent: %w", err)
+	// ✅ TRANSAÇÃO ATÔMICA: Save + Publish juntos
+	err = uc.txManager.ExecuteInTransaction(ctx, func(txCtx context.Context) error {
+		// 1. Save to repository (usa transação do contexto)
+		if err := uc.agentRepo.Save(txCtx, newAgent); err != nil {
+			return fmt.Errorf("failed to save agent: %w", err)
+		}
+
+		// 2. Publish domain events (usa mesma transação)
+		events := newAgent.DomainEvents()
+		for _, event := range events {
+			if err := uc.eventBus.Publish(txCtx, event); err != nil {
+				return fmt.Errorf("failed to publish event: %w", err)
+			}
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		return nil, err
 	}
 
-	// Publish domain events
-	events := newAgent.DomainEvents()
-	for _, event := range events {
-		if err := uc.eventBus.Publish(ctx, event); err != nil {
-			// Log error but don't fail the use case
-			// Events are not critical for agent creation
-		}
-	}
 	newAgent.ClearEvents()
 
 	// Return response

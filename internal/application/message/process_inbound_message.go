@@ -5,16 +5,18 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/caloi/ventros-crm/internal/domain/contact"
-	domaincontact "github.com/caloi/ventros-crm/internal/domain/contact"
-	contact_event "github.com/caloi/ventros-crm/internal/domain/contact_event"
-	domainmessage "github.com/caloi/ventros-crm/internal/domain/message"
-	"github.com/caloi/ventros-crm/internal/domain/saga"
-	domainsession "github.com/caloi/ventros-crm/internal/domain/session"
-	"github.com/caloi/ventros-crm/internal/domain/shared"
-	"github.com/caloi/ventros-crm/internal/domain/tracking"
+	"github.com/caloi/ventros-crm/internal/domain/core/saga"
+	"github.com/caloi/ventros-crm/internal/domain/core/shared"
+	"github.com/caloi/ventros-crm/internal/domain/crm/contact"
+	domaincontact "github.com/caloi/ventros-crm/internal/domain/crm/contact"
+	contact_event "github.com/caloi/ventros-crm/internal/domain/crm/contact_event"
+	domainmessage "github.com/caloi/ventros-crm/internal/domain/crm/message"
+	domainsession "github.com/caloi/ventros-crm/internal/domain/crm/session"
+	"github.com/caloi/ventros-crm/internal/domain/crm/tracking"
+	sagaworkflow "github.com/caloi/ventros-crm/internal/workflows/saga"
 	sessionworkflow "github.com/caloi/ventros-crm/internal/workflows/session"
 	"github.com/google/uuid"
+	"go.temporal.io/sdk/client"
 	"gorm.io/gorm"
 )
 
@@ -48,11 +50,11 @@ type ProcessInboundMessageCommand struct {
 	Metadata      map[string]interface{} // Pode conter "waha_session" (ExternalID do canal), "channel_name", etc.
 	FromMe        bool                   // Se a mensagem foi enviada pelo sistema (fromMe: true)
 	// Group and mentions support
-	IsGroupMessage bool     // Se a mensagem é de um grupo do WhatsApp
-	GroupExternalID string  // ID externo do grupo (ex: "123456789@g.us")
-	Participant    string   // Em grupos: quem ENVIOU a mensagem (participant)
-	Mentions       []string // IDs dos usuários mencionados (@marcados) no formato WAHA
-	ChatID         *uuid.UUID // ID do Chat (grupo ou individual) - será preenchido durante processamento
+	IsGroupMessage  bool       // Se a mensagem é de um grupo do WhatsApp
+	GroupExternalID string     // ID externo do grupo (ex: "123456789@g.us")
+	Participant     string     // Em grupos: quem ENVIOU a mensagem (participant)
+	Mentions        []string   // IDs dos usuários mencionados (@marcados) no formato WAHA
+	ChatID          *uuid.UUID // ID do Chat (grupo ou individual) - será preenchido durante processamento
 }
 
 // EventBus é a interface para publicar eventos de domínio.
@@ -66,18 +68,26 @@ type SessionTimeoutResolver interface {
 	ResolveForChannel(ctx context.Context, channelID uuid.UUID) (time.Duration, *uuid.UUID, error)
 }
 
+// TransactionManager gerencia transações de banco de dados.
+type TransactionManager interface {
+	ExecuteInTransaction(ctx context.Context, fn func(ctx context.Context) error) error
+}
+
 // ProcessInboundMessageUseCase handles processing of inbound messages
 type ProcessInboundMessageUseCase struct {
-	contactRepo         contact.Repository
-	sessionRepo         domainsession.Repository
-	messageRepo         domainmessage.Repository
-	contactEventRepo    contact_event.Repository
-	eventBus            EventBus
-	sessionManager      *sessionworkflow.SessionManager
-	timeoutResolver     SessionTimeoutResolver
-	db                  *gorm.DB // Usado apenas para invisible tracking detection
-	ternaryEncoder      *tracking.TernaryEncoder
-	messageDebouncerSvc *MessageDebouncerService // 🎯 Debouncer para agrupamento de mensagens
+	contactRepo          contact.Repository
+	sessionRepo          domainsession.Repository
+	messageRepo          domainmessage.Repository
+	contactEventRepo     contact_event.Repository
+	eventBus             EventBus
+	sessionManager       *sessionworkflow.SessionManager
+	timeoutResolver      SessionTimeoutResolver
+	db                   *gorm.DB // Usado apenas para invisible tracking detection
+	ternaryEncoder       *tracking.TernaryEncoder
+	messageDebouncerSvc  *MessageDebouncerService // 🎯 Debouncer para agrupamento de mensagens
+	txManager            TransactionManager
+	temporalClient       client.Client
+	useSagaOrchestration bool
 }
 
 // NewProcessInboundMessageUseCase creates a new use case instance
@@ -91,18 +101,24 @@ func NewProcessInboundMessageUseCase(
 	timeoutResolver SessionTimeoutResolver,
 	db *gorm.DB, // Manter apenas para invisible tracking detection
 	messageDebouncerSvc *MessageDebouncerService, // 🎯 Debouncer service
+	txManager TransactionManager,
+	temporalClient client.Client,
+	useSagaOrchestration bool,
 ) *ProcessInboundMessageUseCase {
 	return &ProcessInboundMessageUseCase{
-		contactRepo:         contactRepo,
-		sessionRepo:         sessionRepo,
-		messageRepo:         messageRepo,
-		contactEventRepo:    contactEventRepo,
-		eventBus:            eventBus,
-		sessionManager:      sessionManager,
-		timeoutResolver:     timeoutResolver,
-		db:                  db,
-		ternaryEncoder:      tracking.NewTernaryEncoder(),
-		messageDebouncerSvc: messageDebouncerSvc,
+		contactRepo:          contactRepo,
+		sessionRepo:          sessionRepo,
+		messageRepo:          messageRepo,
+		contactEventRepo:     contactEventRepo,
+		eventBus:             eventBus,
+		sessionManager:       sessionManager,
+		timeoutResolver:      timeoutResolver,
+		db:                   db,
+		ternaryEncoder:       tracking.NewTernaryEncoder(),
+		messageDebouncerSvc:  messageDebouncerSvc,
+		txManager:            txManager,
+		temporalClient:       temporalClient,
+		useSagaOrchestration: useSagaOrchestration,
 	}
 }
 
@@ -124,6 +140,63 @@ func NewProcessInboundMessageUseCase(
 // - session.started ❌ → compensate.session.started (encerra sessão)
 // - contact.created ❌ → compensate.contact.created (deleta contato)
 func (uc *ProcessInboundMessageUseCase) Execute(ctx context.Context, cmd ProcessInboundMessageCommand) error {
+	// Feature flag: Use Saga Orchestration (Temporal) or transaction-based processing
+	if uc.useSagaOrchestration && uc.temporalClient != nil {
+		return uc.executeViaSaga(ctx, cmd)
+	}
+	return uc.executeViaTransaction(ctx, cmd)
+}
+
+// executeViaSaga executa o processamento via Temporal Saga Orchestration
+func (uc *ProcessInboundMessageUseCase) executeViaSaga(ctx context.Context, cmd ProcessInboundMessageCommand) error {
+	// Mapeia ProcessInboundMessageCommand para ProcessInboundMessageInput (Saga)
+	input := sagaworkflow.ProcessInboundMessageInput{
+		MessageID:        cmd.MessageID,
+		ChannelMessageID: cmd.ChannelMessageID,
+		FromPhone:        cmd.FromPhone,
+		MessageText:      cmd.MessageText,
+		Timestamp:        cmd.Timestamp,
+		MessageType:      cmd.MessageType,
+		MediaURL:         cmd.MediaURL,
+		MediaType:        cmd.MediaType,
+		ChannelID:        cmd.ChannelID,
+		ProjectID:        cmd.ProjectID,
+		CustomerID:       cmd.CustomerID,
+		TenantID:         cmd.TenantID,
+		ContactPhone:     cmd.ContactPhone,
+		ContactName:      cmd.ContactName,
+		ChannelTypeID:    cmd.ChannelTypeID,
+		ContentType:      cmd.ContentType,
+		Text:             cmd.Text,
+		MediaMimetype:    cmd.MediaMimetype,
+		TrackingData:     cmd.TrackingData,
+		ReceivedAt:       cmd.ReceivedAt,
+		Metadata:         cmd.Metadata,
+		FromMe:           cmd.FromMe,
+		IsGroupMessage:   cmd.IsGroupMessage,
+		GroupExternalID:  cmd.GroupExternalID,
+		Participant:      cmd.Participant,
+		Mentions:         cmd.Mentions,
+		ChatID:           cmd.ChatID,
+	}
+
+	// Inicia Temporal Workflow (Saga Orchestration)
+	workflowOptions := client.StartWorkflowOptions{
+		ID:        fmt.Sprintf("process-inbound-%s", cmd.ChannelMessageID),
+		TaskQueue: "message-processing",
+	}
+
+	we, err := uc.temporalClient.ExecuteWorkflow(ctx, workflowOptions, sagaworkflow.ProcessInboundMessageSaga, input)
+	if err != nil {
+		return fmt.Errorf("failed to start saga: %w", err)
+	}
+
+	// Aguarda conclusão (síncrono para webhooks)
+	return we.Get(ctx, nil)
+}
+
+// executeViaTransaction executa o processamento via transação (método atual)
+func (uc *ProcessInboundMessageUseCase) executeViaTransaction(ctx context.Context, cmd ProcessInboundMessageCommand) error {
 	// 🎬 Inicia Saga: Process Inbound Message (Choreography - Fast Path)
 	ctx = saga.WithSaga(ctx, string(saga.ProcessInboundMessageSaga))
 	ctx = saga.WithTenantID(ctx, cmd.TenantID)
@@ -131,44 +204,64 @@ func (uc *ProcessInboundMessageUseCase) Execute(ctx context.Context, cmd Process
 	correlationID, _ := saga.GetCorrelationID(ctx)
 	fmt.Printf("🎬 Saga started: ProcessInboundMessage (correlation_id: %s)\n", correlationID)
 
-	// Step 1: FindOrCreate Contact
-	ctx = saga.NextStep(ctx, saga.StepContactCreated)
-	c, err := uc.findOrCreateContact(ctx, cmd)
+	// ✅ TRANSAÇÃO ATÔMICA: Todas as operações de persistência + eventos juntos
+	var c *domaincontact.Contact
+	var s *domainsession.Session
+	var m *domainmessage.Message
+
+	err := uc.txManager.ExecuteInTransaction(ctx, func(txCtx context.Context) error {
+		// Step 1: FindOrCreate Contact
+		ctx = saga.NextStep(txCtx, saga.StepContactCreated)
+		var err error
+		c, err = uc.findOrCreateContact(txCtx, cmd)
+		if err != nil {
+			return fmt.Errorf("saga step failed [contact_created]: %w", err)
+		}
+
+		// Step 2: FindOrCreate Active Session
+		ctx = saga.NextStep(txCtx, saga.StepSessionStarted)
+		s, err = uc.findOrCreateSession(txCtx, c, cmd)
+		if err != nil {
+			return fmt.Errorf("saga step failed [session_started]: %w", err)
+		}
+
+		// Step 3: Create and Save Message
+		ctx = saga.NextStep(txCtx, saga.StepMessageCreated)
+		m, err = uc.createMessage(txCtx, c, s, cmd)
+		if err != nil {
+			return fmt.Errorf("saga step failed [message_created]: %w", err)
+		}
+
+		// Step 4: Record message in session (updates metrics)
+		if err := s.RecordMessage(true, cmd.Timestamp); err != nil {
+			return fmt.Errorf("saga step failed [session_updated]: %w", err)
+		}
+
+		// Step 5: Update contact interaction timestamp
+		c.RecordInteraction()
+
+		// Step 6: Persist updates (usa transação do contexto)
+		if err := uc.sessionRepo.Save(txCtx, s); err != nil {
+			return fmt.Errorf("saga step failed [persist_session]: %w", err)
+		}
+		if err := uc.contactRepo.Save(txCtx, c); err != nil {
+			return fmt.Errorf("saga step failed [persist_contact]: %w", err)
+		}
+
+		// Step 7: Publish domain events (choreography) - usa mesma transação
+		// ✅ Todos os eventos publicados incluirão correlation_id automaticamente via DomainEventBus
+		if err := uc.publishDomainEvents(txCtx, c, s, m); err != nil {
+			return fmt.Errorf("saga step failed [publish_events]: %w", err)
+		}
+
+		return nil
+	})
+
 	if err != nil {
-		return fmt.Errorf("saga step failed [contact_created]: %w", err)
+		return err
 	}
 
-	// Step 2: FindOrCreate Active Session
-	ctx = saga.NextStep(ctx, saga.StepSessionStarted)
-	s, err := uc.findOrCreateSession(ctx, c, cmd)
-	if err != nil {
-		return fmt.Errorf("saga step failed [session_started]: %w", err)
-	}
-
-	// Step 3: Create and Save Message
-	ctx = saga.NextStep(ctx, saga.StepMessageCreated)
-	m, err := uc.createMessage(ctx, c, s, cmd)
-	if err != nil {
-		return fmt.Errorf("saga step failed [message_created]: %w", err)
-	}
-
-	// Step 4: Record message in session (updates metrics)
-	if err := s.RecordMessage(true, cmd.Timestamp); err != nil {
-		return fmt.Errorf("saga step failed [session_updated]: %w", err)
-	}
-
-	// Step 5: Update contact interaction timestamp
-	c.RecordInteraction()
-
-	// Step 6: Persist updates
-	if err := uc.sessionRepo.Save(ctx, s); err != nil {
-		return fmt.Errorf("saga step failed [persist_session]: %w", err)
-	}
-	if err := uc.contactRepo.Save(ctx, c); err != nil {
-		return fmt.Errorf("saga step failed [persist_contact]: %w", err)
-	}
-
-	// Step 6.5: 🎯 Process message debouncer (group or pass through)
+	// Step 6.5: 🎯 Process message debouncer (group or pass through) - FORA da transação
 	// IMPORTANTE: Só processa debouncer se não for fromMe (mensagens enviadas pelo sistema não são agrupadas)
 	if !cmd.FromMe && uc.messageDebouncerSvc != nil {
 		if err := uc.messageDebouncerSvc.ProcessInboundMessage(ctx, m, cmd.ChannelID, s.ID()); err != nil {
@@ -177,21 +270,14 @@ func (uc *ProcessInboundMessageUseCase) Execute(ctx context.Context, cmd Process
 		}
 	}
 
-	// Step 7: Publish domain events (choreography)
-	// ✅ Todos os eventos publicados incluirão correlation_id automaticamente via DomainEventBus
-	if err := uc.publishDomainEvents(ctx, c, s, m); err != nil {
-		// Log but don't fail - event publishing is async
-		fmt.Printf("⚠️  Warning: failed to publish domain events: %v\n", err)
-	}
-
-	// Step 8: Track ad conversion if applicable
+	// Step 8: Track ad conversion if applicable - FORA da transação (opcional)
 	ctx = saga.NextStep(ctx, saga.StepTrackingCreated)
 	if err := uc.trackAdConversion(ctx, c, s, cmd); err != nil {
 		// Log but don't fail - tracking is optional
 		fmt.Printf("⚠️  Warning: failed to track ad conversion: %v\n", err)
 	}
 
-	// Step 9: Detect and process invisible tracking code
+	// Step 9: Detect and process invisible tracking code - FORA da transação (opcional)
 	if err := uc.detectInvisibleTracking(ctx, c, s, cmd); err != nil {
 		// Log but don't fail - invisible tracking is optional
 		fmt.Printf("⚠️  Warning: failed to detect invisible tracking: %v\n", err)

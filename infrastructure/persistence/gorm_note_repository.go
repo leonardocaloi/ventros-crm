@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/caloi/ventros-crm/infrastructure/persistence/entities"
-	"github.com/caloi/ventros-crm/internal/domain/note"
+	"github.com/caloi/ventros-crm/internal/domain/crm/note"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )

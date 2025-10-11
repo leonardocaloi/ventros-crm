@@ -61,12 +61,12 @@ type UpdateSubjectRequest struct {
 //
 //	@Summary		Create a new chat
 //	@Description	Create a new chat (individual, group, or channel)
-//	@Tags			chats
+//	@Tags			CRM - Chats
 //	@Accept			json
 //	@Produce		json
 //	@Security		ApiKeyAuth
-//	@Param			project_id	query		string				true	"Project ID"
-//	@Param			chat		body		CreateChatRequest	true	"Chat data"
+//	@Param			project_id	query		string					true	"Project ID"
+//	@Param			chat		body		CreateChatRequest		true	"Chat data"
 //	@Success		201			{object}	map[string]interface{}	"Chat created successfully"
 //	@Failure		400			{object}	map[string]interface{}	"Invalid request"
 //	@Failure		401			{object}	map[string]interface{}	"Authentication required"
@@ -123,7 +123,7 @@ func (h *ChatHandler) CreateChat(c *gin.Context) {
 //
 //	@Summary		Get chat by ID
 //	@Description	Get detailed information about a specific chat
-//	@Tags			chats
+//	@Tags			CRM - Chats
 //	@Accept			json
 //	@Produce		json
 //	@Security		ApiKeyAuth
@@ -166,7 +166,7 @@ func (h *ChatHandler) GetChat(c *gin.Context) {
 //
 //	@Summary		List chats
 //	@Description	List chats with optional filters (project_id, contact_id, status, chat_type)
-//	@Tags			chats
+//	@Tags			CRM - Chats
 //	@Accept			json
 //	@Produce		json
 //	@Security		ApiKeyAuth
@@ -234,7 +234,7 @@ func (h *ChatHandler) ListChats(c *gin.Context) {
 //
 //	@Summary		Add participant to chat
 //	@Description	Add a contact or agent as a participant to a chat
-//	@Tags			chats
+//	@Tags			CRM - Chats
 //	@Accept			json
 //	@Produce		json
 //	@Security		ApiKeyAuth
@@ -287,12 +287,12 @@ func (h *ChatHandler) AddParticipant(c *gin.Context) {
 //
 //	@Summary		Remove participant from chat
 //	@Description	Remove a participant from a chat
-//	@Tags			chats
+//	@Tags			CRM - Chats
 //	@Accept			json
 //	@Produce		json
 //	@Security		ApiKeyAuth
-//	@Param			id				path	string	true	"Chat ID"
-//	@Param			participant_id	path	string	true	"Participant ID"
+//	@Param			id				path		string					true	"Chat ID"
+//	@Param			participant_id	path		string					true	"Participant ID"
 //	@Success		200				{object}	map[string]interface{}	"Participant removed successfully"
 //	@Failure		400				{object}	map[string]interface{}	"Invalid request"
 //	@Failure		401				{object}	map[string]interface{}	"Authentication required"
@@ -339,7 +339,7 @@ func (h *ChatHandler) RemoveParticipant(c *gin.Context) {
 //
 //	@Summary		Archive chat
 //	@Description	Archive a chat (can be unarchived later)
-//	@Tags			chats
+//	@Tags			CRM - Chats
 //	@Accept			json
 //	@Produce		json
 //	@Security		ApiKeyAuth
@@ -382,7 +382,7 @@ func (h *ChatHandler) ArchiveChat(c *gin.Context) {
 //
 //	@Summary		Unarchive chat
 //	@Description	Unarchive a chat (reactivate it)
-//	@Tags			chats
+//	@Tags			CRM - Chats
 //	@Accept			json
 //	@Produce		json
 //	@Security		ApiKeyAuth
@@ -425,7 +425,7 @@ func (h *ChatHandler) UnarchiveChat(c *gin.Context) {
 //
 //	@Summary		Close chat
 //	@Description	Permanently close a chat (cannot be reopened)
-//	@Tags			chats
+//	@Tags			CRM - Chats
 //	@Accept			json
 //	@Produce		json
 //	@Security		ApiKeyAuth
@@ -468,7 +468,7 @@ func (h *ChatHandler) CloseChat(c *gin.Context) {
 //
 //	@Summary		Update chat subject
 //	@Description	Update the subject/name of a group or channel chat
-//	@Tags			chats
+//	@Tags			CRM - Chats
 //	@Accept			json
 //	@Produce		json
 //	@Security		ApiKeyAuth

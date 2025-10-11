@@ -5,7 +5,7 @@ import (
 	"errors"
 
 	"github.com/caloi/ventros-crm/infrastructure/persistence/entities"
-	"github.com/caloi/ventros-crm/internal/domain/pipeline"
+	"github.com/caloi/ventros-crm/internal/domain/crm/pipeline"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )

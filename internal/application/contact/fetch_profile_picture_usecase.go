@@ -3,28 +3,32 @@ package contact
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
-	"github.com/caloi/ventros-crm/infrastructure/channels/waha"
-	"github.com/caloi/ventros-crm/infrastructure/messaging"
-	"github.com/caloi/ventros-crm/internal/domain/contact"
+	"github.com/caloi/ventros-crm/internal/domain/crm/contact"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 )
 
+// ProfileService é a interface para buscar fotos de perfil via WAHA
+type ProfileService interface {
+	FetchAndUpdateContactProfilePicture(ctx context.Context, phone, session string) (string, error)
+}
+
 // FetchProfilePictureUseCase busca e atualiza a foto de perfil de um contato
 type FetchProfilePictureUseCase struct {
 	contactRepo contact.Repository
-	wahaService *waha.ProfileService
-	eventBus    *messaging.DomainEventBus
+	wahaService ProfileService
+	eventBus    EventBus
 	logger      *zap.Logger
 }
 
 // NewFetchProfilePictureUseCase cria uma nova instância do use case
 func NewFetchProfilePictureUseCase(
 	contactRepo contact.Repository,
-	wahaService *waha.ProfileService,
-	eventBus *messaging.DomainEventBus,
+	wahaService ProfileService,
+	eventBus EventBus,
 	logger *zap.Logger,
 ) *FetchProfilePictureUseCase {
 	return &FetchProfilePictureUseCase{
@@ -44,6 +48,11 @@ type FetchProfilePictureCommand struct {
 
 // Execute executa o use case
 func (uc *FetchProfilePictureUseCase) Execute(ctx context.Context, cmd FetchProfilePictureCommand) error {
+	// 0. Validar comando
+	if err := uc.validateCommand(cmd); err != nil {
+		return err
+	}
+
 	// 1. Buscar contato
 	contactEntity, err := uc.contactRepo.FindByID(ctx, cmd.ContactID)
 	if err != nil {
@@ -102,6 +111,23 @@ func (uc *FetchProfilePictureUseCase) Execute(ctx context.Context, cmd FetchProf
 	uc.logger.Info("Profile picture updated successfully",
 		zap.String("contact_id", cmd.ContactID.String()),
 		zap.String("url", profilePictureURL))
+
+	return nil
+}
+
+// validateCommand valida o comando
+func (uc *FetchProfilePictureUseCase) validateCommand(cmd FetchProfilePictureCommand) error {
+	if cmd.ContactID == uuid.Nil {
+		return fmt.Errorf("ContactID cannot be nil")
+	}
+
+	if strings.TrimSpace(cmd.Phone) == "" {
+		return fmt.Errorf("Phone cannot be empty")
+	}
+
+	if strings.TrimSpace(cmd.Session) == "" {
+		return fmt.Errorf("Session cannot be empty")
+	}
 
 	return nil
 }

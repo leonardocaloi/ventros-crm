@@ -5,18 +5,18 @@ import (
 	"fmt"
 
 	"github.com/caloi/ventros-crm/infrastructure/channels/waha"
-	"github.com/caloi/ventros-crm/internal/domain/channel"
+	"github.com/caloi/ventros-crm/internal/domain/crm/channel"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 )
 
 // UpdateProfileCommand contains the data to update channel profile
 type UpdateProfileCommand struct {
-	ChannelID uuid.UUID
-	Name      *string                        // Optional: Update profile name
-	Status    *string                        // Optional: Update profile status (About)
-	Picture   *channel.ProfilePictureFile    // Optional: Update profile picture
-	DeletePicture bool                       // If true, delete profile picture
+	ChannelID     uuid.UUID
+	Name          *string                     // Optional: Update profile name
+	Status        *string                     // Optional: Update profile status (About)
+	Picture       *channel.ProfilePictureFile // Optional: Update profile picture
+	DeletePicture bool                        // If true, delete profile picture
 }
 
 // UpdateProfileResult returns the updated profile

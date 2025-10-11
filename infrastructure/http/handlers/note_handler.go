@@ -7,18 +7,18 @@ import (
 	apierrors "github.com/caloi/ventros-crm/infrastructure/http/errors"
 	"github.com/caloi/ventros-crm/infrastructure/http/middleware"
 	"github.com/caloi/ventros-crm/internal/application/queries"
-	"github.com/caloi/ventros-crm/internal/domain/note"
-	"github.com/caloi/ventros-crm/internal/domain/shared"
+	"github.com/caloi/ventros-crm/internal/domain/core/shared"
+	"github.com/caloi/ventros-crm/internal/domain/crm/note"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 )
 
 type NoteHandler struct {
-	logger                   *zap.Logger
-	noteRepo                 note.Repository
-	listNotesQueryHandler    *queries.ListNotesQueryHandler
-	searchNotesQueryHandler  *queries.SearchNotesQueryHandler
+	logger                  *zap.Logger
+	noteRepo                note.Repository
+	listNotesQueryHandler   *queries.ListNotesQueryHandler
+	searchNotesQueryHandler *queries.SearchNotesQueryHandler
 }
 
 func NewNoteHandler(logger *zap.Logger, noteRepo note.Repository) *NoteHandler {
@@ -65,22 +65,22 @@ func NewNoteHandler(logger *zap.Logger, noteRepo note.Repository) *NoteHandler {
 //	@Description	- Composite indexes on tenant+session for session note retrieval
 //	@Description	- Indexes on tenant+author for agent activity tracking
 //	@Description	- Efficiently handles large note volumes per contact
-//	@Tags			notes
+//	@Tags			CRM - Notes
 //	@Accept			json
 //	@Produce		json
 //	@Security		BearerAuth
-//	@Param			contact_id			query		string	false	"Filter by contact UUID - Example: 550e8400-e29b-41d4-a716-446655440000"
-//	@Param			session_id			query		string	false	"Filter by session UUID - Example: 660e8400-e29b-41d4-a716-446655440001"
-//	@Param			author_id			query		string	false	"Filter by author (agent/automation) UUID"
-//	@Param			author_type			query		string	false	"Filter by author type" Enums(agent, system, automation) example(agent)
-//	@Param			note_type			query		string	false	"Filter by note purpose" Enums(comment, action, follow-up, escalation, resolution) example(follow-up)
-//	@Param			priority			query		string	false	"Filter by priority level" Enums(low, medium, high, urgent) example(high)
-//	@Param			visible_to_client	query		bool	false	"Filter by client visibility - true: customer-facing notes only" example(false)
-//	@Param			pinned				query		bool	false	"Filter by pinned status - true: important/starred notes only" example(true)
-//	@Param			page				query		int		false	"Page number for pagination (starts at 1)" default(1) minimum(1) example(1)
-//	@Param			limit				query		int		false	"Results per page (max 100)" default(20) minimum(1) maximum(100) example(20)
-//	@Param			sort_by				query		string	false	"Field to sort by" Enums(created_at, priority) default(created_at) example(created_at)
-//	@Param			sort_dir			query		string	false	"Sort direction" Enums(asc, desc) default(desc) example(desc)
+//	@Param			contact_id			query		string						false	"Filter by contact UUID - Example: 550e8400-e29b-41d4-a716-446655440000"
+//	@Param			session_id			query		string						false	"Filter by session UUID - Example: 660e8400-e29b-41d4-a716-446655440001"
+//	@Param			author_id			query		string						false	"Filter by author (agent/automation) UUID"
+//	@Param			author_type			query		string						false	"Filter by author type"												Enums(agent, system, automation)							example(agent)
+//	@Param			note_type			query		string						false	"Filter by note purpose"											Enums(comment, action, follow-up, escalation, resolution)	example(follow-up)
+//	@Param			priority			query		string						false	"Filter by priority level"											Enums(low, medium, high, urgent)							example(high)
+//	@Param			visible_to_client	query		bool						false	"Filter by client visibility - true: customer-facing notes only"	example(false)
+//	@Param			pinned				query		bool						false	"Filter by pinned status - true: important/starred notes only"		example(true)
+//	@Param			page				query		int							false	"Page number for pagination (starts at 1)"							default(1)					minimum(1)			example(1)
+//	@Param			limit				query		int							false	"Results per page (max 100)"										default(20)					minimum(1)			maximum(100)	example(20)
+//	@Param			sort_by				query		string						false	"Field to sort by"													Enums(created_at, priority)	default(created_at)	example(created_at)
+//	@Param			sort_dir			query		string						false	"Sort direction"													Enums(asc, desc)			default(desc)		example(desc)
 //	@Success		200					{object}	queries.ListNotesResponse	"Successfully retrieved notes with full details"
 //	@Failure		400					{object}	map[string]interface{}		"Bad Request - Invalid UUID or parameter format"
 //	@Failure		401					{object}	map[string]interface{}		"Unauthorized - Authentication required"
@@ -239,17 +239,17 @@ func (h *NoteHandler) ListNotesAdvanced(c *gin.Context) {
 //	@Description	- Optimized GORM indexes on tenant_id for fast tenant isolation
 //	@Description	- ILIKE operator uses PostgreSQL's text search capabilities
 //	@Description	- Maximum 100 results to ensure sub-second response times
-//	@Tags			notes
+//	@Tags			CRM - Notes
 //	@Accept			json
 //	@Produce		json
 //	@Security		BearerAuth
-//	@Param			q		query		string	true	"Search query - content or author name" minlength(1) example(follow-up required)
-//	@Param			limit	query		int		false	"Maximum results (max 100)" default(20) minimum(1) maximum(100) example(10)
+//	@Param			q		query		string						true	"Search query - content or author name"	minlength(1)	example(follow-up required)
+//	@Param			limit	query		int							false	"Maximum results (max 100)"				default(20)		minimum(1)	maximum(100)	example(10)
 //	@Success		200		{object}	queries.SearchNotesResponse	"Found notes with match scores"
-//	@Failure		400		{object}	map[string]interface{}			"Bad Request - Empty search query"
-//	@Failure		401		{object}	map[string]interface{}			"Unauthorized"
-//	@Failure		403		{object}	map[string]interface{}			"Forbidden"
-//	@Failure		500		{object}	map[string]interface{}			"Internal Server Error"
+//	@Failure		400		{object}	map[string]interface{}		"Bad Request - Empty search query"
+//	@Failure		401		{object}	map[string]interface{}		"Unauthorized"
+//	@Failure		403		{object}	map[string]interface{}		"Forbidden"
+//	@Failure		500		{object}	map[string]interface{}		"Internal Server Error"
 //	@Router			/api/v1/crm/notes/search [get]
 func (h *NoteHandler) SearchNotes(c *gin.Context) {
 	authCtx, exists := middleware.GetAuthContext(c)

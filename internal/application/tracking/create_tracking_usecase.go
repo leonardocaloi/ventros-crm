@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/caloi/ventros-crm/internal/domain/shared"
-	"github.com/caloi/ventros-crm/internal/domain/tracking"
+	"github.com/caloi/ventros-crm/internal/domain/core/shared"
+	"github.com/caloi/ventros-crm/internal/domain/crm/tracking"
 	"go.uber.org/zap"
 )
 
@@ -14,19 +14,26 @@ type EventBus interface {
 	Publish(ctx context.Context, event shared.DomainEvent) error
 }
 
+// TransactionManager gerencia transações de banco de dados.
+type TransactionManager interface {
+	ExecuteInTransaction(ctx context.Context, fn func(ctx context.Context) error) error
+}
+
 // CreateTrackingUseCase cria um novo tracking de conversão
 type CreateTrackingUseCase struct {
-	repo     tracking.Repository
-	eventBus EventBus
-	logger   *zap.Logger
+	repo      tracking.Repository
+	eventBus  EventBus
+	logger    *zap.Logger
+	txManager TransactionManager
 }
 
 // NewCreateTrackingUseCase cria uma nova instância do use case
-func NewCreateTrackingUseCase(repo tracking.Repository, eventBus EventBus, logger *zap.Logger) *CreateTrackingUseCase {
+func NewCreateTrackingUseCase(repo tracking.Repository, eventBus EventBus, logger *zap.Logger, txManager TransactionManager) *CreateTrackingUseCase {
 	return &CreateTrackingUseCase{
-		repo:     repo,
-		eventBus: eventBus,
-		logger:   logger,
+		repo:      repo,
+		eventBus:  eventBus,
+		logger:    logger,
+		txManager: txManager,
 	}
 }
 
@@ -81,26 +88,36 @@ func (uc *CreateTrackingUseCase) Execute(ctx context.Context, dto CreateTracking
 		t.SetMetadata(dto.Metadata)
 	}
 
-	// Persiste
-	if err := uc.repo.Create(ctx, t); err != nil {
-		uc.logger.Error("Failed to persist tracking",
-			zap.Error(err),
-			zap.String("tracking_id", t.ID().String()),
-		)
-		return nil, fmt.Errorf("failed to save tracking: %w", err)
-	}
-
-	// Publica eventos de domínio
-	events := t.DomainEvents()
-	for _, event := range events {
-		if err := uc.eventBus.Publish(ctx, event); err != nil {
-			// Log error but don't fail - events are not critical
-			uc.logger.Error("Failed to publish domain event",
+	// ✅ TRANSAÇÃO ATÔMICA: Save + Publish juntos
+	err = uc.txManager.ExecuteInTransaction(ctx, func(txCtx context.Context) error {
+		// Persiste (usa transação do contexto)
+		if err := uc.repo.Create(txCtx, t); err != nil {
+			uc.logger.Error("Failed to persist tracking",
 				zap.Error(err),
 				zap.String("tracking_id", t.ID().String()),
 			)
+			return fmt.Errorf("failed to save tracking: %w", err)
 		}
+
+		// Publica eventos de domínio (usa mesma transação)
+		events := t.DomainEvents()
+		for _, event := range events {
+			if err := uc.eventBus.Publish(txCtx, event); err != nil {
+				uc.logger.Error("Failed to publish domain event",
+					zap.Error(err),
+					zap.String("tracking_id", t.ID().String()),
+				)
+				return fmt.Errorf("failed to publish event: %w", err)
+			}
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		return nil, err
 	}
+
 	t.ClearEvents()
 
 	uc.logger.Info("Tracking created",

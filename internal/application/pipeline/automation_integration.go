@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/caloi/ventros-crm/internal/domain/pipeline"
-	"github.com/caloi/ventros-crm/internal/domain/session"
+	"github.com/caloi/ventros-crm/internal/domain/crm/pipeline"
+	"github.com/caloi/ventros-crm/internal/domain/crm/session"
 	"github.com/google/uuid"
 )
 

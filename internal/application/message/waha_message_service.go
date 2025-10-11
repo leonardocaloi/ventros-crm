@@ -7,7 +7,7 @@ import (
 
 	"github.com/caloi/ventros-crm/infrastructure/channels/waha"
 	"github.com/caloi/ventros-crm/internal/application/config"
-	"github.com/caloi/ventros-crm/internal/domain/channel"
+	"github.com/caloi/ventros-crm/internal/domain/crm/channel"
 	"go.uber.org/zap"
 )
 

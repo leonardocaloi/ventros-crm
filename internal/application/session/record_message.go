@@ -5,7 +5,7 @@ import (
 	"errors"
 	"time"
 
-	"github.com/caloi/ventros-crm/internal/domain/session"
+	"github.com/caloi/ventros-crm/internal/domain/crm/session"
 	"github.com/google/uuid"
 )
 

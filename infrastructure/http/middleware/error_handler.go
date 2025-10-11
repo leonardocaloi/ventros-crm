@@ -7,7 +7,7 @@ import (
 	"runtime/debug"
 
 	apierrors "github.com/caloi/ventros-crm/infrastructure/http/errors"
-	"github.com/caloi/ventros-crm/internal/domain/shared"
+	"github.com/caloi/ventros-crm/internal/domain/core/shared"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 )

@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/caloi/ventros-crm/internal/domain/channel_type"
+	"github.com/caloi/ventros-crm/internal/domain/crm/channel_type"
 )
 
 // GetChannelTypeUseCase handles channel type retrieval

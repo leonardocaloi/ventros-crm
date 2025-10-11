@@ -11,7 +11,7 @@ import (
 	"go.uber.org/zap"
 	"google.golang.org/genai"
 
-	"github.com/caloi/ventros-crm/internal/domain/message_enrichment"
+	"github.com/caloi/ventros-crm/internal/domain/crm/message_enrichment"
 )
 
 // VertexVisionProvider implementa Vision usando Vertex AI com Service Account
@@ -27,10 +27,10 @@ type VertexVisionProvider struct {
 
 // VertexVisionConfig configuração do Vertex AI provider
 type VertexVisionConfig struct {
-	ProjectID           string // Google Cloud Project ID
-	Location            string // Região (ex: us-central1)
-	ServiceAccountPath  string // Path para arquivo JSON do Service Account
-	Model               string // Default: gemini-1.5-flash
+	ProjectID          string // Google Cloud Project ID
+	Location           string // Região (ex: us-central1)
+	ServiceAccountPath string // Path para arquivo JSON do Service Account
+	Model              string // Default: gemini-1.5-flash
 }
 
 // NewVertexVisionProvider cria um novo provider Vertex AI com Service Account
@@ -178,11 +178,11 @@ func (p *VertexVisionProvider) Process(
 
 	// Extract metadata
 	metadata := map[string]interface{}{
-		"model":     p.model,
-		"provider":  "vertex-ai",
-		"project":   p.projectID,
-		"location":  p.location,
-		"context":   contextStr,
+		"model":    p.model,
+		"provider": "vertex-ai",
+		"project":  p.projectID,
+		"location": p.location,
+		"context":  contextStr,
 	}
 
 	// Adicionar usage metadata se disponível

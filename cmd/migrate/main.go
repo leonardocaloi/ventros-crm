@@ -16,18 +16,20 @@ import (
 // migrate is a CLI tool for managing database migrations
 //
 // Usage:
-//   go run cmd/migrate/main.go up              - Apply all pending migrations
-//   go run cmd/migrate/main.go down            - Rollback last migration
-//   go run cmd/migrate/main.go status          - Show migration status
-//   go run cmd/migrate/main.go force <version> - Force version (recovery only)
-//   go run cmd/migrate/main.go steps <n>       - Apply/rollback N migrations
+//
+//	go run cmd/migrate/main.go up              - Apply all pending migrations
+//	go run cmd/migrate/main.go down            - Rollback last migration
+//	go run cmd/migrate/main.go status          - Show migration status
+//	go run cmd/migrate/main.go force <version> - Force version (recovery only)
+//	go run cmd/migrate/main.go steps <n>       - Apply/rollback N migrations
 //
 // Examples:
-//   go run cmd/migrate/main.go up
-//   go run cmd/migrate/main.go down
-//   go run cmd/migrate/main.go steps 2
-//   go run cmd/migrate/main.go steps -1
-//   go run cmd/migrate/main.go force 28
+//
+//	go run cmd/migrate/main.go up
+//	go run cmd/migrate/main.go down
+//	go run cmd/migrate/main.go steps 2
+//	go run cmd/migrate/main.go steps -1
+//	go run cmd/migrate/main.go force 28
 func main() {
 	if len(os.Args) < 2 {
 		printUsage()

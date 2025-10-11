@@ -22,7 +22,7 @@ type NoteEntity struct {
 
 	// Conteúdo
 	Content  string `gorm:"type:text;not null"`
-	NoteType string `gorm:"not null;index:idx_notes_type;index:idx_notes_tenant_type,priority:2"`                  // general, automation, complaint, resolution, etc
+	NoteType string `gorm:"not null;index:idx_notes_type;index:idx_notes_tenant_type,priority:2"`                          // general, automation, complaint, resolution, etc
 	Priority string `gorm:"not null;index:idx_notes_priority;index:idx_notes_tenant_priority,priority:2;default:'normal'"` // low, normal, high, urgent
 
 	// Visibilidade
@@ -31,8 +31,8 @@ type NoteEntity struct {
 
 	// Metadata
 	Tags        pq.StringArray `gorm:"type:text[];index:idx_notes_tags,type:gin"`
-	Mentions    []byte         `gorm:"type:jsonb;index:idx_notes_mentions,type:gin"`  // Array de UUIDs de agentes mencionados
-	Attachments pq.StringArray `gorm:"type:text[]"` // URLs de anexos
+	Mentions    []byte         `gorm:"type:jsonb;index:idx_notes_mentions,type:gin"` // Array de UUIDs de agentes mencionados
+	Attachments pq.StringArray `gorm:"type:text[]"`                                  // URLs de anexos
 
 	// Timestamps
 	CreatedAt time.Time      `gorm:"autoCreateTime;index:idx_notes_created"`

@@ -3,7 +3,7 @@ package ai
 import (
 	"strings"
 
-	"github.com/caloi/ventros-crm/internal/domain/channel"
+	"github.com/caloi/ventros-crm/internal/domain/crm/channel"
 )
 
 // MimetypeRouter roteia mimetypes para tipos de conteúdo de IA

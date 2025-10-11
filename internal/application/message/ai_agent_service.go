@@ -11,9 +11,9 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/caloi/ventros-crm/infrastructure/persistence/entities"
-	"github.com/caloi/ventros-crm/internal/domain/message"
-	"github.com/caloi/ventros-crm/internal/domain/message_enrichment"
-	"github.com/caloi/ventros-crm/internal/domain/message_group"
+	"github.com/caloi/ventros-crm/internal/domain/crm/message"
+	"github.com/caloi/ventros-crm/internal/domain/crm/message_enrichment"
+	"github.com/caloi/ventros-crm/internal/domain/crm/message_group"
 )
 
 // AIAgentService gerencia envio de mensagens concatenadas para AI Agent

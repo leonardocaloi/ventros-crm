@@ -3,22 +3,23 @@ package handlers
 import (
 	"net/http"
 	"strconv"
+	"time"
 
 	apierrors "github.com/caloi/ventros-crm/infrastructure/http/errors"
 	"github.com/caloi/ventros-crm/infrastructure/http/middleware"
 	"github.com/caloi/ventros-crm/internal/application/queries"
-	"github.com/caloi/ventros-crm/internal/domain/agent"
-	"github.com/caloi/ventros-crm/internal/domain/shared"
+	"github.com/caloi/ventros-crm/internal/domain/core/shared"
+	"github.com/caloi/ventros-crm/internal/domain/crm/agent"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 )
 
 type AgentHandler struct {
-	logger                    *zap.Logger
-	agentRepo                 agent.Repository
-	listAgentsQueryHandler    *queries.ListAgentsQueryHandler
-	searchAgentsQueryHandler  *queries.SearchAgentsQueryHandler
+	logger                   *zap.Logger
+	agentRepo                agent.Repository
+	listAgentsQueryHandler   *queries.ListAgentsQueryHandler
+	searchAgentsQueryHandler *queries.SearchAgentsQueryHandler
 }
 
 func NewAgentHandler(logger *zap.Logger, agentRepo agent.Repository) *AgentHandler {
@@ -43,6 +44,21 @@ type CreateAgentRequest struct {
 	TenantID    string   `json:"tenant_id" binding:"required" example:"tenant_123"`
 }
 
+// CreateVirtualAgentRequest representa o payload para criar um agente virtual
+type CreateVirtualAgentRequest struct {
+	ProjectID            string  `json:"project_id" binding:"required" example:"550e8400-e29b-41d4-a716-446655440000"`
+	RepresentsPersonName string  `json:"represents_person_name" binding:"required" example:"Maria da Silva"`
+	PeriodStart          string  `json:"period_start" binding:"required" example:"2023-01-01T00:00:00Z"`
+	Reason               string  `json:"reason" binding:"required" example:"device_attribution"`
+	SourceDevice         *string `json:"source_device,omitempty" example:"whatsapp:5511999999999"`
+	Notes                string  `json:"notes" example:"Historical agent from old system"`
+}
+
+// EndVirtualAgentPeriodRequest representa o payload para finalizar um período de agente virtual
+type EndVirtualAgentPeriodRequest struct {
+	PeriodEnd string `json:"period_end" binding:"required" example:"2024-01-01T00:00:00Z"`
+}
+
 // UpdateAgentRequest representa o payload para atualizar um agente
 type UpdateAgentRequest struct {
 	Name        *string  `json:"name,omitempty"`
@@ -60,7 +76,7 @@ type UpdateAgentRequest struct {
 //
 //	@Summary		List agents
 //	@Description	Lista todos os agentes com filtros opcionais
-//	@Tags			agents
+//	@Tags			CRM - Agents
 //	@Produce		json
 //	@Param			tenant_id	query		string					false	"Filter by tenant ID"
 //	@Param			active		query		bool					false	"Filter by active status"
@@ -84,7 +100,7 @@ func (h *AgentHandler) ListAgents(c *gin.Context) {
 //
 //	@Summary		Create agent
 //	@Description	Cria um novo agente
-//	@Tags			agents
+//	@Tags			CRM - Agents
 //	@Accept			json
 //	@Produce		json
 //	@Param			agent	body		CreateAgentRequest		true	"Agent data"
@@ -116,7 +132,7 @@ func (h *AgentHandler) CreateAgent(c *gin.Context) {
 //
 //	@Summary		Get agent by ID
 //	@Description	Obtém detalhes de um agente específico
-//	@Tags			agents
+//	@Tags			CRM - Agents
 //	@Produce		json
 //	@Param			id	path		string					true	"Agent ID (UUID)"
 //	@Success		200	{object}	map[string]interface{}	"Agent details"
@@ -144,7 +160,7 @@ func (h *AgentHandler) GetAgent(c *gin.Context) {
 //
 //	@Summary		Update agent
 //	@Description	Atualiza um agente existente
-//	@Tags			agents
+//	@Tags			CRM - Agents
 //	@Accept			json
 //	@Produce		json
 //	@Param			id		path		string					true	"Agent ID (UUID)"
@@ -180,7 +196,7 @@ func (h *AgentHandler) UpdateAgent(c *gin.Context) {
 //
 //	@Summary		Delete agent
 //	@Description	Remove um agente (soft delete)
-//	@Tags			agents
+//	@Tags			CRM - Agents
 //	@Produce		json
 //	@Param			id	path	string	true	"Agent ID (UUID)"
 //	@Success		204	"Agent deleted successfully"
@@ -207,7 +223,7 @@ func (h *AgentHandler) DeleteAgent(c *gin.Context) {
 //
 //	@Summary		Get agent statistics
 //	@Description	Obtém estatísticas de um agente
-//	@Tags			agents
+//	@Tags			CRM - Agents
 //	@Produce		json
 //	@Param			id	path		string					true	"Agent ID (UUID)"
 //	@Success		200	{object}	map[string]interface{}	"Agent statistics"
@@ -262,18 +278,18 @@ func (h *AgentHandler) GetAgentStats(c *gin.Context) {
 //	@Description	- Optimized GORM indexes on tenant+type for fast agent type queries
 //	@Description	- Composite indexes on tenant+status for real-time availability checks
 //	@Description	- Small result sets (typically < 200 agents per tenant) for instant responses
-//	@Tags			agents
+//	@Tags			CRM - Agents
 //	@Accept			json
 //	@Produce		json
 //	@Security		BearerAuth
-//	@Param			project_id	query		string	false	"Filter by project UUID - Example: 550e8400-e29b-41d4-a716-446655440000"
-//	@Param			type		query		string	false	"Filter by agent type" Enums(ai, human) example(human)
-//	@Param			status		query		string	false	"Filter by availability status" Enums(online, offline, busy) example(online)
-//	@Param			active		query		bool	false	"Filter by active status - true: only active, false: only inactive" example(true)
-//	@Param			page		query		int		false	"Page number for pagination (starts at 1)" default(1) minimum(1) example(1)
-//	@Param			limit		query		int		false	"Results per page (max 100)" default(20) minimum(1) maximum(100) example(20)
-//	@Param			sort_by		query		string	false	"Field to sort by" Enums(name, created_at) default(created_at) example(name)
-//	@Param			sort_dir	query		string	false	"Sort direction" Enums(asc, desc) default(desc) example(asc)
+//	@Param			project_id	query		string						false	"Filter by project UUID - Example: 550e8400-e29b-41d4-a716-446655440000"
+//	@Param			type		query		string						false	"Filter by agent type"												Enums(ai, human)				example(human)
+//	@Param			status		query		string						false	"Filter by availability status"										Enums(online, offline, busy)	example(online)
+//	@Param			active		query		bool						false	"Filter by active status - true: only active, false: only inactive"	example(true)
+//	@Param			page		query		int							false	"Page number for pagination (starts at 1)"							default(1)				minimum(1)			example(1)
+//	@Param			limit		query		int							false	"Results per page (max 100)"										default(20)				minimum(1)			maximum(100)	example(20)
+//	@Param			sort_by		query		string						false	"Field to sort by"													Enums(name, created_at)	default(created_at)	example(name)
+//	@Param			sort_dir	query		string						false	"Sort direction"													Enums(asc, desc)		default(desc)		example(asc)
 //	@Success		200			{object}	queries.ListAgentsResponse	"Successfully retrieved agents with full details"
 //	@Failure		400			{object}	map[string]interface{}		"Bad Request - Invalid UUID or parameter format"
 //	@Failure		401			{object}	map[string]interface{}		"Unauthorized - Authentication required"
@@ -387,12 +403,12 @@ func (h *AgentHandler) ListAgentsAdvanced(c *gin.Context) {
 //	@Description	- "support" - Find support team members
 //	@Description	- "@gmail.com" - Find agents with Gmail addresses
 //	@Description	- "sales" - Find sales team agents
-//	@Tags			agents
+//	@Tags			CRM - Agents
 //	@Accept			json
 //	@Produce		json
 //	@Security		BearerAuth
-//	@Param			q		query		string	true	"Search query - name or email" minlength(1) example(João Silva)
-//	@Param			limit	query		int		false	"Maximum results (max 100)" default(20) minimum(1) maximum(100) example(10)
+//	@Param			q		query		string							true	"Search query - name or email"	minlength(1)	example(João Silva)
+//	@Param			limit	query		int								false	"Maximum results (max 100)"		default(20)		minimum(1)	maximum(100)	example(10)
 //	@Success		200		{object}	queries.SearchAgentsResponse	"Found agents with match scores"
 //	@Failure		400		{object}	map[string]interface{}			"Bad Request - Empty search query"
 //	@Failure		401		{object}	map[string]interface{}			"Unauthorized"
@@ -441,4 +457,207 @@ func (h *AgentHandler) SearchAgents(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, response)
+}
+
+// CreateVirtualAgent creates a new virtual agent
+//
+//	@Summary		Create virtual agent
+//	@Description	Creates a virtual agent to represent a person from the past. Virtual agents cannot send messages or be manually assigned - they exist only for metrics segmentation and historical tracking.
+//	@Description
+//	@Description	**Use Cases:**
+//	@Description	- Attribute old messages from external systems (device attribution)
+//	@Description	- Track historical contacts when phone numbers change hands
+//	@Description	- Segment metrics by time periods and historical users
+//	@Description	- Maintain conversation history without granting system access
+//	@Description
+//	@Description	**Virtual Agent Restrictions:**
+//	@Description	- Cannot send messages
+//	@Description	- Cannot be manually assigned to conversations
+//	@Description	- Do not count in agent performance metrics
+//	@Description	- Always appear as offline
+//	@Description	- Name is prefixed with "[Virtual]"
+//	@Tags			CRM - Agents
+//	@Accept			json
+//	@Produce		json
+//	@Security		BearerAuth
+//	@Param			agent	body		CreateVirtualAgentRequest	true	"Virtual agent data"
+//	@Success		201		{object}	map[string]interface{}		"Virtual agent created successfully"
+//	@Failure		400		{object}	map[string]interface{}		"Invalid request"
+//	@Failure		401		{object}	map[string]interface{}		"Unauthorized"
+//	@Failure		500		{object}	map[string]interface{}		"Internal server error"
+//	@Router			/api/v1/crm/agents/virtual [post]
+func (h *AgentHandler) CreateVirtualAgent(c *gin.Context) {
+	authCtx, exists := middleware.GetAuthContext(c)
+	if !exists {
+		apierrors.Unauthorized(c, "Authentication required")
+		return
+	}
+
+	var req CreateVirtualAgentRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		h.logger.Error("Failed to parse virtual agent request", zap.Error(err))
+		apierrors.ValidationError(c, "body", "Invalid request: "+err.Error())
+		return
+	}
+
+	// Parse project ID
+	projectID, err := uuid.Parse(req.ProjectID)
+	if err != nil {
+		apierrors.ValidationError(c, "project_id", "Invalid project ID format")
+		return
+	}
+
+	// Parse period_start
+	periodStart, err := time.Parse(time.RFC3339, req.PeriodStart)
+	if err != nil {
+		apierrors.ValidationError(c, "period_start", "Invalid date format (use RFC3339, e.g., 2023-01-01T00:00:00Z)")
+		return
+	}
+
+	// Create virtual agent
+	virtualAgent, err := agent.NewVirtualAgent(
+		projectID,
+		authCtx.TenantID,
+		req.RepresentsPersonName,
+		periodStart,
+		req.Reason,
+		req.SourceDevice,
+		req.Notes,
+	)
+	if err != nil {
+		h.logger.Error("Failed to create virtual agent", zap.Error(err))
+		apierrors.InternalError(c, "Failed to create virtual agent", err)
+		return
+	}
+
+	// Save to database
+	if err := h.agentRepo.Save(c.Request.Context(), virtualAgent); err != nil {
+		h.logger.Error("Failed to save virtual agent", zap.Error(err))
+		apierrors.InternalError(c, "Failed to save virtual agent", err)
+		return
+	}
+
+	h.logger.Info("Virtual agent created successfully",
+		zap.String("agent_id", virtualAgent.ID().String()),
+		zap.String("represents_person", req.RepresentsPersonName),
+		zap.String("reason", req.Reason),
+	)
+
+	c.JSON(http.StatusCreated, gin.H{
+		"id":                     virtualAgent.ID(),
+		"name":                   virtualAgent.Name(),
+		"type":                   virtualAgent.Type(),
+		"represents_person_name": req.RepresentsPersonName,
+		"period_start":           periodStart,
+		"reason":                 req.Reason,
+		"source_device":          req.SourceDevice,
+		"notes":                  req.Notes,
+		"created_at":             virtualAgent.CreatedAt(),
+	})
+}
+
+// EndVirtualAgentPeriod marks the end of a virtual agent's represented period
+//
+//	@Summary		End virtual agent period
+//	@Description	Marks the end date for the period that a virtual agent represents. Useful when a phone number is transferred to a different person.
+//	@Description
+//	@Description	**Use Case:**
+//	@Description	When a WhatsApp number changes ownership, you can:
+//	@Description	1. End the period for the old virtual agent (this endpoint)
+//	@Description	2. Create a new virtual agent for the new owner
+//	@Description	3. Maintain clean historical segmentation in analytics
+//	@Tags			CRM - Agents
+//	@Accept			json
+//	@Produce		json
+//	@Security		BearerAuth
+//	@Param			id		path		string							true	"Virtual agent ID (UUID)"
+//	@Param			period	body		EndVirtualAgentPeriodRequest	true	"Period end date"
+//	@Success		200		{object}	map[string]interface{}			"Period ended successfully"
+//	@Failure		400		{object}	map[string]interface{}			"Invalid request or agent is not virtual"
+//	@Failure		401		{object}	map[string]interface{}			"Unauthorized"
+//	@Failure		404		{object}	map[string]interface{}			"Agent not found"
+//	@Failure		500		{object}	map[string]interface{}			"Internal server error"
+//	@Router			/api/v1/crm/agents/{id}/virtual/end-period [put]
+func (h *AgentHandler) EndVirtualAgentPeriod(c *gin.Context) {
+	authCtx, exists := middleware.GetAuthContext(c)
+	if !exists {
+		apierrors.Unauthorized(c, "Authentication required")
+		return
+	}
+
+	// Parse agent ID
+	idStr := c.Param("id")
+	agentID, err := uuid.Parse(idStr)
+	if err != nil {
+		apierrors.ValidationError(c, "id", "Invalid agent ID format")
+		return
+	}
+
+	var req EndVirtualAgentPeriodRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		h.logger.Error("Failed to parse request", zap.Error(err))
+		apierrors.ValidationError(c, "body", "Invalid request: "+err.Error())
+		return
+	}
+
+	// Parse period_end
+	periodEnd, err := time.Parse(time.RFC3339, req.PeriodEnd)
+	if err != nil {
+		apierrors.ValidationError(c, "period_end", "Invalid date format (use RFC3339, e.g., 2024-01-01T00:00:00Z)")
+		return
+	}
+
+	// Find agent
+	virtualAgent, err := h.agentRepo.FindByID(c.Request.Context(), agentID)
+	if err != nil {
+		if err == agent.ErrAgentNotFound {
+			apierrors.NotFound(c, "agent", agentID.String())
+			return
+		}
+		h.logger.Error("Failed to find agent", zap.Error(err))
+		apierrors.InternalError(c, "Failed to retrieve agent", err)
+		return
+	}
+
+	// Verify tenant ownership
+	if virtualAgent.TenantID() != authCtx.TenantID {
+		apierrors.Forbidden(c, "You do not have access to this agent")
+		return
+	}
+
+	// Verify it's a virtual agent
+	if !virtualAgent.IsVirtual() {
+		apierrors.ValidationError(c, "id", "Agent is not a virtual agent")
+		return
+	}
+
+	// End the period
+	if err := virtualAgent.EndVirtualAgentPeriod(periodEnd); err != nil {
+		h.logger.Error("Failed to end virtual agent period", zap.Error(err))
+		apierrors.ValidationError(c, "period_end", err.Error())
+		return
+	}
+
+	// Save changes
+	if err := h.agentRepo.Save(c.Request.Context(), virtualAgent); err != nil {
+		h.logger.Error("Failed to save agent", zap.Error(err))
+		apierrors.InternalError(c, "Failed to update agent", err)
+		return
+	}
+
+	h.logger.Info("Virtual agent period ended successfully",
+		zap.String("agent_id", virtualAgent.ID().String()),
+		zap.Time("period_end", periodEnd),
+	)
+
+	metadata := virtualAgent.VirtualMetadata()
+	c.JSON(http.StatusOK, gin.H{
+		"id":                     virtualAgent.ID(),
+		"name":                   virtualAgent.Name(),
+		"represents_person_name": metadata.RepresentsPersonName,
+		"period_start":           metadata.PeriodStart,
+		"period_end":             metadata.PeriodEnd,
+		"reason":                 metadata.Reason,
+		"updated_at":             virtualAgent.UpdatedAt(),
+	})
 }

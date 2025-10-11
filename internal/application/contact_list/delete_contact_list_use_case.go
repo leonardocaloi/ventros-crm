@@ -3,7 +3,7 @@ package contact_list
 import (
 	"context"
 
-	"github.com/caloi/ventros-crm/internal/domain/contact_list"
+	"github.com/caloi/ventros-crm/internal/domain/crm/contact_list"
 	"github.com/google/uuid"
 )
 

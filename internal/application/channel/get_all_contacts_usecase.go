@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/caloi/ventros-crm/infrastructure/channels/waha"
-	"github.com/caloi/ventros-crm/internal/domain/channel"
+	"github.com/caloi/ventros-crm/internal/domain/crm/channel"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 )

@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/caloi/ventros-crm/internal/domain/channel"
+	"github.com/caloi/ventros-crm/internal/domain/crm/channel"
 	"go.uber.org/zap"
 )
 
@@ -311,10 +311,10 @@ func (a *ChatProviderAdapter) ReadChatMessages(ctx context.Context, chatID strin
 
 // WAHAChatOverview represents WAHA chat overview response
 type WAHAChatOverview struct {
-	ID          string            `json:"id"`
-	Name        string            `json:"name"`
-	Picture     *string           `json:"picture,omitempty"`
-	LastMessage *WAHAChatMessage  `json:"lastMessage,omitempty"`
+	ID          string           `json:"id"`
+	Name        string           `json:"name"`
+	Picture     *string          `json:"picture,omitempty"`
+	LastMessage *WAHAChatMessage `json:"lastMessage,omitempty"`
 }
 
 // WAHAChatMessage represents WAHA chat message

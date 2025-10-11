@@ -8,8 +8,8 @@ import (
 	apierrors "github.com/caloi/ventros-crm/infrastructure/http/errors"
 	"github.com/caloi/ventros-crm/infrastructure/http/middleware"
 	"github.com/caloi/ventros-crm/internal/application/queries"
-	"github.com/caloi/ventros-crm/internal/domain/session"
-	"github.com/caloi/ventros-crm/internal/domain/shared"
+	"github.com/caloi/ventros-crm/internal/domain/core/shared"
+	"github.com/caloi/ventros-crm/internal/domain/crm/session"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
@@ -35,7 +35,7 @@ func NewSessionHandler(logger *zap.Logger, sessionRepo session.Repository) *Sess
 //
 //	@Summary		List sessions
 //	@Description	Lista todas as sessões. Quando usado no endpoint global /sessions, requer contact_id ou channel_id
-//	@Tags			sessions
+//	@Tags			CRM - Sessions
 //	@Produce		json
 //	@Security		ApiKeyAuth
 //	@Param			contact_id	query		string					false	"Filter by contact ID (UUID) - required for global endpoint"
@@ -94,7 +94,7 @@ func (h *SessionHandler) ListSessions(c *gin.Context) {
 //
 //	@Summary		Get session by ID
 //	@Description	Obtém detalhes de uma sessão específica
-//	@Tags			sessions
+//	@Tags			CRM - Sessions
 //	@Produce		json
 //	@Param			id	path		string					true	"Session ID (UUID)"
 //	@Success		200	{object}	map[string]interface{}	"Session details"
@@ -138,7 +138,7 @@ func (h *SessionHandler) GetSession(c *gin.Context) {
 //
 //	@Summary		Get session statistics
 //	@Description	Obtém estatísticas das sessões por tenant
-//	@Tags			sessions
+//	@Tags			CRM - Sessions
 //	@Produce		json
 //	@Param			tenant_id	query		string					true	"Tenant ID"
 //	@Success		200			{object}	map[string]interface{}	"Session statistics"
@@ -210,7 +210,7 @@ type CloseSessionRequest struct {
 //
 //	@Summary		Close session
 //	@Description	Encerra uma sessão manualmente. Apenas agentes podem encerrar sessões.
-//	@Tags			sessions
+//	@Tags			CRM - Sessions
 //	@Accept			json
 //	@Produce		json
 //	@Security		ApiKeyAuth
@@ -314,30 +314,30 @@ func (h *SessionHandler) CloseSession(c *gin.Context) {
 //	@Description	- GIN indexes on JSONB fields (agent_ids, topics, outcome_tags) for fast array searches
 //	@Description	- Pagination prevents large result sets
 //	@Description	- Maximum 100 results per page
-//	@Tags			sessions
+//	@Tags			CRM - Sessions
 //	@Accept			json
 //	@Produce		json
 //	@Security		BearerAuth
-//	@Param			contact_id			query		string	false	"Filter by contact UUID - Example: 550e8400-e29b-41d4-a716-446655440000"
-//	@Param			pipeline_id			query		string	false	"Filter by pipeline UUID - Example: 660e8400-e29b-41d4-a716-446655440001"
-//	@Param			status				query		string	false	"Filter by session status" Enums(active, ended) example(active)
-//	@Param			sentiment			query		string	false	"Filter by detected sentiment" Enums(positive, negative, neutral) example(positive)
-//	@Param			resolved			query		bool	false	"Filter by resolved flag - true: only resolved sessions, false: only unresolved" example(true)
-//	@Param			escalated			query		bool	false	"Filter by escalated flag - true: only escalated sessions" example(false)
-//	@Param			converted			query		bool	false	"Filter by converted flag - true: sessions that led to conversions" example(true)
-//	@Param			started_after		query		string	false	"Filter sessions started after this timestamp - Format: 2006-01-02T15:04:05Z" example(2024-01-01T00:00:00Z)
-//	@Param			started_before		query		string	false	"Filter sessions started before this timestamp" example(2024-12-31T23:59:59Z)
-//	@Param			min_messages		query		int		false	"Minimum number of messages in session - Example: 5" example(5)
-//	@Param			max_messages		query		int		false	"Maximum number of messages in session - Example: 100" example(100)
-//	@Param			page				query		int		false	"Page number for pagination (starts at 1)" default(1) minimum(1) example(1)
-//	@Param			limit				query		int		false	"Number of results per page (max 100)" default(20) minimum(1) maximum(100) example(20)
-//	@Param			sort_by				query		string	false	"Field to sort by" Enums(started_at, ended_at, message_count, duration_seconds, created_at) default(started_at) example(started_at)
-//	@Param			sort_dir			query		string	false	"Sort direction" Enums(asc, desc) default(desc) example(desc)
-//	@Success		200					{object}	queries.ListSessionsResponse	"Successfully retrieved sessions with pagination metadata"
-//	@Failure		400					{object}	map[string]interface{}			"Bad Request - Invalid parameters (e.g., invalid UUID format, invalid page number, limit exceeds maximum)"
-//	@Failure		401					{object}	map[string]interface{}			"Unauthorized - Missing or invalid authentication token"
-//	@Failure		403					{object}	map[string]interface{}			"Forbidden - User doesn't have permission to access this tenant's sessions"
-//	@Failure		500					{object}	map[string]interface{}			"Internal Server Error - Database connection issues or unexpected errors"
+//	@Param			contact_id		query		string							false	"Filter by contact UUID - Example: 550e8400-e29b-41d4-a716-446655440000"
+//	@Param			pipeline_id		query		string							false	"Filter by pipeline UUID - Example: 660e8400-e29b-41d4-a716-446655440001"
+//	@Param			status			query		string							false	"Filter by session status"															Enums(active, ended)				example(active)
+//	@Param			sentiment		query		string							false	"Filter by detected sentiment"														Enums(positive, negative, neutral)	example(positive)
+//	@Param			resolved		query		bool							false	"Filter by resolved flag - true: only resolved sessions, false: only unresolved"	example(true)
+//	@Param			escalated		query		bool							false	"Filter by escalated flag - true: only escalated sessions"							example(false)
+//	@Param			converted		query		bool							false	"Filter by converted flag - true: sessions that led to conversions"					example(true)
+//	@Param			started_after	query		string							false	"Filter sessions started after this timestamp - Format: 2006-01-02T15:04:05Z"		example(2024-01-01T00:00:00Z)
+//	@Param			started_before	query		string							false	"Filter sessions started before this timestamp"										example(2024-12-31T23:59:59Z)
+//	@Param			min_messages	query		int								false	"Minimum number of messages in session - Example: 5"								example(5)
+//	@Param			max_messages	query		int								false	"Maximum number of messages in session - Example: 100"								example(100)
+//	@Param			page			query		int								false	"Page number for pagination (starts at 1)"											default(1)																	minimum(1)			example(1)
+//	@Param			limit			query		int								false	"Number of results per page (max 100)"												default(20)																	minimum(1)			maximum(100)	example(20)
+//	@Param			sort_by			query		string							false	"Field to sort by"																	Enums(started_at, ended_at, message_count, duration_seconds, created_at)	default(started_at)	example(started_at)
+//	@Param			sort_dir		query		string							false	"Sort direction"																	Enums(asc, desc)															default(desc)		example(desc)
+//	@Success		200				{object}	queries.ListSessionsResponse	"Successfully retrieved sessions with pagination metadata"
+//	@Failure		400				{object}	map[string]interface{}			"Bad Request - Invalid parameters (e.g., invalid UUID format, invalid page number, limit exceeds maximum)"
+//	@Failure		401				{object}	map[string]interface{}			"Unauthorized - Missing or invalid authentication token"
+//	@Failure		403				{object}	map[string]interface{}			"Forbidden - User doesn't have permission to access this tenant's sessions"
+//	@Failure		500				{object}	map[string]interface{}			"Internal Server Error - Database connection issues or unexpected errors"
 //	@Router			/api/v1/crm/sessions/advanced [get]
 func (h *SessionHandler) ListSessionsAdvanced(c *gin.Context) {
 	authCtx, exists := middleware.GetAuthContext(c)
@@ -465,12 +465,12 @@ func (h *SessionHandler) ListSessionsAdvanced(c *gin.Context) {
 //	@Description	- Optimized with GIN indexes on JSONB fields (topics, outcome_tags, key_entities)
 //	@Description	- Results ordered by match score (highest relevance first)
 //	@Description	- Maximum 100 results to ensure fast response times
-//	@Tags			sessions
+//	@Tags			CRM - Sessions
 //	@Accept			json
 //	@Produce		json
 //	@Security		BearerAuth
-//	@Param			q		query		string	true	"Search query - minimum 1 character, case-insensitive - Example: 'refund request' or 'product-demo' or 'escalated'" minlength(1) example(refund request)
-//	@Param			limit	query		int		false	"Maximum number of results to return (max 100)" default(20) minimum(1) maximum(100) example(20)
+//	@Param			q		query		string							true	"Search query - minimum 1 character, case-insensitive - Example: 'refund request' or 'product-demo' or 'escalated'"	minlength(1)	example(refund request)
+//	@Param			limit	query		int								false	"Maximum number of results to return (max 100)"																		default(20)		minimum(1)	maximum(100)	example(20)
 //	@Success		200		{object}	queries.SearchSessionsResponse	"Successfully found matching sessions with relevance scores and matched fields"
 //	@Failure		400		{object}	map[string]interface{}			"Bad Request - Missing or invalid search query, limit exceeds maximum"
 //	@Failure		401		{object}	map[string]interface{}			"Unauthorized - Missing or invalid authentication token"

@@ -65,7 +65,7 @@ func SetupRoutesMinimal(router *gin.Engine, logger *zap.Logger, healthChecker *h
 	}
 }
 
-func SetupRoutes(router *gin.Engine, logger *zap.Logger, healthChecker *health.HealthChecker, wahaHandler *handlers.WAHAWebhookHandler, webhookHandler *handlers.WebhookSubscriptionHandler, queueHandler *handlers.QueueHandler, sessionHandler *handlers.SessionHandler, contactHandler *handlers.ContactHandler, pipelineHandler *handlers.PipelineHandler, projectHandler *handlers.ProjectHandler, agentHandler *handlers.AgentHandler, messageHandler *handlers.MessageHandler, customerHandler *handlers.CustomerHandler, channelHandler *handlers.ChannelHandler, trackingHandler *handlers.TrackingHandler) {
+func SetupRoutes(router *gin.Engine, logger *zap.Logger, healthChecker *health.HealthChecker, wahaHandler *handlers.WAHAWebhookHandler, webhookHandler *handlers.WebhookSubscriptionHandler, queueHandler *handlers.QueueHandler, sessionHandler *handlers.SessionHandler, contactHandler *handlers.ContactHandler, pipelineHandler *handlers.PipelineHandler, projectHandler *handlers.ProjectHandler, agentHandler *handlers.AgentHandler, messageHandler *handlers.MessageHandler, channelHandler *handlers.ChannelHandler, trackingHandler *handlers.TrackingHandler) {
 	// Middlewares
 	router.Use(gin.Recovery())
 	router.Use(LoggerMiddleware(logger))
@@ -116,11 +116,6 @@ func SetupRoutes(router *gin.Engine, logger *zap.Logger, healthChecker *health.H
 			webhookSubs.PUT("/:id", webhookHandler.UpdateWebhook)
 			webhookSubs.DELETE("/:id", webhookHandler.DeleteWebhook)
 		}
-
-		// Customer routes
-		// customers := v1.Group("/customers")
-		// {
-		// }
 
 		// Project routes
 		projects := v1.Group("/projects")
@@ -258,16 +253,6 @@ func SetupRoutesBasic(router *gin.Engine, logger *zap.Logger, healthChecker *hea
 			webhookSubs.DELETE("/:id", webhookHandler.DeleteWebhook)
 		}
 
-		// Customer routes
-		// customers := v1.Group("/customers")
-		// {
-		// }
-
-		// Project routes
-		// projects := v1.Group("/projects")
-		// {
-		// }
-
 		// Contact routes
 		contacts := v1.Group("/contacts")
 		contacts.Use(authMiddleware.Authenticate())
@@ -310,7 +295,7 @@ func SetupRoutesBasic(router *gin.Engine, logger *zap.Logger, healthChecker *hea
 
 // SetupRoutesBasicWithTest configura as rotas básicas com endpoints de teste, auth, channels, projects, pipelines, messages, chats e WebSocket
 // LEGACY: Mantido para compatibilidade
-func SetupRoutesBasicWithTest(router *gin.Engine, logger *zap.Logger, healthChecker *health.HealthChecker, authHandler *handlers.AuthHandler, channelHandler *handlers.ChannelHandler, projectHandler *handlers.ProjectHandler, pipelineHandler *handlers.PipelineHandler, wahaHandler *handlers.WAHAWebhookHandler, webhookHandler *handlers.WebhookSubscriptionHandler, queueHandler *handlers.QueueHandler, sessionHandler *handlers.SessionHandler, contactHandler *handlers.ContactHandler, trackingHandler *handlers.TrackingHandler, messageHandler *handlers.MessageHandler, chatHandler *handlers.ChatHandler, agentHandler *handlers.AgentHandler, noteHandler *handlers.NoteHandler, automationDiscoveryHandler *handlers.AutomationDiscoveryHandler, websocketHandler *handlers.WebSocketMessageHandler, wsRateLimiter *middleware.WebSocketRateLimiter, gormDB *gorm.DB, authMiddleware *middleware.AuthMiddleware, wsAuthMiddleware *middleware.WebSocketAuthMiddleware, rlsMiddleware *middleware.RLSMiddleware, rateLimiter *middleware.RateLimiter) {
+func SetupRoutesBasicWithTest(router *gin.Engine, logger *zap.Logger, healthChecker *health.HealthChecker, authHandler *handlers.AuthHandler, automationHandler *handlers.AutomationHandler, broadcastHandler *handlers.BroadcastHandler, sequenceHandler *handlers.SequenceHandler, campaignHandler *handlers.CampaignHandler, channelHandler *handlers.ChannelHandler, projectHandler *handlers.ProjectHandler, pipelineHandler *handlers.PipelineHandler, wahaHandler *handlers.WAHAWebhookHandler, webhookHandler *handlers.WebhookSubscriptionHandler, queueHandler *handlers.QueueHandler, sessionHandler *handlers.SessionHandler, contactHandler *handlers.ContactHandler, trackingHandler *handlers.TrackingHandler, messageHandler *handlers.MessageHandler, chatHandler *handlers.ChatHandler, agentHandler *handlers.AgentHandler, noteHandler *handlers.NoteHandler, automationDiscoveryHandler *handlers.AutomationDiscoveryHandler, websocketHandler *handlers.WebSocketMessageHandler, wsRateLimiter *middleware.WebSocketRateLimiter, gormDB *gorm.DB, authMiddleware *middleware.AuthMiddleware, wsAuthMiddleware *middleware.WebSocketAuthMiddleware, rlsMiddleware *middleware.RLSMiddleware, rateLimiter *middleware.RateLimiter) {
 	// Add GORM context middleware FIRST (before any other middleware)
 	router.Use(middleware.GORMContextMiddleware(gormDB))
 
@@ -342,6 +327,82 @@ func SetupRoutesBasicWithTest(router *gin.Engine, logger *zap.Logger, healthChec
 		{
 			authProtected.GET("/profile", authHandler.GetProfile)
 			authProtected.POST("/api-key", authHandler.GenerateAPIKey)
+		}
+	}
+
+	// Add automation routes (cross-product AUTOMATION product - NOT CRM)
+	// Rate limit: 1000 requests per minute for authenticated API endpoints
+	automation := router.Group("/api/v1/automation")
+	automation.Use(authMiddleware.Authenticate())
+	automation.Use(rlsMiddleware.SetUserContext())
+	if rateLimiter != nil {
+		automation.Use(rateLimiter.RateLimitByUserMiddleware(middleware.RateLimiterConfig{
+			MaxRequests: 1000,
+			Window:      1 * time.Minute,
+			KeyPrefix:   "ratelimit:api:user",
+		}))
+	}
+	{
+		// Discovery endpoints (metadata)
+		automation.GET("/types", automationHandler.GetAutomationTypes)
+		automation.GET("/actions", automationHandler.GetAvailableActions)
+		automation.GET("/operators", automationHandler.GetAvailableOperators)
+
+		// CRUD endpoints
+		automation.GET("", automationHandler.ListAutomations)
+		automation.POST("", automationHandler.CreateAutomation)
+		automation.GET("/:id", automationHandler.GetAutomation)
+		automation.PUT("/:id", automationHandler.UpdateAutomation)
+		automation.DELETE("/:id", automationHandler.DeleteAutomation)
+
+		// Broadcast endpoints
+		broadcasts := automation.Group("/broadcasts")
+		{
+			broadcasts.GET("", broadcastHandler.ListBroadcasts)
+			broadcasts.POST("", broadcastHandler.CreateBroadcast)
+			broadcasts.GET("/:id", broadcastHandler.GetBroadcast)
+			broadcasts.PUT("/:id", broadcastHandler.UpdateBroadcast)
+			broadcasts.DELETE("/:id", broadcastHandler.DeleteBroadcast)
+			broadcasts.POST("/:id/schedule", broadcastHandler.ScheduleBroadcast)
+			broadcasts.POST("/:id/execute", broadcastHandler.ExecuteBroadcast)
+			broadcasts.POST("/:id/cancel", broadcastHandler.CancelBroadcast)
+			broadcasts.GET("/:id/stats", broadcastHandler.GetBroadcastStats)
+		}
+
+		// Sequence endpoints
+		sequences := automation.Group("/sequences")
+		{
+			sequences.GET("", sequenceHandler.ListSequences)
+			sequences.POST("", sequenceHandler.CreateSequence)
+			sequences.GET("/:id", sequenceHandler.GetSequence)
+			sequences.PUT("/:id", sequenceHandler.UpdateSequence)
+			sequences.DELETE("/:id", sequenceHandler.DeleteSequence)
+			sequences.POST("/:id/activate", sequenceHandler.ActivateSequence)
+			sequences.POST("/:id/pause", sequenceHandler.PauseSequence)
+			sequences.POST("/:id/resume", sequenceHandler.ResumeSequence)
+			sequences.POST("/:id/archive", sequenceHandler.ArchiveSequence)
+			sequences.GET("/:id/stats", sequenceHandler.GetSequenceStats)
+			sequences.POST("/:id/enroll", sequenceHandler.EnrollContact)
+			sequences.GET("/:id/enrollments", sequenceHandler.ListEnrollments)
+		}
+
+		// Campaign endpoints
+		campaigns := automation.Group("/campaigns")
+		{
+			campaigns.GET("", campaignHandler.ListCampaigns)
+			campaigns.POST("", campaignHandler.CreateCampaign)
+			campaigns.GET("/:id", campaignHandler.GetCampaign)
+			campaigns.PUT("/:id", campaignHandler.UpdateCampaign)
+			campaigns.DELETE("/:id", campaignHandler.DeleteCampaign)
+			campaigns.POST("/:id/activate", campaignHandler.ActivateCampaign)
+			campaigns.POST("/:id/schedule", campaignHandler.ScheduleCampaign)
+			campaigns.POST("/:id/pause", campaignHandler.PauseCampaign)
+			campaigns.POST("/:id/resume", campaignHandler.ResumeCampaign)
+			campaigns.POST("/:id/complete", campaignHandler.CompleteCampaign)
+			campaigns.POST("/:id/archive", campaignHandler.ArchiveCampaign)
+			campaigns.GET("/:id/stats", campaignHandler.GetCampaignStats)
+			campaigns.POST("/:id/enroll", campaignHandler.EnrollContact)
+			campaigns.GET("/:id/enrollments", campaignHandler.ListEnrollments)
 		}
 	}
 
@@ -475,12 +536,14 @@ func SetupRoutesBasicWithTest(router *gin.Engine, logger *zap.Logger, healthChec
 		{
 			agents.GET("/search", agentHandler.SearchAgents)         // Must be before /:id
 			agents.GET("/advanced", agentHandler.ListAgentsAdvanced) // Must be before /:id
+			agents.POST("/virtual", agentHandler.CreateVirtualAgent) // Must be before /:id
 			agents.GET("", agentHandler.ListAgents)
 			agents.POST("", agentHandler.CreateAgent)
 			agents.GET("/:id", agentHandler.GetAgent)
 			agents.PUT("/:id", agentHandler.UpdateAgent)
 			agents.DELETE("/:id", agentHandler.DeleteAgent)
 			agents.GET("/:id/stats", agentHandler.GetAgentStats)
+			agents.PUT("/:id/virtual/end-period", agentHandler.EndVirtualAgentPeriod)
 		}
 	}
 
@@ -490,7 +553,7 @@ func SetupRoutesBasicWithTest(router *gin.Engine, logger *zap.Logger, healthChec
 		notes.Use(authMiddleware.Authenticate())
 		notes.Use(rlsMiddleware.SetUserContext())
 		{
-			notes.GET("/search", noteHandler.SearchNotes)       // Must be before /:id
+			notes.GET("/search", noteHandler.SearchNotes)         // Must be before /:id
 			notes.GET("/advanced", noteHandler.ListNotesAdvanced) // Must be before /:id
 		}
 	}

@@ -9,8 +9,8 @@ import (
 	"github.com/caloi/ventros-crm/infrastructure/http/middleware"
 	contactapp "github.com/caloi/ventros-crm/internal/application/contact"
 	"github.com/caloi/ventros-crm/internal/application/queries"
-	"github.com/caloi/ventros-crm/internal/domain/contact"
-	"github.com/caloi/ventros-crm/internal/domain/shared"
+	"github.com/caloi/ventros-crm/internal/domain/core/shared"
+	"github.com/caloi/ventros-crm/internal/domain/crm/contact"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
@@ -67,7 +67,7 @@ type UpdateContactRequest struct {
 //
 //	@Summary		List contacts
 //	@Description	List all contacts with optional filters (authenticated user only)
-//	@Tags			contacts
+//	@Tags			CRM - Contacts
 //	@Accept			json
 //	@Produce		json
 //	@Param			project_id	query		string					true	"Project ID"
@@ -150,7 +150,7 @@ func (h *ContactHandler) ListContacts(c *gin.Context) {
 //
 //	@Summary		Create a new contact
 //	@Description	Create a new contact in the system
-//	@Tags			contacts
+//	@Tags			CRM - Contacts
 //	@Accept			json
 //	@Produce		json
 //	@Param			project_id	query		string					true	"Project ID"
@@ -251,7 +251,7 @@ func (h *ContactHandler) CreateContact(c *gin.Context) {
 //
 //	@Summary		Get contact by ID
 //	@Description	Get detailed information about a specific contact
-//	@Tags			contacts
+//	@Tags			CRM - Contacts
 //	@Accept			json
 //	@Produce		json
 //	@Param			id	path		string					true	"Contact ID"
@@ -289,7 +289,7 @@ func (h *ContactHandler) GetContact(c *gin.Context) {
 //
 //	@Summary		Update contact
 //	@Description	Atualiza um contato existente
-//	@Tags			contacts
+//	@Tags			CRM - Contacts
 //	@Accept			json
 //	@Produce		json
 //	@Param			id		path		string					true	"Contact ID (UUID)"
@@ -386,7 +386,7 @@ func (h *ContactHandler) UpdateContact(c *gin.Context) {
 //
 //	@Summary		Delete contact
 //	@Description	Remove um contato (soft delete)
-//	@Tags			contacts
+//	@Tags			CRM - Contacts
 //	@Produce		json
 //	@Param			id	path	string	true	"Contact ID (UUID)"
 //	@Success		204	"Contact deleted successfully"
@@ -462,7 +462,7 @@ type ChangePipelineStatusRequest struct {
 //
 //	@Summary		Change contact pipeline status
 //	@Description	Change contact status in a specific pipeline
-//	@Tags			contacts
+//	@Tags			CRM - Contacts
 //	@Accept			json
 //	@Produce		json
 //	@Security		ApiKeyAuth
@@ -533,7 +533,7 @@ func (h *ContactHandler) ChangePipelineStatus(c *gin.Context) {
 //
 //	@Summary		List contacts with advanced filters
 //	@Description	List contacts with advanced filters (name, phone, email, tags, dates), pagination, and sorting
-//	@Tags			contacts
+//	@Tags			CRM - Contacts
 //	@Accept			json
 //	@Produce		json
 //	@Security		ApiKeyAuth
@@ -622,7 +622,7 @@ func (h *ContactHandler) ListContactsAdvanced(c *gin.Context) {
 //
 //	@Summary		Search contacts
 //	@Description	Full-text search on contact name, phone, and email with relevance scoring
-//	@Tags			contacts
+//	@Tags			CRM - Contacts
 //	@Accept			json
 //	@Produce		json
 //	@Security		ApiKeyAuth

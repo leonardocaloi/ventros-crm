@@ -30,7 +30,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "agents"
+                    "CRM - Agents"
                 ],
                 "summary": "List agents",
                 "parameters": [
@@ -109,7 +109,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "agents"
+                    "CRM - Agents"
                 ],
                 "summary": "Create agent",
                 "parameters": [
@@ -119,7 +119,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/infrastructure_http_handlers.CreateAgentRequest"
+                            "$ref": "#/definitions/handlers.CreateAgentRequest"
                         }
                     }
                 ],
@@ -155,7 +155,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "agents"
+                    "CRM - Agents"
                 ],
                 "summary": "Get agent by ID",
                 "parameters": [
@@ -207,7 +207,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "agents"
+                    "CRM - Agents"
                 ],
                 "summary": "Update agent",
                 "parameters": [
@@ -224,7 +224,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/infrastructure_http_handlers.UpdateAgentRequest"
+                            "$ref": "#/definitions/handlers.UpdateAgentRequest"
                         }
                     }
                 ],
@@ -265,7 +265,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "agents"
+                    "CRM - Agents"
                 ],
                 "summary": "Delete agent",
                 "parameters": [
@@ -312,7 +312,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "agents"
+                    "CRM - Agents"
                 ],
                 "summary": "Get agent statistics",
                 "parameters": [
@@ -371,9 +371,9 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "auth"
+                    "AUTH - Authentication"
                 ],
-                "summary": "Generate API key",
+                "summary": "Gerar API Key",
                 "parameters": [
                     {
                         "description": "API key request",
@@ -381,7 +381,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/infrastructure_http_handlers.GenerateAPIKeyRequest"
+                            "$ref": "#/definitions/handlers.GenerateAPIKeyRequest"
                         }
                     }
                 ],
@@ -410,9 +410,9 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "auth"
+                    "AUTH - Authentication"
                 ],
-                "summary": "Get auth info",
+                "summary": "Informações de Autenticação",
                 "responses": {
                     "200": {
                         "description": "Auth information",
@@ -434,9 +434,9 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "auth"
+                    "AUTH - Authentication"
                 ],
-                "summary": "User login",
+                "summary": "Login",
                 "parameters": [
                     {
                         "description": "Login credentials",
@@ -444,7 +444,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/infrastructure_http_handlers.LoginRequest"
+                            "$ref": "#/definitions/handlers.LoginRequest"
                         }
                     }
                 ],
@@ -485,9 +485,9 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "auth"
+                    "AUTH - Authentication"
                 ],
-                "summary": "Get user profile",
+                "summary": "Obter Perfil",
                 "responses": {
                     "200": {
                         "description": "User profile",
@@ -516,9 +516,9 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "auth"
+                    "AUTH - Authentication"
                 ],
-                "summary": "Create user",
+                "summary": "Criar Usuário",
                 "parameters": [
                     {
                         "description": "User data",
@@ -526,7 +526,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/infrastructure_http_handlers.CreateUserRequest"
+                            "$ref": "#/definitions/handlers.CreateUserRequest"
                         }
                     }
                 ],
@@ -555,32 +555,631 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/automation/actions": {
+        "/api/v1/automation": {
             "get": {
-                "description": "Retorna todas as ações que podem ser executadas nas automações",
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Lista todas as automações (cross-product) do tenant autenticado com filtros avançados",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "Automation"
+                    "AUTOMATION - Automations"
                 ],
-                "summary": "Lista ações disponíveis",
+                "summary": "List all automations",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Filtrar por categoria (messaging, pipeline, assignment, tasks, integration, organization, data, workflow)",
-                        "name": "category",
+                        "description": "Filter by automation type",
+                        "name": "automation_type",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Filter by enabled status",
+                        "name": "enabled",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by pipeline ID (UUID)",
+                        "name": "pipeline_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 1,
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 20,
+                        "description": "Items per page",
+                        "name": "limit",
                         "in": "query"
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "List of automations",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/github_com_caloi_ventros-crm_infrastructure_http_dto.ActionResponse"
-                            }
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Not authenticated",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Cria uma nova automação (cross-product ou pipeline-specific)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "AUTOMATION - Automations"
+                ],
+                "summary": "Create automation",
+                "parameters": [
+                    {
+                        "description": "Automation data",
+                        "name": "automation",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handlers.CreateAutomationRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Automation created successfully",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/automation/actions": {
+            "get": {
+                "description": "Lista todas as ações disponíveis para automações",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "AUTOMATION - Automations"
+                ],
+                "summary": "Get available actions",
+                "responses": {
+                    "200": {
+                        "description": "Available actions",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/automation/broadcasts": {
+            "get": {
+                "description": "Get a paginated list of broadcasts with optional filters",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "AUTOMATION - Broadcasts"
+                ],
+                "summary": "List broadcasts",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Filter by status (draft, scheduled, running, completed, failed, cancelled)",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page number (default: 1)",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Items per page (default: 20, max: 100)",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "broadcasts: array of broadcasts, total: total count, page: current page, limit: items per page",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "error: validation error message",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "error: internal server error message",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Create a new broadcast for mass messaging",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "AUTOMATION - Broadcasts"
+                ],
+                "summary": "Create broadcast",
+                "parameters": [
+                    {
+                        "description": "Broadcast details",
+                        "name": "broadcast",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handlers.CreateBroadcastRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "broadcast: created broadcast object",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "error: validation error message",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "error: internal server error message",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/automation/broadcasts/{id}": {
+            "get": {
+                "description": "Get a broadcast by ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "AUTOMATION - Broadcasts"
+                ],
+                "summary": "Get broadcast",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Broadcast ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "broadcast: broadcast object",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "error: broadcast not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "error: internal server error message",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "put": {
+                "description": "Update a broadcast (only allowed in draft status)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "AUTOMATION - Broadcasts"
+                ],
+                "summary": "Update broadcast",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Broadcast ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Updated broadcast details",
+                        "name": "broadcast",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handlers.UpdateBroadcastRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "broadcast: updated broadcast object",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "error: validation error message",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "error: broadcast not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "error: internal server error message",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Delete a broadcast (only in draft or cancelled status)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "AUTOMATION - Broadcasts"
+                ],
+                "summary": "Delete broadcast",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Broadcast ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "message: success message",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "error: validation error message",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "error: broadcast not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "error: internal server error message",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/automation/broadcasts/{id}/cancel": {
+            "post": {
+                "description": "Cancel a broadcast (if not completed)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "AUTOMATION - Broadcasts"
+                ],
+                "summary": "Cancel broadcast",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Broadcast ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "broadcast: cancelled broadcast object",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "error: validation error message",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "error: broadcast not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "error: internal server error message",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/automation/broadcasts/{id}/execute": {
+            "post": {
+                "description": "Start executing a broadcast immediately",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "AUTOMATION - Broadcasts"
+                ],
+                "summary": "Execute broadcast",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Broadcast ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "broadcast: executing broadcast object",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "error: validation error message",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "error: broadcast not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "error: internal server error message",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/automation/broadcasts/{id}/schedule": {
+            "post": {
+                "description": "Schedule a broadcast for a specific date/time",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "AUTOMATION - Broadcasts"
+                ],
+                "summary": "Schedule broadcast",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Broadcast ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Schedule details",
+                        "name": "schedule",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handlers.ScheduleBroadcastRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "broadcast: scheduled broadcast object",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "error: validation error message",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "error: broadcast not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "error: internal server error message",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/automation/broadcasts/{id}/stats": {
+            "get": {
+                "description": "Get statistics for a broadcast",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "AUTOMATION - Broadcasts"
+                ],
+                "summary": "Get broadcast stats",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Broadcast ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "stats: broadcast statistics object",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "error: broadcast not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "error: internal server error message",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     }
                 }
@@ -602,7 +1201,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/github_com_caloi_ventros-crm_infrastructure_http_dto.ConditionOperatorResponse"
+                                "$ref": "#/definitions/dto.ConditionOperatorResponse"
                             }
                         }
                     }
@@ -623,7 +1222,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_caloi_ventros-crm_infrastructure_http_dto.AutomationDiscoveryResponse"
+                            "$ref": "#/definitions/dto.AutomationDiscoveryResponse"
                         }
                     }
                 }
@@ -645,8 +1244,29 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/github_com_caloi_ventros-crm_infrastructure_http_dto.LogicOperatorResponse"
+                                "$ref": "#/definitions/dto.LogicOperatorResponse"
                             }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/automation/operators": {
+            "get": {
+                "description": "Lista todos os operadores disponíveis para condições",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "AUTOMATION - Automations"
+                ],
+                "summary": "Get available operators",
+                "responses": {
+                    "200": {
+                        "description": "Available operators",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     }
                 }
@@ -679,13 +1299,13 @@ const docTemplate = `{
                                 "custom_triggers": {
                                     "type": "array",
                                     "items": {
-                                        "$ref": "#/definitions/github_com_caloi_ventros-crm_infrastructure_http_dto.TriggerResponse"
+                                        "$ref": "#/definitions/dto.TriggerResponse"
                                     }
                                 },
                                 "system_triggers": {
                                     "type": "array",
                                     "items": {
-                                        "$ref": "#/definitions/github_com_caloi_ventros-crm_infrastructure_http_dto.TriggerResponse"
+                                        "$ref": "#/definitions/dto.TriggerResponse"
                                     }
                                 }
                             }
@@ -756,7 +1376,7 @@ const docTemplate = `{
                                     "type": "string"
                                 },
                                 "trigger": {
-                                    "$ref": "#/definitions/github_com_caloi_ventros-crm_infrastructure_http_dto.TriggerResponse"
+                                    "$ref": "#/definitions/dto.TriggerResponse"
                                 }
                             }
                         }
@@ -840,7 +1460,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_caloi_ventros-crm_infrastructure_http_dto.TriggerResponse"
+                            "$ref": "#/definitions/dto.TriggerResponse"
                         }
                     },
                     "404": {
@@ -859,22 +1479,196 @@ const docTemplate = `{
         },
         "/api/v1/automation/types": {
             "get": {
-                "description": "Retorna todos os tipos de automação disponíveis (follow-up, event, scheduled, etc)",
+                "description": "Lista todos os tipos de automação disponíveis",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "Automation"
+                    "AUTOMATION - Automations"
                 ],
-                "summary": "Lista tipos de automação",
+                "summary": "Get automation types",
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Automation types",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/github_com_caloi_ventros-crm_infrastructure_http_dto.AutomationTypeResponse"
-                            }
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/automation/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Obtém detalhes de uma automação específica",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "AUTOMATION - Automations"
+                ],
+                "summary": "Get automation by ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Automation ID (UUID)",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Automation details",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid automation ID",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Automation not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Atualiza uma automação existente",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "AUTOMATION - Automations"
+                ],
+                "summary": "Update automation",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Automation ID (UUID)",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Automation data",
+                        "name": "automation",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handlers.UpdateAutomationRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Automation updated successfully",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Automation not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Deleta uma automação",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "AUTOMATION - Automations"
+                ],
+                "summary": "Delete automation",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Automation ID (UUID)",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Automation deleted successfully",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid automation ID",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Automation not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     }
                 }
@@ -892,7 +1686,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "channels"
+                    "CRM - Channels"
                 ],
                 "summary": "List channels",
                 "responses": {
@@ -933,7 +1727,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "channels"
+                    "CRM - Channels"
                 ],
                 "summary": "Create channel",
                 "parameters": [
@@ -943,7 +1737,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/infrastructure_http_handlers.CreateChannelRequest"
+                            "$ref": "#/definitions/handlers.CreateChannelRequest"
                         }
                     }
                 ],
@@ -998,7 +1792,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "sessions"
+                    "CRM - Sessions"
                 ],
                 "summary": "List sessions",
                 "parameters": [
@@ -1072,7 +1866,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "channels"
+                    "CRM - Channels"
                 ],
                 "summary": "Get channel",
                 "parameters": [
@@ -1133,7 +1927,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "channels"
+                    "CRM - Channels"
                 ],
                 "summary": "Delete channel",
                 "parameters": [
@@ -1196,7 +1990,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "channels"
+                    "CRM - Channels"
                 ],
                 "summary": "Activate channel",
                 "parameters": [
@@ -1262,7 +2056,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "channels"
+                    "CRM - Channels"
                 ],
                 "summary": "Activate WAHA channel",
                 "parameters": [
@@ -1328,7 +2122,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "channels"
+                    "CRM - Channels"
                 ],
                 "summary": "Configure channel webhook",
                 "parameters": [
@@ -1344,7 +2138,7 @@ const docTemplate = `{
                         "name": "request",
                         "in": "body",
                         "schema": {
-                            "$ref": "#/definitions/infrastructure_http_handlers.ConfigureWebhookRequest"
+                            "$ref": "#/definitions/handlers.ConfigureWebhookRequest"
                         }
                     }
                 ],
@@ -1399,7 +2193,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "channels"
+                    "CRM - Channels"
                 ],
                 "summary": "Deactivate channel",
                 "parameters": [
@@ -1465,7 +2259,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "channels"
+                    "CRM - Channels"
                 ],
                 "summary": "Import WAHA message history",
                 "parameters": [
@@ -1481,7 +2275,7 @@ const docTemplate = `{
                         "name": "request",
                         "in": "body",
                         "schema": {
-                            "$ref": "#/definitions/infrastructure_http_handlers.ImportWAHAHistoryRequest"
+                            "$ref": "#/definitions/handlers.ImportWAHAHistoryRequest"
                         }
                     }
                 ],
@@ -1531,7 +2325,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "sessions"
+                    "CRM - Sessions"
                 ],
                 "summary": "Get session by ID",
                 "parameters": [
@@ -1587,7 +2381,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "channels"
+                    "CRM - Channels"
                 ],
                 "summary": "Get channel webhook info",
                 "parameters": [
@@ -1643,7 +2437,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "channels"
+                    "CRM - Channels"
                 ],
                 "summary": "Get channel webhook URL",
                 "parameters": [
@@ -1702,7 +2496,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "chats"
+                    "CRM - Chats"
                 ],
                 "summary": "List chats",
                 "parameters": [
@@ -1776,7 +2570,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "chats"
+                    "CRM - Chats"
                 ],
                 "summary": "Create a new chat",
                 "parameters": [
@@ -1793,7 +2587,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/infrastructure_http_handlers.CreateChatRequest"
+                            "$ref": "#/definitions/handlers.CreateChatRequest"
                         }
                     }
                 ],
@@ -1844,7 +2638,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "chats"
+                    "CRM - Chats"
                 ],
                 "summary": "Get chat by ID",
                 "parameters": [
@@ -1910,7 +2704,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "chats"
+                    "CRM - Chats"
                 ],
                 "summary": "Archive chat",
                 "parameters": [
@@ -1976,7 +2770,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "chats"
+                    "CRM - Chats"
                 ],
                 "summary": "Close chat",
                 "parameters": [
@@ -2042,7 +2836,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "chats"
+                    "CRM - Chats"
                 ],
                 "summary": "Add participant to chat",
                 "parameters": [
@@ -2059,7 +2853,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/infrastructure_http_handlers.AddParticipantRequest"
+                            "$ref": "#/definitions/handlers.AddParticipantRequest"
                         }
                     }
                 ],
@@ -2117,7 +2911,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "chats"
+                    "CRM - Chats"
                 ],
                 "summary": "Remove participant from chat",
                 "parameters": [
@@ -2190,7 +2984,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "chats"
+                    "CRM - Chats"
                 ],
                 "summary": "Update chat subject",
                 "parameters": [
@@ -2207,7 +3001,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/infrastructure_http_handlers.UpdateSubjectRequest"
+                            "$ref": "#/definitions/handlers.UpdateSubjectRequest"
                         }
                     }
                 ],
@@ -2265,7 +3059,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "chats"
+                    "CRM - Chats"
                 ],
                 "summary": "Unarchive chat",
                 "parameters": [
@@ -2326,7 +3120,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "contacts"
+                    "CRM - Contacts"
                 ],
                 "summary": "List contacts",
                 "parameters": [
@@ -2399,7 +3193,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "contacts"
+                    "CRM - Contacts"
                 ],
                 "summary": "Create a new contact",
                 "parameters": [
@@ -2416,7 +3210,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/infrastructure_http_handlers.CreateContactRequest"
+                            "$ref": "#/definitions/handlers.CreateContactRequest"
                         }
                     }
                 ],
@@ -2460,7 +3254,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "contacts"
+                    "CRM - Contacts"
                 ],
                 "summary": "List contacts with advanced filters",
                 "parameters": [
@@ -2584,7 +3378,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "contacts"
+                    "CRM - Contacts"
                 ],
                 "summary": "Search contacts",
                 "parameters": [
@@ -2831,7 +3625,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "sessions"
+                    "CRM - Sessions"
                 ],
                 "summary": "List sessions",
                 "parameters": [
@@ -2905,7 +3699,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "tracking"
+                    "CRM - Tracking"
                 ],
                 "summary": "Busca trackings de um contato",
                 "parameters": [
@@ -2923,7 +3717,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/github_com_caloi_ventros-crm_internal_application_tracking.TrackingDTO"
+                                "$ref": "#/definitions/tracking.TrackingDTO"
                             }
                         }
                     },
@@ -2952,7 +3746,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "contacts"
+                    "CRM - Contacts"
                 ],
                 "summary": "Get contact by ID",
                 "parameters": [
@@ -3004,7 +3798,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "contacts"
+                    "CRM - Contacts"
                 ],
                 "summary": "Update contact",
                 "parameters": [
@@ -3021,7 +3815,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/infrastructure_http_handlers.UpdateContactRequest"
+                            "$ref": "#/definitions/handlers.UpdateContactRequest"
                         }
                     }
                 ],
@@ -3062,7 +3856,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "contacts"
+                    "CRM - Contacts"
                 ],
                 "summary": "Delete contact",
                 "parameters": [
@@ -3117,7 +3911,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "contacts"
+                    "CRM - Contacts"
                 ],
                 "summary": "Change contact pipeline status",
                 "parameters": [
@@ -3141,7 +3935,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/infrastructure_http_handlers.ChangePipelineStatusRequest"
+                            "$ref": "#/definitions/handlers.ChangePipelineStatusRequest"
                         }
                     }
                 ],
@@ -3191,7 +3985,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "sessions"
+                    "CRM - Sessions"
                 ],
                 "summary": "Get session by ID",
                 "parameters": [
@@ -3250,7 +4044,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "agents"
+                    "CRM - Agents"
                 ],
                 "summary": "List agents with advanced filters and pagination",
                 "parameters": [
@@ -3338,7 +4132,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Successfully retrieved agents with full details",
                         "schema": {
-                            "$ref": "#/definitions/github_com_caloi_ventros-crm_internal_application_queries.ListAgentsResponse"
+                            "$ref": "#/definitions/queries.ListAgentsResponse"
                         }
                     },
                     "400": {
@@ -3387,7 +4181,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "agents"
+                    "CRM - Agents"
                 ],
                 "summary": "Search agents by name and email",
                 "parameters": [
@@ -3415,7 +4209,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Found agents with match scores",
                         "schema": {
-                            "$ref": "#/definitions/github_com_caloi_ventros-crm_internal_application_queries.SearchAgentsResponse"
+                            "$ref": "#/definitions/queries.SearchAgentsResponse"
                         }
                     },
                     "400": {
@@ -3464,7 +4258,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "messages"
+                    "CRM - Messages"
                 ],
                 "summary": "List messages with advanced filters and pagination",
                 "parameters": [
@@ -3612,7 +4406,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Successfully retrieved messages with pagination and filter metadata",
                         "schema": {
-                            "$ref": "#/definitions/github_com_caloi_ventros-crm_internal_application_queries.ListMessagesResponse"
+                            "$ref": "#/definitions/queries.ListMessagesResponse"
                         }
                     },
                     "400": {
@@ -3661,7 +4455,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "messages"
+                    "CRM - Messages"
                 ],
                 "summary": "Full-text search across message content",
                 "parameters": [
@@ -3689,7 +4483,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Successfully found matching messages with text excerpts and context",
                         "schema": {
-                            "$ref": "#/definitions/github_com_caloi_ventros-crm_internal_application_queries.SearchMessagesResponse"
+                            "$ref": "#/definitions/queries.SearchMessagesResponse"
                         }
                     },
                     "400": {
@@ -3738,7 +4532,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "notes"
+                    "CRM - Notes"
                 ],
                 "summary": "List notes with advanced filters and pagination",
                 "parameters": [
@@ -3861,7 +4655,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Successfully retrieved notes with full details",
                         "schema": {
-                            "$ref": "#/definitions/github_com_caloi_ventros-crm_internal_application_queries.ListNotesResponse"
+                            "$ref": "#/definitions/queries.ListNotesResponse"
                         }
                     },
                     "400": {
@@ -3910,7 +4704,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "notes"
+                    "CRM - Notes"
                 ],
                 "summary": "Search notes by content and author",
                 "parameters": [
@@ -3938,7 +4732,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Found notes with match scores",
                         "schema": {
-                            "$ref": "#/definitions/github_com_caloi_ventros-crm_internal_application_queries.SearchNotesResponse"
+                            "$ref": "#/definitions/queries.SearchNotesResponse"
                         }
                     },
                     "400": {
@@ -3987,7 +4781,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "pipelines"
+                    "CRM - Pipelines"
                 ],
                 "summary": "List pipelines with advanced filters",
                 "parameters": [
@@ -4061,7 +4855,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Successfully retrieved pipelines with full configuration details",
                         "schema": {
-                            "$ref": "#/definitions/github_com_caloi_ventros-crm_internal_application_queries.ListPipelinesResponse"
+                            "$ref": "#/definitions/queries.ListPipelinesResponse"
                         }
                     },
                     "400": {
@@ -4110,7 +4904,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "pipelines"
+                    "CRM - Pipelines"
                 ],
                 "summary": "Search pipelines by name and description",
                 "parameters": [
@@ -4138,7 +4932,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Found pipelines with match scores",
                         "schema": {
-                            "$ref": "#/definitions/github_com_caloi_ventros-crm_internal_application_queries.SearchPipelinesResponse"
+                            "$ref": "#/definitions/queries.SearchPipelinesResponse"
                         }
                     },
                     "400": {
@@ -4187,7 +4981,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "projects"
+                    "CRM - Projects"
                 ],
                 "summary": "List projects with advanced filters and pagination",
                 "parameters": [
@@ -4252,7 +5046,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Successfully retrieved projects with full details",
                         "schema": {
-                            "$ref": "#/definitions/github_com_caloi_ventros-crm_internal_application_queries.ListProjectsResponse"
+                            "$ref": "#/definitions/queries.ListProjectsResponse"
                         }
                     },
                     "400": {
@@ -4301,7 +5095,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "projects"
+                    "CRM - Projects"
                 ],
                 "summary": "Search projects by name and description",
                 "parameters": [
@@ -4329,7 +5123,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Found projects with match scores",
                         "schema": {
-                            "$ref": "#/definitions/github_com_caloi_ventros-crm_internal_application_queries.SearchProjectsResponse"
+                            "$ref": "#/definitions/queries.SearchProjectsResponse"
                         }
                     },
                     "400": {
@@ -4378,7 +5172,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "sessions"
+                    "CRM - Sessions"
                 ],
                 "summary": "List sessions with advanced filters and pagination",
                 "parameters": [
@@ -4517,7 +5311,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Successfully retrieved sessions with pagination metadata",
                         "schema": {
-                            "$ref": "#/definitions/github_com_caloi_ventros-crm_internal_application_queries.ListSessionsResponse"
+                            "$ref": "#/definitions/queries.ListSessionsResponse"
                         }
                     },
                     "400": {
@@ -4566,7 +5360,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "sessions"
+                    "CRM - Sessions"
                 ],
                 "summary": "Full-text search across sessions",
                 "parameters": [
@@ -4594,7 +5388,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Successfully found matching sessions with relevance scores and matched fields",
                         "schema": {
-                            "$ref": "#/definitions/github_com_caloi_ventros-crm_internal_application_queries.SearchSessionsResponse"
+                            "$ref": "#/definitions/queries.SearchSessionsResponse"
                         }
                     },
                     "400": {
@@ -4707,7 +5501,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "messages"
+                    "CRM - Messages"
                 ],
                 "summary": "List messages",
                 "parameters": [
@@ -4792,7 +5586,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "messages"
+                    "CRM - Messages"
                 ],
                 "summary": "Create message",
                 "parameters": [
@@ -4802,7 +5596,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/infrastructure_http_handlers.CreateMessageRequest"
+                            "$ref": "#/definitions/handlers.CreateMessageRequest"
                         }
                     }
                 ],
@@ -4841,7 +5635,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "messages"
+                    "CRM - Messages"
                 ],
                 "summary": "Confirm message delivery",
                 "parameters": [
@@ -4851,7 +5645,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/infrastructure_http_handlers.ConfirmMessageDeliveryRequest"
+                            "$ref": "#/definitions/handlers.ConfirmMessageDeliveryRequest"
                         }
                     }
                 ],
@@ -4897,7 +5691,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "messages"
+                    "CRM - Messages"
                 ],
                 "summary": "Send message",
                 "parameters": [
@@ -4907,7 +5701,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/infrastructure_http_handlers.SendMessageRequest"
+                            "$ref": "#/definitions/handlers.SendMessageRequest"
                         }
                     }
                 ],
@@ -4915,7 +5709,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Message sent successfully",
                         "schema": {
-                            "$ref": "#/definitions/infrastructure_http_handlers.SendMessageResponse"
+                            "$ref": "#/definitions/handlers.SendMessageResponse"
                         }
                     },
                     "400": {
@@ -4942,7 +5736,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "messages"
+                    "CRM - Messages"
                 ],
                 "summary": "Get message by ID",
                 "parameters": [
@@ -4994,7 +5788,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "messages"
+                    "CRM - Messages"
                 ],
                 "summary": "Update message",
                 "parameters": [
@@ -5011,7 +5805,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/infrastructure_http_handlers.UpdateMessageRequest"
+                            "$ref": "#/definitions/handlers.UpdateMessageRequest"
                         }
                     }
                 ],
@@ -5052,7 +5846,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "messages"
+                    "CRM - Messages"
                 ],
                 "summary": "Delete message",
                 "parameters": [
@@ -5104,7 +5898,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "pipelines"
+                    "CRM - Pipelines"
                 ],
                 "summary": "List pipelines",
                 "parameters": [
@@ -5172,7 +5966,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "pipelines"
+                    "CRM - Pipelines"
                 ],
                 "summary": "Create pipeline",
                 "parameters": [
@@ -5189,7 +5983,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/infrastructure_http_handlers.CreatePipelineRequest"
+                            "$ref": "#/definitions/handlers.CreatePipelineRequest"
                         }
                     }
                 ],
@@ -5225,7 +6019,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "pipelines"
+                    "CRM - Pipelines"
                 ],
                 "summary": "Get pipeline by ID",
                 "parameters": [
@@ -5279,7 +6073,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "pipelines"
+                    "CRM - Pipelines"
                 ],
                 "summary": "Create status",
                 "parameters": [
@@ -5296,7 +6090,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/infrastructure_http_handlers.CreateStatusRequest"
+                            "$ref": "#/definitions/handlers.CreateStatusRequest"
                         }
                     }
                 ],
@@ -5339,7 +6133,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "pipelines"
+                    "CRM - Pipelines"
                 ],
                 "summary": "Get contact status",
                 "parameters": [
@@ -5398,7 +6192,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "pipelines"
+                    "CRM - Pipelines"
                 ],
                 "summary": "Change contact status",
                 "parameters": [
@@ -5422,7 +6216,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/infrastructure_http_handlers.ChangeContactStatusRequest"
+                            "$ref": "#/definitions/handlers.ChangeContactStatusRequest"
                         }
                     }
                 ],
@@ -5470,7 +6264,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "projects"
+                    "CRM - Projects"
                 ],
                 "summary": "List projects",
                 "parameters": [
@@ -5544,7 +6338,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "projects"
+                    "CRM - Projects"
                 ],
                 "summary": "Create project",
                 "parameters": [
@@ -5554,7 +6348,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/infrastructure_http_handlers.CreateProjectRequest"
+                            "$ref": "#/definitions/handlers.CreateProjectRequest"
                         }
                     }
                 ],
@@ -5590,7 +6384,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "projects"
+                    "CRM - Projects"
                 ],
                 "summary": "Get project by ID",
                 "parameters": [
@@ -5642,7 +6436,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "projects"
+                    "CRM - Projects"
                 ],
                 "summary": "Update project",
                 "parameters": [
@@ -5659,7 +6453,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/infrastructure_http_handlers.UpdateProjectRequest"
+                            "$ref": "#/definitions/handlers.UpdateProjectRequest"
                         }
                     }
                 ],
@@ -5700,7 +6494,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "projects"
+                    "CRM - Projects"
                 ],
                 "summary": "Delete project",
                 "parameters": [
@@ -5780,7 +6574,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "sessions"
+                    "CRM - Sessions"
                 ],
                 "summary": "List sessions",
                 "parameters": [
@@ -5849,7 +6643,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "sessions"
+                    "CRM - Sessions"
                 ],
                 "summary": "Get session statistics",
                 "parameters": [
@@ -5893,7 +6687,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "sessions"
+                    "CRM - Sessions"
                 ],
                 "summary": "Get session by ID",
                 "parameters": [
@@ -5952,7 +6746,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "sessions"
+                    "CRM - Sessions"
                 ],
                 "summary": "Close session",
                 "parameters": [
@@ -5969,7 +6763,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/infrastructure_http_handlers.CloseSessionRequest"
+                            "$ref": "#/definitions/handlers.CloseSessionRequest"
                         }
                     }
                 ],
@@ -6042,7 +6836,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "messages"
+                    "CRM - Messages"
                 ],
                 "summary": "Get messages by session",
                 "parameters": [
@@ -6116,7 +6910,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/infrastructure_http_handlers.TestWAHARequest"
+                            "$ref": "#/definitions/handlers.TestWAHARequest"
                         }
                     }
                 ],
@@ -6151,7 +6945,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/infrastructure_http_handlers.TestQRCodeRequest"
+                            "$ref": "#/definitions/handlers.TestQRCodeRequest"
                         }
                     }
                 ],
@@ -6181,7 +6975,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "tracking"
+                    "CRM - Tracking"
                 ],
                 "summary": "Cria um novo tracking de conversão",
                 "parameters": [
@@ -6191,7 +6985,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/infrastructure_http_handlers.CreateTrackingRequest"
+                            "$ref": "#/definitions/handlers.CreateTrackingRequest"
                         }
                     }
                 ],
@@ -6199,7 +6993,7 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/github_com_caloi_ventros-crm_internal_application_tracking.TrackingDTO"
+                            "$ref": "#/definitions/tracking.TrackingDTO"
                         }
                     },
                     "400": {
@@ -6232,7 +7026,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "tracking"
+                    "CRM - Tracking"
                 ],
                 "summary": "Decodifica mensagem WhatsApp para extrair tracking ID",
                 "parameters": [
@@ -6242,7 +7036,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_caloi_ventros-crm_internal_application_tracking.DecodeTrackingRequest"
+                            "$ref": "#/definitions/tracking.DecodeTrackingRequest"
                         }
                     }
                 ],
@@ -6250,7 +7044,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_caloi_ventros-crm_internal_application_tracking.DecodeTrackingResponse"
+                            "$ref": "#/definitions/tracking.DecodeTrackingResponse"
                         }
                     },
                     "400": {
@@ -6277,7 +7071,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "tracking"
+                    "CRM - Tracking"
                 ],
                 "summary": "Codifica tracking ID em mensagem WhatsApp",
                 "parameters": [
@@ -6287,7 +7081,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_caloi_ventros-crm_internal_application_tracking.EncodeTrackingRequest"
+                            "$ref": "#/definitions/tracking.EncodeTrackingRequest"
                         }
                     }
                 ],
@@ -6295,7 +7089,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_caloi_ventros-crm_internal_application_tracking.EncodeTrackingResponse"
+                            "$ref": "#/definitions/tracking.EncodeTrackingResponse"
                         }
                     },
                     "400": {
@@ -6325,14 +7119,14 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "tracking"
+                    "CRM - Tracking"
                 ],
                 "summary": "Lista todos os enums disponíveis para tracking",
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/infrastructure_http_handlers.TrackingEnumsResponse"
+                            "$ref": "#/definitions/handlers.TrackingEnumsResponse"
                         }
                     }
                 }
@@ -6350,7 +7144,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "tracking"
+                    "CRM - Tracking"
                 ],
                 "summary": "Busca tracking por ID",
                 "parameters": [
@@ -6366,7 +7160,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_caloi_ventros-crm_internal_application_tracking.TrackingDTO"
+                            "$ref": "#/definitions/tracking.TrackingDTO"
                         }
                     },
                     "400": {
@@ -6441,7 +7235,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/infrastructure_http_handlers.CreateWebhookRequest"
+                            "$ref": "#/definitions/handlers.CreateWebhookRequest"
                         }
                     }
                 ],
@@ -6560,7 +7354,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/infrastructure_http_handlers.UpdateWebhookRequest"
+                            "$ref": "#/definitions/handlers.UpdateWebhookRequest"
                         }
                     }
                 ],
@@ -6806,7 +7600,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/infrastructure_http_handlers.HealthResponse"
+                            "$ref": "#/definitions/handlers.HealthResponse"
                         }
                     }
                 }
@@ -6829,13 +7623,13 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_caloi_ventros-crm_infrastructure_health.CheckResult"
+                            "$ref": "#/definitions/health.CheckResult"
                         }
                     },
                     "503": {
                         "description": "Service Unavailable",
                         "schema": {
-                            "$ref": "#/definitions/github_com_caloi_ventros-crm_infrastructure_health.CheckResult"
+                            "$ref": "#/definitions/health.CheckResult"
                         }
                     }
                 }
@@ -6858,13 +7652,13 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_caloi_ventros-crm_infrastructure_health.CheckResult"
+                            "$ref": "#/definitions/health.CheckResult"
                         }
                     },
                     "503": {
                         "description": "Service Unavailable",
                         "schema": {
-                            "$ref": "#/definitions/github_com_caloi_ventros-crm_infrastructure_health.CheckResult"
+                            "$ref": "#/definitions/health.CheckResult"
                         }
                     }
                 }
@@ -6887,13 +7681,13 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_caloi_ventros-crm_infrastructure_health.CheckResult"
+                            "$ref": "#/definitions/health.CheckResult"
                         }
                     },
                     "503": {
                         "description": "Service Unavailable",
                         "schema": {
-                            "$ref": "#/definitions/github_com_caloi_ventros-crm_infrastructure_health.CheckResult"
+                            "$ref": "#/definitions/health.CheckResult"
                         }
                     }
                 }
@@ -6916,13 +7710,13 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_caloi_ventros-crm_infrastructure_health.CheckResult"
+                            "$ref": "#/definitions/health.CheckResult"
                         }
                     },
                     "503": {
                         "description": "Service Unavailable",
                         "schema": {
-                            "$ref": "#/definitions/github_com_caloi_ventros-crm_infrastructure_health.CheckResult"
+                            "$ref": "#/definitions/health.CheckResult"
                         }
                     }
                 }
@@ -6945,13 +7739,13 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_caloi_ventros-crm_infrastructure_health.CheckResult"
+                            "$ref": "#/definitions/health.CheckResult"
                         }
                     },
                     "503": {
                         "description": "Service Unavailable",
                         "schema": {
-                            "$ref": "#/definitions/github_com_caloi_ventros-crm_infrastructure_health.CheckResult"
+                            "$ref": "#/definitions/health.CheckResult"
                         }
                     }
                 }
@@ -6974,7 +7768,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/infrastructure_http_handlers.HealthResponse"
+                            "$ref": "#/definitions/handlers.HealthResponse"
                         }
                     }
                 }
@@ -6997,13 +7791,13 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/infrastructure_http_handlers.HealthResponse"
+                            "$ref": "#/definitions/handlers.HealthResponse"
                         }
                     },
                     "503": {
                         "description": "Service Unavailable",
                         "schema": {
-                            "$ref": "#/definitions/infrastructure_http_handlers.HealthResponse"
+                            "$ref": "#/definitions/handlers.HealthResponse"
                         }
                     }
                 }
@@ -7142,49 +7936,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_caloi_ventros-crm_infrastructure_health.CheckResult": {
-            "type": "object",
-            "properties": {
-                "duration_ms": {
-                    "type": "integer",
-                    "example": 15
-                },
-                "message": {
-                    "type": "string",
-                    "example": "database is operational"
-                },
-                "metadata": {
-                    "type": "object",
-                    "additionalProperties": true
-                },
-                "status": {
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/github_com_caloi_ventros-crm_infrastructure_health.Status"
-                        }
-                    ],
-                    "example": "healthy"
-                },
-                "timestamp": {
-                    "type": "string",
-                    "example": "2024-01-01T00:00:00Z"
-                }
-            }
-        },
-        "github_com_caloi_ventros-crm_infrastructure_health.Status": {
-            "type": "string",
-            "enum": [
-                "healthy",
-                "degraded",
-                "unhealthy"
-            ],
-            "x-enum-varnames": [
-                "StatusHealthy",
-                "StatusDegraded",
-                "StatusUnhealthy"
-            ]
-        },
-        "github_com_caloi_ventros-crm_infrastructure_http_dto.ActionParameterDTO": {
+        "dto.ActionParameterDTO": {
             "type": "object",
             "properties": {
                 "default": {},
@@ -7202,7 +7954,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_caloi_ventros-crm_infrastructure_http_dto.ActionResponse": {
+        "dto.ActionResponse": {
             "type": "object",
             "properties": {
                 "category": {
@@ -7224,47 +7976,47 @@ const docTemplate = `{
                 "parameters": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/github_com_caloi_ventros-crm_infrastructure_http_dto.ActionParameterDTO"
+                        "$ref": "#/definitions/dto.ActionParameterDTO"
                     }
                 }
             }
         },
-        "github_com_caloi_ventros-crm_infrastructure_http_dto.AutomationDiscoveryResponse": {
+        "dto.AutomationDiscoveryResponse": {
             "type": "object",
             "properties": {
                 "actions": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/github_com_caloi_ventros-crm_infrastructure_http_dto.ActionResponse"
+                        "$ref": "#/definitions/dto.ActionResponse"
                     }
                 },
                 "logic_types": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/github_com_caloi_ventros-crm_infrastructure_http_dto.LogicOperatorResponse"
+                        "$ref": "#/definitions/dto.LogicOperatorResponse"
                     }
                 },
                 "operators": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/github_com_caloi_ventros-crm_infrastructure_http_dto.ConditionOperatorResponse"
+                        "$ref": "#/definitions/dto.ConditionOperatorResponse"
                     }
                 },
                 "triggers": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/github_com_caloi_ventros-crm_infrastructure_http_dto.TriggerResponse"
+                        "$ref": "#/definitions/dto.TriggerResponse"
                     }
                 },
                 "types": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/github_com_caloi_ventros-crm_infrastructure_http_dto.AutomationTypeResponse"
+                        "$ref": "#/definitions/dto.AutomationTypeResponse"
                     }
                 }
             }
         },
-        "github_com_caloi_ventros-crm_infrastructure_http_dto.AutomationTypeResponse": {
+        "dto.AutomationTypeResponse": {
             "type": "object",
             "properties": {
                 "code": {
@@ -7287,7 +8039,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_caloi_ventros-crm_infrastructure_http_dto.ConditionOperatorResponse": {
+        "dto.ConditionOperatorResponse": {
             "type": "object",
             "properties": {
                 "code": {
@@ -7304,7 +8056,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_caloi_ventros-crm_infrastructure_http_dto.LogicOperatorResponse": {
+        "dto.LogicOperatorResponse": {
             "type": "object",
             "properties": {
                 "code": {
@@ -7318,7 +8070,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_caloi_ventros-crm_infrastructure_http_dto.TriggerParameter": {
+        "dto.TriggerParameter": {
             "type": "object",
             "properties": {
                 "description": {
@@ -7335,7 +8087,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_caloi_ventros-crm_infrastructure_http_dto.TriggerResponse": {
+        "dto.TriggerResponse": {
             "type": "object",
             "properties": {
                 "category": {
@@ -7356,830 +8108,12 @@ const docTemplate = `{
                 "parameters": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/github_com_caloi_ventros-crm_infrastructure_http_dto.TriggerParameter"
+                        "$ref": "#/definitions/dto.TriggerParameter"
                     }
                 }
             }
         },
-        "github_com_caloi_ventros-crm_internal_application_queries.AgentDTO": {
-            "type": "object",
-            "properties": {
-                "active": {
-                    "type": "boolean"
-                },
-                "created_at": {
-                    "type": "string"
-                },
-                "email": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "updated_at": {
-                    "type": "string"
-                }
-            }
-        },
-        "github_com_caloi_ventros-crm_internal_application_queries.AgentSearchResultDTO": {
-            "type": "object",
-            "properties": {
-                "active": {
-                    "type": "boolean"
-                },
-                "email": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "match_field": {
-                    "type": "string"
-                },
-                "match_score": {
-                    "type": "number"
-                },
-                "name": {
-                    "type": "string"
-                }
-            }
-        },
-        "github_com_caloi_ventros-crm_internal_application_queries.ListAgentsResponse": {
-            "type": "object",
-            "properties": {
-                "agents": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/github_com_caloi_ventros-crm_internal_application_queries.AgentDTO"
-                    }
-                },
-                "limit": {
-                    "type": "integer"
-                },
-                "page": {
-                    "type": "integer"
-                },
-                "totalCount": {
-                    "type": "integer",
-                    "format": "int64"
-                },
-                "totalPages": {
-                    "type": "integer"
-                }
-            }
-        },
-        "github_com_caloi_ventros-crm_internal_application_queries.ListMessageDTO": {
-            "type": "object",
-            "properties": {
-                "agent_id": {
-                    "type": "string"
-                },
-                "channel_id": {
-                    "type": "string"
-                },
-                "contact_id": {
-                    "type": "string"
-                },
-                "content_type": {
-                    "type": "string"
-                },
-                "from_me": {
-                    "type": "boolean"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "media_url": {
-                    "type": "string"
-                },
-                "metadata": {
-                    "type": "object",
-                    "additionalProperties": true
-                },
-                "session_id": {
-                    "type": "string"
-                },
-                "status": {
-                    "type": "string"
-                },
-                "text": {
-                    "type": "string"
-                },
-                "timestamp": {
-                    "type": "string"
-                }
-            }
-        },
-        "github_com_caloi_ventros-crm_internal_application_queries.ListMessagesResponse": {
-            "type": "object",
-            "properties": {
-                "limit": {
-                    "type": "integer"
-                },
-                "messages": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/github_com_caloi_ventros-crm_internal_application_queries.ListMessageDTO"
-                    }
-                },
-                "page": {
-                    "type": "integer"
-                },
-                "totalCount": {
-                    "type": "integer",
-                    "format": "int64"
-                },
-                "totalPages": {
-                    "type": "integer"
-                }
-            }
-        },
-        "github_com_caloi_ventros-crm_internal_application_queries.ListNotesResponse": {
-            "type": "object",
-            "properties": {
-                "limit": {
-                    "type": "integer"
-                },
-                "notes": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/github_com_caloi_ventros-crm_internal_application_queries.NoteDTO"
-                    }
-                },
-                "page": {
-                    "type": "integer"
-                },
-                "totalCount": {
-                    "type": "integer",
-                    "format": "int64"
-                },
-                "totalPages": {
-                    "type": "integer"
-                }
-            }
-        },
-        "github_com_caloi_ventros-crm_internal_application_queries.ListPipelinesResponse": {
-            "type": "object",
-            "properties": {
-                "limit": {
-                    "type": "integer"
-                },
-                "page": {
-                    "type": "integer"
-                },
-                "pipelines": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/github_com_caloi_ventros-crm_internal_application_queries.PipelineDTO"
-                    }
-                },
-                "totalCount": {
-                    "type": "integer",
-                    "format": "int64"
-                },
-                "totalPages": {
-                    "type": "integer"
-                }
-            }
-        },
-        "github_com_caloi_ventros-crm_internal_application_queries.ListProjectsResponse": {
-            "type": "object",
-            "properties": {
-                "limit": {
-                    "type": "integer"
-                },
-                "page": {
-                    "type": "integer"
-                },
-                "projects": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/github_com_caloi_ventros-crm_internal_application_queries.ProjectDTO"
-                    }
-                },
-                "totalCount": {
-                    "type": "integer",
-                    "format": "int64"
-                },
-                "totalPages": {
-                    "type": "integer"
-                }
-            }
-        },
-        "github_com_caloi_ventros-crm_internal_application_queries.ListSessionsResponse": {
-            "type": "object",
-            "properties": {
-                "limit": {
-                    "type": "integer"
-                },
-                "page": {
-                    "type": "integer"
-                },
-                "sessions": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/github_com_caloi_ventros-crm_internal_application_queries.SessionDTO"
-                    }
-                },
-                "totalCount": {
-                    "type": "integer",
-                    "format": "int64"
-                },
-                "totalPages": {
-                    "type": "integer"
-                }
-            }
-        },
-        "github_com_caloi_ventros-crm_internal_application_queries.MessageSearchResultDTO": {
-            "type": "object",
-            "properties": {
-                "contact_id": {
-                    "type": "string"
-                },
-                "content_type": {
-                    "type": "string"
-                },
-                "from_me": {
-                    "type": "boolean"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "match_score": {
-                    "type": "number"
-                },
-                "text": {
-                    "type": "string"
-                },
-                "timestamp": {
-                    "type": "string"
-                }
-            }
-        },
-        "github_com_caloi_ventros-crm_internal_application_queries.NoteDTO": {
-            "type": "object",
-            "properties": {
-                "author_id": {
-                    "type": "string"
-                },
-                "author_name": {
-                    "type": "string"
-                },
-                "author_type": {
-                    "type": "string"
-                },
-                "contact_id": {
-                    "type": "string"
-                },
-                "content": {
-                    "type": "string"
-                },
-                "created_at": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "note_type": {
-                    "type": "string"
-                },
-                "pinned": {
-                    "type": "boolean"
-                },
-                "priority": {
-                    "type": "string"
-                },
-                "session_id": {
-                    "type": "string"
-                },
-                "tags": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "updated_at": {
-                    "type": "string"
-                },
-                "visible_to_client": {
-                    "type": "boolean"
-                }
-            }
-        },
-        "github_com_caloi_ventros-crm_internal_application_queries.NoteSearchResultDTO": {
-            "type": "object",
-            "properties": {
-                "author_name": {
-                    "type": "string"
-                },
-                "contact_id": {
-                    "type": "string"
-                },
-                "content": {
-                    "type": "string"
-                },
-                "created_at": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "match_field": {
-                    "type": "string"
-                },
-                "match_score": {
-                    "type": "number"
-                },
-                "note_type": {
-                    "type": "string"
-                },
-                "pinned": {
-                    "type": "boolean"
-                },
-                "priority": {
-                    "type": "string"
-                }
-            }
-        },
-        "github_com_caloi_ventros-crm_internal_application_queries.PipelineDTO": {
-            "type": "object",
-            "properties": {
-                "active": {
-                    "type": "boolean"
-                },
-                "color": {
-                    "type": "string"
-                },
-                "created_at": {
-                    "type": "string"
-                },
-                "description": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "position": {
-                    "type": "integer"
-                },
-                "project_id": {
-                    "type": "string"
-                },
-                "session_timeout_minutes": {
-                    "type": "integer"
-                },
-                "updated_at": {
-                    "type": "string"
-                }
-            }
-        },
-        "github_com_caloi_ventros-crm_internal_application_queries.PipelineSearchResultDTO": {
-            "type": "object",
-            "properties": {
-                "active": {
-                    "type": "boolean"
-                },
-                "color": {
-                    "type": "string"
-                },
-                "description": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "match_field": {
-                    "type": "string"
-                },
-                "match_score": {
-                    "type": "number"
-                },
-                "name": {
-                    "type": "string"
-                }
-            }
-        },
-        "github_com_caloi_ventros-crm_internal_application_queries.ProjectDTO": {
-            "type": "object",
-            "properties": {
-                "active": {
-                    "type": "boolean"
-                },
-                "billing_account_id": {
-                    "type": "string"
-                },
-                "configuration": {
-                    "type": "object",
-                    "additionalProperties": true
-                },
-                "created_at": {
-                    "type": "string"
-                },
-                "customer_id": {
-                    "type": "string"
-                },
-                "description": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "session_timeout_minutes": {
-                    "type": "integer"
-                },
-                "updated_at": {
-                    "type": "string"
-                }
-            }
-        },
-        "github_com_caloi_ventros-crm_internal_application_queries.ProjectSearchResultDTO": {
-            "type": "object",
-            "properties": {
-                "active": {
-                    "type": "boolean"
-                },
-                "description": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "match_field": {
-                    "type": "string"
-                },
-                "match_score": {
-                    "type": "number"
-                },
-                "name": {
-                    "type": "string"
-                }
-            }
-        },
-        "github_com_caloi_ventros-crm_internal_application_queries.SearchAgentsResponse": {
-            "type": "object",
-            "properties": {
-                "agents": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/github_com_caloi_ventros-crm_internal_application_queries.AgentSearchResultDTO"
-                    }
-                },
-                "count": {
-                    "type": "integer"
-                }
-            }
-        },
-        "github_com_caloi_ventros-crm_internal_application_queries.SearchMessagesResponse": {
-            "type": "object",
-            "properties": {
-                "count": {
-                    "type": "integer"
-                },
-                "messages": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/github_com_caloi_ventros-crm_internal_application_queries.MessageSearchResultDTO"
-                    }
-                }
-            }
-        },
-        "github_com_caloi_ventros-crm_internal_application_queries.SearchNotesResponse": {
-            "type": "object",
-            "properties": {
-                "count": {
-                    "type": "integer"
-                },
-                "notes": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/github_com_caloi_ventros-crm_internal_application_queries.NoteSearchResultDTO"
-                    }
-                }
-            }
-        },
-        "github_com_caloi_ventros-crm_internal_application_queries.SearchPipelinesResponse": {
-            "type": "object",
-            "properties": {
-                "count": {
-                    "type": "integer"
-                },
-                "pipelines": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/github_com_caloi_ventros-crm_internal_application_queries.PipelineSearchResultDTO"
-                    }
-                }
-            }
-        },
-        "github_com_caloi_ventros-crm_internal_application_queries.SearchProjectsResponse": {
-            "type": "object",
-            "properties": {
-                "count": {
-                    "type": "integer"
-                },
-                "projects": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/github_com_caloi_ventros-crm_internal_application_queries.ProjectSearchResultDTO"
-                    }
-                }
-            }
-        },
-        "github_com_caloi_ventros-crm_internal_application_queries.SearchSessionsResponse": {
-            "type": "object",
-            "properties": {
-                "count": {
-                    "type": "integer"
-                },
-                "sessions": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/github_com_caloi_ventros-crm_internal_application_queries.SessionSearchResultDTO"
-                    }
-                }
-            }
-        },
-        "github_com_caloi_ventros-crm_internal_application_queries.SessionDTO": {
-            "type": "object",
-            "properties": {
-                "contact_id": {
-                    "type": "string"
-                },
-                "converted": {
-                    "type": "boolean"
-                },
-                "duration_seconds": {
-                    "type": "integer"
-                },
-                "ended_at": {
-                    "type": "string"
-                },
-                "escalated": {
-                    "type": "boolean"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "message_count": {
-                    "type": "integer"
-                },
-                "messages_from_agent": {
-                    "type": "integer"
-                },
-                "messages_from_contact": {
-                    "type": "integer"
-                },
-                "outcome_tags": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "pipeline_id": {
-                    "type": "string"
-                },
-                "resolved": {
-                    "type": "boolean"
-                },
-                "sentiment": {
-                    "type": "string"
-                },
-                "started_at": {
-                    "type": "string"
-                },
-                "status": {
-                    "type": "string"
-                },
-                "summary": {
-                    "type": "string"
-                },
-                "topics": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                }
-            }
-        },
-        "github_com_caloi_ventros-crm_internal_application_queries.SessionSearchResultDTO": {
-            "type": "object",
-            "properties": {
-                "contact_id": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "match_field": {
-                    "type": "string"
-                },
-                "match_score": {
-                    "type": "number"
-                },
-                "message_count": {
-                    "type": "integer"
-                },
-                "started_at": {
-                    "type": "string"
-                },
-                "status": {
-                    "type": "string"
-                },
-                "summary": {
-                    "type": "string"
-                },
-                "topics": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                }
-            }
-        },
-        "github_com_caloi_ventros-crm_internal_application_tracking.DecodeTrackingRequest": {
-            "type": "object",
-            "required": [
-                "message"
-            ],
-            "properties": {
-                "message": {
-                    "type": "string"
-                }
-            }
-        },
-        "github_com_caloi_ventros-crm_internal_application_tracking.DecodeTrackingResponse": {
-            "type": "object",
-            "properties": {
-                "analysis": {
-                    "type": "object",
-                    "additionalProperties": true
-                },
-                "clean_message": {
-                    "type": "string"
-                },
-                "confidence": {
-                    "type": "string"
-                },
-                "decoded_decimal": {
-                    "type": "integer"
-                },
-                "decoded_ternary": {
-                    "type": "string"
-                },
-                "error": {
-                    "type": "string"
-                },
-                "original_message": {
-                    "type": "string"
-                },
-                "success": {
-                    "type": "boolean"
-                }
-            }
-        },
-        "github_com_caloi_ventros-crm_internal_application_tracking.EncodeTrackingRequest": {
-            "type": "object",
-            "required": [
-                "message",
-                "tracking_id"
-            ],
-            "properties": {
-                "message": {
-                    "type": "string"
-                },
-                "phone": {
-                    "type": "string"
-                },
-                "tracking_id": {
-                    "type": "integer"
-                }
-            }
-        },
-        "github_com_caloi_ventros-crm_internal_application_tracking.EncodeTrackingResponse": {
-            "type": "object",
-            "properties": {
-                "debug": {
-                    "type": "object",
-                    "additionalProperties": true
-                },
-                "decimal_value": {
-                    "type": "integer"
-                },
-                "invisible_code": {
-                    "type": "string"
-                },
-                "message_with_code": {
-                    "type": "string"
-                },
-                "original_message": {
-                    "type": "string"
-                },
-                "phone": {
-                    "type": "string"
-                },
-                "success": {
-                    "type": "boolean"
-                },
-                "ternary_encoded": {
-                    "type": "string"
-                },
-                "tracking_id": {
-                    "type": "integer"
-                },
-                "whatsapp_link": {
-                    "type": "string"
-                }
-            }
-        },
-        "github_com_caloi_ventros-crm_internal_application_tracking.TrackingDTO": {
-            "type": "object",
-            "properties": {
-                "ad_id": {
-                    "type": "string"
-                },
-                "ad_url": {
-                    "type": "string"
-                },
-                "campaign": {
-                    "type": "string"
-                },
-                "click_id": {
-                    "type": "string"
-                },
-                "contact_id": {
-                    "type": "string"
-                },
-                "conversion_data": {
-                    "type": "string"
-                },
-                "created_at": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "metadata": {
-                    "type": "object",
-                    "additionalProperties": true
-                },
-                "platform": {
-                    "type": "string"
-                },
-                "project_id": {
-                    "type": "string"
-                },
-                "session_id": {
-                    "type": "string"
-                },
-                "source": {
-                    "type": "string"
-                },
-                "tenant_id": {
-                    "type": "string"
-                },
-                "updated_at": {
-                    "type": "string"
-                },
-                "utm_campaign": {
-                    "type": "string"
-                },
-                "utm_content": {
-                    "type": "string"
-                },
-                "utm_medium": {
-                    "type": "string"
-                },
-                "utm_source": {
-                    "type": "string"
-                },
-                "utm_term": {
-                    "type": "string"
-                }
-            }
-        },
-        "github_com_caloi_ventros-crm_internal_domain_pipeline.StatusType": {
-            "type": "string",
-            "enum": [
-                "open",
-                "active",
-                "closed"
-            ],
-            "x-enum-varnames": [
-                "StatusTypeOpen",
-                "StatusTypeActive",
-                "StatusTypeClosed"
-            ]
-        },
-        "infrastructure_http_handlers.AddParticipantRequest": {
+        "handlers.AddParticipantRequest": {
             "type": "object",
             "required": [
                 "participant_id",
@@ -8195,7 +8129,7 @@ const docTemplate = `{
                 }
             }
         },
-        "infrastructure_http_handlers.ChangeContactStatusRequest": {
+        "handlers.ChangeContactStatusRequest": {
             "type": "object",
             "required": [
                 "status_id"
@@ -8214,7 +8148,7 @@ const docTemplate = `{
                 }
             }
         },
-        "infrastructure_http_handlers.ChangePipelineStatusRequest": {
+        "handlers.ChangePipelineStatusRequest": {
             "type": "object",
             "required": [
                 "status_id"
@@ -8228,7 +8162,7 @@ const docTemplate = `{
                 }
             }
         },
-        "infrastructure_http_handlers.CloseSessionRequest": {
+        "handlers.CloseSessionRequest": {
             "type": "object",
             "required": [
                 "reason"
@@ -8243,7 +8177,7 @@ const docTemplate = `{
                 }
             }
         },
-        "infrastructure_http_handlers.ConfigureWebhookRequest": {
+        "handlers.ConfigureWebhookRequest": {
             "type": "object",
             "properties": {
                 "base_url": {
@@ -8252,7 +8186,7 @@ const docTemplate = `{
                 }
             }
         },
-        "infrastructure_http_handlers.ConfirmMessageDeliveryRequest": {
+        "handlers.ConfirmMessageDeliveryRequest": {
             "type": "object",
             "required": [
                 "external_id",
@@ -8284,7 +8218,7 @@ const docTemplate = `{
                 }
             }
         },
-        "infrastructure_http_handlers.CreateAgentRequest": {
+        "handlers.CreateAgentRequest": {
             "type": "object",
             "required": [
                 "email",
@@ -8342,7 +8276,79 @@ const docTemplate = `{
                 }
             }
         },
-        "infrastructure_http_handlers.CreateChannelRequest": {
+        "handlers.CreateAutomationRequest": {
+            "type": "object",
+            "required": [
+                "actions",
+                "automation_type",
+                "name",
+                "trigger"
+            ],
+            "properties": {
+                "actions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/pipeline.RuleAction"
+                    }
+                },
+                "automation_type": {
+                    "type": "string",
+                    "example": "event"
+                },
+                "conditions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/pipeline.RuleCondition"
+                    }
+                },
+                "description": {
+                    "type": "string",
+                    "example": "Automatically send welcome message to new contacts"
+                },
+                "enabled": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "name": {
+                    "type": "string",
+                    "example": "Send welcome message"
+                },
+                "pipeline_id": {
+                    "type": "string"
+                },
+                "priority": {
+                    "type": "integer",
+                    "example": 10
+                },
+                "trigger": {
+                    "type": "string",
+                    "example": "contact.created"
+                }
+            }
+        },
+        "handlers.CreateBroadcastRequest": {
+            "type": "object",
+            "required": [
+                "list_id",
+                "message_template",
+                "name"
+            ],
+            "properties": {
+                "list_id": {
+                    "type": "string"
+                },
+                "message_template": {
+                    "$ref": "#/definitions/handlers.MessageTemplateRequest"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "rate_limit": {
+                    "type": "integer"
+                }
+            }
+        },
+        "handlers.CreateChannelRequest": {
             "type": "object",
             "required": [
                 "name",
@@ -8370,11 +8376,11 @@ const docTemplate = `{
                     "example": "waha"
                 },
                 "waha_config": {
-                    "$ref": "#/definitions/infrastructure_http_handlers.CreateWAHAConfigRequest"
+                    "$ref": "#/definitions/handlers.CreateWAHAConfigRequest"
                 }
             }
         },
-        "infrastructure_http_handlers.CreateChatRequest": {
+        "handlers.CreateChatRequest": {
             "type": "object",
             "required": [
                 "chat_type"
@@ -8396,7 +8402,7 @@ const docTemplate = `{
                 }
             }
         },
-        "infrastructure_http_handlers.CreateContactRequest": {
+        "handlers.CreateContactRequest": {
             "type": "object",
             "required": [
                 "name"
@@ -8451,7 +8457,7 @@ const docTemplate = `{
                 }
             }
         },
-        "infrastructure_http_handlers.CreateMessageRequest": {
+        "handlers.CreateMessageRequest": {
             "type": "object",
             "required": [
                 "channel_type_id",
@@ -8500,7 +8506,7 @@ const docTemplate = `{
                 }
             }
         },
-        "infrastructure_http_handlers.CreatePipelineRequest": {
+        "handlers.CreatePipelineRequest": {
             "type": "object",
             "required": [
                 "name"
@@ -8524,7 +8530,7 @@ const docTemplate = `{
                 }
             }
         },
-        "infrastructure_http_handlers.CreateProjectRequest": {
+        "handlers.CreateProjectRequest": {
             "type": "object",
             "required": [
                 "name",
@@ -8545,7 +8551,7 @@ const docTemplate = `{
                 }
             }
         },
-        "infrastructure_http_handlers.CreateStatusRequest": {
+        "handlers.CreateStatusRequest": {
             "type": "object",
             "required": [
                 "name",
@@ -8571,14 +8577,14 @@ const docTemplate = `{
                 "status_type": {
                     "allOf": [
                         {
-                            "$ref": "#/definitions/github_com_caloi_ventros-crm_internal_domain_pipeline.StatusType"
+                            "$ref": "#/definitions/pipeline.StatusType"
                         }
                     ],
                     "example": "open"
                 }
             }
         },
-        "infrastructure_http_handlers.CreateTrackingRequest": {
+        "handlers.CreateTrackingRequest": {
             "type": "object",
             "required": [
                 "contact_id",
@@ -8640,7 +8646,7 @@ const docTemplate = `{
                 }
             }
         },
-        "infrastructure_http_handlers.CreateUserRequest": {
+        "handlers.CreateUserRequest": {
             "type": "object",
             "required": [
                 "email",
@@ -8666,7 +8672,7 @@ const docTemplate = `{
                 }
             }
         },
-        "infrastructure_http_handlers.CreateWAHAConfigRequest": {
+        "handlers.CreateWAHAConfigRequest": {
             "type": "object",
             "required": [
                 "base_url"
@@ -8694,7 +8700,7 @@ const docTemplate = `{
                 }
             }
         },
-        "infrastructure_http_handlers.CreateWebhookRequest": {
+        "handlers.CreateWebhookRequest": {
             "type": "object",
             "required": [
                 "events",
@@ -8744,7 +8750,7 @@ const docTemplate = `{
                 }
             }
         },
-        "infrastructure_http_handlers.EnumValue": {
+        "handlers.EnumValue": {
             "type": "object",
             "properties": {
                 "description": {
@@ -8761,7 +8767,7 @@ const docTemplate = `{
                 }
             }
         },
-        "infrastructure_http_handlers.GenerateAPIKeyRequest": {
+        "handlers.GenerateAPIKeyRequest": {
             "type": "object",
             "properties": {
                 "name": {
@@ -8770,13 +8776,13 @@ const docTemplate = `{
                 }
             }
         },
-        "infrastructure_http_handlers.HealthResponse": {
+        "handlers.HealthResponse": {
             "type": "object",
             "properties": {
                 "dependencies": {
                     "type": "object",
                     "additionalProperties": {
-                        "$ref": "#/definitions/github_com_caloi_ventros-crm_infrastructure_health.CheckResult"
+                        "$ref": "#/definitions/health.CheckResult"
                     }
                 },
                 "service": {
@@ -8797,7 +8803,7 @@ const docTemplate = `{
                 }
             }
         },
-        "infrastructure_http_handlers.ImportWAHAHistoryRequest": {
+        "handlers.ImportWAHAHistoryRequest": {
             "type": "object",
             "properties": {
                 "limit": {
@@ -8810,7 +8816,7 @@ const docTemplate = `{
                 }
             }
         },
-        "infrastructure_http_handlers.LoginRequest": {
+        "handlers.LoginRequest": {
             "type": "object",
             "required": [
                 "email",
@@ -8827,7 +8833,33 @@ const docTemplate = `{
                 }
             }
         },
-        "infrastructure_http_handlers.PlatformCompatibilityInfo": {
+        "handlers.MessageTemplateRequest": {
+            "type": "object",
+            "required": [
+                "type"
+            ],
+            "properties": {
+                "content": {
+                    "type": "string"
+                },
+                "media_url": {
+                    "type": "string"
+                },
+                "template_id": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                },
+                "variables": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "handlers.PlatformCompatibilityInfo": {
             "type": "object",
             "properties": {
                 "description": {
@@ -8841,7 +8873,18 @@ const docTemplate = `{
                 }
             }
         },
-        "infrastructure_http_handlers.SendMessageRequest": {
+        "handlers.ScheduleBroadcastRequest": {
+            "type": "object",
+            "required": [
+                "scheduled_for"
+            ],
+            "properties": {
+                "scheduled_for": {
+                    "type": "string"
+                }
+            }
+        },
+        "handlers.SendMessageRequest": {
             "type": "object",
             "required": [
                 "channel_id",
@@ -8878,7 +8921,7 @@ const docTemplate = `{
                 }
             }
         },
-        "infrastructure_http_handlers.SendMessageResponse": {
+        "handlers.SendMessageResponse": {
             "type": "object",
             "properties": {
                 "error": {
@@ -8902,7 +8945,7 @@ const docTemplate = `{
                 }
             }
         },
-        "infrastructure_http_handlers.TestQRCodeRequest": {
+        "handlers.TestQRCodeRequest": {
             "type": "object",
             "required": [
                 "channel_name",
@@ -8919,7 +8962,7 @@ const docTemplate = `{
                 }
             }
         },
-        "infrastructure_http_handlers.TestWAHARequest": {
+        "handlers.TestWAHARequest": {
             "type": "object",
             "required": [
                 "base_url"
@@ -8935,66 +8978,66 @@ const docTemplate = `{
                 }
             }
         },
-        "infrastructure_http_handlers.TrackingEnumsResponse": {
+        "handlers.TrackingEnumsResponse": {
             "type": "object",
             "properties": {
                 "creative_formats": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/infrastructure_http_handlers.EnumValue"
+                        "$ref": "#/definitions/handlers.EnumValue"
                     }
                 },
                 "google_sources": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/infrastructure_http_handlers.EnumValue"
+                        "$ref": "#/definitions/handlers.EnumValue"
                     }
                 },
                 "marketing_tactics": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/infrastructure_http_handlers.EnumValue"
+                        "$ref": "#/definitions/handlers.EnumValue"
                     }
                 },
                 "mediums": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/infrastructure_http_handlers.EnumValue"
+                        "$ref": "#/definitions/handlers.EnumValue"
                     }
                 },
                 "meta_sources": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/infrastructure_http_handlers.EnumValue"
+                        "$ref": "#/definitions/handlers.EnumValue"
                     }
                 },
                 "mkt_direto_sources": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/infrastructure_http_handlers.EnumValue"
+                        "$ref": "#/definitions/handlers.EnumValue"
                     }
                 },
                 "offline_sources": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/infrastructure_http_handlers.EnumValue"
+                        "$ref": "#/definitions/handlers.EnumValue"
                     }
                 },
                 "platform_compatibility": {
                     "type": "object",
                     "additionalProperties": {
-                        "$ref": "#/definitions/infrastructure_http_handlers.PlatformCompatibilityInfo"
+                        "$ref": "#/definitions/handlers.PlatformCompatibilityInfo"
                     }
                 },
                 "platforms": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/infrastructure_http_handlers.EnumValue"
+                        "$ref": "#/definitions/handlers.EnumValue"
                     }
                 }
             }
         },
-        "infrastructure_http_handlers.UpdateAgentRequest": {
+        "handlers.UpdateAgentRequest": {
             "type": "object",
             "properties": {
                 "active": {
@@ -9032,7 +9075,50 @@ const docTemplate = `{
                 }
             }
         },
-        "infrastructure_http_handlers.UpdateContactRequest": {
+        "handlers.UpdateAutomationRequest": {
+            "type": "object",
+            "properties": {
+                "actions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/pipeline.RuleAction"
+                    }
+                },
+                "conditions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/pipeline.RuleCondition"
+                    }
+                },
+                "description": {
+                    "type": "string"
+                },
+                "enabled": {
+                    "type": "boolean"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "priority": {
+                    "type": "integer"
+                }
+            }
+        },
+        "handlers.UpdateBroadcastRequest": {
+            "type": "object",
+            "properties": {
+                "message_template": {
+                    "$ref": "#/definitions/handlers.MessageTemplateRequest"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "rate_limit": {
+                    "type": "integer"
+                }
+            }
+        },
+        "handlers.UpdateContactRequest": {
             "type": "object",
             "properties": {
                 "custom_fields": {
@@ -9070,7 +9156,7 @@ const docTemplate = `{
                 }
             }
         },
-        "infrastructure_http_handlers.UpdateMessageRequest": {
+        "handlers.UpdateMessageRequest": {
             "type": "object",
             "properties": {
                 "content": {
@@ -9091,7 +9177,7 @@ const docTemplate = `{
                 }
             }
         },
-        "infrastructure_http_handlers.UpdateProjectRequest": {
+        "handlers.UpdateProjectRequest": {
             "type": "object",
             "properties": {
                 "active": {
@@ -9105,7 +9191,7 @@ const docTemplate = `{
                 }
             }
         },
-        "infrastructure_http_handlers.UpdateSubjectRequest": {
+        "handlers.UpdateSubjectRequest": {
             "type": "object",
             "required": [
                 "subject"
@@ -9117,7 +9203,7 @@ const docTemplate = `{
                 }
             }
         },
-        "infrastructure_http_handlers.UpdateWebhookRequest": {
+        "handlers.UpdateWebhookRequest": {
             "type": "object",
             "properties": {
                 "active": {
@@ -9151,6 +9237,932 @@ const docTemplate = `{
                     "type": "string"
                 }
             }
+        },
+        "health.CheckResult": {
+            "type": "object",
+            "properties": {
+                "duration_ms": {
+                    "type": "integer",
+                    "example": 15
+                },
+                "message": {
+                    "type": "string",
+                    "example": "database is operational"
+                },
+                "metadata": {
+                    "type": "object",
+                    "additionalProperties": true
+                },
+                "status": {
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/health.Status"
+                        }
+                    ],
+                    "example": "healthy"
+                },
+                "timestamp": {
+                    "type": "string",
+                    "example": "2024-01-01T00:00:00Z"
+                }
+            }
+        },
+        "health.Status": {
+            "type": "string",
+            "enum": [
+                "healthy",
+                "degraded",
+                "unhealthy"
+            ],
+            "x-enum-varnames": [
+                "StatusHealthy",
+                "StatusDegraded",
+                "StatusUnhealthy"
+            ]
+        },
+        "pipeline.AutomationAction": {
+            "type": "string",
+            "enum": [
+                "send_message",
+                "send_template",
+                "change_pipeline_status",
+                "assign_agent",
+                "assign_to_queue",
+                "create_task",
+                "add_tag",
+                "remove_tag",
+                "update_custom_field",
+                "create_note",
+                "create_agent_report",
+                "send_webhook",
+                "trigger_workflow",
+                "notify_agent",
+                "notify_coordinator",
+                "send_email"
+            ],
+            "x-enum-varnames": [
+                "ActionSendMessage",
+                "ActionSendTemplate",
+                "ActionChangeStatus",
+                "ActionAssignAgent",
+                "ActionAssignToQueue",
+                "ActionCreateTask",
+                "ActionAddTag",
+                "ActionRemoveTag",
+                "ActionUpdateCustomField",
+                "ActionCreateNote",
+                "ActionCreateAgentReport",
+                "ActionSendWebhook",
+                "ActionTriggerWorkflow",
+                "ActionNotifyAgent",
+                "ActionNotifyCoordinator",
+                "ActionSendEmail"
+            ]
+        },
+        "pipeline.RuleAction": {
+            "type": "object",
+            "properties": {
+                "delay_minutes": {
+                    "type": "integer"
+                },
+                "params": {
+                    "type": "object",
+                    "additionalProperties": true
+                },
+                "type": {
+                    "$ref": "#/definitions/pipeline.AutomationAction"
+                }
+            }
+        },
+        "pipeline.RuleCondition": {
+            "type": "object",
+            "properties": {
+                "field": {
+                    "type": "string"
+                },
+                "operator": {
+                    "type": "string"
+                },
+                "value": {}
+            }
+        },
+        "pipeline.StatusType": {
+            "type": "string",
+            "enum": [
+                "open",
+                "active",
+                "closed"
+            ],
+            "x-enum-varnames": [
+                "StatusTypeOpen",
+                "StatusTypeActive",
+                "StatusTypeClosed"
+            ]
+        },
+        "queries.AgentDTO": {
+            "type": "object",
+            "properties": {
+                "active": {
+                    "type": "boolean"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "queries.AgentSearchResultDTO": {
+            "type": "object",
+            "properties": {
+                "active": {
+                    "type": "boolean"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "match_field": {
+                    "type": "string"
+                },
+                "match_score": {
+                    "type": "number"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "queries.ListAgentsResponse": {
+            "type": "object",
+            "properties": {
+                "agents": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/queries.AgentDTO"
+                    }
+                },
+                "limit": {
+                    "type": "integer"
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "totalCount": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "totalPages": {
+                    "type": "integer"
+                }
+            }
+        },
+        "queries.ListMessageDTO": {
+            "type": "object",
+            "properties": {
+                "agent_id": {
+                    "type": "string"
+                },
+                "channel_id": {
+                    "type": "string"
+                },
+                "contact_id": {
+                    "type": "string"
+                },
+                "content_type": {
+                    "type": "string"
+                },
+                "from_me": {
+                    "type": "boolean"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "media_url": {
+                    "type": "string"
+                },
+                "metadata": {
+                    "type": "object",
+                    "additionalProperties": true
+                },
+                "session_id": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "text": {
+                    "type": "string"
+                },
+                "timestamp": {
+                    "type": "string"
+                }
+            }
+        },
+        "queries.ListMessagesResponse": {
+            "type": "object",
+            "properties": {
+                "limit": {
+                    "type": "integer"
+                },
+                "messages": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/queries.ListMessageDTO"
+                    }
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "totalCount": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "totalPages": {
+                    "type": "integer"
+                }
+            }
+        },
+        "queries.ListNotesResponse": {
+            "type": "object",
+            "properties": {
+                "limit": {
+                    "type": "integer"
+                },
+                "notes": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/queries.NoteDTO"
+                    }
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "totalCount": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "totalPages": {
+                    "type": "integer"
+                }
+            }
+        },
+        "queries.ListPipelinesResponse": {
+            "type": "object",
+            "properties": {
+                "limit": {
+                    "type": "integer"
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "pipelines": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/queries.PipelineDTO"
+                    }
+                },
+                "totalCount": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "totalPages": {
+                    "type": "integer"
+                }
+            }
+        },
+        "queries.ListProjectsResponse": {
+            "type": "object",
+            "properties": {
+                "limit": {
+                    "type": "integer"
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "projects": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/queries.ProjectDTO"
+                    }
+                },
+                "totalCount": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "totalPages": {
+                    "type": "integer"
+                }
+            }
+        },
+        "queries.ListSessionsResponse": {
+            "type": "object",
+            "properties": {
+                "limit": {
+                    "type": "integer"
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "sessions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/queries.SessionDTO"
+                    }
+                },
+                "totalCount": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "totalPages": {
+                    "type": "integer"
+                }
+            }
+        },
+        "queries.MessageSearchResultDTO": {
+            "type": "object",
+            "properties": {
+                "contact_id": {
+                    "type": "string"
+                },
+                "content_type": {
+                    "type": "string"
+                },
+                "from_me": {
+                    "type": "boolean"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "match_score": {
+                    "type": "number"
+                },
+                "text": {
+                    "type": "string"
+                },
+                "timestamp": {
+                    "type": "string"
+                }
+            }
+        },
+        "queries.NoteDTO": {
+            "type": "object",
+            "properties": {
+                "author_id": {
+                    "type": "string"
+                },
+                "author_name": {
+                    "type": "string"
+                },
+                "author_type": {
+                    "type": "string"
+                },
+                "contact_id": {
+                    "type": "string"
+                },
+                "content": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "note_type": {
+                    "type": "string"
+                },
+                "pinned": {
+                    "type": "boolean"
+                },
+                "priority": {
+                    "type": "string"
+                },
+                "session_id": {
+                    "type": "string"
+                },
+                "tags": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "visible_to_client": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "queries.NoteSearchResultDTO": {
+            "type": "object",
+            "properties": {
+                "author_name": {
+                    "type": "string"
+                },
+                "contact_id": {
+                    "type": "string"
+                },
+                "content": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "match_field": {
+                    "type": "string"
+                },
+                "match_score": {
+                    "type": "number"
+                },
+                "note_type": {
+                    "type": "string"
+                },
+                "pinned": {
+                    "type": "boolean"
+                },
+                "priority": {
+                    "type": "string"
+                }
+            }
+        },
+        "queries.PipelineDTO": {
+            "type": "object",
+            "properties": {
+                "active": {
+                    "type": "boolean"
+                },
+                "color": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "position": {
+                    "type": "integer"
+                },
+                "project_id": {
+                    "type": "string"
+                },
+                "session_timeout_minutes": {
+                    "type": "integer"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "queries.PipelineSearchResultDTO": {
+            "type": "object",
+            "properties": {
+                "active": {
+                    "type": "boolean"
+                },
+                "color": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "match_field": {
+                    "type": "string"
+                },
+                "match_score": {
+                    "type": "number"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "queries.ProjectDTO": {
+            "type": "object",
+            "properties": {
+                "active": {
+                    "type": "boolean"
+                },
+                "billing_account_id": {
+                    "type": "string"
+                },
+                "configuration": {
+                    "type": "object",
+                    "additionalProperties": true
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "customer_id": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "session_timeout_minutes": {
+                    "type": "integer"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "queries.ProjectSearchResultDTO": {
+            "type": "object",
+            "properties": {
+                "active": {
+                    "type": "boolean"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "match_field": {
+                    "type": "string"
+                },
+                "match_score": {
+                    "type": "number"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "queries.SearchAgentsResponse": {
+            "type": "object",
+            "properties": {
+                "agents": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/queries.AgentSearchResultDTO"
+                    }
+                },
+                "count": {
+                    "type": "integer"
+                }
+            }
+        },
+        "queries.SearchMessagesResponse": {
+            "type": "object",
+            "properties": {
+                "count": {
+                    "type": "integer"
+                },
+                "messages": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/queries.MessageSearchResultDTO"
+                    }
+                }
+            }
+        },
+        "queries.SearchNotesResponse": {
+            "type": "object",
+            "properties": {
+                "count": {
+                    "type": "integer"
+                },
+                "notes": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/queries.NoteSearchResultDTO"
+                    }
+                }
+            }
+        },
+        "queries.SearchPipelinesResponse": {
+            "type": "object",
+            "properties": {
+                "count": {
+                    "type": "integer"
+                },
+                "pipelines": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/queries.PipelineSearchResultDTO"
+                    }
+                }
+            }
+        },
+        "queries.SearchProjectsResponse": {
+            "type": "object",
+            "properties": {
+                "count": {
+                    "type": "integer"
+                },
+                "projects": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/queries.ProjectSearchResultDTO"
+                    }
+                }
+            }
+        },
+        "queries.SearchSessionsResponse": {
+            "type": "object",
+            "properties": {
+                "count": {
+                    "type": "integer"
+                },
+                "sessions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/queries.SessionSearchResultDTO"
+                    }
+                }
+            }
+        },
+        "queries.SessionDTO": {
+            "type": "object",
+            "properties": {
+                "contact_id": {
+                    "type": "string"
+                },
+                "converted": {
+                    "type": "boolean"
+                },
+                "duration_seconds": {
+                    "type": "integer"
+                },
+                "ended_at": {
+                    "type": "string"
+                },
+                "escalated": {
+                    "type": "boolean"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "message_count": {
+                    "type": "integer"
+                },
+                "messages_from_agent": {
+                    "type": "integer"
+                },
+                "messages_from_contact": {
+                    "type": "integer"
+                },
+                "outcome_tags": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "pipeline_id": {
+                    "type": "string"
+                },
+                "resolved": {
+                    "type": "boolean"
+                },
+                "sentiment": {
+                    "type": "string"
+                },
+                "started_at": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "summary": {
+                    "type": "string"
+                },
+                "topics": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "queries.SessionSearchResultDTO": {
+            "type": "object",
+            "properties": {
+                "contact_id": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "match_field": {
+                    "type": "string"
+                },
+                "match_score": {
+                    "type": "number"
+                },
+                "message_count": {
+                    "type": "integer"
+                },
+                "started_at": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "summary": {
+                    "type": "string"
+                },
+                "topics": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "tracking.DecodeTrackingRequest": {
+            "type": "object",
+            "required": [
+                "message"
+            ],
+            "properties": {
+                "message": {
+                    "type": "string"
+                }
+            }
+        },
+        "tracking.DecodeTrackingResponse": {
+            "type": "object",
+            "properties": {
+                "analysis": {
+                    "type": "object",
+                    "additionalProperties": true
+                },
+                "clean_message": {
+                    "type": "string"
+                },
+                "confidence": {
+                    "type": "string"
+                },
+                "decoded_decimal": {
+                    "type": "integer"
+                },
+                "decoded_ternary": {
+                    "type": "string"
+                },
+                "error": {
+                    "type": "string"
+                },
+                "original_message": {
+                    "type": "string"
+                },
+                "success": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "tracking.EncodeTrackingRequest": {
+            "type": "object",
+            "required": [
+                "message",
+                "tracking_id"
+            ],
+            "properties": {
+                "message": {
+                    "type": "string"
+                },
+                "phone": {
+                    "type": "string"
+                },
+                "tracking_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "tracking.EncodeTrackingResponse": {
+            "type": "object",
+            "properties": {
+                "debug": {
+                    "type": "object",
+                    "additionalProperties": true
+                },
+                "decimal_value": {
+                    "type": "integer"
+                },
+                "invisible_code": {
+                    "type": "string"
+                },
+                "message_with_code": {
+                    "type": "string"
+                },
+                "original_message": {
+                    "type": "string"
+                },
+                "phone": {
+                    "type": "string"
+                },
+                "success": {
+                    "type": "boolean"
+                },
+                "ternary_encoded": {
+                    "type": "string"
+                },
+                "tracking_id": {
+                    "type": "integer"
+                },
+                "whatsapp_link": {
+                    "type": "string"
+                }
+            }
+        },
+        "tracking.TrackingDTO": {
+            "type": "object",
+            "properties": {
+                "ad_id": {
+                    "type": "string"
+                },
+                "ad_url": {
+                    "type": "string"
+                },
+                "campaign": {
+                    "type": "string"
+                },
+                "click_id": {
+                    "type": "string"
+                },
+                "contact_id": {
+                    "type": "string"
+                },
+                "conversion_data": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "metadata": {
+                    "type": "object",
+                    "additionalProperties": true
+                },
+                "platform": {
+                    "type": "string"
+                },
+                "project_id": {
+                    "type": "string"
+                },
+                "session_id": {
+                    "type": "string"
+                },
+                "source": {
+                    "type": "string"
+                },
+                "tenant_id": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "utm_campaign": {
+                    "type": "string"
+                },
+                "utm_content": {
+                    "type": "string"
+                },
+                "utm_medium": {
+                    "type": "string"
+                },
+                "utm_source": {
+                    "type": "string"
+                },
+                "utm_term": {
+                    "type": "string"
+                }
+            }
         }
     },
     "securityDefinitions": {
@@ -9172,7 +10184,7 @@ const docTemplate = `{
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
 	Version:          "1.0",
-	Host:             "localhost:8080",
+	Host:             "",
 	BasePath:         "/",
 	Schemes:          []string{"http", "https"},
 	Title:            "Ventros CRM API",

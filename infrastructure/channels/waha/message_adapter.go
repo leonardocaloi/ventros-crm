@@ -3,7 +3,7 @@ package waha
 import (
 	"fmt"
 
-	"github.com/caloi/ventros-crm/internal/domain/message"
+	"github.com/caloi/ventros-crm/internal/domain/crm/message"
 )
 
 // WAHAMessageEvent representa o evento completo que chega do WAHA via webhook/RabbitMQ.

@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/caloi/ventros-crm/infrastructure/http/dto"
-	"github.com/caloi/ventros-crm/internal/domain/pipeline"
+	"github.com/caloi/ventros-crm/internal/domain/crm/pipeline"
 	"github.com/gin-gonic/gin"
 )
 

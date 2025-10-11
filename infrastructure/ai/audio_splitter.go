@@ -14,10 +14,10 @@ import (
 
 // AudioSplitter quebra áudios/vídeos longos em partes menores usando ffmpeg
 type AudioSplitter struct {
-	logger       *zap.Logger
-	ffmpegPath   string
-	ffprobePath  string
-	tempDir      string
+	logger      *zap.Logger
+	ffmpegPath  string
+	ffprobePath string
+	tempDir     string
 }
 
 // NewAudioSplitter cria um novo splitter de áudio

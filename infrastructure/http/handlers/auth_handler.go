@@ -43,9 +43,9 @@ type GenerateAPIKeyRequest struct {
 
 // CreateUser creates a new user
 //
-//	@Summary		Create user
+//	@Summary		Criar Usuário
 //	@Description	Cria um novo usuário no sistema com projeto e pipeline default
-//	@Tags			auth
+//	@Tags			AUTH - Authentication
 //	@Accept			json
 //	@Produce		json
 //	@Param			user	body		CreateUserRequest		true	"User data"
@@ -91,9 +91,9 @@ func (h *AuthHandler) CreateUser(c *gin.Context) {
 
 // Login authenticates a user
 //
-//	@Summary		User login
+//	@Summary		Login
 //	@Description	Autentica um usuário e retorna API key
-//	@Tags			auth
+//	@Tags			AUTH - Authentication
 //	@Accept			json
 //	@Produce		json
 //	@Param			credentials	body		LoginRequest			true	"Login credentials"
@@ -135,9 +135,9 @@ func (h *AuthHandler) Login(c *gin.Context) {
 
 // GetProfile gets current user profile
 //
-//	@Summary		Get user profile
+//	@Summary		Obter Perfil
 //	@Description	Obtém o perfil do usuário autenticado
-//	@Tags			auth
+//	@Tags			AUTH - Authentication
 //	@Produce		json
 //	@Security		ApiKeyAuth
 //	@Success		200	{object}	map[string]interface{}	"User profile"
@@ -160,9 +160,9 @@ func (h *AuthHandler) GetProfile(c *gin.Context) {
 
 // GenerateAPIKey generates a new API key for the user
 //
-//	@Summary		Generate API key
+//	@Summary		Gerar API Key
 //	@Description	Gera uma nova API key para o usuário
-//	@Tags			auth
+//	@Tags			AUTH - Authentication
 //	@Accept			json
 //	@Produce		json
 //	@Security		ApiKeyAuth
@@ -196,9 +196,9 @@ func (h *AuthHandler) GenerateAPIKey(c *gin.Context) {
 
 // GetAuthInfo provides authentication information for development
 //
-//	@Summary		Get auth info
+//	@Summary		Informações de Autenticação
 //	@Description	Informações sobre autenticação para desenvolvimento
-//	@Tags			auth
+//	@Tags			AUTH - Authentication
 //	@Produce		json
 //	@Success		200	{object}	map[string]interface{}	"Auth information"
 //	@Router			/api/v1/auth/info [get]

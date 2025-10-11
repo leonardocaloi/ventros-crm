@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/caloi/ventros-crm/internal/domain/channel"
-	"github.com/caloi/ventros-crm/internal/domain/message"
-	"github.com/caloi/ventros-crm/internal/domain/message_group"
+	"github.com/caloi/ventros-crm/internal/domain/crm/channel"
+	"github.com/caloi/ventros-crm/internal/domain/crm/message"
+	"github.com/caloi/ventros-crm/internal/domain/crm/message_group"
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"

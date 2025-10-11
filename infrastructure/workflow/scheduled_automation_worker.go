@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/caloi/ventros-crm/internal/application/pipeline"
-	domainPipeline "github.com/caloi/ventros-crm/internal/domain/pipeline"
+	domainPipeline "github.com/caloi/ventros-crm/internal/domain/crm/pipeline"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
@@ -87,7 +87,7 @@ func (w *ScheduledRulesWorker) processScheduledRules(ctx context.Context) {
 	// next_execution <= now AND enabled = true AND trigger = 'scheduled'
 	var rules []scheduledRuleRow
 	err := w.db.WithContext(ctx).
-		Table("automation_rules").
+		Table("automations").
 		Where("trigger = ?", "scheduled").
 		Where("enabled = ?", true).
 		Where("next_execution IS NOT NULL").
@@ -204,7 +204,7 @@ func (w *ScheduledRulesWorker) executeScheduledRule(
 		)
 	}
 
-	if err := w.db.WithContext(ctx).Table("automation_rules").
+	if err := w.db.WithContext(ctx).Table("automations").
 		Where("id = ?", ruleRow.ID).
 		Updates(updates).Error; err != nil {
 		w.logger.Error("failed to update scheduled rule execution status",

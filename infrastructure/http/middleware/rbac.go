@@ -3,7 +3,7 @@ package middleware
 import (
 	"net/http"
 
-	"github.com/caloi/ventros-crm/internal/domain/user"
+	"github.com/caloi/ventros-crm/internal/domain/core/user"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 )

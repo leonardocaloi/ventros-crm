@@ -14,7 +14,7 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/caloi/ventros-crm/internal/domain/message_enrichment"
+	"github.com/caloi/ventros-crm/internal/domain/crm/message_enrichment"
 )
 
 // WhisperProvider implementa transcrição de áudio usando OpenAI Whisper API
@@ -112,15 +112,15 @@ func (p *WhisperProvider) SupportsContentType(contentType message_enrichment.Enr
 func (p *WhisperProvider) SupportsMimeType(mimeType string) bool {
 	supportedMimes := map[string]bool{
 		// Áudio formatos suportados pelo Whisper (até 25MB)
-		"audio/mpeg":     true, // .mp3
-		"audio/mp4":      true, // .m4a
-		"audio/wav":      true, // .wav
-		"audio/webm":     true, // .webm
-		"audio/ogg":      true, // .ogg (WhatsApp PTT)
-		"audio/flac":     true, // .flac
-		"audio/x-flac":   true, // .flac (alt)
-		"video/mp4":      true, // .mp4 (áudio extraído)
-		"video/mpeg":     true, // .mpeg (áudio extraído)
+		"audio/mpeg":   true, // .mp3
+		"audio/mp4":    true, // .m4a
+		"audio/wav":    true, // .wav
+		"audio/webm":   true, // .webm
+		"audio/ogg":    true, // .ogg (WhatsApp PTT)
+		"audio/flac":   true, // .flac
+		"audio/x-flac": true, // .flac (alt)
+		"video/mp4":    true, // .mp4 (áudio extraído)
+		"video/mpeg":   true, // .mpeg (áudio extraído)
 	}
 	return supportedMimes[mimeType]
 }
@@ -253,11 +253,11 @@ func (p *WhisperProvider) transcribeAudio(
 
 // WhisperResponse estrutura da resposta da API Whisper (verbose_json)
 type WhisperResponse struct {
-	Text     string            `json:"text"`
-	Language string            `json:"language"`
-	Duration float64           `json:"duration"`
-	Segments []WhisperSegment  `json:"segments,omitempty"`
-	Words    []WhisperWord     `json:"words,omitempty"`
+	Text     string           `json:"text"`
+	Language string           `json:"language"`
+	Duration float64          `json:"duration"`
+	Segments []WhisperSegment `json:"segments,omitempty"`
+	Words    []WhisperWord    `json:"words,omitempty"`
 }
 
 // WhisperSegment representa um segmento de transcrição

@@ -3,8 +3,10 @@ package contact
 import (
 	"context"
 	"errors"
+	"fmt"
 
-	"github.com/caloi/ventros-crm/internal/domain/contact"
+	"github.com/caloi/ventros-crm/internal/application/shared"
+	"github.com/caloi/ventros-crm/internal/domain/crm/contact"
 	"github.com/google/uuid"
 )
 
@@ -26,16 +28,19 @@ type CreateContactResult struct {
 type CreateContactUseCase struct {
 	contactRepo contact.Repository
 	eventBus    EventBus
+	txManager   shared.TransactionManager
 }
 
 // NewCreateContactUseCase cria uma nova instância.
 func NewCreateContactUseCase(
 	contactRepo contact.Repository,
 	eventBus EventBus,
+	txManager shared.TransactionManager,
 ) *CreateContactUseCase {
 	return &CreateContactUseCase{
 		contactRepo: contactRepo,
 		eventBus:    eventBus,
+		txManager:   txManager,
 	}
 }
 
@@ -72,7 +77,7 @@ func (uc *CreateContactUseCase) Execute(ctx context.Context, cmd CreateContactCo
 		}
 	}
 
-	// Verificar duplicatas
+	// Verificar duplicatas (FORA da transação - query read-only)
 	if cmd.Phone != nil {
 		existing, err := uc.contactRepo.FindByPhone(ctx, cmd.ProjectID, *cmd.Phone)
 		if err == nil && existing != nil {
@@ -80,21 +85,34 @@ func (uc *CreateContactUseCase) Execute(ctx context.Context, cmd CreateContactCo
 		}
 	}
 
-	// Persistir
-	if err := uc.contactRepo.Save(ctx, newContact); err != nil {
+	// ✅ TRANSAÇÃO ATÔMICA: Save + Publish juntos
+	// Se qualquer operação falhar, tudo é revertido (rollback)
+	var contactID uuid.UUID
+	err = uc.txManager.ExecuteInTransaction(ctx, func(txCtx context.Context) error {
+		// 1. Persistir contato (usa transação do contexto)
+		if err := uc.contactRepo.Save(txCtx, newContact); err != nil {
+			return fmt.Errorf("failed to save contact: %w", err)
+		}
+
+		// 2. Publicar eventos no outbox (usa mesma transação)
+		for _, event := range newContact.DomainEvents() {
+			if err := uc.eventBus.Publish(txCtx, event); err != nil {
+				return fmt.Errorf("failed to publish event %s: %w", event.EventName(), err)
+			}
+		}
+
+		contactID = newContact.ID()
+		return nil
+	})
+
+	if err != nil {
 		return nil, err
 	}
 
-	// Publicar eventos
-	for _, event := range newContact.DomainEvents() {
-		if err := uc.eventBus.Publish(ctx, event); err != nil {
-			// Log error
-		}
-	}
-
+	// Limpar eventos após sucesso
 	newContact.ClearEvents()
 
 	return &CreateContactResult{
-		ContactID: newContact.ID(),
+		ContactID: contactID,
 	}, nil
 }

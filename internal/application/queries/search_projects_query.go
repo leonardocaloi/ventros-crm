@@ -4,8 +4,8 @@ import (
 	"context"
 	"strings"
 
-	"github.com/caloi/ventros-crm/internal/domain/project"
-	"github.com/caloi/ventros-crm/internal/domain/shared"
+	"github.com/caloi/ventros-crm/internal/domain/core/project"
+	"github.com/caloi/ventros-crm/internal/domain/core/shared"
 	"go.uber.org/zap"
 )
 

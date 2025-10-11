@@ -13,8 +13,8 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/caloi/ventros-crm/internal/domain/message_enrichment"
-	"github.com/caloi/ventros-crm/internal/domain/shared"
+	"github.com/caloi/ventros-crm/internal/domain/core/shared"
+	"github.com/caloi/ventros-crm/internal/domain/crm/message_enrichment"
 )
 
 // LlamaParseProvider implementa OCR de documentos usando LlamaParse API
@@ -23,12 +23,12 @@ import (
 // Webhook: Resultado enviado via POST para webhook_url configurado
 // Segue princípios SOLID com dependency injection para mimetypes
 type LlamaParseProvider struct {
-	logger         *zap.Logger
-	apiKey         string
-	apiURL         string // https://api.cloud.llamaindex.ai/api/v1/parsing/upload
-	webhookURL     string // URL para receber resultado assíncrono (HTTPS obrigatório)
-	httpClient     *http.Client
-	mimeRegistry   shared.MimeTypeRegistry // Dependency injection (SOLID)
+	logger       *zap.Logger
+	apiKey       string
+	apiURL       string // https://api.cloud.llamaindex.ai/api/v1/parsing/upload
+	webhookURL   string // URL para receber resultado assíncrono (HTTPS obrigatório)
+	httpClient   *http.Client
+	mimeRegistry shared.MimeTypeRegistry // Dependency injection (SOLID)
 }
 
 // LlamaParseConfig configuração do LlamaParse provider
@@ -139,7 +139,7 @@ func (p *LlamaParseProvider) Name() string {
 func (p *LlamaParseProvider) SupportsContentType(contentType message_enrichment.EnrichmentContentType) bool {
 	return contentType == message_enrichment.EnrichmentTypeDocument ||
 		contentType == message_enrichment.EnrichmentTypeImage || // OCR de imagens
-		contentType == message_enrichment.EnrichmentTypeAudio    // Transcrição de áudio
+		contentType == message_enrichment.EnrichmentTypeAudio // Transcrição de áudio
 }
 
 // SupportsMimeType verifica se suporta o mime type usando registry injetado
@@ -278,14 +278,14 @@ type LlamaParseWebhookPayload struct {
 	Status string `json:"status"` // "SUCCESS" ou "ERROR"
 
 	// Resultado do parsing (em caso de sucesso)
-	Text     string             `json:"txt"`    // Texto bruto extraído
-	Markdown string             `json:"md"`     // Texto formatado em Markdown
-	Pages    []LlamaParsePage   `json:"pages"`  // Detalhes por página
+	Text     string               `json:"txt"`    // Texto bruto extraído
+	Markdown string               `json:"md"`     // Texto formatado em Markdown
+	Pages    []LlamaParsePage     `json:"pages"`  // Detalhes por página
 	Images   []LlamaParseImageRef `json:"images"` // Referências de imagens
 
 	// Metadata
 	ParsedAt time.Time              `json:"parsed_at"`
-	Error    string                 `json:"error,omitempty"`     // Mensagem de erro (se status=ERROR)
+	Error    string                 `json:"error,omitempty"` // Mensagem de erro (se status=ERROR)
 	Metadata map[string]interface{} `json:"metadata,omitempty"`
 }
 
