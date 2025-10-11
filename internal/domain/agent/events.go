@@ -7,10 +7,8 @@ import (
 	"github.com/google/uuid"
 )
 
-// DomainEvent é a interface base para eventos de domínio.
 type DomainEvent = shared.DomainEvent
 
-// AgentCreatedEvent - Agente criado no sistema.
 type AgentCreatedEvent struct {
 	shared.BaseEvent
 	AgentID  uuid.UUID
@@ -31,7 +29,6 @@ func NewAgentCreatedEvent(agentID uuid.UUID, tenantID, name, email string, role 
 	}
 }
 
-// AgentUpdatedEvent - Informações do agente atualizadas.
 type AgentUpdatedEvent struct {
 	shared.BaseEvent
 	AgentID uuid.UUID
@@ -46,7 +43,6 @@ func NewAgentUpdatedEvent(agentID uuid.UUID, changes map[string]interface{}) Age
 	}
 }
 
-// AgentActivatedEvent - Agente ativado.
 type AgentActivatedEvent struct {
 	shared.BaseEvent
 	AgentID uuid.UUID
@@ -59,7 +55,6 @@ func NewAgentActivatedEvent(agentID uuid.UUID) AgentActivatedEvent {
 	}
 }
 
-// AgentDeactivatedEvent - Agente desativado.
 type AgentDeactivatedEvent struct {
 	shared.BaseEvent
 	AgentID uuid.UUID
@@ -72,7 +67,6 @@ func NewAgentDeactivatedEvent(agentID uuid.UUID) AgentDeactivatedEvent {
 	}
 }
 
-// AgentLoggedInEvent - Agente fez login.
 type AgentLoggedInEvent struct {
 	shared.BaseEvent
 	AgentID uuid.UUID
@@ -85,7 +79,6 @@ func NewAgentLoggedInEvent(agentID uuid.UUID) AgentLoggedInEvent {
 	}
 }
 
-// AgentPermissionGrantedEvent - Permissão concedida ao agente.
 type AgentPermissionGrantedEvent struct {
 	shared.BaseEvent
 	AgentID    uuid.UUID
@@ -100,7 +93,6 @@ func NewAgentPermissionGrantedEvent(agentID uuid.UUID, permission string) AgentP
 	}
 }
 
-// AgentPermissionRevokedEvent - Permissão revogada do agente.
 type AgentPermissionRevokedEvent struct {
 	shared.BaseEvent
 	AgentID    uuid.UUID

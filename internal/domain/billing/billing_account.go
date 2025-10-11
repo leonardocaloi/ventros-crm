@@ -7,25 +7,22 @@ import (
 	"github.com/google/uuid"
 )
 
-// PaymentStatus representa o status de pagamento da conta
 type PaymentStatus string
 
 const (
-	PaymentStatusPending   PaymentStatus = "pending"   // Aguardando configuração de pagamento
-	PaymentStatusActive    PaymentStatus = "active"    // Pagamento configurado e verificado
-	PaymentStatusSuspended PaymentStatus = "suspended" // Suspensa por falta de pagamento
-	PaymentStatusCanceled  PaymentStatus = "canceled"  // Cancelada pelo usuário
+	PaymentStatusPending   PaymentStatus = "pending"
+	PaymentStatusActive    PaymentStatus = "active"
+	PaymentStatusSuspended PaymentStatus = "suspended"
+	PaymentStatusCanceled  PaymentStatus = "canceled"
 )
 
-// PaymentMethod representa o método de pagamento (fake por enquanto)
 type PaymentMethod struct {
-	Type       string // "credit_card", "boleto", "pix", etc
-	LastDigits string // Últimos 4 dígitos do cartão, etc
+	Type       string
+	LastDigits string
 	ExpiresAt  *time.Time
 	IsDefault  bool
 }
 
-// BillingAccount é o Aggregate Root para contas de faturamento
 type BillingAccount struct {
 	id               uuid.UUID
 	userID           uuid.UUID
@@ -51,7 +48,6 @@ var (
 	ErrPaymentNotActive = errors.New("payment method not active")
 )
 
-// NewBillingAccount cria uma nova conta de faturamento
 func NewBillingAccount(userID uuid.UUID, name, billingEmail string) (*BillingAccount, error) {
 	if userID == uuid.Nil {
 		return nil, ErrInvalidUserID
@@ -88,7 +84,6 @@ func NewBillingAccount(userID uuid.UUID, name, billingEmail string) (*BillingAcc
 	return account, nil
 }
 
-// ReconstructBillingAccount reconstrói uma conta de faturamento a partir de dados persistidos
 func ReconstructBillingAccount(
 	id uuid.UUID,
 	userID uuid.UUID,
@@ -122,9 +117,8 @@ func ReconstructBillingAccount(
 	}
 }
 
-// ActivatePayment ativa o método de pagamento (fake por enquanto)
 func (b *BillingAccount) ActivatePayment(method PaymentMethod) error {
-	// Check canceled first (more specific than suspended)
+
 	if b.paymentStatus == PaymentStatusCanceled {
 		return ErrAccountCanceled
 	}
@@ -132,12 +126,10 @@ func (b *BillingAccount) ActivatePayment(method PaymentMethod) error {
 		return ErrAccountSuspended
 	}
 
-	// Marca outros métodos como não-default
 	for i := range b.paymentMethods {
 		b.paymentMethods[i].IsDefault = false
 	}
 
-	// Adiciona novo método como default
 	method.IsDefault = true
 	b.paymentMethods = append(b.paymentMethods, method)
 	b.paymentStatus = PaymentStatusActive
@@ -152,7 +144,6 @@ func (b *BillingAccount) ActivatePayment(method PaymentMethod) error {
 	return nil
 }
 
-// Suspend suspende a conta de faturamento
 func (b *BillingAccount) Suspend(reason string) {
 	if !b.suspended {
 		now := time.Now()
@@ -170,7 +161,6 @@ func (b *BillingAccount) Suspend(reason string) {
 	}
 }
 
-// Reactivate reativa a conta suspensa
 func (b *BillingAccount) Reactivate() error {
 	if !b.suspended {
 		return nil
@@ -194,7 +184,6 @@ func (b *BillingAccount) Reactivate() error {
 	return nil
 }
 
-// Cancel cancela permanentemente a conta
 func (b *BillingAccount) Cancel() {
 	now := time.Now()
 	b.paymentStatus = PaymentStatusCanceled
@@ -209,7 +198,6 @@ func (b *BillingAccount) Cancel() {
 	})
 }
 
-// UpdateBillingEmail atualiza o email de faturamento
 func (b *BillingAccount) UpdateBillingEmail(email string) error {
 	if email == "" {
 		return ErrInvalidEmail
@@ -219,17 +207,14 @@ func (b *BillingAccount) UpdateBillingEmail(email string) error {
 	return nil
 }
 
-// CanCreateProject verifica se a conta pode criar projetos
 func (b *BillingAccount) CanCreateProject() bool {
 	return b.paymentStatus == PaymentStatusActive && !b.suspended
 }
 
-// IsActive verifica se a conta está ativa
 func (b *BillingAccount) IsActive() bool {
 	return b.paymentStatus == PaymentStatusActive && !b.suspended
 }
 
-// Getters
 func (b *BillingAccount) ID() uuid.UUID                { return b.id }
 func (b *BillingAccount) UserID() uuid.UUID            { return b.userID }
 func (b *BillingAccount) Name() string                 { return b.name }
@@ -244,7 +229,6 @@ func (b *BillingAccount) SuspensionReason() string { return b.suspensionReason }
 func (b *BillingAccount) CreatedAt() time.Time     { return b.createdAt }
 func (b *BillingAccount) UpdatedAt() time.Time     { return b.updatedAt }
 
-// Domain Events
 func (b *BillingAccount) DomainEvents() []DomainEvent {
 	return append([]DomainEvent{}, b.events...)
 }

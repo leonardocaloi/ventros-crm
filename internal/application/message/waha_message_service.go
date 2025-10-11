@@ -43,11 +43,7 @@ func (s *WAHAMessageService) ProcessWAHAMessage(ctx context.Context, event waha.
 	// 1. Validações iniciais
 	// ✅ NÃO ignora fromMe - deduplicação já foi feita no processor
 	// ✅ Processa todas as mensagens (fromMe será atribuída a agente device)
-
-	if event.Payload.Data.Info.IsGroup {
-		s.logger.Debug("Ignoring group message", zap.String("message_id", event.Payload.ID))
-		return nil
-	}
+	// ✅ ACEITA GRUPOS - processamento implementado
 
 	// 2. Buscar canal pelo ExternalID (WAHA session)
 	ch, err := s.channelRepo.GetByExternalID(event.Session)
@@ -66,17 +62,38 @@ func (s *WAHAMessageService) ProcessWAHAMessage(ctx context.Context, event waha.
 		return fmt.Errorf("failed to get channel type ID for '%s': %w", ch.Type, err)
 	}
 
-	// 5. Extrair dados da mensagem usando adapter
+	// 5. Detectar se é mensagem de grupo
+	isGroup := s.messageAdapter.IsGroupMessage(event)
+	var groupExternalID string
+	var participant string
+	var phone string
+
+	if isGroup {
+		// ✅ GRUPO: Extrai participant (quem ENVIOU) e ID do grupo
+		groupExternalID = s.messageAdapter.ExtractGroupID(event)
+		participant = s.messageAdapter.ExtractParticipant(event)
+		phone = participant // Em grupos, o contato é o participant
+
+		s.logger.Debug("Processing group message",
+			zap.String("group_id", groupExternalID),
+			zap.String("participant", participant),
+			zap.String("message_id", event.Payload.ID))
+	} else {
+		// ✅ 1:1: Usa from como contato
+		phone = s.messageAdapter.ExtractContactPhone(event)
+	}
+
+	// 6. Extrair dados da mensagem usando adapter
 	contentType, err := s.messageAdapter.ToContentType(event)
 	if err != nil {
 		return fmt.Errorf("unsupported content type: %w", err)
 	}
 
-	phone := s.messageAdapter.ExtractContactPhone(event)
 	text := s.messageAdapter.ExtractText(event)
 	mediaURL := s.messageAdapter.ExtractMediaURL(event)
 	mimetype := s.messageAdapter.ExtractMimeType(event)
 	tracking := s.messageAdapter.ExtractTrackingData(event)
+	mentions := s.messageAdapter.ExtractMentions(event) // ✅ Extrai menções
 
 	// 6. Converter tracking data para map[string]interface{}
 	trackingInterface := make(map[string]interface{})
@@ -130,6 +147,12 @@ func (s *WAHAMessageService) ProcessWAHAMessage(ctx context.Context, event waha.
 		ReceivedAt:    time.Unix(event.Payload.Timestamp/1000, 0), // Converter milliseconds para time.Time
 		Metadata:      metadata,
 		FromMe:        event.Payload.FromMe, // ✅ Indica se mensagem foi enviada pelo sistema
+		// ✅ Suporte a grupos e menções
+		IsGroupMessage:  isGroup,
+		GroupExternalID: groupExternalID,
+		Participant:     participant,
+		Mentions:        mentions,
+		ChatID:          nil, // Será preenchido no ProcessInboundMessageUseCase
 	}
 
 	// 8. Executar use case

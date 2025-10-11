@@ -6,14 +6,12 @@ import (
 	"sync"
 )
 
-// TriggerRegistry registra triggers disponíveis (system + custom)
 type TriggerRegistry struct {
 	mu             sync.RWMutex
 	systemTriggers map[string]TriggerMetadata
 	customTriggers map[string]TriggerMetadata
 }
 
-// TriggerMetadata metadados sobre um trigger
 type TriggerMetadata struct {
 	Code        string
 	Name        string
@@ -23,7 +21,6 @@ type TriggerMetadata struct {
 	Parameters  []TriggerParameter
 }
 
-// TriggerCategory categoria do trigger
 type TriggerCategory string
 
 const (
@@ -37,28 +34,24 @@ const (
 	CategoryWebhook     TriggerCategory = "webhook"
 )
 
-// TriggerParameter parâmetro que o trigger disponibiliza no contexto
 type TriggerParameter struct {
 	Name        string
-	Type        string // "string", "int", "float", "bool", "uuid"
+	Type        string
 	Description string
 	Example     string
 }
 
-// NewTriggerRegistry cria registry com triggers do sistema
 func NewTriggerRegistry() *TriggerRegistry {
 	registry := &TriggerRegistry{
 		systemTriggers: make(map[string]TriggerMetadata),
 		customTriggers: make(map[string]TriggerMetadata),
 	}
 
-	// Registra triggers do sistema
 	registry.registerSystemTriggers()
 
 	return registry
 }
 
-// registerSystemTriggers registra os 10 triggers hard-coded
 func (r *TriggerRegistry) registerSystemTriggers() {
 	systemTriggers := []TriggerMetadata{
 		{
@@ -302,22 +295,18 @@ func (r *TriggerRegistry) registerSystemTriggers() {
 	}
 }
 
-// RegisterCustomTrigger registra trigger customizado
 func (r *TriggerRegistry) RegisterCustomTrigger(trigger TriggerMetadata) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	// Valida
 	if trigger.Code == "" {
 		return errors.New("trigger code cannot be empty")
 	}
 
-	// Não pode sobrescrever trigger do sistema
 	if _, exists := r.systemTriggers[trigger.Code]; exists {
 		return fmt.Errorf("cannot override system trigger: %s", trigger.Code)
 	}
 
-	// Prefixo obrigatório para custom triggers
 	if len(trigger.Code) < 7 || trigger.Code[:7] != "custom." {
 		return errors.New("custom triggers must start with 'custom.' prefix")
 	}
@@ -329,12 +318,10 @@ func (r *TriggerRegistry) RegisterCustomTrigger(trigger TriggerMetadata) error {
 	return nil
 }
 
-// UnregisterCustomTrigger remove trigger customizado
 func (r *TriggerRegistry) UnregisterCustomTrigger(code string) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	// Não pode remover trigger do sistema
 	if _, exists := r.systemTriggers[code]; exists {
 		return errors.New("cannot unregister system trigger")
 	}
@@ -343,7 +330,6 @@ func (r *TriggerRegistry) UnregisterCustomTrigger(code string) error {
 	return nil
 }
 
-// IsValidTrigger verifica se trigger é válido (system ou custom)
 func (r *TriggerRegistry) IsValidTrigger(code string) bool {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
@@ -354,7 +340,6 @@ func (r *TriggerRegistry) IsValidTrigger(code string) bool {
 	return isSystem || isCustom
 }
 
-// GetTrigger busca metadados de um trigger
 func (r *TriggerRegistry) GetTrigger(code string) (TriggerMetadata, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
@@ -370,7 +355,6 @@ func (r *TriggerRegistry) GetTrigger(code string) (TriggerMetadata, error) {
 	return TriggerMetadata{}, fmt.Errorf("trigger not found: %s", code)
 }
 
-// ListSystemTriggers lista todos os triggers do sistema
 func (r *TriggerRegistry) ListSystemTriggers() []TriggerMetadata {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
@@ -382,7 +366,6 @@ func (r *TriggerRegistry) ListSystemTriggers() []TriggerMetadata {
 	return triggers
 }
 
-// ListCustomTriggers lista triggers customizados
 func (r *TriggerRegistry) ListCustomTriggers() []TriggerMetadata {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
@@ -394,7 +377,6 @@ func (r *TriggerRegistry) ListCustomTriggers() []TriggerMetadata {
 	return triggers
 }
 
-// ListAllTriggers lista todos (system + custom)
 func (r *TriggerRegistry) ListAllTriggers() []TriggerMetadata {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
@@ -412,7 +394,6 @@ func (r *TriggerRegistry) ListAllTriggers() []TriggerMetadata {
 	return triggers
 }
 
-// ListTriggersByCategory filtra por categoria
 func (r *TriggerRegistry) ListTriggersByCategory(category TriggerCategory) []TriggerMetadata {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
@@ -434,7 +415,6 @@ func (r *TriggerRegistry) ListTriggersByCategory(category TriggerCategory) []Tri
 	return triggers
 }
 
-// GetParametersForTrigger retorna parâmetros disponíveis para um trigger
 func (r *TriggerRegistry) GetParametersForTrigger(code string) ([]TriggerParameter, error) {
 	trigger, err := r.GetTrigger(code)
 	if err != nil {

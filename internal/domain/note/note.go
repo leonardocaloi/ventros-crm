@@ -7,42 +7,34 @@ import (
 	"github.com/google/uuid"
 )
 
-// Note representa uma anotação sobre um contato
 type Note struct {
 	id        uuid.UUID
 	contactID uuid.UUID
 	sessionID *uuid.UUID
 	tenantID  string
 
-	// Autoria
 	authorID   uuid.UUID
 	authorType AuthorType
 	authorName string
 
-	// Conteúdo
 	content  string
 	noteType NoteType
 	priority Priority
 
-	// Visibilidade
 	visibleToClient bool
 	pinned          bool
 
-	// Metadata
 	tags        []string
 	mentions    []uuid.UUID
 	attachments []string
 
-	// Timestamps
 	createdAt time.Time
 	updatedAt time.Time
 	deletedAt *time.Time
 
-	// Domain Events
 	events []DomainEvent
 }
 
-// AuthorType representa o tipo de autor da nota
 type AuthorType string
 
 const (
@@ -51,7 +43,6 @@ const (
 	AuthorTypeUser   AuthorType = "user"
 )
 
-// NoteType representa o tipo de nota
 type NoteType string
 
 const (
@@ -71,7 +62,6 @@ const (
 	NoteTypeTrackingInsight NoteType = "tracking_insight"
 )
 
-// Priority representa a prioridade da nota
 type Priority string
 
 const (
@@ -88,7 +78,6 @@ var (
 	ErrNoteNotFound   = errors.New("note not found")
 )
 
-// NewNote cria uma nova nota
 func NewNote(
 	contactID uuid.UUID,
 	tenantID string,
@@ -134,7 +123,6 @@ func NewNote(
 	return note, nil
 }
 
-// ReconstructNote reconstrói uma nota a partir de dados persistidos
 func ReconstructNote(
 	id uuid.UUID,
 	contactID uuid.UUID,
@@ -188,13 +176,11 @@ func ReconstructNote(
 	}
 }
 
-// AttachToSession associa a nota a uma sessão
 func (n *Note) AttachToSession(sessionID uuid.UUID) {
 	n.sessionID = &sessionID
 	n.updatedAt = time.Now()
 }
 
-// UpdateContent atualiza o conteúdo da nota
 func (n *Note) UpdateContent(content string, updatedBy uuid.UUID) error {
 	if content == "" {
 		return ErrEmptyContent
@@ -209,19 +195,16 @@ func (n *Note) UpdateContent(content string, updatedBy uuid.UUID) error {
 	return nil
 }
 
-// SetPriority define a prioridade da nota
 func (n *Note) SetPriority(priority Priority) {
 	n.priority = priority
 	n.updatedAt = time.Now()
 }
 
-// SetVisibility define se a nota é visível para o cliente
 func (n *Note) SetVisibility(visible bool) {
 	n.visibleToClient = visible
 	n.updatedAt = time.Now()
 }
 
-// Pin fixa a nota
 func (n *Note) Pin(pinnedBy uuid.UUID) {
 	if !n.pinned {
 		n.pinned = true
@@ -231,13 +214,11 @@ func (n *Note) Pin(pinnedBy uuid.UUID) {
 	}
 }
 
-// Unpin desfixa a nota
 func (n *Note) Unpin() {
 	n.pinned = false
 	n.updatedAt = time.Now()
 }
 
-// AddTag adiciona uma tag à nota
 func (n *Note) AddTag(tag string) {
 	if tag != "" {
 		n.tags = append(n.tags, tag)
@@ -245,7 +226,6 @@ func (n *Note) AddTag(tag string) {
 	}
 }
 
-// RemoveTag remove uma tag da nota
 func (n *Note) RemoveTag(tag string) {
 	for i, t := range n.tags {
 		if t == tag {
@@ -256,7 +236,6 @@ func (n *Note) RemoveTag(tag string) {
 	}
 }
 
-// MentionAgent menciona um agente na nota
 func (n *Note) MentionAgent(agentID uuid.UUID) {
 	if agentID != uuid.Nil {
 		n.mentions = append(n.mentions, agentID)
@@ -264,7 +243,6 @@ func (n *Note) MentionAgent(agentID uuid.UUID) {
 	}
 }
 
-// AddAttachment adiciona um anexo à nota
 func (n *Note) AddAttachment(url string) {
 	if url != "" {
 		n.attachments = append(n.attachments, url)
@@ -272,7 +250,6 @@ func (n *Note) AddAttachment(url string) {
 	}
 }
 
-// Delete marca a nota como deletada (soft delete)
 func (n *Note) Delete(deletedBy uuid.UUID) {
 	if n.deletedAt == nil {
 		now := time.Now()
@@ -283,12 +260,10 @@ func (n *Note) Delete(deletedBy uuid.UUID) {
 	}
 }
 
-// IsDeleted verifica se a nota foi deletada
 func (n *Note) IsDeleted() bool {
 	return n.deletedAt != nil
 }
 
-// Getters
 func (n *Note) ID() uuid.UUID          { return n.id }
 func (n *Note) ContactID() uuid.UUID   { return n.contactID }
 func (n *Note) SessionID() *uuid.UUID  { return n.sessionID }
@@ -308,12 +283,10 @@ func (n *Note) CreatedAt() time.Time   { return n.createdAt }
 func (n *Note) UpdatedAt() time.Time   { return n.updatedAt }
 func (n *Note) DeletedAt() *time.Time  { return n.deletedAt }
 
-// DomainEvents retorna os eventos de domínio
 func (n *Note) DomainEvents() []DomainEvent {
 	return append([]DomainEvent{}, n.events...)
 }
 
-// ClearEvents limpa os eventos
 func (n *Note) ClearEvents() {
 	n.events = []DomainEvent{}
 }
@@ -322,8 +295,6 @@ func (n *Note) addEvent(event DomainEvent) {
 	n.events = append(n.events, event)
 }
 
-// DomainEvent é um alias para shared.DomainEvent
-// Mantém compatibilidade com código legado
 type DomainEvent interface {
 	EventName() string
 	EventID() uuid.UUID

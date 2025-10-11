@@ -144,3 +144,106 @@ func (r *GormAgentRepository) entityToDomain(entity *entities.AgentEntity) *agen
 		nil, // LastLoginAt não existe na entity ainda
 	)
 }
+
+func (r *GormAgentRepository) FindByTenantWithFilters(ctx context.Context, filters agent.AgentFilters) ([]*agent.Agent, int64, error) {
+	query := r.db.WithContext(ctx).Model(&entities.AgentEntity{})
+
+	// Apply tenant filter (required)
+	query = query.Where("tenant_id = ?", filters.TenantID)
+
+	// Apply optional filters
+	if filters.ProjectID != nil {
+		query = query.Where("project_id = ?", *filters.ProjectID)
+	}
+	if filters.Type != nil {
+		query = query.Where("type = ?", string(*filters.Type))
+	}
+	if filters.Status != nil {
+		query = query.Where("status = ?", string(*filters.Status))
+	}
+	if filters.Active != nil {
+		query = query.Where("active = ?", *filters.Active)
+	}
+
+	// Count total results
+	var total int64
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	// Apply sorting
+	sortBy := "name"
+	if filters.SortBy != "" {
+		sortBy = filters.SortBy
+	}
+	sortOrder := "ASC"
+	if filters.SortOrder == "desc" {
+		sortOrder = "DESC"
+	}
+	query = query.Order(sortBy + " " + sortOrder)
+
+	// Apply pagination
+	if filters.Limit > 0 {
+		query = query.Limit(filters.Limit)
+	}
+	if filters.Offset > 0 {
+		query = query.Offset(filters.Offset)
+	}
+
+	// Execute query
+	var agentEntities []entities.AgentEntity
+	if err := query.Find(&agentEntities).Error; err != nil {
+		return nil, 0, err
+	}
+
+	// Convert to domain
+	agents := make([]*agent.Agent, len(agentEntities))
+	for i, entity := range agentEntities {
+		agents[i] = r.entityToDomain(&entity)
+	}
+
+	return agents, total, nil
+}
+
+func (r *GormAgentRepository) SearchByText(ctx context.Context, tenantID string, searchText string, limit int, offset int) ([]*agent.Agent, int64, error) {
+	query := r.db.WithContext(ctx).Model(&entities.AgentEntity{})
+
+	// Apply tenant filter
+	query = query.Where("tenant_id = ?", tenantID)
+
+	// Text search in name and email
+	searchPattern := "%" + searchText + "%"
+	query = query.Where(
+		r.db.Where("name ILIKE ?", searchPattern).
+			Or("email ILIKE ?", searchPattern),
+	)
+
+	// Count total results
+	var total int64
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	// Apply pagination and sorting
+	query = query.Order("name ASC")
+	if limit > 0 {
+		query = query.Limit(limit)
+	}
+	if offset > 0 {
+		query = query.Offset(offset)
+	}
+
+	// Execute query
+	var agentEntities []entities.AgentEntity
+	if err := query.Find(&agentEntities).Error; err != nil {
+		return nil, 0, err
+	}
+
+	// Convert to domain
+	agents := make([]*agent.Agent, len(agentEntities))
+	for i, entity := range agentEntities {
+		agents[i] = r.entityToDomain(&entity)
+	}
+
+	return agents, total, nil
+}

@@ -211,6 +211,106 @@ func (r *GormPipelineRepository) GetContactStatusHistory(ctx context.Context, co
 	return nil, errors.New("not implemented")
 }
 
+func (r *GormPipelineRepository) FindByTenantWithFilters(ctx context.Context, filters pipeline.PipelineFilters) ([]*pipeline.Pipeline, int64, error) {
+	query := r.db.WithContext(ctx).Model(&entities.PipelineEntity{})
+
+	// Apply tenant filter (required)
+	query = query.Where("tenant_id = ?", filters.TenantID)
+
+	// Apply optional filters
+	if filters.ProjectID != nil {
+		query = query.Where("project_id = ?", *filters.ProjectID)
+	}
+	if filters.Active != nil {
+		query = query.Where("active = ?", *filters.Active)
+	}
+	if filters.Color != nil {
+		query = query.Where("color = ?", *filters.Color)
+	}
+
+	// Count total results
+	var total int64
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	// Apply sorting
+	sortBy := "position"
+	if filters.SortBy != "" {
+		sortBy = filters.SortBy
+	}
+	sortOrder := "ASC"
+	if filters.SortOrder == "desc" {
+		sortOrder = "DESC"
+	}
+	query = query.Order(sortBy + " " + sortOrder)
+
+	// Apply pagination
+	if filters.Limit > 0 {
+		query = query.Limit(filters.Limit)
+	}
+	if filters.Offset > 0 {
+		query = query.Offset(filters.Offset)
+	}
+
+	// Execute query
+	var pipelineEntities []entities.PipelineEntity
+	if err := query.Find(&pipelineEntities).Error; err != nil {
+		return nil, 0, err
+	}
+
+	// Convert to domain
+	pipelines := make([]*pipeline.Pipeline, len(pipelineEntities))
+	for i, entity := range pipelineEntities {
+		pipelines[i] = r.pipelineEntityToDomain(&entity)
+	}
+
+	return pipelines, total, nil
+}
+
+func (r *GormPipelineRepository) SearchByText(ctx context.Context, tenantID string, searchText string, limit int, offset int) ([]*pipeline.Pipeline, int64, error) {
+	query := r.db.WithContext(ctx).Model(&entities.PipelineEntity{})
+
+	// Apply tenant filter
+	query = query.Where("tenant_id = ?", tenantID)
+
+	// Text search in name and description
+	searchPattern := "%" + searchText + "%"
+	query = query.Where(
+		r.db.Where("name ILIKE ?", searchPattern).
+			Or("description ILIKE ?", searchPattern),
+	)
+
+	// Count total results
+	var total int64
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	// Apply pagination and sorting
+	query = query.Order("position ASC")
+	if limit > 0 {
+		query = query.Limit(limit)
+	}
+	if offset > 0 {
+		query = query.Offset(offset)
+	}
+
+	// Execute query
+	var pipelineEntities []entities.PipelineEntity
+	if err := query.Find(&pipelineEntities).Error; err != nil {
+		return nil, 0, err
+	}
+
+	// Convert to domain
+	pipelines := make([]*pipeline.Pipeline, len(pipelineEntities))
+	for i, entity := range pipelineEntities {
+		pipelines[i] = r.pipelineEntityToDomain(&entity)
+	}
+
+	return pipelines, total, nil
+}
+
 // Mappers
 func (r *GormPipelineRepository) pipelineDomainToEntity(p *pipeline.Pipeline) *entities.PipelineEntity {
 	return &entities.PipelineEntity{
@@ -229,6 +329,7 @@ func (r *GormPipelineRepository) pipelineDomainToEntity(p *pipeline.Pipeline) *e
 }
 
 func (r *GormPipelineRepository) pipelineEntityToDomain(entity *entities.PipelineEntity) *pipeline.Pipeline {
+	// TODO: Load leadQualificationConfig from JSONB column when implemented
 	return pipeline.ReconstructPipeline(
 		entity.ID,
 		entity.ProjectID,
@@ -239,6 +340,7 @@ func (r *GormPipelineRepository) pipelineEntityToDomain(entity *entities.Pipelin
 		entity.Position,
 		entity.Active,
 		entity.SessionTimeoutMinutes,
+		nil, // leadQualificationConfig - TODO: parse from entity
 		entity.CreatedAt,
 		entity.UpdatedAt,
 	)

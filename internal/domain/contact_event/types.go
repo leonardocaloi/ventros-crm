@@ -1,6 +1,5 @@
 package contact_event
 
-// Priority representa a prioridade de entrega de um evento.
 type Priority string
 
 const (
@@ -10,7 +9,6 @@ const (
 	PriorityUrgent Priority = "urgent"
 )
 
-// IsValid verifica se a prioridade é válida.
 func (p Priority) IsValid() bool {
 	switch p {
 	case PriorityLow, PriorityNormal, PriorityHigh, PriorityUrgent:
@@ -20,12 +18,10 @@ func (p Priority) IsValid() bool {
 	}
 }
 
-// String retorna a representação em string da prioridade.
 func (p Priority) String() string {
 	return string(p)
 }
 
-// Category representa a categoria de um evento.
 type Category string
 
 const (
@@ -42,7 +38,6 @@ const (
 	CategoryTracking     Category = "tracking"
 )
 
-// IsValid verifica se a categoria é válida.
 func (c Category) IsValid() bool {
 	switch c {
 	case CategoryGeneral, CategoryStatus, CategoryPipeline,
@@ -55,12 +50,10 @@ func (c Category) IsValid() bool {
 	}
 }
 
-// String retorna a representação em string da categoria.
 func (c Category) String() string {
 	return string(c)
 }
 
-// Source representa a origem de um evento.
 type Source string
 
 const (
@@ -72,7 +65,6 @@ const (
 	SourceIntegration Source = "integration"
 )
 
-// IsValid verifica se a origem é válida.
 func (s Source) IsValid() bool {
 	switch s {
 	case SourceSystem, SourceAgent, SourceWebhook,
@@ -83,42 +75,33 @@ func (s Source) IsValid() bool {
 	}
 }
 
-// String retorna a representação em string da origem.
 func (s Source) String() string {
 	return string(s)
 }
 
-// Tipos de eventos comuns para ContactEvent
 const (
-	// Eventos de Status e Pipeline
 	EventTypeStatusChanged        = "status_changed"
 	EventTypeEnteredPipeline      = "entered_pipeline"
 	EventTypeExitedPipeline       = "exited_pipeline"
 	EventTypePipelineStageChanged = "pipeline_stage_changed"
 
-	// Eventos de Atribuição
 	EventTypeAgentAssigned    = "agent_assigned"
 	EventTypeAgentTransferred = "agent_transferred"
 	EventTypeAgentUnassigned  = "agent_unassigned"
 
-	// Eventos de Tags
 	EventTypeTagAdded   = "tag_added"
 	EventTypeTagRemoved = "tag_removed"
 
-	// Eventos de Notas e Anotações
 	EventTypeNoteAdded   = "note_added"
 	EventTypeNoteUpdated = "note_updated"
 	EventTypeNoteDeleted = "note_deleted"
 
-	// Eventos de Sessão
 	EventTypeSessionStarted = "session_started"
 	EventTypeSessionEnded   = "session_ended"
 
-	// Eventos de Campos Customizados
 	EventTypeCustomFieldSet     = "custom_field_set"
 	EventTypeCustomFieldCleared = "custom_field_cleared"
 
-	// Eventos de Sistema
 	EventTypeWebhookReceived  = "webhook_received"
 	EventTypeNotificationSent = "notification_sent"
 	EventTypeContactCreated   = "contact_created"

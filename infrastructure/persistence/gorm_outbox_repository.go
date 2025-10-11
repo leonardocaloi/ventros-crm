@@ -2,6 +2,7 @@ package persistence
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -23,6 +24,16 @@ func NewGormOutboxRepository(db *gorm.DB) *GormOutboxRepository {
 
 // Save persiste um evento no outbox.
 func (r *GormOutboxRepository) Save(ctx context.Context, event *outbox.OutboxEvent) error {
+	// Marshal metadata to JSON
+	var metadataJSON []byte
+	if event.Metadata != nil {
+		var err error
+		metadataJSON, err = json.Marshal(event.Metadata)
+		if err != nil {
+			return fmt.Errorf("failed to marshal metadata: %w", err)
+		}
+	}
+
 	entity := &entities.OutboxEventEntity{
 		EventID:       event.EventID,
 		AggregateID:   event.AggregateID,
@@ -30,6 +41,7 @@ func (r *GormOutboxRepository) Save(ctx context.Context, event *outbox.OutboxEve
 		EventType:     event.EventType,
 		EventVersion:  event.EventVersion,
 		EventData:     event.EventData,
+		Metadata:      metadataJSON,
 		TenantID:      event.TenantID,
 		ProjectID:     event.ProjectID,
 		CreatedAt:     event.CreatedAt,
@@ -182,10 +194,70 @@ func (r *GormOutboxRepository) CountFailed(ctx context.Context) (int64, error) {
 	return count, nil
 }
 
+// GetSagaEvents retorna todos os eventos de uma Saga específica pelo correlation_id.
+func (r *GormOutboxRepository) GetSagaEvents(ctx context.Context, correlationID string) ([]*outbox.OutboxEvent, error) {
+	var entities []entities.OutboxEventEntity
+
+	err := r.db.WithContext(ctx).
+		Where("metadata->>'correlation_id' = ?", correlationID).
+		Order("created_at ASC").
+		Find(&entities).Error
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to get saga events: %w", err)
+	}
+
+	return r.entitiesToDomain(entities), nil
+}
+
+// GetSagaStatus retorna o status agregado de uma Saga (status, total, completed, failed).
+func (r *GormOutboxRepository) GetSagaStatus(ctx context.Context, correlationID string) (string, int, int, error) {
+	type SagaStats struct {
+		Total     int
+		Processed int
+		Failed    int
+	}
+
+	var stats SagaStats
+
+	err := r.db.WithContext(ctx).
+		Model(&entities.OutboxEventEntity{}).
+		Select(`
+			COUNT(*) as total,
+			COUNT(*) FILTER (WHERE status = 'processed') as processed,
+			COUNT(*) FILTER (WHERE status = 'failed') as failed
+		`).
+		Where("metadata->>'correlation_id' = ?", correlationID).
+		Scan(&stats).Error
+
+	if err != nil {
+		return "", 0, 0, fmt.Errorf("failed to get saga status: %w", err)
+	}
+
+	// Determinar status geral da Saga
+	status := "in_progress"
+	if stats.Failed > 0 {
+		status = "failed"
+	} else if stats.Processed == stats.Total && stats.Total > 0 {
+		status = "completed"
+	}
+
+	return status, stats.Total, stats.Processed, nil
+}
+
 // entitiesToDomain converte entities para domain objects.
 func (r *GormOutboxRepository) entitiesToDomain(entities []entities.OutboxEventEntity) []*outbox.OutboxEvent {
 	events := make([]*outbox.OutboxEvent, len(entities))
 	for i, e := range entities {
+		// Unmarshal metadata from JSON
+		var metadata map[string]interface{}
+		if len(e.Metadata) > 0 {
+			if err := json.Unmarshal(e.Metadata, &metadata); err != nil {
+				// Log error but don't fail - metadata is optional
+				metadata = nil
+			}
+		}
+
 		events[i] = &outbox.OutboxEvent{
 			ID:            e.ID,
 			EventID:       e.EventID,
@@ -194,6 +266,7 @@ func (r *GormOutboxRepository) entitiesToDomain(entities []entities.OutboxEventE
 			EventType:     e.EventType,
 			EventVersion:  e.EventVersion,
 			EventData:     e.EventData,
+			Metadata:      metadata,
 			TenantID:      e.TenantID,
 			ProjectID:     e.ProjectID,
 			CreatedAt:     e.CreatedAt,

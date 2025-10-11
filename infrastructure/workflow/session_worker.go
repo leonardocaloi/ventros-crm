@@ -7,6 +7,7 @@ import (
 	"github.com/caloi/ventros-crm/internal/domain/session"
 	"github.com/caloi/ventros-crm/internal/domain/shared"
 	sessionworkflow "github.com/caloi/ventros-crm/internal/workflows/session"
+	"go.temporal.io/sdk/activity"
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/worker"
 	"go.uber.org/zap"
@@ -55,11 +56,10 @@ func (sw *SessionWorker) Start(ctx context.Context) error {
 	sw.worker.RegisterWorkflow(sessionworkflow.SessionLifecycleWorkflow)
 	sw.worker.RegisterWorkflow(sessionworkflow.SessionCleanupWorkflow)
 
-	// Cria e registra activities
+	// Cria e registra activities com nomes explícitos
 	activities := sessionworkflow.NewSessionActivities(sw.sessionRepo, sw.messageRepo, sw.eventBus)
-	for _, activity := range activities.RegisterActivities() {
-		sw.worker.RegisterActivity(activity)
-	}
+	sw.worker.RegisterActivityWithOptions(activities.EndSessionActivity, activity.RegisterOptions{Name: "EndSessionActivity"})
+	sw.worker.RegisterActivityWithOptions(activities.CleanupSessionsActivity, activity.RegisterOptions{Name: "CleanupSessionsActivity"})
 
 	sw.logger.Info("Starting session worker",
 		zap.String("task_queue", "session-management"))

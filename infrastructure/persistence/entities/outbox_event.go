@@ -16,7 +16,8 @@ type OutboxEventEntity struct {
 	AggregateType string         `gorm:"type:varchar(100);not null;index:idx_outbox_aggregate"`
 	EventType     string         `gorm:"type:varchar(100);not null;index:idx_outbox_event_type"`
 	EventVersion  string         `gorm:"type:varchar(20);not null;default:'v1'"`
-	EventData     []byte         `gorm:"type:jsonb;not null"` // JSON serializado do evento
+	EventData     []byte         `gorm:"type:jsonb;not null"`                              // JSON serializado do evento
+	Metadata      []byte         `gorm:"type:jsonb;index:idx_outbox_correlation_id,type:gin"` // Saga metadata (correlation_id, saga_type, saga_step)
 	TenantID      *string        `gorm:"type:varchar(100);index:idx_outbox_tenant"`
 	ProjectID     *uuid.UUID     `gorm:"type:uuid"`
 	CreatedAt     time.Time      `gorm:"not null;default:NOW()"`

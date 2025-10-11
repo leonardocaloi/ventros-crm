@@ -2,7 +2,6 @@ package session
 
 import "errors"
 
-// Status representa o status de uma sessão.
 type Status string
 
 const (
@@ -16,7 +15,6 @@ func (s Status) String() string {
 	return string(s)
 }
 
-// IsValid verifica se o status é válido.
 func (s Status) IsValid() bool {
 	switch s {
 	case StatusActive, StatusEnded, StatusExpired, StatusManuallyClosed:
@@ -26,7 +24,6 @@ func (s Status) IsValid() bool {
 	}
 }
 
-// EndReason representa o motivo de encerramento.
 type EndReason string
 
 const (
@@ -41,7 +38,6 @@ func (r EndReason) String() string {
 	return string(r)
 }
 
-// Sentiment representa o sentimento da conversa.
 type Sentiment string
 
 const (
@@ -55,7 +51,6 @@ func (s Sentiment) String() string {
 	return string(s)
 }
 
-// ParseStatus converte string para Status.
 func ParseStatus(s string) (Status, error) {
 	status := Status(s)
 	if !status.IsValid() {
@@ -64,7 +59,6 @@ func ParseStatus(s string) (Status, error) {
 	return status, nil
 }
 
-// ParseEndReason converte string para EndReason.
 func ParseEndReason(s string) (EndReason, error) {
 	reason := EndReason(s)
 	switch reason {
@@ -75,7 +69,6 @@ func ParseEndReason(s string) (EndReason, error) {
 	}
 }
 
-// ParseSentiment converte string para Sentiment.
 func ParseSentiment(s string) (Sentiment, error) {
 	sentiment := Sentiment(s)
 	switch sentiment {

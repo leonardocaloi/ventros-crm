@@ -2,7 +2,6 @@ package message
 
 import "errors"
 
-// ContentType representa o tipo de conteúdo da mensagem (modelo de domínio limpo).
 type ContentType string
 
 const (
@@ -18,7 +17,6 @@ const (
 	ContentTypeSystem   ContentType = "system"
 )
 
-// IsValid verifica se o tipo de conteúdo é válido.
 func (ct ContentType) IsValid() bool {
 	switch ct {
 	case ContentTypeText, ContentTypeImage, ContentTypeVideo, ContentTypeAudio,
@@ -34,12 +32,10 @@ func (ct ContentType) String() string {
 	return string(ct)
 }
 
-// IsText verifica se é mensagem de texto.
 func (ct ContentType) IsText() bool {
 	return ct == ContentTypeText
 }
 
-// IsMedia verifica se é mensagem de mídia (qualquer tipo de arquivo).
 func (ct ContentType) IsMedia() bool {
 	switch ct {
 	case ContentTypeImage, ContentTypeVideo, ContentTypeAudio, ContentTypeVoice,
@@ -50,17 +46,14 @@ func (ct ContentType) IsMedia() bool {
 	}
 }
 
-// IsSystem verifica se é mensagem do sistema.
 func (ct ContentType) IsSystem() bool {
 	return ct == ContentTypeSystem
 }
 
-// RequiresURL verifica se o tipo de conteúdo requer uma URL de arquivo.
 func (ct ContentType) RequiresURL() bool {
 	return ct.IsMedia()
 }
 
-// Status representa o status de entrega da mensagem.
 type Status string
 
 const (
@@ -75,7 +68,6 @@ func (s Status) String() string {
 	return string(s)
 }
 
-// ParseContentType converte string para ContentType.
 func ParseContentType(s string) (ContentType, error) {
 	ct := ContentType(s)
 	if !ct.IsValid() {
@@ -84,7 +76,6 @@ func ParseContentType(s string) (ContentType, error) {
 	return ct, nil
 }
 
-// ParseStatus converte string para Status.
 func ParseStatus(s string) (Status, error) {
 	status := Status(s)
 	switch status {

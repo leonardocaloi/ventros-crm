@@ -9,6 +9,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// Helper function to create int pointer
+func intPtr(i int) *int {
+	return &i
+}
+
 func TestNewPipeline(t *testing.T) {
 	tests := []struct {
 		name        string
@@ -68,7 +73,8 @@ func TestNewPipeline(t *testing.T) {
 				assert.Equal(t, tt.tenantID, pipeline.TenantID())
 				assert.Equal(t, tt.pipelineName, pipeline.Name())
 				assert.True(t, pipeline.IsActive())
-				assert.Equal(t, 30, pipeline.SessionTimeoutMinutes())
+				// sessionTimeoutMinutes is nil by default (inherits from channel/project)
+				assert.Nil(t, pipeline.SessionTimeoutMinutes())
 				assert.Equal(t, 0, pipeline.Position())
 				assert.NotZero(t, pipeline.CreatedAt())
 				assert.NotZero(t, pipeline.UpdatedAt())
@@ -117,33 +123,35 @@ func TestPipeline_SessionTimeout(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Run("set valid timeout", func(t *testing.T) {
-		err := pipeline.SetSessionTimeout(60)
+		err := pipeline.SetSessionTimeout(intPtr(60))
 		require.NoError(t, err)
-		assert.Equal(t, 60, pipeline.SessionTimeoutMinutes())
+		require.NotNil(t, pipeline.SessionTimeoutMinutes())
+		assert.Equal(t, 60, *pipeline.SessionTimeoutMinutes())
 	})
 
 	t.Run("zero timeout", func(t *testing.T) {
-		err := pipeline.SetSessionTimeout(0)
+		err := pipeline.SetSessionTimeout(intPtr(0))
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "must be greater than 0")
 	})
 
 	t.Run("negative timeout", func(t *testing.T) {
-		err := pipeline.SetSessionTimeout(-10)
+		err := pipeline.SetSessionTimeout(intPtr(-10))
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "must be greater than 0")
 	})
 
 	t.Run("timeout exceeds maximum", func(t *testing.T) {
-		err := pipeline.SetSessionTimeout(1500)
+		err := pipeline.SetSessionTimeout(intPtr(1500))
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "cannot exceed 1440 minutes")
 	})
 
 	t.Run("maximum allowed timeout", func(t *testing.T) {
-		err := pipeline.SetSessionTimeout(1440)
+		err := pipeline.SetSessionTimeout(intPtr(1440))
 		require.NoError(t, err)
-		assert.Equal(t, 1440, pipeline.SessionTimeoutMinutes())
+		require.NotNil(t, pipeline.SessionTimeoutMinutes())
+		assert.Equal(t, 1440, *pipeline.SessionTimeoutMinutes())
 	})
 }
 
@@ -338,7 +346,7 @@ func TestPipeline_ReconstructPipeline(t *testing.T) {
 		pipeline := ReconstructPipeline(
 			id, projectID,
 			"tenant-123", "Reconstructed Pipeline", "Test description", "#FF0000",
-			2, true, 45,
+			2, true, intPtr(45), nil, // nil leadQualificationConfig
 			createdAt, updatedAt,
 		)
 
@@ -350,32 +358,35 @@ func TestPipeline_ReconstructPipeline(t *testing.T) {
 		assert.Equal(t, "#FF0000", pipeline.Color())
 		assert.Equal(t, 2, pipeline.Position())
 		assert.True(t, pipeline.IsActive())
-		assert.Equal(t, 45, pipeline.SessionTimeoutMinutes())
+		require.NotNil(t, pipeline.SessionTimeoutMinutes())
+		assert.Equal(t, 45, *pipeline.SessionTimeoutMinutes())
 		assert.Equal(t, createdAt, pipeline.CreatedAt())
 		assert.Equal(t, updatedAt, pipeline.UpdatedAt())
 		assert.Len(t, pipeline.DomainEvents(), 0) // No events on reconstruction
 	})
 
-	t.Run("reconstruct with zero timeout uses default", func(t *testing.T) {
+	t.Run("reconstruct with zero timeout preserves value", func(t *testing.T) {
 		pipeline := ReconstructPipeline(
 			id, projectID,
 			"tenant-123", "Pipeline", "", "",
-			0, true, 0, // zero timeout
+			0, true, intPtr(0), nil, // zero timeout, nil leadQualificationConfig
 			createdAt, updatedAt,
 		)
 
-		assert.Equal(t, 30, pipeline.SessionTimeoutMinutes())
+		require.NotNil(t, pipeline.SessionTimeoutMinutes())
+		assert.Equal(t, 0, *pipeline.SessionTimeoutMinutes())
 	})
 
-	t.Run("reconstruct with negative timeout uses default", func(t *testing.T) {
+	t.Run("reconstruct with negative timeout preserves value", func(t *testing.T) {
 		pipeline := ReconstructPipeline(
 			id, projectID,
 			"tenant-123", "Pipeline", "", "",
-			0, true, -10, // negative timeout
+			0, true, intPtr(-10), nil, // negative timeout, nil leadQualificationConfig
 			createdAt, updatedAt,
 		)
 
-		assert.Equal(t, 30, pipeline.SessionTimeoutMinutes())
+		require.NotNil(t, pipeline.SessionTimeoutMinutes())
+		assert.Equal(t, -10, *pipeline.SessionTimeoutMinutes())
 	})
 }
 

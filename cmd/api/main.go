@@ -11,6 +11,7 @@ import (
 	"github.com/caloi/ventros-crm/infrastructure/cache"
 	"github.com/caloi/ventros-crm/infrastructure/channels/waha"
 	"github.com/caloi/ventros-crm/infrastructure/config"
+	"github.com/caloi/ventros-crm/infrastructure/database"
 	"github.com/caloi/ventros-crm/infrastructure/health"
 	"github.com/caloi/ventros-crm/infrastructure/http/handlers"
 	"github.com/caloi/ventros-crm/infrastructure/http/middleware"
@@ -18,8 +19,11 @@ import (
 	"github.com/caloi/ventros-crm/infrastructure/messaging"
 	"github.com/caloi/ventros-crm/infrastructure/persistence"
 	"github.com/caloi/ventros-crm/infrastructure/webhooks"
+	ws "github.com/caloi/ventros-crm/infrastructure/websocket"
 	"github.com/caloi/ventros-crm/infrastructure/workflow"
 	channelapp "github.com/caloi/ventros-crm/internal/application/channel"
+	chatapp "github.com/caloi/ventros-crm/internal/application/chat"
+	messagecommand "github.com/caloi/ventros-crm/internal/application/commands/message"
 	appconfig "github.com/caloi/ventros-crm/internal/application/config"
 	contactapp "github.com/caloi/ventros-crm/internal/application/contact"
 	contacteventapp "github.com/caloi/ventros-crm/internal/application/contact_event"
@@ -28,6 +32,7 @@ import (
 	trackingapp "github.com/caloi/ventros-crm/internal/application/tracking"
 	"github.com/caloi/ventros-crm/internal/application/user"
 	webhookapp "github.com/caloi/ventros-crm/internal/application/webhook"
+	wsapp "github.com/caloi/ventros-crm/internal/application/websocket"
 
 	// contact_event "github.com/caloi/ventros-crm/internal/domain/contact/events" // Temporariamente comentado
 	domainPipeline "github.com/caloi/ventros-crm/internal/domain/pipeline"
@@ -103,12 +108,32 @@ func main() {
 	defer sqlDB.Close()
 	logger.Info("Database connected successfully")
 
-	// Run GORM migrations
+	// 🗄️ DATABASE MIGRATIONS (golang-migrate with embedded SQL files)
+	// Migrations are located in: infrastructure/database/migrations/*.sql
+	// Uses golang-migrate library for versioned migrations
 	ctx := context.Background()
-	if err := persistence.AutoMigrate(gormDB); err != nil {
-		logger.Fatal("Failed to run database migrations", zap.Error(err))
+
+	// Create migration runner
+	migrationRunner, err := database.NewMigrationRunner(sqlDB, logger)
+	if err != nil {
+		logger.Fatal("Failed to create migration runner", zap.Error(err))
 	}
-	logger.Info("✅ Database migrations completed")
+	defer migrationRunner.Close()
+
+	// Apply all pending migrations automatically
+	// This is safe to run on every startup (idempotent)
+	if err := migrationRunner.Up(); err != nil {
+		logger.Fatal("Failed to apply database migrations", zap.Error(err))
+	}
+
+	// Log migration status
+	status, err := migrationRunner.Status()
+	if err != nil {
+		logger.Fatal("Failed to get migration status", zap.Error(err))
+	}
+	logger.Info(status.Message,
+		zap.Uint("version", status.Version),
+		zap.Bool("dirty", status.Dirty))
 
 	// Setup Row Level Security (RLS)
 	if err := persistence.SetupRLS(gormDB); err != nil {
@@ -184,10 +209,14 @@ func main() {
 	sessionRepo := persistence.NewGormSessionRepository(gormDB)
 	contactEventRepo := persistence.NewGormContactEventRepository(gormDB)
 	channelRepo := persistence.NewGormChannelRepository(gormDB)
+	chatRepo := persistence.NewGormChatRepository(gormDB)
 	pipelineRepo := persistence.NewGormPipelineRepository(gormDB)
 	trackingRepo := persistence.NewGormTrackingRepository(gormDB)
 	eventLogRepo := persistence.NewDomainEventLogRepository(gormDB, logger)
 	outboxRepo := persistence.NewGormOutboxRepository(gormDB)
+	agentRepo := persistence.NewGormAgentRepository(gormDB)
+	noteRepo := persistence.NewGormNoteRepository(gormDB)
+	messageGroupRepo := persistence.NewGormMessageGroupRepository(gormDB)
 	logger.Info("Repositories initialized")
 
 	// Initialize webhook repository and use case
@@ -213,12 +242,11 @@ func main() {
 	)
 	postgresNotifyProcessor := messaging.NewPostgresNotifyOutboxProcessor(gormDB, outboxRepo, rabbitConn, logger, dbConnStr)
 	if err := postgresNotifyProcessor.Start(ctx); err != nil {
-		logger.Warn("Failed to start PostgreSQL NOTIFY processor, will rely on Temporal polling fallback", zap.Error(err))
-	} else {
-		logger.Info("✅ PostgreSQL LISTEN/NOTIFY Outbox Processor started (push-based, < 100ms latency!)")
-		// Cleanup on shutdown
-		defer postgresNotifyProcessor.Stop()
+		logger.Fatal("Failed to start PostgreSQL NOTIFY processor (required for push-based event processing)", zap.Error(err))
 	}
+	logger.Info("✅ PostgreSQL LISTEN/NOTIFY Outbox Processor started (push-based, < 100ms latency, NO POLLING!)")
+	// Cleanup on shutdown
+	defer postgresNotifyProcessor.Stop()
 
 	// Initialize session manager (Temporal workflows) - will be used by processMessageUseCase
 
@@ -239,26 +267,27 @@ func main() {
 		logger.Warn("Failed to schedule session cleanup", zap.Error(err))
 	}
 
-	// Initialize and start Outbox Worker (Temporal)
-	// Processa eventos pendentes do outbox e envia webhooks HTTP
-	outboxWorker := workflow.NewOutboxWorker(temporalClient, outboxRepo, rabbitConn, webhookNotifier, logger)
-	if err := outboxWorker.Start(ctx); err != nil {
-		logger.Fatal("Failed to start outbox worker", zap.Error(err))
-	}
-	if err := outboxWorker.StartProcessorWorkflow(ctx); err != nil {
-		logger.Fatal("Failed to start outbox processor workflow", zap.Error(err))
-	}
-
-	logger.Info("✅ Outbox Worker started successfully (processes pending events + sends webhooks)")
+	// ❌ REMOVIDO: Temporal Outbox Worker (fazia polling a cada 30 segundos)
+	// PostgreSQL LISTEN/NOTIFY é suficiente (push-based, <100ms latency, SEM POLLING!)
+	// Se precisar de fallback no futuro, considerar aumentar PollInterval para 5-10 minutos
+	logger.Info("Outbox processing: Using PostgreSQL LISTEN/NOTIFY only (NO POLLING!)")
 
 	// Initialize use cases with event bus adapters (DDD: Application Layer)
 	contactEventBus := messaging.NewContactEventBusAdapter(eventBus)
 	sessionEventBus := messaging.NewSessionEventBusAdapter(eventBus)
+	chatEventBus := messaging.NewChatEventBusAdapter(eventBus)
 
 	createContactUseCase := contactapp.NewCreateContactUseCase(contactRepo, contactEventBus)
 	changePipelineStatusUseCase := contactapp.NewChangePipelineStatusUseCase(contactRepo, pipelineRepo, contactEventBus)
 	createSessionUseCase := sessionapp.NewCreateSessionUseCase(sessionRepo, sessionEventBus)
 	closeSessionUseCase := sessionapp.NewCloseSessionUseCase(sessionRepo, sessionEventBus)
+
+	// Initialize Chat use cases (DDD: Application Service)
+	createChatUseCase := chatapp.NewCreateChatUseCase(chatRepo, chatEventBus)
+	findChatUseCase := chatapp.NewFindChatUseCase(chatRepo)
+	manageParticipantsUseCase := chatapp.NewManageParticipantsUseCase(chatRepo, chatEventBus)
+	archiveChatUseCase := chatapp.NewArchiveChatUseCase(chatRepo, chatEventBus)
+	updateChatUseCase := chatapp.NewUpdateChatUseCase(chatRepo, chatEventBus)
 
 	// Initialize Tracking use cases (DDD: Application Service)
 	createTrackingUseCase := trackingapp.NewCreateTrackingUseCase(trackingRepo, eventBus, logger)
@@ -300,6 +329,21 @@ func main() {
 	// Note: Project and customer IDs are now obtained from authenticated user context
 	// via the auth middleware and RLS system
 
+	// Initialize MessageDebouncerService (message grouping with Redis)
+	var messageDebouncerSvc *messageapp.MessageDebouncerService
+	if redisClient != nil {
+		messageDebouncerSvc = messageapp.NewMessageDebouncerService(
+			logger,
+			messageGroupRepo,
+			messageRepo,
+			channelRepo,
+			redisClient,
+		)
+		logger.Info("Message debouncer service initialized")
+	} else {
+		logger.Warn("Redis not available, message debouncer disabled")
+	}
+
 	// Initialize ProcessInboundMessageUseCase
 	processMessageUseCase := messageapp.NewProcessInboundMessageUseCase(
 		contactRepo,
@@ -310,6 +354,7 @@ func main() {
 		sessionManager,
 		timeoutResolver,
 		gormDB, // Usado apenas para invisible tracking detection
+		messageDebouncerSvc, // Opcional - passa nil se Redis não disponível
 	)
 
 	// Load AppConfig (channel types, etc)
@@ -334,6 +379,9 @@ func main() {
 		rabbitConn,
 		wahaMessageService,
 		messageRepo,
+		channelRepo,
+		contactRepo,
+		chatRepo,
 		logger,
 	)
 
@@ -353,6 +401,39 @@ func main() {
 		logger.Fatal("Failed to start WAHA consumer", zap.Error(err))
 	}
 	logger.Info("Use cases and WAHA service initialized successfully")
+
+	// TODO: Initialize MessageGroupWorker when enrichment services are ready
+	//
+	// O MessageGroupWorker processa grupos de mensagens expirados:
+	// 1. Busca grupos expirados no banco (via MessageGroupRepo)
+	// 2. Processa enriquecimentos (transcrição, OCR, etc) via MessageEnrichmentService
+	// 3. Aguarda enriquecimentos completarem
+	// 4. Concatena todas as mensagens do grupo e envia para AI Agent
+	//
+	// Dependências necessárias:
+	// - MessageEnrichmentService (transcrição de áudio, OCR de imagem, etc)
+	// - AIAgentService (envia mensagens concatenadas para AI)
+	//
+	// Exemplo de inicialização (quando serviços estiverem prontos):
+	/*
+		enrichmentService := messageapp.NewMessageEnrichmentService(...)
+		aiAgentService := messageapp.NewAIAgentService(...)
+
+		messageGroupWorker := messageapp.NewMessageGroupWorker(
+			logger,
+			messageDebouncerSvc,
+			enrichmentService,
+			aiAgentService,
+			messageGroupRepo,
+		)
+
+		go func() {
+			if err := messageGroupWorker.Start(ctx); err != nil {
+				logger.Error("Message group worker stopped", zap.Error(err))
+			}
+		}()
+		logger.Info("✅ Message group worker started")
+	*/
 
 	// Initialize health checker
 	healthChecker := health.NewHealthChecker(
@@ -397,15 +478,36 @@ func main() {
 	}
 	logger.Info("WAHA import worker started successfully")
 
+	// Create adapter for WAHA message sender
+	wahaMessageSender := persistence.NewWAHAMessageSenderAdapter(wahaClient, logger)
+
+	// Create adapter for session repository (adds GetActiveSessionByContact)
+	sessionRepoAdapter := persistence.NewSessionRepositoryAdapter(sessionRepo)
+
+	// Initialize message sending (CQRS Command)
+	sendMessageHandler := messagecommand.NewSendMessageHandler(
+		contactRepo,
+		sessionRepoAdapter,
+		messageRepo,
+		wahaMessageSender,
+	)
+
+	// Initialize message delivery confirmation (CQRS Command)
+	confirmMessageDeliveryHandler := messagecommand.NewConfirmMessageDeliveryHandler(messageRepo)
+
 	// Initialize handlers
 	authHandler := handlers.NewAuthHandler(logger, userService)
 	channelHandler := handlers.NewChannelHandler(logger, channelService, temporalClient)
-	wahaHandler := handlers.NewWAHAWebhookHandler(logger, wahaIntegration.RawEventBus)
+	wahaHandler := handlers.NewWAHAWebhookHandler(logger, wahaIntegration.RawEventBus, channelRepo)
 	webhookHandler := handlers.NewWebhookSubscriptionHandler(logger, webhookUseCase)
 	queueHandler := handlers.NewQueueHandler(logger, rabbitConn)
 	sessionHandler := handlers.NewSessionHandler(logger, sessionRepo)
 	contactHandler := handlers.NewContactHandler(logger, contactRepo, changePipelineStatusUseCase)
+	chatHandler := handlers.NewChatHandler(logger, createChatUseCase, findChatUseCase, manageParticipantsUseCase, archiveChatUseCase, updateChatUseCase)
+	messageHandler := handlers.NewMessageHandler(logger, messageRepo, sendMessageHandler, confirmMessageDeliveryHandler)
 	trackingHandler := handlers.NewTrackingHandler(createTrackingUseCase, getTrackingUseCase, getContactTrackingsUseCase, logger)
+	agentHandler := handlers.NewAgentHandler(logger, agentRepo)
+	noteHandler := handlers.NewNoteHandler(logger, noteRepo)
 	domainEventHandler := handlers.NewDomainEventHandler(eventLogRepo, logger)
 
 	// Create auth middleware
@@ -433,6 +535,37 @@ func main() {
 	// Initialize automation discovery handler
 	automationDiscoveryHandler := handlers.NewAutomationDiscoveryHandler(triggerRegistry)
 
+	// Initialize WebSocket infrastructure
+	// WebSocket message handler (integra com domain Message)
+	wsMessageHandler := wsapp.NewWebSocketMessageHandler(messageRepo, logger)
+
+	// WebSocket Hub (Redis Pub/Sub para multi-server)
+	wsHub := ws.NewHub(redisClient, wsMessageHandler, logger)
+
+	// Start Hub em goroutine (event loop)
+	go wsHub.Run()
+	logger.Info("✅ WebSocket Hub started (Redis Pub/Sub enabled)")
+
+	// Cleanup on shutdown
+	defer func() {
+		if err := wsHub.Shutdown(); err != nil {
+			logger.Error("Failed to shutdown WebSocket hub", zap.Error(err))
+		}
+	}()
+
+	// WebSocket HTTP handler
+	isProduction := cfg.Server.Env == "production"
+	websocketHandler := handlers.NewWebSocketMessageHandler(wsHub, isProduction, logger)
+
+	// WebSocket auth middleware
+	wsAuthMiddleware := middleware.NewWebSocketAuthMiddleware(authMiddleware, logger)
+
+	// WebSocket rate limiter (max 5 connections per minute per IP)
+	wsRateLimiter := middleware.NewWebSocketRateLimiter(redisClient, logger)
+
+	// Initialize HTTP Rate Limiter (global rate limiting for API endpoints)
+	rateLimiter := middleware.NewRateLimiter(redisClient, logger)
+
 	// Set Gin mode
 	if cfg.Server.Env == "production" {
 		gin.SetMode(gin.ReleaseMode)
@@ -441,8 +574,8 @@ func main() {
 	// Create Gin router
 	router := gin.Default()
 
-	// Setup basic routes (health, queue, session, contact, webhooks, auth, channels, projects, pipelines, trackings, automation discovery)
-	routes.SetupRoutesBasicWithTest(router, logger, healthChecker, authHandler, channelHandler, projectHandler, pipelineHandler, wahaHandler, webhookHandler, queueHandler, sessionHandler, contactHandler, trackingHandler, automationDiscoveryHandler, gormDB, authMiddleware, rlsMiddleware)
+	// Setup basic routes (health, queue, session, contact, webhooks, auth, channels, projects, pipelines, trackings, automation discovery, messages, chats, agents, notes, WebSocket)
+	routes.SetupRoutesBasicWithTest(router, logger, healthChecker, authHandler, channelHandler, projectHandler, pipelineHandler, wahaHandler, webhookHandler, queueHandler, sessionHandler, contactHandler, trackingHandler, messageHandler, chatHandler, agentHandler, noteHandler, automationDiscoveryHandler, websocketHandler, wsRateLimiter, gormDB, authMiddleware, wsAuthMiddleware, rlsMiddleware, rateLimiter)
 
 	// Start server
 	logger.Info(" Server ready to accept connections", zap.String("port", cfg.Server.Port))

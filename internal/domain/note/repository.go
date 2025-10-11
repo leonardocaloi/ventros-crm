@@ -2,30 +2,47 @@ package note
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
 )
 
-// Repository define a interface para persistência de Notes
+// NoteFilters represents filtering options for note queries
+type NoteFilters struct {
+	TenantID        string
+	ContactID       *uuid.UUID
+	SessionID       *uuid.UUID
+	AuthorID        *uuid.UUID
+	AuthorType      *string
+	NoteType        *string
+	Priority        *string
+	VisibleToClient *bool
+	Pinned          *bool
+	CreatedAfter    *time.Time
+	CreatedBefore   *time.Time
+	Limit           int
+	Offset          int
+	SortBy          string // created_at, priority
+	SortOrder       string // asc, desc
+}
+
 type Repository interface {
-	// Save salva uma nota (create ou update)
 	Save(ctx context.Context, note *Note) error
 
-	// FindByID busca uma nota por ID
 	FindByID(ctx context.Context, id uuid.UUID) (*Note, error)
 
-	// FindByContactID busca notas de um contato
 	FindByContactID(ctx context.Context, contactID uuid.UUID, limit, offset int) ([]*Note, error)
 
-	// FindBySessionID busca notas de uma sessão
 	FindBySessionID(ctx context.Context, sessionID uuid.UUID, limit, offset int) ([]*Note, error)
 
-	// FindPinned busca notas fixadas de um contato
 	FindPinned(ctx context.Context, contactID uuid.UUID) ([]*Note, error)
 
-	// Delete deleta uma nota (soft delete)
 	Delete(ctx context.Context, id uuid.UUID) error
 
-	// CountByContact conta notas de um contato
 	CountByContact(ctx context.Context, contactID uuid.UUID) (int, error)
+
+	// Advanced query methods
+	FindByTenantWithFilters(ctx context.Context, filters NoteFilters) ([]*Note, int64, error)
+
+	SearchByText(ctx context.Context, tenantID string, searchText string, limit int, offset int) ([]*Note, int64, error)
 }

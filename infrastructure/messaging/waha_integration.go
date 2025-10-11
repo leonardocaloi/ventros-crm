@@ -4,6 +4,9 @@ import (
 	"context"
 
 	messageapp "github.com/caloi/ventros-crm/internal/application/message"
+	domainchannel "github.com/caloi/ventros-crm/internal/domain/channel"
+	domainchat "github.com/caloi/ventros-crm/internal/domain/chat"
+	domaincontact "github.com/caloi/ventros-crm/internal/domain/contact"
 	domainmessage "github.com/caloi/ventros-crm/internal/domain/message"
 	"go.uber.org/zap"
 )
@@ -20,6 +23,9 @@ func NewWAHAIntegration(
 	rabbitConn *RabbitMQConnection,
 	wahaMessageService *messageapp.WAHAMessageService,
 	messageRepo domainmessage.Repository,
+	channelRepo domainchannel.Repository,
+	contactRepo domaincontact.Repository,
+	chatRepo domainchat.Repository,
 	logger *zap.Logger,
 ) *WAHAIntegration {
 	// Cria o event bus para eventos raw
@@ -31,6 +37,9 @@ func NewWAHAIntegration(
 		rawEventBus,
 		wahaMessageService,
 		messageRepo,
+		channelRepo,
+		contactRepo,
+		chatRepo,
 	)
 
 	return &WAHAIntegration{

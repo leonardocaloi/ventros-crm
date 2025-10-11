@@ -35,9 +35,7 @@ func TestMessageDebouncer_AddMessage(t *testing.T) {
 	ctx := context.Background()
 	sessionID := uuid.New()
 
-	var flushedMessages []DebouncedMessage
 	callback := func(sid uuid.UUID, msgs []DebouncedMessage) error {
-		flushedMessages = msgs
 		return nil
 	}
 

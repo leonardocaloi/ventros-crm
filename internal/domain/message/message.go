@@ -7,20 +7,18 @@ import (
 	"github.com/google/uuid"
 )
 
-// Message é o Aggregate Root para mensagens individuais.
 type Message struct {
-	id            uuid.UUID
-	timestamp     time.Time
-	customerID    uuid.UUID
-	projectID     uuid.UUID
-	channelTypeID *int
-	fromMe        bool
-	channelID     uuid.UUID // OBRIGATÓRIO - toda mensagem vem de um canal
-	contactID     uuid.UUID
-	sessionID     *uuid.UUID
-	contentType   ContentType
-	text          *string
-	// Campos técnicos de mídia (preenchidos pela camada de infraestrutura)
+	id               uuid.UUID
+	timestamp        time.Time
+	customerID       uuid.UUID
+	projectID        uuid.UUID
+	channelTypeID    *int
+	fromMe           bool
+	channelID        uuid.UUID
+	contactID        uuid.UUID
+	sessionID        *uuid.UUID
+	contentType      ContentType
+	text             *string
 	mediaURL         *string
 	mediaMimetype    *string
 	channelMessageID *string
@@ -31,11 +29,11 @@ type Message struct {
 	metadata         map[string]interface{}
 	deliveredAt      *time.Time
 	readAt           *time.Time
+	mentions         []string // IDs externos mencionados (formato WAHA: "phone@c.us")
 
 	events []DomainEvent
 }
 
-// NewMessage cria uma nova mensagem.
 func NewMessage(
 	contactID, projectID, customerID uuid.UUID,
 	contentType ContentType,
@@ -73,7 +71,6 @@ func NewMessage(
 	return msg, nil
 }
 
-// ReconstructMessage reconstrói uma Message a partir de dados persistidos.
 func ReconstructMessage(
 	id uuid.UUID,
 	timestamp time.Time,
@@ -96,9 +93,14 @@ func ReconstructMessage(
 	metadata map[string]interface{},
 	deliveredAt *time.Time,
 	readAt *time.Time,
+	mentions []string,
 ) *Message {
 	if metadata == nil {
 		metadata = make(map[string]interface{})
+	}
+
+	if mentions == nil {
+		mentions = []string{}
 	}
 
 	return &Message{
@@ -123,11 +125,11 @@ func ReconstructMessage(
 		metadata:         metadata,
 		deliveredAt:      deliveredAt,
 		readAt:           readAt,
+		mentions:         mentions,
 		events:           []DomainEvent{},
 	}
 }
 
-// SetText define o conteúdo de texto da mensagem.
 func (m *Message) SetText(text string) error {
 	if !m.contentType.IsText() {
 		return errors.New("cannot set text on non-text message")
@@ -136,8 +138,6 @@ func (m *Message) SetText(text string) error {
 	return nil
 }
 
-// SetMediaContent define URL e mimetype de mídia.
-// Usado pela camada de infraestrutura após fazer upload/download.
 func (m *Message) SetMediaContent(url, mimetype string) error {
 	if !m.contentType.IsMedia() {
 		return errors.New("cannot set media content on non-media message")
@@ -147,30 +147,23 @@ func (m *Message) SetMediaContent(url, mimetype string) error {
 	return nil
 }
 
-// HasMediaURL verifica se a mensagem tem URL de mídia.
 func (m *Message) HasMediaURL() bool {
 	return m.contentType.IsMedia() && m.mediaURL != nil
 }
 
-// AssignToChannel atribui a mensagem a um canal.
-// DEVE ser chamado imediatamente após criar a mensagem.
 func (m *Message) AssignToChannel(channelID uuid.UUID, channelTypeID *int) {
 	m.channelID = channelID
 	m.channelTypeID = channelTypeID
 }
 
-// AssignToSession atribui a mensagem a uma sessão.
 func (m *Message) AssignToSession(sessionID uuid.UUID) {
 	m.sessionID = &sessionID
 }
 
-// SetChannelMessageID define o ID externo da mensagem no canal (ex: WhatsApp message ID).
-// Usado para deduplicação e rastreamento de ACKs.
 func (m *Message) SetChannelMessageID(channelMessageID string) {
 	m.channelMessageID = &channelMessageID
 }
 
-// MarkAsDelivered marca a mensagem como entregue.
 func (m *Message) MarkAsDelivered() {
 	now := time.Now()
 	m.status = StatusDelivered
@@ -182,7 +175,6 @@ func (m *Message) MarkAsDelivered() {
 	})
 }
 
-// MarkAsRead marca a mensagem como lida.
 func (m *Message) MarkAsRead() {
 	now := time.Now()
 	m.status = StatusRead
@@ -194,22 +186,43 @@ func (m *Message) MarkAsRead() {
 	})
 }
 
-// MarkAsFailed marca a mensagem como falha.
 func (m *Message) MarkAsFailed() {
 	m.status = StatusFailed
 }
 
-// IsInbound verifica se a mensagem é inbound (do contato).
+// SetMentions define as menções da mensagem (IDs externos no formato WAHA: "phone@c.us")
+func (m *Message) SetMentions(mentions []string) {
+	if mentions == nil {
+		m.mentions = []string{}
+	} else {
+		m.mentions = append([]string{}, mentions...) // Copiar para evitar mutação externa
+	}
+}
+
+// HasMentions verifica se a mensagem contém menções
+func (m *Message) HasMentions() bool {
+	return len(m.mentions) > 0
+}
+
+// IsMentioned verifica se um ID externo específico foi mencionado
+// externalID deve estar no formato WAHA: "phone@c.us"
+func (m *Message) IsMentioned(externalID string) bool {
+	for _, mention := range m.mentions {
+		if mention == externalID {
+			return true
+		}
+	}
+	return false
+}
+
 func (m *Message) IsInbound() bool {
 	return !m.fromMe
 }
 
-// IsOutbound verifica se a mensagem é outbound (para o contato).
 func (m *Message) IsOutbound() bool {
 	return m.fromMe
 }
 
-// Getters
 func (m *Message) ID() uuid.UUID             { return m.id }
 func (m *Message) Timestamp() time.Time      { return m.timestamp }
 func (m *Message) CustomerID() uuid.UUID     { return m.customerID }
@@ -237,8 +250,10 @@ func (m *Message) Metadata() map[string]interface{} {
 }
 func (m *Message) DeliveredAt() *time.Time { return m.deliveredAt }
 func (m *Message) ReadAt() *time.Time      { return m.readAt }
+func (m *Message) Mentions() []string {
+	return append([]string{}, m.mentions...) // Retornar cópia para evitar mutação
+}
 
-// Domain Events
 func (m *Message) DomainEvents() []DomainEvent {
 	return append([]DomainEvent{}, m.events...)
 }
@@ -251,20 +266,15 @@ func (m *Message) addEvent(event DomainEvent) {
 	m.events = append(m.events, event)
 }
 
-// RequestAIProcessing dispara eventos de processamento de IA baseado no tipo de conteúdo
-// e nas configurações do canal. Deve ser chamado após a mensagem ser criada/recebida.
 func (m *Message) RequestAIProcessing(channelConfig AIProcessingConfig) {
-	// Só processa se tiver mídia
 	if m.mediaURL == nil || *m.mediaURL == "" {
 		return
 	}
 
-	// Só processa mensagens recebidas (não enviadas)
 	if m.fromMe {
 		return
 	}
 
-	// Garantir que temos session_id
 	if m.sessionID == nil {
 		return
 	}
@@ -274,7 +284,6 @@ func (m *Message) RequestAIProcessing(channelConfig AIProcessingConfig) {
 		mimeType = *m.mediaMimetype
 	}
 
-	// Disparar evento baseado no tipo de conteúdo e configuração do canal
 	switch m.contentType {
 	case ContentTypeImage:
 		if channelConfig.ProcessImage {
@@ -290,7 +299,7 @@ func (m *Message) RequestAIProcessing(channelConfig AIProcessingConfig) {
 
 	case ContentTypeVideo:
 		if channelConfig.ProcessVideo {
-			duration := 0 // TODO: extrair duração do metadata se disponível
+			duration := 0
 			m.addEvent(NewAIProcessVideoRequestedEvent(
 				m.id,
 				m.channelID,
@@ -304,7 +313,7 @@ func (m *Message) RequestAIProcessing(channelConfig AIProcessingConfig) {
 
 	case ContentTypeAudio:
 		if channelConfig.ProcessAudio {
-			duration := 0 // TODO: extrair duração do metadata se disponível
+			duration := 0
 			m.addEvent(NewAIProcessAudioRequestedEvent(
 				m.id,
 				m.channelID,
@@ -318,7 +327,7 @@ func (m *Message) RequestAIProcessing(channelConfig AIProcessingConfig) {
 
 	case ContentTypeVoice:
 		if channelConfig.ProcessVoice {
-			duration := 0 // TODO: extrair duração do metadata se disponível
+			duration := 0
 			m.addEvent(NewAIProcessVoiceRequestedEvent(
 				m.id,
 				m.channelID,
@@ -332,7 +341,6 @@ func (m *Message) RequestAIProcessing(channelConfig AIProcessingConfig) {
 	}
 }
 
-// AIProcessingConfig contém as configurações de processamento de IA do canal
 type AIProcessingConfig struct {
 	ProcessImage bool
 	ProcessVideo bool

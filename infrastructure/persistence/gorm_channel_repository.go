@@ -75,6 +75,17 @@ func (r *GormChannelRepository) GetByExternalID(externalID string) (*channel.Cha
 	return r.toDomain(&entity), nil
 }
 
+func (r *GormChannelRepository) GetByWebhookID(webhookID string) (*channel.Channel, error) {
+	var entity entities.ChannelEntity
+	if err := r.db.Where("webhook_id = ?", webhookID).First(&entity).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, fmt.Errorf("channel not found")
+		}
+		return nil, fmt.Errorf("failed to get channel: %w", err)
+	}
+	return r.toDomain(&entity), nil
+}
+
 func (r *GormChannelRepository) GetActiveWAHAChannels() ([]*channel.Channel, error) {
 	var entities []entities.ChannelEntity
 	if err := r.db.Where("type = ? AND status = ?", "waha", "active").Find(&entities).Error; err != nil {
@@ -124,6 +135,7 @@ func (r *GormChannelRepository) toEntity(ch *channel.Channel) *entities.ChannelE
 		Config:     config,
 
 		// Webhook fields
+		WebhookID:           ch.WebhookID,
 		WebhookURL:          ch.WebhookURL,
 		WebhookConfiguredAt: ch.WebhookConfiguredAt,
 		WebhookActive:       ch.WebhookActive,
@@ -131,6 +143,11 @@ func (r *GormChannelRepository) toEntity(ch *channel.Channel) *entities.ChannelE
 		// AI Features
 		AIEnabled:       ch.AIEnabled,
 		AIAgentsEnabled: ch.AIAgentsEnabled,
+		AllowGroups:     ch.AllowGroups,
+		TrackingEnabled: ch.TrackingEnabled,
+
+		// Message Debouncer
+		DebounceTimeoutMs: ch.DebounceTimeoutMs,
 
 		// Statistics
 		MessagesReceived: ch.MessagesReceived,
@@ -167,6 +184,7 @@ func (r *GormChannelRepository) toDomain(entity *entities.ChannelEntity) *channe
 		Config:     config,
 
 		// Webhook fields
+		WebhookID:           entity.WebhookID,
 		WebhookURL:          entity.WebhookURL,
 		WebhookConfiguredAt: entity.WebhookConfiguredAt,
 		WebhookActive:       entity.WebhookActive,
@@ -174,6 +192,11 @@ func (r *GormChannelRepository) toDomain(entity *entities.ChannelEntity) *channe
 		// AI Features
 		AIEnabled:       entity.AIEnabled,
 		AIAgentsEnabled: entity.AIAgentsEnabled,
+		AllowGroups:     entity.AllowGroups,
+		TrackingEnabled: entity.TrackingEnabled,
+
+		// Message Debouncer
+		DebounceTimeoutMs: entity.DebounceTimeoutMs,
 
 		// Statistics
 		MessagesReceived: entity.MessagesReceived,

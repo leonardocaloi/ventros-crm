@@ -3,6 +3,7 @@ package channel
 import (
 	"context"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/caloi/ventros-crm/infrastructure/channels/waha"
@@ -45,6 +46,8 @@ type CreateChannelRequest struct {
 	WAHAConfig            *WAHAConfigRequest `json:"waha_config,omitempty"`
 	AIEnabled             bool               `json:"ai_enabled"`        // Canal Inteligente
 	AIAgentsEnabled       bool               `json:"ai_agents_enabled"` // Agentes IA
+	AllowGroups           *bool              `json:"allow_groups,omitempty"`    // Se aceita mensagens de grupos WhatsApp
+	TrackingEnabled       *bool              `json:"tracking_enabled,omitempty"` // Se rastreia origem das mensagens
 }
 
 // WAHAConfigRequest represents a WAHA configuration
@@ -77,6 +80,8 @@ type ChannelResponse struct {
 	// AI Features
 	AIEnabled       bool `json:"ai_enabled,omitempty"`        // Canal Inteligente
 	AIAgentsEnabled bool `json:"ai_agents_enabled,omitempty"` // Agentes IA
+	AllowGroups     bool `json:"allow_groups"`                 // Se aceita mensagens de grupos WhatsApp
+	TrackingEnabled bool `json:"tracking_enabled"`             // Se rastreia origem das mensagens
 
 	// Statistics
 	MessagesReceived int     `json:"messages_received"`
@@ -125,6 +130,13 @@ func (s *ChannelService) CreateChannel(ctx context.Context, req CreateChannelReq
 			return nil, fmt.Errorf("failed to create WAHA channel: %w", err)
 		}
 
+	case channel.TypeWhatsAppBusiness:
+		// WhatsApp Business: Sistema gerencia sessão WAHA automaticamente
+		ch, err = s.createWhatsAppBusinessChannel(ctx, req)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create WhatsApp Business channel: %w", err)
+		}
+
 	default:
 		ch, err = channel.NewChannel(req.UserID, req.ProjectID, req.TenantID, req.Name, channelType)
 		if err != nil {
@@ -139,6 +151,16 @@ func (s *ChannelService) CreateChannel(ctx context.Context, req CreateChannelReq
 	// Validar: Agentes IA requer Canal Inteligente
 	if ch.AIAgentsEnabled && !ch.AIEnabled {
 		return nil, fmt.Errorf("AI agents require AI-enabled channel")
+	}
+
+	// Configurar suporte a grupos WhatsApp
+	if req.AllowGroups != nil && *req.AllowGroups {
+		ch.EnableGroups()
+	}
+
+	// Configurar tracking de mensagens
+	if req.TrackingEnabled != nil && *req.TrackingEnabled {
+		ch.EnableTracking()
 	}
 
 	// Configurar timeout da sessão (se fornecido)
@@ -301,6 +323,8 @@ func (s *ChannelService) toResponse(ch *channel.Channel) *ChannelResponse {
 		// AI Features
 		AIEnabled:       ch.AIEnabled,
 		AIAgentsEnabled: ch.AIAgentsEnabled,
+		AllowGroups:     ch.AllowGroups,
+		TrackingEnabled: ch.TrackingEnabled,
 
 		// Statistics
 		MessagesReceived: ch.MessagesReceived,
@@ -531,4 +555,112 @@ func (s *ChannelService) ImportWAHAHistory(ctx context.Context, channelID uuid.U
 	}
 
 	return s.historyImporter.ImportHistory(ctx, req)
+}
+
+// createWhatsAppBusinessChannel cria um canal WhatsApp Business com gerenciamento automático de sessão WAHA
+//
+// O sistema:
+// 1. Usa variáveis de ambiente WAHA_APP_BUSINESS_* para configurar WAHA
+// 2. Cria sessão WAHA automaticamente
+// 3. Configura webhook automaticamente
+// 4. Retorna canal com status "connecting"
+func (s *ChannelService) createWhatsAppBusinessChannel(ctx context.Context, req CreateChannelRequest) (*channel.Channel, error) {
+	// 1. Ler variáveis de ambiente para WAHA App Business
+	wahaBaseURL := getEnvOrDefault("WAHA_APP_BUSINESS_BASE_URL", "")
+	wahaAPIKey := getEnvOrDefault("WAHA_APP_BUSINESS_API_KEY", "")
+	appWebhookBaseURL := getEnvOrDefault("APP_BASE_URL", "http://localhost:8080")
+
+	if wahaBaseURL == "" {
+		return nil, fmt.Errorf("WAHA_APP_BUSINESS_BASE_URL environment variable is required for WhatsApp Business channels")
+	}
+	if wahaAPIKey == "" {
+		return nil, fmt.Errorf("WAHA_APP_BUSINESS_API_KEY environment variable is required for WhatsApp Business channels")
+	}
+
+	// 2. Criar canal WhatsApp Business (auto mode)
+	ch, err := channel.NewWhatsAppBusinessChannel(req.UserID, req.ProjectID, req.TenantID, req.Name)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create WhatsApp Business channel: %w", err)
+	}
+
+	// 3. Gerar nome único para sessão WAHA (usando channel ID)
+	sessionName := fmt.Sprintf("channel-%s", ch.ID.String())
+
+	// 4. Criar cliente WAHA para gerenciar sessão
+	wahaClient := waha.NewClient(wahaBaseURL, wahaAPIKey)
+	sessionManager := waha.NewSessionManager(wahaClient, s.logger)
+
+	// 5. Configurar webhook automaticamente
+	webhookURL := fmt.Sprintf("%s/api/v1/webhooks/waha/%s", appWebhookBaseURL, sessionName)
+
+	// 6. Criar sessão WAHA com webhook configurado
+	sessionConfig := waha.SessionConfig{
+		Name:  sessionName,
+		Start: true, // Iniciar sessão automaticamente
+		Config: waha.SessionConfigOptions{
+			Metadata: map[string]string{
+				"channel_id":   ch.ID.String(),
+				"channel_name": ch.Name,
+				"tenant_id":    ch.TenantID,
+			},
+			Webhooks: []waha.SessionWebhookConfig{
+				{
+					URL: webhookURL,
+					Events: []string{
+						"session.status",   // Eventos de status da sessão (WORKING, STOPPED, etc)
+						"message",          // Mensagens recebidas
+						"message.any",      // Qualquer tipo de mensagem
+						"message.ack",      // Confirmações de leitura
+						"message.reaction", // Reações às mensagens
+					},
+				},
+			},
+		},
+	}
+
+	session, err := sessionManager.CreateSession(ctx, sessionConfig)
+	if err != nil {
+		s.logger.Error("Failed to create WAHA session for WhatsApp Business channel",
+			zap.Error(err),
+			zap.String("channel_id", ch.ID.String()),
+			zap.String("session_name", sessionName))
+		return nil, fmt.Errorf("failed to create WAHA session: %w", err)
+	}
+
+	// 7. Atualizar configuração do canal com informações da sessão WAHA
+	ch.Config = map[string]interface{}{
+		"base_url":   wahaBaseURL,
+		"session_id": sessionName,
+		"auth": map[string]string{
+			"api_key": wahaAPIKey,
+		},
+		"webhook_url":      webhookURL,
+		"import_strategy":  string(channel.WAHAImportNone),
+		"waha_session_status": session.Status,
+	}
+
+	// ExternalID é o nome da sessão WAHA
+	ch.ExternalID = sessionName
+
+	// Webhook já configurado automaticamente
+	now := time.Now()
+	ch.WebhookURL = webhookURL
+	ch.WebhookConfiguredAt = &now
+	ch.WebhookActive = true
+
+	s.logger.Info("WhatsApp Business channel created with auto-managed WAHA session",
+		zap.String("channel_id", ch.ID.String()),
+		zap.String("session_name", sessionName),
+		zap.String("waha_status", session.Status),
+		zap.String("webhook_url", webhookURL))
+
+	return ch, nil
+}
+
+// getEnvOrDefault retorna valor da variável de ambiente ou valor padrão
+func getEnvOrDefault(key, defaultValue string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
+	}
+	return defaultValue
 }

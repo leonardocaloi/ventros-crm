@@ -271,11 +271,93 @@ func (c *WAHAClient) SetWebhook(ctx context.Context, sessionID, webhookURL strin
 	return nil
 }
 
-// SendMessage envia uma mensagem de texto
-func (c *WAHAClient) SendMessage(ctx context.Context, sessionID string, req SendMessageRequest) (*SendMessageResponse, error) {
-	url := fmt.Sprintf("%s/api/sessions/%s/messages/text", c.baseURL, sessionID)
+// SendTextRequest representa uma requisição para enviar mensagem de texto
+type SendTextRequest struct {
+	ChatID                 string  `json:"chatId"`
+	Text                   string  `json:"text"`
+	ReplyTo                *string `json:"reply_to,omitempty"`
+	LinkPreview            *bool   `json:"linkPreview,omitempty"`
+	LinkPreviewHighQuality *bool   `json:"linkPreviewHighQuality,omitempty"`
+}
 
-	jsonData, err := json.Marshal(req)
+// SendFileRequest representa uma requisição para enviar arquivo/mídia
+type SendFileRequest struct {
+	ChatID  string      `json:"chatId"`
+	File    FilePayload `json:"file"`
+	ReplyTo *string     `json:"reply_to,omitempty"`
+	Caption *string     `json:"caption,omitempty"`
+}
+
+// FilePayload representa o arquivo a ser enviado
+type FilePayload struct {
+	Mimetype string `json:"mimetype"`
+	Filename string `json:"filename,omitempty"`
+	URL      string `json:"url,omitempty"`  // URL do arquivo
+	Data     string `json:"data,omitempty"` // Base64 data
+}
+
+// SendVoiceRequest representa uma requisição para enviar áudio/voz
+type SendVoiceRequest struct {
+	ChatID  string      `json:"chatId"`
+	File    FilePayload `json:"file"`
+	ReplyTo *string     `json:"reply_to,omitempty"`
+	Convert *bool       `json:"convert,omitempty"` // Converter para formato WhatsApp
+}
+
+// SendVideoRequest representa uma requisição para enviar vídeo
+type SendVideoRequest struct {
+	ChatID  string      `json:"chatId"`
+	File    FilePayload `json:"file"`
+	ReplyTo *string     `json:"reply_to,omitempty"`
+	Caption *string     `json:"caption,omitempty"`
+	AsNote  *bool       `json:"asNote,omitempty"`  // Enviar como video note
+	Convert *bool       `json:"convert,omitempty"` // Converter para formato WhatsApp
+}
+
+// SendLocationRequest representa uma requisição para enviar localização
+type SendLocationRequest struct {
+	ChatID    string  `json:"chatId"`
+	Latitude  float64 `json:"latitude"`
+	Longitude float64 `json:"longitude"`
+	Title     *string `json:"title,omitempty"`
+}
+
+// SendContactRequest representa uma requisição para enviar contato
+type SendContactRequest struct {
+	ChatID string `json:"chatId"`
+	VCard  string `json:"vcard"`
+}
+
+// SendMessage envia uma mensagem de texto (legacy method - mantido para compatibilidade)
+func (c *WAHAClient) SendMessage(ctx context.Context, sessionID string, req SendMessageRequest) (*SendMessageResponse, error) {
+	textReq := SendTextRequest{
+		ChatID: req.ChatID,
+		Text:   req.Text,
+	}
+	return c.SendText(ctx, sessionID, textReq)
+}
+
+// SendText envia uma mensagem de texto
+func (c *WAHAClient) SendText(ctx context.Context, sessionID string, req SendTextRequest) (*SendMessageResponse, error) {
+	url := fmt.Sprintf("%s/api/sendText", c.baseURL)
+
+	// Adiciona session ao request
+	payload := map[string]interface{}{
+		"chatId":  req.ChatID,
+		"text":    req.Text,
+		"session": sessionID,
+	}
+	if req.ReplyTo != nil {
+		payload["reply_to"] = *req.ReplyTo
+	}
+	if req.LinkPreview != nil {
+		payload["linkPreview"] = *req.LinkPreview
+	}
+	if req.LinkPreviewHighQuality != nil {
+		payload["linkPreviewHighQuality"] = *req.LinkPreviewHighQuality
+	}
+
+	jsonData, err := json.Marshal(payload)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
 	}
@@ -304,10 +386,149 @@ func (c *WAHAClient) SendMessage(ctx context.Context, sessionID string, req Send
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
 
-	c.logger.Debug("Message sent via WAHA",
+	c.logger.Debug("Text message sent via WAHA",
 		zap.String("session_id", sessionID),
 		zap.String("chat_id", req.ChatID),
 		zap.String("message_id", response.ID))
+
+	return &response, nil
+}
+
+// SendImage envia uma imagem
+func (c *WAHAClient) SendImage(ctx context.Context, sessionID string, req SendFileRequest) (*SendMessageResponse, error) {
+	return c.sendFile(ctx, sessionID, "/api/sendImage", req)
+}
+
+// SendFile envia um arquivo/documento
+func (c *WAHAClient) SendFile(ctx context.Context, sessionID string, req SendFileRequest) (*SendMessageResponse, error) {
+	return c.sendFile(ctx, sessionID, "/api/sendFile", req)
+}
+
+// SendVoice envia um áudio/voz
+func (c *WAHAClient) SendVoice(ctx context.Context, sessionID string, req SendVoiceRequest) (*SendMessageResponse, error) {
+	url := fmt.Sprintf("%s/api/sendVoice", c.baseURL)
+
+	payload := map[string]interface{}{
+		"chatId":  req.ChatID,
+		"file":    req.File,
+		"session": sessionID,
+	}
+	if req.ReplyTo != nil {
+		payload["reply_to"] = *req.ReplyTo
+	}
+	if req.Convert != nil {
+		payload["convert"] = *req.Convert
+	}
+
+	return c.makeRequest(ctx, url, payload)
+}
+
+// SendVideo envia um vídeo
+func (c *WAHAClient) SendVideo(ctx context.Context, sessionID string, req SendVideoRequest) (*SendMessageResponse, error) {
+	url := fmt.Sprintf("%s/api/sendVideo", c.baseURL)
+
+	payload := map[string]interface{}{
+		"chatId":  req.ChatID,
+		"file":    req.File,
+		"session": sessionID,
+	}
+	if req.ReplyTo != nil {
+		payload["reply_to"] = *req.ReplyTo
+	}
+	if req.Caption != nil {
+		payload["caption"] = *req.Caption
+	}
+	if req.AsNote != nil {
+		payload["asNote"] = *req.AsNote
+	}
+	if req.Convert != nil {
+		payload["convert"] = *req.Convert
+	}
+
+	return c.makeRequest(ctx, url, payload)
+}
+
+// SendLocation envia uma localização
+func (c *WAHAClient) SendLocation(ctx context.Context, sessionID string, req SendLocationRequest) (*SendMessageResponse, error) {
+	url := fmt.Sprintf("%s/api/sendLocation", c.baseURL)
+
+	payload := map[string]interface{}{
+		"chatId":    req.ChatID,
+		"latitude":  req.Latitude,
+		"longitude": req.Longitude,
+		"session":   sessionID,
+	}
+	if req.Title != nil {
+		payload["title"] = *req.Title
+	}
+
+	return c.makeRequest(ctx, url, payload)
+}
+
+// SendContact envia um contato
+func (c *WAHAClient) SendContact(ctx context.Context, sessionID string, req SendContactRequest) (*SendMessageResponse, error) {
+	url := fmt.Sprintf("%s/api/sendContactVcard", c.baseURL)
+
+	payload := map[string]interface{}{
+		"chatId":  req.ChatID,
+		"vcard":   req.VCard,
+		"session": sessionID,
+	}
+
+	return c.makeRequest(ctx, url, payload)
+}
+
+// sendFile é um helper para enviar arquivos (imagem, documento)
+func (c *WAHAClient) sendFile(ctx context.Context, sessionID, endpoint string, req SendFileRequest) (*SendMessageResponse, error) {
+	url := fmt.Sprintf("%s%s", c.baseURL, endpoint)
+
+	payload := map[string]interface{}{
+		"chatId":  req.ChatID,
+		"file":    req.File,
+		"session": sessionID,
+	}
+	if req.ReplyTo != nil {
+		payload["reply_to"] = *req.ReplyTo
+	}
+	if req.Caption != nil {
+		payload["caption"] = *req.Caption
+	}
+
+	return c.makeRequest(ctx, url, payload)
+}
+
+// makeRequest é um helper para fazer requests HTTP à API WAHA
+func (c *WAHAClient) makeRequest(ctx context.Context, url string, payload interface{}) (*SendMessageResponse, error) {
+	jsonData, err := json.Marshal(payload)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal request: %w", err)
+	}
+
+	httpReq, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(jsonData))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	c.setAuthHeaders(httpReq)
+	httpReq.Header.Set("Content-Type", "application/json")
+
+	resp, err := c.httpClient.Do(httpReq)
+	if err != nil {
+		return nil, fmt.Errorf("failed to make request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("API error %d: %s", resp.StatusCode, string(body))
+	}
+
+	var response SendMessageResponse
+	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	c.logger.Debug("Message sent via WAHA", zap.String("url", url), zap.String("message_id", response.ID))
 
 	return &response, nil
 }

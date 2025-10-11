@@ -7,7 +7,6 @@ import (
 	"github.com/google/uuid"
 )
 
-// DomainEvent é um alias para shared.DomainEvent (compatibilidade retroativa).
 type DomainEvent = shared.DomainEvent
 
 type MessageCreatedEvent struct {
@@ -56,7 +55,6 @@ func NewMessageReadEvent(messageID uuid.UUID) MessageReadEvent {
 	}
 }
 
-// MessageFailedEvent - Mensagem falhou ao ser enviada.
 type MessageFailedEvent struct {
 	shared.BaseEvent
 	MessageID     uuid.UUID
@@ -73,11 +71,6 @@ func NewMessageFailedEvent(messageID uuid.UUID, failureReason string) MessageFai
 	}
 }
 
-// ============================================
-// AI Processing Events - Disparam workflows do Temporal
-// ============================================
-
-// AIProcessImageRequestedEvent - Solicita processamento de imagem com IA
 type AIProcessImageRequestedEvent struct {
 	shared.BaseEvent
 	MessageID   uuid.UUID
@@ -102,7 +95,6 @@ func NewAIProcessImageRequestedEvent(messageID, channelID, contactID, sessionID 
 	}
 }
 
-// AIProcessVideoRequestedEvent - Solicita processamento de vídeo com IA
 type AIProcessVideoRequestedEvent struct {
 	shared.BaseEvent
 	MessageID   uuid.UUID
@@ -111,7 +103,7 @@ type AIProcessVideoRequestedEvent struct {
 	SessionID   uuid.UUID
 	VideoURL    string
 	MimeType    string
-	Duration    int // segundos
+	Duration    int
 	RequestedAt time.Time
 }
 
@@ -129,7 +121,6 @@ func NewAIProcessVideoRequestedEvent(messageID, channelID, contactID, sessionID 
 	}
 }
 
-// AIProcessAudioRequestedEvent - Solicita processamento de áudio com IA
 type AIProcessAudioRequestedEvent struct {
 	shared.BaseEvent
 	MessageID   uuid.UUID
@@ -138,7 +129,7 @@ type AIProcessAudioRequestedEvent struct {
 	SessionID   uuid.UUID
 	AudioURL    string
 	MimeType    string
-	Duration    int // segundos
+	Duration    int
 	RequestedAt time.Time
 }
 
@@ -156,7 +147,6 @@ func NewAIProcessAudioRequestedEvent(messageID, channelID, contactID, sessionID 
 	}
 }
 
-// AIProcessVoiceRequestedEvent - Solicita processamento de mensagem de voz/PTT com IA
 type AIProcessVoiceRequestedEvent struct {
 	shared.BaseEvent
 	MessageID   uuid.UUID
@@ -165,7 +155,7 @@ type AIProcessVoiceRequestedEvent struct {
 	SessionID   uuid.UUID
 	VoiceURL    string
 	MimeType    string
-	Duration    int // segundos
+	Duration    int
 	RequestedAt time.Time
 }
 

@@ -3,6 +3,7 @@ package messaging
 import (
 	"context"
 
+	domainchat "github.com/caloi/ventros-crm/internal/domain/chat"
 	domaincontact "github.com/caloi/ventros-crm/internal/domain/contact"
 	domainsession "github.com/caloi/ventros-crm/internal/domain/session"
 	"github.com/caloi/ventros-crm/internal/domain/shared"
@@ -51,4 +52,18 @@ func (a *MessageEventBusAdapter) Publish(ctx context.Context, event shared.Domai
 
 func (a *MessageEventBusAdapter) PublishBatch(ctx context.Context, events []shared.DomainEvent) error {
 	return a.domainEventBus.PublishBatch(ctx, events)
+}
+
+// ChatEventBusAdapter adapta DomainEventBus para chat.EventBus
+type ChatEventBusAdapter struct {
+	domainEventBus *DomainEventBus
+}
+
+func NewChatEventBusAdapter(domainEventBus *DomainEventBus) *ChatEventBusAdapter {
+	return &ChatEventBusAdapter{domainEventBus: domainEventBus}
+}
+
+func (a *ChatEventBusAdapter) Publish(ctx context.Context, event domainchat.DomainEvent) error {
+	// chat.DomainEvent é agora compatível com shared.DomainEvent, então pode passar direto
+	return a.domainEventBus.Publish(ctx, event)
 }

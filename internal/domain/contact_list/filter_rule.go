@@ -9,7 +9,6 @@ import (
 	"github.com/google/uuid"
 )
 
-// FilterOperator define os operadores de filtro disponíveis
 type FilterOperator string
 
 const (
@@ -29,7 +28,6 @@ const (
 	OperatorIsNotNull    FilterOperator = "is_not_null"
 )
 
-// IsValid verifica se o operador é válido
 func (fo FilterOperator) IsValid() bool {
 	switch fo {
 	case OperatorEquals, OperatorNotEquals, OperatorGreaterThan, OperatorLessThan,
@@ -42,7 +40,6 @@ func (fo FilterOperator) IsValid() bool {
 	}
 }
 
-// FilterType define os tipos de filtro disponíveis
 type FilterType string
 
 const (
@@ -51,10 +48,9 @@ const (
 	FilterTypeTag            FilterType = "tag"
 	FilterTypeEvent          FilterType = "event"
 	FilterTypeInteraction    FilterType = "interaction"
-	FilterTypeAttribute      FilterType = "attribute" // name, email, phone, etc.
+	FilterTypeAttribute      FilterType = "attribute"
 )
 
-// IsValid verifica se o tipo de filtro é válido
 func (ft FilterType) IsValid() bool {
 	switch ft {
 	case FilterTypeCustomField, FilterTypePipelineStatus, FilterTypeTag,
@@ -65,19 +61,17 @@ func (ft FilterType) IsValid() bool {
 	}
 }
 
-// FilterRule representa uma regra de filtro
 type FilterRule struct {
 	id         uuid.UUID
 	filterType FilterType
+	fieldKey   string
+	fieldType  *shared.FieldType
 	operator   FilterOperator
-	fieldKey   string            // Campo a ser filtrado (ex: "custom_field_name", "email", "tag")
-	fieldType  *shared.FieldType // Tipo do campo (apenas para custom fields)
-	value      interface{}       // Valor de comparação
-	pipelineID *uuid.UUID        // Apenas para FilterTypePipelineStatus
+	value      interface{}
+	pipelineID *uuid.UUID
 	createdAt  time.Time
 }
 
-// NewFilterRule cria uma nova regra de filtro
 func NewFilterRule(
 	filterType FilterType,
 	operator FilterOperator,
@@ -94,18 +88,16 @@ func NewFilterRule(
 		return nil, errors.New("field key cannot be empty")
 	}
 
-	// Validações específicas
 	switch operator {
 	case OperatorIsNull, OperatorIsNotNull:
 		if value != nil {
 			return nil, errors.New("value must be nil for is_null/is_not_null operators")
 		}
 	case OperatorIn, OperatorNotIn:
-		// Validar que value é um array
 		if value == nil {
 			return nil, errors.New("value cannot be nil for in/not_in operators")
 		}
-		// TODO: adicionar validação de tipo array
+
 	default:
 		if value == nil && operator != OperatorIsNull && operator != OperatorIsNotNull {
 			return nil, errors.New("value cannot be nil for this operator")
@@ -122,7 +114,6 @@ func NewFilterRule(
 	}, nil
 }
 
-// NewCustomFieldFilterRule cria uma regra de filtro para campo customizado
 func NewCustomFieldFilterRule(
 	fieldKey string,
 	fieldType shared.FieldType,
@@ -142,7 +133,6 @@ func NewCustomFieldFilterRule(
 	return rule, nil
 }
 
-// NewPipelineStatusFilterRule cria uma regra de filtro para status de pipeline
 func NewPipelineStatusFilterRule(
 	pipelineID uuid.UUID,
 	statusName string,
@@ -161,7 +151,6 @@ func NewPipelineStatusFilterRule(
 	return rule, nil
 }
 
-// NewTagFilterRule cria uma regra de filtro para tags
 func NewTagFilterRule(
 	operator FilterOperator,
 	tagValue interface{},
@@ -169,7 +158,6 @@ func NewTagFilterRule(
 	return NewFilterRule(FilterTypeTag, operator, "tag", tagValue)
 }
 
-// NewEventFilterRule cria uma regra de filtro para eventos
 func NewEventFilterRule(
 	eventType string,
 	operator FilterOperator,
@@ -178,13 +166,11 @@ func NewEventFilterRule(
 	return NewFilterRule(FilterTypeEvent, operator, eventType, value)
 }
 
-// NewAttributeFilterRule cria uma regra de filtro para atributos padrão (name, email, phone)
 func NewAttributeFilterRule(
 	attributeName string,
 	operator FilterOperator,
 	value interface{},
 ) (*FilterRule, error) {
-	// Validar atributos permitidos
 	allowedAttributes := map[string]bool{
 		"name":                 true,
 		"email":                true,
@@ -205,7 +191,6 @@ func NewAttributeFilterRule(
 	return NewFilterRule(FilterTypeAttribute, operator, attributeName, value)
 }
 
-// ReconstructFilterRule reconstrói uma regra de filtro a partir de dados persistidos
 func ReconstructFilterRule(
 	id uuid.UUID,
 	filterType FilterType,
@@ -228,7 +213,6 @@ func ReconstructFilterRule(
 	}
 }
 
-// Getters
 func (fr *FilterRule) ID() uuid.UUID                { return fr.id }
 func (fr *FilterRule) FilterType() FilterType       { return fr.filterType }
 func (fr *FilterRule) Operator() FilterOperator     { return fr.operator }
@@ -238,7 +222,6 @@ func (fr *FilterRule) Value() interface{}           { return fr.value }
 func (fr *FilterRule) PipelineID() *uuid.UUID       { return fr.pipelineID }
 func (fr *FilterRule) CreatedAt() time.Time         { return fr.createdAt }
 
-// String retorna uma representação em string da regra
 func (fr *FilterRule) String() string {
 	return fmt.Sprintf("%s %s %s: %v", fr.filterType, fr.fieldKey, fr.operator, fr.value)
 }

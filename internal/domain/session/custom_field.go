@@ -8,18 +8,15 @@ import (
 	"github.com/google/uuid"
 )
 
-// SessionCustomField é uma entidade que persiste campos customizados da sessão.
-// É uma entidade (não Value Object) porque tem ID próprio e ciclo de vida independente.
 type SessionCustomField struct {
 	id          uuid.UUID
 	sessionID   uuid.UUID
 	tenantID    string
-	customField *shared.CustomField // Value Object encapsulado
+	customField *shared.CustomField
 	createdAt   time.Time
 	updatedAt   time.Time
 }
 
-// NewSessionCustomField cria um novo campo customizado para uma sessão.
 func NewSessionCustomField(
 	sessionID uuid.UUID,
 	tenantID string,
@@ -46,7 +43,6 @@ func NewSessionCustomField(
 	}, nil
 }
 
-// ReconstructSessionCustomField reconstrói a partir de dados persistidos.
 func ReconstructSessionCustomField(
 	id uuid.UUID,
 	sessionID uuid.UUID,
@@ -65,13 +61,11 @@ func ReconstructSessionCustomField(
 	}
 }
 
-// UpdateValue atualiza o valor do campo.
 func (scf *SessionCustomField) UpdateValue(newField *shared.CustomField) error {
 	if newField == nil {
 		return errors.New("new field cannot be nil")
 	}
 
-	// Validar que mantém a mesma chave e tipo
 	if scf.customField.Key() != newField.Key() {
 		return errors.New("cannot change field key")
 	}
@@ -84,7 +78,6 @@ func (scf *SessionCustomField) UpdateValue(newField *shared.CustomField) error {
 	return nil
 }
 
-// Getters
 func (scf *SessionCustomField) ID() uuid.UUID                    { return scf.id }
 func (scf *SessionCustomField) SessionID() uuid.UUID             { return scf.sessionID }
 func (scf *SessionCustomField) TenantID() string                 { return scf.tenantID }

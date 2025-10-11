@@ -7,46 +7,32 @@ import (
 	"github.com/google/uuid"
 )
 
-// Session é o Aggregate Root para conversas.
-// Agrupa messages e garante invariantes de negócio.
-//
-// ⚠️ IMPORTANTE - Dependências:
-// - Session PRECISA de Pipeline ativo para ser criada
-// - Session PRECISA de Channel para receber mensagens
-// - Pipeline e Channel são independentes entre si
-// - Sem Pipeline: Mensagens são salvas, mas não agrupadas em Session
-//
-// O timeout vem do Pipeline.SessionTimeoutMinutes (não é arbitrário).
 type Session struct {
 	id              uuid.UUID
 	contactID       uuid.UUID
 	tenantID        string
 	channelTypeID   *int
-	pipelineID      *uuid.UUID // Pipeline que define o timeout e fluxo
+	pipelineID      *uuid.UUID
 	startedAt       time.Time
 	endedAt         *time.Time
 	status          Status
 	endReason       *EndReason
-	timeoutDuration time.Duration // Vem do Pipeline.SessionTimeoutMinutes
+	timeoutDuration time.Duration
 	lastActivityAt  time.Time
 
-	// Métricas
 	messageCount        int
 	messagesFromContact int
 	messagesFromAgent   int
 	durationSeconds     int
 
-	// Response Time Metrics (para lead score e feedback comercial)
 	firstContactMessageAt    *time.Time
 	firstAgentResponseAt     *time.Time
-	agentResponseTimeSeconds *int // Tempo de espera até primeira resposta do agente
-	contactWaitTimeSeconds   *int // Tempo de espera do contato (se agente iniciou)
+	agentResponseTimeSeconds *int
+	contactWaitTimeSeconds   *int
 
-	// Agentes
 	agentIDs       []uuid.UUID
 	agentTransfers int
 
-	// AI/Analytics
 	summary        *string
 	sentiment      *Sentiment
 	sentimentScore *float64
@@ -54,19 +40,14 @@ type Session struct {
 	nextSteps      []string
 	keyEntities    map[string]interface{}
 
-	// Flags de negócio
 	resolved    bool
 	escalated   bool
 	converted   bool
 	outcomeTags []string
 
-	// Domain Events
 	events []DomainEvent
 }
 
-// NewSession cria uma nova sessão (factory method).
-// IMPORTANTE: pipelineID é opcional para compatibilidade, mas RECOMENDADO.
-// Se não informado, usa fallback de 30min (não ideal para produção).
 func NewSession(
 	contactID uuid.UUID,
 	tenantID string,
@@ -80,7 +61,7 @@ func NewSession(
 		return nil, errors.New("tenantID cannot be empty")
 	}
 	if timeoutDuration <= 0 {
-		timeoutDuration = 30 * time.Minute // default fallback
+		timeoutDuration = 30 * time.Minute
 	}
 
 	now := time.Now()
@@ -89,7 +70,7 @@ func NewSession(
 		contactID:       contactID,
 		tenantID:        tenantID,
 		channelTypeID:   channelTypeID,
-		pipelineID:      nil, // Será definido pela aplicação
+		pipelineID:      nil,
 		startedAt:       now,
 		status:          StatusActive,
 		timeoutDuration: timeoutDuration,
@@ -107,8 +88,6 @@ func NewSession(
 	return session, nil
 }
 
-// NewSessionWithPipeline cria uma nova sessão COM pipeline (recomendado).
-// Este é o método preferido para criar sessões em produção.
 func NewSessionWithPipeline(
 	contactID uuid.UUID,
 	tenantID string,
@@ -129,7 +108,6 @@ func NewSessionWithPipeline(
 	return session, nil
 }
 
-// ReconstructSession reconstrói uma Session a partir de dados persistidos.
 func ReconstructSession(
 	id uuid.UUID,
 	contactID uuid.UUID,
@@ -215,7 +193,6 @@ func ReconstructSession(
 	}
 }
 
-// RecordMessage registra uma mensagem na sessão e calcula métricas de tempo de resposta.
 func (s *Session) RecordMessage(fromContact bool, messageTimestamp time.Time) error {
 	if s.status != StatusActive {
 		return errors.New("cannot add message to non-active session")
@@ -227,41 +204,35 @@ func (s *Session) RecordMessage(fromContact bool, messageTimestamp time.Time) er
 	if fromContact {
 		s.messagesFromContact++
 
-		// Registrar primeira mensagem do contato
 		if s.firstContactMessageAt == nil {
 			s.firstContactMessageAt = &messageTimestamp
 
-			// Se agente já respondeu antes, calcular tempo de espera do contato
 			if s.firstAgentResponseAt != nil {
 				waitTime := int(messageTimestamp.Sub(*s.firstAgentResponseAt).Seconds())
 				s.contactWaitTimeSeconds = &waitTime
 			}
 		}
 
-		// Se agente ainda não respondeu, calcular tempo de espera do agente
 		if s.firstAgentResponseAt == nil && s.firstContactMessageAt != nil {
 			responseTime := int(now.Sub(*s.firstContactMessageAt).Seconds())
-			// Atualiza continuamente até o agente responder
+
 			s.agentResponseTimeSeconds = &responseTime
 		}
 	} else {
 		s.messagesFromAgent++
 
-		// Registrar primeira resposta do agente
 		if s.firstAgentResponseAt == nil {
 			s.firstAgentResponseAt = &messageTimestamp
 
-			// Se contato já enviou mensagem, calcular tempo de resposta do agente
 			if s.firstContactMessageAt != nil {
 				responseTime := int(messageTimestamp.Sub(*s.firstContactMessageAt).Seconds())
 				s.agentResponseTimeSeconds = &responseTime
 			}
 		}
 
-		// Se contato ainda não respondeu, calcular tempo de espera do contato
 		if s.firstContactMessageAt == nil && s.firstAgentResponseAt != nil {
 			waitTime := int(now.Sub(*s.firstAgentResponseAt).Seconds())
-			// Atualiza continuamente até o contato responder
+
 			s.contactWaitTimeSeconds = &waitTime
 		}
 	}
@@ -273,20 +244,17 @@ func (s *Session) RecordMessage(fromContact bool, messageTimestamp time.Time) er
 	return nil
 }
 
-// AssignAgent atribui um agente à sessão.
 func (s *Session) AssignAgent(agentID uuid.UUID) error {
 	if s.status != StatusActive {
 		return errors.New("cannot assign agent to non-active session")
 	}
 
-	// Verifica se já existe
 	for _, id := range s.agentIDs {
 		if id == agentID {
-			return nil // Já atribuído
+			return nil
 		}
 	}
 
-	// Se já tinha outros agentes, é uma transferência
 	if len(s.agentIDs) > 0 {
 		s.agentTransfers++
 	}
@@ -298,7 +266,6 @@ func (s *Session) AssignAgent(agentID uuid.UUID) error {
 	return nil
 }
 
-// CheckTimeout verifica se a sessão deve ser encerrada por inatividade.
 func (s *Session) CheckTimeout() bool {
 	if s.status != StatusActive {
 		return false
@@ -312,9 +279,6 @@ func (s *Session) CheckTimeout() bool {
 	return false
 }
 
-// End encerra a sessão manualmente ou por timeout.
-// Nota: O evento criado aqui será enriquecido pela camada de aplicação com channel_id,
-// message_ids e outros dados de contexto antes de ser publicado.
 func (s *Session) End(reason EndReason) error {
 	if s.status != StatusActive {
 		return errors.New("session is not active")
@@ -326,12 +290,11 @@ func (s *Session) End(reason EndReason) error {
 	s.endReason = &reason
 	s.durationSeconds = int(now.Sub(s.startedAt).Seconds())
 
-	// Cria evento básico - será enriquecido pela aplicação com channelID, messageIDs, etc
 	s.addEvent(NewSessionEndedEvent(
 		s.id,
 		s.contactID,
 		s.tenantID,
-		nil, // channelID será adicionado pela camada de aplicação
+		nil,
 		s.channelTypeID,
 		s.pipelineID,
 		s.startedAt,
@@ -342,7 +305,6 @@ func (s *Session) End(reason EndReason) error {
 	return nil
 }
 
-// Resolve marca a sessão como resolvida.
 func (s *Session) Resolve() error {
 	if s.status == StatusActive {
 		return errors.New("cannot resolve active session")
@@ -355,7 +317,6 @@ func (s *Session) Resolve() error {
 	return nil
 }
 
-// Escalate marca a sessão como escalada.
 func (s *Session) Escalate() error {
 	s.escalated = true
 
@@ -364,7 +325,6 @@ func (s *Session) Escalate() error {
 	return nil
 }
 
-// SetSummary define o resumo gerado por IA.
 func (s *Session) SetSummary(summary string, sentiment Sentiment, score float64, topics, nextSteps []string) {
 	s.summary = &summary
 	s.sentiment = &sentiment
@@ -375,17 +335,13 @@ func (s *Session) SetSummary(summary string, sentiment Sentiment, score float64,
 	s.addEvent(NewSessionSummarizedEvent(s.id, summary, sentiment, score))
 }
 
-// IsActive verifica se a sessão está ativa.
 func (s *Session) IsActive() bool {
 	return s.status == StatusActive
 }
 
-// ShouldGenerateSummary verifica se deve gerar resumo.
 func (s *Session) ShouldGenerateSummary() bool {
 	return s.status == StatusEnded && s.messageCount >= 3 && s.summary == nil
 }
-
-// Getters (acesso controlado ao estado)
 
 func (s *Session) ID() uuid.UUID                  { return s.id }
 func (s *Session) ContactID() uuid.UUID           { return s.contactID }
@@ -403,21 +359,20 @@ func (s *Session) MessagesFromContact() int       { return s.messagesFromContact
 func (s *Session) MessagesFromAgent() int         { return s.messagesFromAgent }
 func (s *Session) DurationSeconds() int           { return s.durationSeconds }
 
-// Response Time Metrics Getters
 func (s *Session) FirstContactMessageAt() *time.Time { return s.firstContactMessageAt }
 func (s *Session) FirstAgentResponseAt() *time.Time  { return s.firstAgentResponseAt }
 func (s *Session) AgentResponseTimeSeconds() *int    { return s.agentResponseTimeSeconds }
 func (s *Session) ContactWaitTimeSeconds() *int      { return s.contactWaitTimeSeconds }
 
-func (s *Session) AgentIDs() []uuid.UUID    { return append([]uuid.UUID{}, s.agentIDs...) } // Copy
+func (s *Session) AgentIDs() []uuid.UUID    { return append([]uuid.UUID{}, s.agentIDs...) }
 func (s *Session) AgentTransfers() int      { return s.agentTransfers }
 func (s *Session) Summary() *string         { return s.summary }
 func (s *Session) Sentiment() *Sentiment    { return s.sentiment }
 func (s *Session) SentimentScore() *float64 { return s.sentimentScore }
-func (s *Session) Topics() []string         { return append([]string{}, s.topics...) }    // Copy
-func (s *Session) NextSteps() []string      { return append([]string{}, s.nextSteps...) } // Copy
+func (s *Session) Topics() []string         { return append([]string{}, s.topics...) }
+func (s *Session) NextSteps() []string      { return append([]string{}, s.nextSteps...) }
 func (s *Session) KeyEntities() map[string]interface{} {
-	// Return copy
+
 	copy := make(map[string]interface{})
 	for k, v := range s.keyEntities {
 		copy[k] = v
@@ -427,19 +382,16 @@ func (s *Session) KeyEntities() map[string]interface{} {
 func (s *Session) IsResolved() bool      { return s.resolved }
 func (s *Session) IsEscalated() bool     { return s.escalated }
 func (s *Session) IsConverted() bool     { return s.converted }
-func (s *Session) OutcomeTags() []string { return append([]string{}, s.outcomeTags...) } // Copy
+func (s *Session) OutcomeTags() []string { return append([]string{}, s.outcomeTags...) }
 
-// DomainEvents retorna os eventos de domínio.
 func (s *Session) DomainEvents() []DomainEvent {
 	return append([]DomainEvent{}, s.events...)
 }
 
-// ClearEvents limpa os eventos (após publicação).
 func (s *Session) ClearEvents() {
 	s.events = []DomainEvent{}
 }
 
-// addEvent adiciona um evento de domínio.
 func (s *Session) addEvent(event DomainEvent) {
 	s.events = append(s.events, event)
 }

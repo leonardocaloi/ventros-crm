@@ -2,23 +2,32 @@ package handlers
 
 import (
 	"net/http"
+	"strconv"
 	"strings"
 
+	apierrors "github.com/caloi/ventros-crm/infrastructure/http/errors"
+	"github.com/caloi/ventros-crm/infrastructure/http/middleware"
+	"github.com/caloi/ventros-crm/internal/application/queries"
 	"github.com/caloi/ventros-crm/internal/domain/session"
+	"github.com/caloi/ventros-crm/internal/domain/shared"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 )
 
 type SessionHandler struct {
-	logger      *zap.Logger
-	sessionRepo session.Repository
+	logger                     *zap.Logger
+	sessionRepo                session.Repository
+	listSessionsQueryHandler   *queries.ListSessionsQueryHandler
+	searchSessionsQueryHandler *queries.SearchSessionsQueryHandler
 }
 
 func NewSessionHandler(logger *zap.Logger, sessionRepo session.Repository) *SessionHandler {
 	return &SessionHandler{
-		logger:      logger,
-		sessionRepo: sessionRepo,
+		logger:                     logger,
+		sessionRepo:                sessionRepo,
+		listSessionsQueryHandler:   queries.NewListSessionsQueryHandler(sessionRepo, logger),
+		searchSessionsQueryHandler: queries.NewSearchSessionsQueryHandler(sessionRepo, logger),
 	}
 }
 
@@ -280,4 +289,235 @@ func (h *SessionHandler) CloseSession(c *gin.Context) {
 		"reason":     req.Reason,
 		"status":     sess.Status(),
 	})
+}
+
+// ListSessionsAdvanced lists sessions with advanced filters, pagination, and sorting
+//
+//	@Summary		List sessions with advanced filters and pagination
+//	@Description	Retrieve a paginated list of sessions with advanced filtering capabilities including contact, pipeline, status, sentiment, and resolution flags. Supports sorting and pagination for efficient data retrieval. Perfect for building session dashboards and reports.
+//	@Description
+//	@Description	**Filtering Options:**
+//	@Description	- Filter by contact to see all sessions for a specific customer
+//	@Description	- Filter by pipeline to analyze sessions in a specific workflow
+//	@Description	- Filter by status (active/ended) to focus on ongoing or completed sessions
+//	@Description	- Filter by sentiment (positive/negative/neutral) for customer satisfaction analysis
+//	@Description	- Filter by resolved/escalated/converted flags for outcome tracking
+//	@Description	- Filter by date range to analyze sessions within specific time periods
+//	@Description	- Filter by message count range to find short or long conversations
+//	@Description
+//	@Description	**Sorting Options:**
+//	@Description	- Sort by started_at, ended_at, message_count, or duration
+//	@Description	- Ascending or descending order
+//	@Description
+//	@Description	**Performance:**
+//	@Description	- Optimized with composite GORM indexes on tenant+status, tenant+contact, tenant+pipeline
+//	@Description	- GIN indexes on JSONB fields (agent_ids, topics, outcome_tags) for fast array searches
+//	@Description	- Pagination prevents large result sets
+//	@Description	- Maximum 100 results per page
+//	@Tags			sessions
+//	@Accept			json
+//	@Produce		json
+//	@Security		BearerAuth
+//	@Param			contact_id			query		string	false	"Filter by contact UUID - Example: 550e8400-e29b-41d4-a716-446655440000"
+//	@Param			pipeline_id			query		string	false	"Filter by pipeline UUID - Example: 660e8400-e29b-41d4-a716-446655440001"
+//	@Param			status				query		string	false	"Filter by session status" Enums(active, ended) example(active)
+//	@Param			sentiment			query		string	false	"Filter by detected sentiment" Enums(positive, negative, neutral) example(positive)
+//	@Param			resolved			query		bool	false	"Filter by resolved flag - true: only resolved sessions, false: only unresolved" example(true)
+//	@Param			escalated			query		bool	false	"Filter by escalated flag - true: only escalated sessions" example(false)
+//	@Param			converted			query		bool	false	"Filter by converted flag - true: sessions that led to conversions" example(true)
+//	@Param			started_after		query		string	false	"Filter sessions started after this timestamp - Format: 2006-01-02T15:04:05Z" example(2024-01-01T00:00:00Z)
+//	@Param			started_before		query		string	false	"Filter sessions started before this timestamp" example(2024-12-31T23:59:59Z)
+//	@Param			min_messages		query		int		false	"Minimum number of messages in session - Example: 5" example(5)
+//	@Param			max_messages		query		int		false	"Maximum number of messages in session - Example: 100" example(100)
+//	@Param			page				query		int		false	"Page number for pagination (starts at 1)" default(1) minimum(1) example(1)
+//	@Param			limit				query		int		false	"Number of results per page (max 100)" default(20) minimum(1) maximum(100) example(20)
+//	@Param			sort_by				query		string	false	"Field to sort by" Enums(started_at, ended_at, message_count, duration_seconds, created_at) default(started_at) example(started_at)
+//	@Param			sort_dir			query		string	false	"Sort direction" Enums(asc, desc) default(desc) example(desc)
+//	@Success		200					{object}	queries.ListSessionsResponse	"Successfully retrieved sessions with pagination metadata"
+//	@Failure		400					{object}	map[string]interface{}			"Bad Request - Invalid parameters (e.g., invalid UUID format, invalid page number, limit exceeds maximum)"
+//	@Failure		401					{object}	map[string]interface{}			"Unauthorized - Missing or invalid authentication token"
+//	@Failure		403					{object}	map[string]interface{}			"Forbidden - User doesn't have permission to access this tenant's sessions"
+//	@Failure		500					{object}	map[string]interface{}			"Internal Server Error - Database connection issues or unexpected errors"
+//	@Router			/api/v1/crm/sessions/advanced [get]
+func (h *SessionHandler) ListSessionsAdvanced(c *gin.Context) {
+	authCtx, exists := middleware.GetAuthContext(c)
+	if !exists {
+		apierrors.Unauthorized(c, "Authentication required")
+		return
+	}
+
+	// Parse pagination
+	page := 1
+	limit := 20
+	if pageStr := c.Query("page"); pageStr != "" {
+		if p, err := strconv.Atoi(pageStr); err == nil && p > 0 {
+			page = p
+		}
+	}
+	if limitStr := c.Query("limit"); limitStr != "" {
+		if l, err := strconv.Atoi(limitStr); err == nil && l > 0 && l <= 100 {
+			limit = l
+		}
+	}
+
+	// Parse sorting
+	sortBy := c.DefaultQuery("sort_by", "started_at")
+	sortDir := c.DefaultQuery("sort_dir", "desc")
+
+	// Parse optional UUID filters
+	var contactID, pipelineID *uuid.UUID
+	if contactIDStr := c.Query("contact_id"); contactIDStr != "" {
+		if id, err := uuid.Parse(contactIDStr); err == nil {
+			contactID = &id
+		}
+	}
+	if pipelineIDStr := c.Query("pipeline_id"); pipelineIDStr != "" {
+		if id, err := uuid.Parse(pipelineIDStr); err == nil {
+			pipelineID = &id
+		}
+	}
+
+	// Parse boolean filters
+	var resolved, escalated, converted *bool
+	if resolvedStr := c.Query("resolved"); resolvedStr != "" {
+		if b, err := strconv.ParseBool(resolvedStr); err == nil {
+			resolved = &b
+		}
+	}
+	if escalatedStr := c.Query("escalated"); escalatedStr != "" {
+		if b, err := strconv.ParseBool(escalatedStr); err == nil {
+			escalated = &b
+		}
+	}
+	if convertedStr := c.Query("converted"); convertedStr != "" {
+		if b, err := strconv.ParseBool(convertedStr); err == nil {
+			converted = &b
+		}
+	}
+
+	// Parse string filters
+	var status, sentiment *string
+	if statusStr := c.Query("status"); statusStr != "" {
+		status = &statusStr
+	}
+	if sentimentStr := c.Query("sentiment"); sentimentStr != "" {
+		sentiment = &sentimentStr
+	}
+
+	// Create tenant ID
+	tenantID, err := shared.NewTenantID(authCtx.TenantID)
+	if err != nil {
+		apierrors.ValidationError(c, "tenant_id", "Invalid tenant ID")
+		return
+	}
+
+	// Execute query
+	query := queries.ListSessionsQuery{
+		TenantID:   tenantID,
+		ContactID:  contactID,
+		PipelineID: pipelineID,
+		Status:     status,
+		Resolved:   resolved,
+		Escalated:  escalated,
+		Converted:  converted,
+		Sentiment:  sentiment,
+		Page:       page,
+		Limit:      limit,
+		SortBy:     sortBy,
+		SortDir:    sortDir,
+	}
+
+	response, err := h.listSessionsQueryHandler.Handle(c.Request.Context(), query)
+	if err != nil {
+		h.logger.Error("Failed to list sessions", zap.Error(err))
+		apierrors.InternalError(c, "Failed to retrieve sessions", err)
+		return
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
+// SearchSessions performs full-text search on sessions
+//
+//	@Summary		Full-text search across sessions
+//	@Description	Perform intelligent full-text search across session summaries, topics, key entities, next steps, and outcome tags. Uses PostgreSQL ILIKE for case-insensitive pattern matching with relevance scoring.
+//	@Description
+//	@Description	**Search Capabilities:**
+//	@Description	- Searches across session summary text (AI-generated conversation summaries)
+//	@Description	- Searches through detected topics (array of conversation topics)
+//	@Description	- Searches through outcome tags (categorization tags added at session end)
+//	@Description	- Searches through key entities (people, products, companies mentioned)
+//	@Description	- Searches through next steps (action items identified in conversation)
+//	@Description
+//	@Description	**Match Scoring:**
+//	@Description	- Summary matches: 2.0 score (highest priority - main content)
+//	@Description	- Topics matches: 1.5 score (high priority - categorization)
+//	@Description	- Outcome tags matches: 1.3 score (medium priority - resolution info)
+//	@Description	- Key entities/next steps matches: 1.0 score (standard priority)
+//	@Description
+//	@Description	**Search Examples:**
+//	@Description	- Search for "refund" to find all sessions where refunds were discussed
+//	@Description	- Search for "escalated" to find problematic sessions
+//	@Description	- Search for "product-demo" to find sessions with demo requests
+//	@Description	- Search for customer/company names mentioned in conversations
+//	@Description
+//	@Description	**Performance:**
+//	@Description	- Optimized with GIN indexes on JSONB fields (topics, outcome_tags, key_entities)
+//	@Description	- Results ordered by match score (highest relevance first)
+//	@Description	- Maximum 100 results to ensure fast response times
+//	@Tags			sessions
+//	@Accept			json
+//	@Produce		json
+//	@Security		BearerAuth
+//	@Param			q		query		string	true	"Search query - minimum 1 character, case-insensitive - Example: 'refund request' or 'product-demo' or 'escalated'" minlength(1) example(refund request)
+//	@Param			limit	query		int		false	"Maximum number of results to return (max 100)" default(20) minimum(1) maximum(100) example(20)
+//	@Success		200		{object}	queries.SearchSessionsResponse	"Successfully found matching sessions with relevance scores and matched fields"
+//	@Failure		400		{object}	map[string]interface{}			"Bad Request - Missing or invalid search query, limit exceeds maximum"
+//	@Failure		401		{object}	map[string]interface{}			"Unauthorized - Missing or invalid authentication token"
+//	@Failure		403		{object}	map[string]interface{}			"Forbidden - User doesn't have permission to search this tenant's sessions"
+//	@Failure		500		{object}	map[string]interface{}			"Internal Server Error - Database connection issues or search execution errors"
+//	@Router			/api/v1/crm/sessions/search [get]
+func (h *SessionHandler) SearchSessions(c *gin.Context) {
+	authCtx, exists := middleware.GetAuthContext(c)
+	if !exists {
+		apierrors.Unauthorized(c, "Authentication required")
+		return
+	}
+
+	searchText := c.Query("q")
+	if searchText == "" {
+		apierrors.ValidationError(c, "q", "Search query 'q' is required")
+		return
+	}
+
+	// Parse limit
+	limit := 20
+	if limitStr := c.Query("limit"); limitStr != "" {
+		if l, err := strconv.Atoi(limitStr); err == nil && l > 0 && l <= 100 {
+			limit = l
+		}
+	}
+
+	// Create tenant ID
+	tenantID, err := shared.NewTenantID(authCtx.TenantID)
+	if err != nil {
+		apierrors.ValidationError(c, "tenant_id", "Invalid tenant ID")
+		return
+	}
+
+	// Execute search
+	query := queries.SearchSessionsQuery{
+		TenantID:   tenantID,
+		SearchText: searchText,
+		Limit:      limit,
+	}
+
+	response, err := h.searchSessionsQueryHandler.Handle(c.Request.Context(), query)
+	if err != nil {
+		h.logger.Error("Failed to search sessions", zap.Error(err))
+		apierrors.InternalError(c, "Failed to search sessions", err)
+		return
+	}
+
+	c.JSON(http.StatusOK, response)
 }

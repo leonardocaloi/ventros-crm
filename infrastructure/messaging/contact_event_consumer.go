@@ -675,66 +675,6 @@ func (c *noteAddedConsumer) ProcessMessage(ctx context.Context, delivery amqp.De
 	return nil
 }
 
-// idempotentConsumerWrapper wraps a consumer with idempotency checking
-type idempotentConsumerWrapper struct {
-	consumer           Consumer
-	idempotencyChecker IdempotencyChecker
-	consumerName       string
-	extractEventID     func([]byte) (uuid.UUID, error)
-}
-
-func (w *idempotentConsumerWrapper) ProcessMessage(ctx context.Context, delivery amqp.Delivery) error {
-	startTime := time.Now()
-
-	// Extract event ID
-	eventID, err := w.extractEventID(delivery.Body)
-	if err != nil {
-		// Se não conseguir extrair ID, processa sem idempotência
-		return w.consumer.ProcessMessage(ctx, delivery)
-	}
-
-	// Check if already processed
-	if w.idempotencyChecker != nil {
-		processed, err := w.idempotencyChecker.IsProcessed(ctx, eventID, w.consumerName)
-		if err != nil {
-			// Log error but continue processing (fail-open)
-			fmt.Printf("⚠️  Failed to check idempotency: %v\n", err)
-		} else if processed {
-			fmt.Printf("⏭️  Event already processed, skipping: consumer=%s, event_id=%s\n", w.consumerName, eventID)
-			return nil
-		}
-	}
-
-	// Process message
-	if err := w.consumer.ProcessMessage(ctx, delivery); err != nil {
-		return err
-	}
-
-	// Mark as processed
-	if w.idempotencyChecker != nil {
-		duration := int(time.Since(startTime).Milliseconds())
-		if err := w.idempotencyChecker.MarkAsProcessed(ctx, eventID, w.consumerName, &duration); err != nil {
-			fmt.Printf("⚠️  Failed to mark as processed: %v\n", err)
-		}
-	}
-
-	return nil
-}
-
-// extractDomainEventID extracts event ID from domain event JSON
-func extractDomainEventID(data []byte) (uuid.UUID, error) {
-	var event struct {
-		EventID uuid.UUID `json:"event_id"`
-	}
-	if err := json.Unmarshal(data, &event); err != nil {
-		return uuid.Nil, err
-	}
-	if event.EventID == uuid.Nil {
-		return uuid.Nil, fmt.Errorf("event_id is nil")
-	}
-	return event.EventID, nil
-}
-
 // Helper functions
 func stringPtr(s string) *string {
 	return &s

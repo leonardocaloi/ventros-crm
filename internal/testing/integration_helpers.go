@@ -14,7 +14,7 @@ import (
 	"github.com/testcontainers/testcontainers-go/wait"
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/testsuite"
-	"gorm.io/driver/postgres"
+	gormpostgres "gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 
@@ -92,6 +92,7 @@ func (s *IntegrationTestSuite) setupPostgres(t *testing.T) {
 	s.DB = db
 
 	// Run migrations
+	// ⚠️ WARNING: AutoMigrate is ONLY for tests! Production uses SQL migrations.
 	err = s.DB.AutoMigrate(
 		&entities.UserEntity{},
 		&entities.BillingAccountEntity{},
@@ -260,9 +261,10 @@ func (ts *TemporalTestSuite) GetEnv() *testsuite.TestWorkflowEnvironment {
 }
 
 // Teardown cleans up the test environment
-func (ts *TemporalTestSuite) Teardown() {
+func (ts *TemporalTestSuite) Teardown(t *testing.T) {
+	t.Helper()
 	if ts.env != nil {
-		ts.env.AssertExpectations(ts.WorkflowTestSuite.T())
+		ts.env.AssertExpectations(t)
 	}
 }
 
@@ -277,7 +279,7 @@ func (m *MockHelpers) NewMockContact(tenantID string, projectID uuid.UUID) *enti
 		ProjectID: projectID,
 		Name:      "Test Contact",
 		Phone:     "+5511999999999",
-		Email:     stringPtr("test@example.com"),
+		Email:     "test@example.com",
 		Language:  "pt",
 		Tags:      []string{"test"},
 		CreatedAt: time.Now(),
@@ -306,35 +308,28 @@ func (m *MockHelpers) NewMockSession(tenantID string, contactID uuid.UUID) *enti
 }
 
 // NewMockMessage creates a mock message entity
-func (m *MockHelpers) NewMockMessage(tenantID string, sessionID, contactID uuid.UUID) *entities.MessageEntity {
+func (m *MockHelpers) NewMockMessage(projectID, contactID, channelID uuid.UUID, sessionID *uuid.UUID) *entities.MessageEntity {
 	return &entities.MessageEntity{
-		ID:          uuid.New(),
-		TenantID:    tenantID,
-		SessionID:   &sessionID,
-		ContactID:   contactID,
-		ExternalID:  stringPtr("ext-" + uuid.New().String()),
-		Direction:   "inbound",
-		MessageType: "text",
-		Status:      "received",
-		Body:        stringPtr("Test message"),
-		ReceivedAt:  timePtr(time.Now()),
-		ProcessedAt: timePtr(time.Now()),
-		CreatedAt:   time.Now(),
-		UpdatedAt:   time.Now(),
+		ID:               uuid.New(),
+		Timestamp:        time.Now(),
+		UserID:           uuid.New(),
+		ProjectID:        projectID,
+		ChannelID:        channelID,
+		ContactID:        contactID,
+		SessionID:        sessionID,
+		FromMe:           false,
+		ContentType:      "text",
+		Text:             stringPtr("Test message"),
+		ChannelMessageID: stringPtr("ext-" + uuid.New().String()),
+		Status:           "received",
+		CreatedAt:        time.Now(),
+		UpdatedAt:        time.Now(),
 	}
 }
 
 // Helper functions
 func stringPtr(s string) *string {
 	return &s
-}
-
-func timePtr(t time.Time) *time.Time {
-	return &t
-}
-
-func intPtr(i int) *int {
-	return &i
 }
 
 // AssertNoRabbitMQMessages ensures queue is empty

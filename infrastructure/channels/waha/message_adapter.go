@@ -34,18 +34,19 @@ type WAHAMe struct {
 }
 
 type WAHAPayload struct {
-	ID          string      `json:"id"`
-	Timestamp   int64       `json:"timestamp"`
-	From        string      `json:"from"`
-	FromMe      bool        `json:"fromMe"`
-	Source      string      `json:"source"` // "app", "web", etc
-	To          string      `json:"to"`
-	Participant *string     `json:"participant"` // Para grupos
-	HasMedia    bool        `json:"hasMedia"`
-	Media       *WAHAMedia  `json:"media"`
-	Body        *string     `json:"body"`    // Texto da mensagem
-	ReplyTo     interface{} `json:"replyTo"` // Pode ser string ou objeto
-	Data        WAHAData    `json:"_data"`
+	ID           string      `json:"id"`
+	Timestamp    int64       `json:"timestamp"`
+	From         string      `json:"from"`
+	FromMe       bool        `json:"fromMe"`
+	Source       string      `json:"source"` // "app", "web", etc
+	To           string      `json:"to"`
+	Participant  *string     `json:"participant"`  // Para grupos: quem ENVIOU a mensagem
+	MentionedJid []string    `json:"mentionedJid"` // Quem foi MENCIONADO (@marcado)
+	HasMedia     bool        `json:"hasMedia"`
+	Media        *WAHAMedia  `json:"media"`
+	Body         *string     `json:"body"`    // Texto da mensagem
+	ReplyTo      interface{} `json:"replyTo"` // Pode ser string ou objeto
+	Data         WAHAData    `json:"_data"`
 }
 
 type WAHAMedia struct {
@@ -427,4 +428,50 @@ func (a *MessageAdapter) ExtractFileName(event WAHAMessageEvent) string {
 	}
 
 	return ""
+}
+
+// IsGroupMessage verifica se a mensagem é de um grupo do WhatsApp.
+// Grupos no WhatsApp têm ID terminando com "@g.us"
+func (a *MessageAdapter) IsGroupMessage(event WAHAMessageEvent) bool {
+	from := event.Payload.From
+	// Grupos terminam com @g.us
+	return len(from) > 5 && from[len(from)-5:] == "@g.us"
+}
+
+// ExtractParticipant extrai o ID do participante que enviou a mensagem em um grupo.
+// Em grupos, o campo "from" é o ID do grupo, e "participant" é quem enviou.
+// Retorna o participant limpo (sem sufixos do WhatsApp).
+func (a *MessageAdapter) ExtractParticipant(event WAHAMessageEvent) string {
+	participant := event.Payload.Participant
+	if participant == nil || *participant == "" {
+		return ""
+	}
+
+	// Remove sufixos do WhatsApp (@c.us, @s.whatsapp.net, @lid)
+	phone := *participant
+	suffixes := []string{"@c.us", "@s.whatsapp.net", "@lid"}
+
+	for _, suffix := range suffixes {
+		if len(phone) > len(suffix) && phone[len(phone)-len(suffix):] == suffix {
+			phone = phone[:len(phone)-len(suffix)]
+			break
+		}
+	}
+
+	return phone
+}
+
+// ExtractMentions extrai os IDs dos usuários mencionados (@marcados) na mensagem.
+// Retorna array de IDs no formato WAHA (ex: "5511999998888@c.us")
+func (a *MessageAdapter) ExtractMentions(event WAHAMessageEvent) []string {
+	// Retorna diretamente o array de MentionedJid do payload
+	return event.Payload.MentionedJid
+}
+
+// ExtractGroupID extrai o ID externo do grupo (formato: "123456789@g.us")
+func (a *MessageAdapter) ExtractGroupID(event WAHAMessageEvent) string {
+	if !a.IsGroupMessage(event) {
+		return ""
+	}
+	return event.Payload.From
 }

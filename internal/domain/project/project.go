@@ -7,10 +7,8 @@ import (
 	"github.com/google/uuid"
 )
 
-// ErrProjectNotFound is returned when a project is not found
 var ErrProjectNotFound = errors.New("project not found")
 
-// Project é o Aggregate Root para workspaces/projetos (multi-tenancy).
 type Project struct {
 	id                    uuid.UUID
 	customerID            uuid.UUID
@@ -20,14 +18,13 @@ type Project struct {
 	description           string
 	configuration         map[string]interface{}
 	active                bool
-	sessionTimeoutMinutes int // Timeout padrão para todas as sessões do projeto (em minutos)
+	sessionTimeoutMinutes int
 	createdAt             time.Time
 	updatedAt             time.Time
 
 	events []DomainEvent
 }
 
-// NewProject cria um novo projeto.
 func NewProject(customerID, billingAccountID uuid.UUID, tenantID, name string) (*Project, error) {
 	if customerID == uuid.Nil {
 		return nil, errors.New("customerID cannot be nil")
@@ -62,7 +59,6 @@ func NewProject(customerID, billingAccountID uuid.UUID, tenantID, name string) (
 	return project, nil
 }
 
-// ReconstructProject reconstrói um Project a partir de dados persistidos.
 func ReconstructProject(
 	id uuid.UUID,
 	customerID uuid.UUID,
@@ -80,7 +76,6 @@ func ReconstructProject(
 		configuration = make(map[string]interface{})
 	}
 
-	// Default to 30 minutes if invalid value
 	if sessionTimeoutMinutes <= 0 {
 		sessionTimeoutMinutes = 30
 	}
@@ -101,7 +96,6 @@ func ReconstructProject(
 	}
 }
 
-// Activate ativa o projeto.
 func (p *Project) Activate() {
 	if !p.active {
 		p.active = true
@@ -109,7 +103,6 @@ func (p *Project) Activate() {
 	}
 }
 
-// Deactivate desativa o projeto.
 func (p *Project) Deactivate() {
 	if p.active {
 		p.active = false
@@ -117,25 +110,21 @@ func (p *Project) Deactivate() {
 	}
 }
 
-// UpdateConfiguration atualiza a configuração do projeto.
 func (p *Project) UpdateConfiguration(config map[string]interface{}) {
 	p.configuration = config
 	p.updatedAt = time.Now()
 }
 
-// UpdateDescription atualiza a descrição do projeto.
 func (p *Project) UpdateDescription(description string) {
 	p.description = description
 	p.updatedAt = time.Now()
 }
 
-// GetConfiguration retorna uma configuração específica.
 func (p *Project) GetConfiguration(key string) (interface{}, bool) {
 	val, ok := p.configuration[key]
 	return val, ok
 }
 
-// SetSessionTimeout define o timeout padrão de sessões.
 func (p *Project) SetSessionTimeout(minutes int) {
 	if minutes <= 0 {
 		minutes = 30
@@ -144,12 +133,10 @@ func (p *Project) SetSessionTimeout(minutes int) {
 	p.updatedAt = time.Now()
 }
 
-// GetSessionTimeout retorna o timeout de sessões (default 30).
 func (p *Project) GetSessionTimeout() int {
 	return p.sessionTimeoutMinutes
 }
 
-// Getters
 func (p *Project) ID() uuid.UUID               { return p.id }
 func (p *Project) CustomerID() uuid.UUID       { return p.customerID }
 func (p *Project) BillingAccountID() uuid.UUID { return p.billingAccountID }
@@ -163,12 +150,11 @@ func (p *Project) Configuration() map[string]interface{} {
 	}
 	return copy
 }
-func (p *Project) IsActive() bool              { return p.active }
-func (p *Project) SessionTimeoutMinutes() int  { return p.sessionTimeoutMinutes }
-func (p *Project) CreatedAt() time.Time        { return p.createdAt }
-func (p *Project) UpdatedAt() time.Time        { return p.updatedAt }
+func (p *Project) IsActive() bool             { return p.active }
+func (p *Project) SessionTimeoutMinutes() int { return p.sessionTimeoutMinutes }
+func (p *Project) CreatedAt() time.Time       { return p.createdAt }
+func (p *Project) UpdatedAt() time.Time       { return p.updatedAt }
 
-// Domain Events
 func (p *Project) DomainEvents() []DomainEvent {
 	return append([]DomainEvent{}, p.events...)
 }

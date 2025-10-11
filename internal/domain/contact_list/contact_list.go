@@ -7,7 +7,6 @@ import (
 	"github.com/google/uuid"
 )
 
-// LogicalOperator define o operador lógico entre regras de filtro
 type LogicalOperator string
 
 const (
@@ -15,12 +14,10 @@ const (
 	LogicalOperatorOR  LogicalOperator = "OR"
 )
 
-// IsValid verifica se o operador lógico é válido
 func (lo LogicalOperator) IsValid() bool {
 	return lo == LogicalOperatorAND || lo == LogicalOperatorOR
 }
 
-// ContactList é o Aggregate Root para listas de contatos
 type ContactList struct {
 	id               uuid.UUID
 	projectID        uuid.UUID
@@ -28,17 +25,16 @@ type ContactList struct {
 	name             string
 	description      *string
 	filterRules      []*FilterRule
-	logicalOperator  LogicalOperator // AND ou OR entre as regras
-	isStatic         bool            // Se true, a lista é estática (não atualiza automaticamente)
-	contactCount     int             // Número de contatos na lista (cache)
-	lastCalculatedAt *time.Time      // Última vez que a lista foi recalculada
+	logicalOperator  LogicalOperator
+	isStatic         bool
+	contactCount     int
+	lastCalculatedAt *time.Time
 	createdAt        time.Time
 	updatedAt        time.Time
 	deletedAt        *time.Time
 	events           []DomainEvent
 }
 
-// NewContactList cria uma nova lista de contatos
 func NewContactList(
 	projectID uuid.UUID,
 	tenantID string,
@@ -86,7 +82,6 @@ func NewContactList(
 	return list, nil
 }
 
-// ReconstructContactList reconstrói uma lista de contatos a partir de dados persistidos
 func ReconstructContactList(
 	id uuid.UUID,
 	projectID uuid.UUID,
@@ -124,7 +119,6 @@ func ReconstructContactList(
 	}
 }
 
-// UpdateName atualiza o nome da lista
 func (cl *ContactList) UpdateName(name string) error {
 	if name == "" {
 		return errors.New("name cannot be empty")
@@ -142,7 +136,6 @@ func (cl *ContactList) UpdateName(name string) error {
 	return nil
 }
 
-// UpdateDescription atualiza a descrição da lista
 func (cl *ContactList) UpdateDescription(description string) {
 	cl.description = &description
 	cl.updatedAt = time.Now()
@@ -154,7 +147,6 @@ func (cl *ContactList) UpdateDescription(description string) {
 	})
 }
 
-// AddFilterRule adiciona uma nova regra de filtro
 func (cl *ContactList) AddFilterRule(rule *FilterRule) error {
 	if rule == nil {
 		return errors.New("filter rule cannot be nil")
@@ -173,7 +165,6 @@ func (cl *ContactList) AddFilterRule(rule *FilterRule) error {
 	return nil
 }
 
-// RemoveFilterRule remove uma regra de filtro pelo ID
 func (cl *ContactList) RemoveFilterRule(ruleID uuid.UUID) error {
 	for i, rule := range cl.filterRules {
 		if rule.ID() == ruleID {
@@ -192,7 +183,6 @@ func (cl *ContactList) RemoveFilterRule(ruleID uuid.UUID) error {
 	return errors.New("filter rule not found")
 }
 
-// ClearFilterRules remove todas as regras de filtro
 func (cl *ContactList) ClearFilterRules() {
 	cl.filterRules = []*FilterRule{}
 	cl.updatedAt = time.Now()
@@ -203,7 +193,6 @@ func (cl *ContactList) ClearFilterRules() {
 	})
 }
 
-// UpdateLogicalOperator atualiza o operador lógico entre as regras
 func (cl *ContactList) UpdateLogicalOperator(operator LogicalOperator) error {
 	if !operator.IsValid() {
 		return errors.New("invalid logical operator")
@@ -221,7 +210,6 @@ func (cl *ContactList) UpdateLogicalOperator(operator LogicalOperator) error {
 	return nil
 }
 
-// UpdateContactCount atualiza o contador de contatos
 func (cl *ContactList) UpdateContactCount(count int) {
 	cl.contactCount = count
 	now := time.Now()
@@ -235,7 +223,6 @@ func (cl *ContactList) UpdateContactCount(count int) {
 	})
 }
 
-// Delete marca a lista como deletada (soft delete)
 func (cl *ContactList) Delete() {
 	now := time.Now()
 	cl.deletedAt = &now
@@ -247,32 +234,26 @@ func (cl *ContactList) Delete() {
 	})
 }
 
-// IsDeleted verifica se a lista está deletada
 func (cl *ContactList) IsDeleted() bool {
 	return cl.deletedAt != nil
 }
 
-// HasFilterRules verifica se a lista possui regras de filtro
 func (cl *ContactList) HasFilterRules() bool {
 	return len(cl.filterRules) > 0
 }
 
-// addEvent adiciona um evento de domínio
 func (cl *ContactList) addEvent(event DomainEvent) {
 	cl.events = append(cl.events, event)
 }
 
-// GetEvents retorna todos os eventos de domínio
 func (cl *ContactList) GetEvents() []DomainEvent {
 	return cl.events
 }
 
-// ClearEvents limpa todos os eventos de domínio
 func (cl *ContactList) ClearEvents() {
 	cl.events = []DomainEvent{}
 }
 
-// Getters
 func (cl *ContactList) ID() uuid.UUID                    { return cl.id }
 func (cl *ContactList) ProjectID() uuid.UUID             { return cl.projectID }
 func (cl *ContactList) TenantID() string                 { return cl.tenantID }

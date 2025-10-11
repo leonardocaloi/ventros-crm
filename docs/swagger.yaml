@@ -157,6 +157,430 @@ definitions:
           $ref: '#/definitions/github_com_caloi_ventros-crm_infrastructure_http_dto.TriggerParameter'
         type: array
     type: object
+  github_com_caloi_ventros-crm_internal_application_queries.AgentDTO:
+    properties:
+      active:
+        type: boolean
+      created_at:
+        type: string
+      email:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  github_com_caloi_ventros-crm_internal_application_queries.AgentSearchResultDTO:
+    properties:
+      active:
+        type: boolean
+      email:
+        type: string
+      id:
+        type: string
+      match_field:
+        type: string
+      match_score:
+        type: number
+      name:
+        type: string
+    type: object
+  github_com_caloi_ventros-crm_internal_application_queries.ListAgentsResponse:
+    properties:
+      agents:
+        items:
+          $ref: '#/definitions/github_com_caloi_ventros-crm_internal_application_queries.AgentDTO'
+        type: array
+      limit:
+        type: integer
+      page:
+        type: integer
+      totalCount:
+        format: int64
+        type: integer
+      totalPages:
+        type: integer
+    type: object
+  github_com_caloi_ventros-crm_internal_application_queries.ListMessageDTO:
+    properties:
+      agent_id:
+        type: string
+      channel_id:
+        type: string
+      contact_id:
+        type: string
+      content_type:
+        type: string
+      from_me:
+        type: boolean
+      id:
+        type: string
+      media_url:
+        type: string
+      metadata:
+        additionalProperties: true
+        type: object
+      session_id:
+        type: string
+      status:
+        type: string
+      text:
+        type: string
+      timestamp:
+        type: string
+    type: object
+  github_com_caloi_ventros-crm_internal_application_queries.ListMessagesResponse:
+    properties:
+      limit:
+        type: integer
+      messages:
+        items:
+          $ref: '#/definitions/github_com_caloi_ventros-crm_internal_application_queries.ListMessageDTO'
+        type: array
+      page:
+        type: integer
+      totalCount:
+        format: int64
+        type: integer
+      totalPages:
+        type: integer
+    type: object
+  github_com_caloi_ventros-crm_internal_application_queries.ListNotesResponse:
+    properties:
+      limit:
+        type: integer
+      notes:
+        items:
+          $ref: '#/definitions/github_com_caloi_ventros-crm_internal_application_queries.NoteDTO'
+        type: array
+      page:
+        type: integer
+      totalCount:
+        format: int64
+        type: integer
+      totalPages:
+        type: integer
+    type: object
+  github_com_caloi_ventros-crm_internal_application_queries.ListPipelinesResponse:
+    properties:
+      limit:
+        type: integer
+      page:
+        type: integer
+      pipelines:
+        items:
+          $ref: '#/definitions/github_com_caloi_ventros-crm_internal_application_queries.PipelineDTO'
+        type: array
+      totalCount:
+        format: int64
+        type: integer
+      totalPages:
+        type: integer
+    type: object
+  github_com_caloi_ventros-crm_internal_application_queries.ListProjectsResponse:
+    properties:
+      limit:
+        type: integer
+      page:
+        type: integer
+      projects:
+        items:
+          $ref: '#/definitions/github_com_caloi_ventros-crm_internal_application_queries.ProjectDTO'
+        type: array
+      totalCount:
+        format: int64
+        type: integer
+      totalPages:
+        type: integer
+    type: object
+  github_com_caloi_ventros-crm_internal_application_queries.ListSessionsResponse:
+    properties:
+      limit:
+        type: integer
+      page:
+        type: integer
+      sessions:
+        items:
+          $ref: '#/definitions/github_com_caloi_ventros-crm_internal_application_queries.SessionDTO'
+        type: array
+      totalCount:
+        format: int64
+        type: integer
+      totalPages:
+        type: integer
+    type: object
+  github_com_caloi_ventros-crm_internal_application_queries.MessageSearchResultDTO:
+    properties:
+      contact_id:
+        type: string
+      content_type:
+        type: string
+      from_me:
+        type: boolean
+      id:
+        type: string
+      match_score:
+        type: number
+      text:
+        type: string
+      timestamp:
+        type: string
+    type: object
+  github_com_caloi_ventros-crm_internal_application_queries.NoteDTO:
+    properties:
+      author_id:
+        type: string
+      author_name:
+        type: string
+      author_type:
+        type: string
+      contact_id:
+        type: string
+      content:
+        type: string
+      created_at:
+        type: string
+      id:
+        type: string
+      note_type:
+        type: string
+      pinned:
+        type: boolean
+      priority:
+        type: string
+      session_id:
+        type: string
+      tags:
+        items:
+          type: string
+        type: array
+      updated_at:
+        type: string
+      visible_to_client:
+        type: boolean
+    type: object
+  github_com_caloi_ventros-crm_internal_application_queries.NoteSearchResultDTO:
+    properties:
+      author_name:
+        type: string
+      contact_id:
+        type: string
+      content:
+        type: string
+      created_at:
+        type: string
+      id:
+        type: string
+      match_field:
+        type: string
+      match_score:
+        type: number
+      note_type:
+        type: string
+      pinned:
+        type: boolean
+      priority:
+        type: string
+    type: object
+  github_com_caloi_ventros-crm_internal_application_queries.PipelineDTO:
+    properties:
+      active:
+        type: boolean
+      color:
+        type: string
+      created_at:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      position:
+        type: integer
+      project_id:
+        type: string
+      session_timeout_minutes:
+        type: integer
+      updated_at:
+        type: string
+    type: object
+  github_com_caloi_ventros-crm_internal_application_queries.PipelineSearchResultDTO:
+    properties:
+      active:
+        type: boolean
+      color:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      match_field:
+        type: string
+      match_score:
+        type: number
+      name:
+        type: string
+    type: object
+  github_com_caloi_ventros-crm_internal_application_queries.ProjectDTO:
+    properties:
+      active:
+        type: boolean
+      billing_account_id:
+        type: string
+      configuration:
+        additionalProperties: true
+        type: object
+      created_at:
+        type: string
+      customer_id:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      session_timeout_minutes:
+        type: integer
+      updated_at:
+        type: string
+    type: object
+  github_com_caloi_ventros-crm_internal_application_queries.ProjectSearchResultDTO:
+    properties:
+      active:
+        type: boolean
+      description:
+        type: string
+      id:
+        type: string
+      match_field:
+        type: string
+      match_score:
+        type: number
+      name:
+        type: string
+    type: object
+  github_com_caloi_ventros-crm_internal_application_queries.SearchAgentsResponse:
+    properties:
+      agents:
+        items:
+          $ref: '#/definitions/github_com_caloi_ventros-crm_internal_application_queries.AgentSearchResultDTO'
+        type: array
+      count:
+        type: integer
+    type: object
+  github_com_caloi_ventros-crm_internal_application_queries.SearchMessagesResponse:
+    properties:
+      count:
+        type: integer
+      messages:
+        items:
+          $ref: '#/definitions/github_com_caloi_ventros-crm_internal_application_queries.MessageSearchResultDTO'
+        type: array
+    type: object
+  github_com_caloi_ventros-crm_internal_application_queries.SearchNotesResponse:
+    properties:
+      count:
+        type: integer
+      notes:
+        items:
+          $ref: '#/definitions/github_com_caloi_ventros-crm_internal_application_queries.NoteSearchResultDTO'
+        type: array
+    type: object
+  github_com_caloi_ventros-crm_internal_application_queries.SearchPipelinesResponse:
+    properties:
+      count:
+        type: integer
+      pipelines:
+        items:
+          $ref: '#/definitions/github_com_caloi_ventros-crm_internal_application_queries.PipelineSearchResultDTO'
+        type: array
+    type: object
+  github_com_caloi_ventros-crm_internal_application_queries.SearchProjectsResponse:
+    properties:
+      count:
+        type: integer
+      projects:
+        items:
+          $ref: '#/definitions/github_com_caloi_ventros-crm_internal_application_queries.ProjectSearchResultDTO'
+        type: array
+    type: object
+  github_com_caloi_ventros-crm_internal_application_queries.SearchSessionsResponse:
+    properties:
+      count:
+        type: integer
+      sessions:
+        items:
+          $ref: '#/definitions/github_com_caloi_ventros-crm_internal_application_queries.SessionSearchResultDTO'
+        type: array
+    type: object
+  github_com_caloi_ventros-crm_internal_application_queries.SessionDTO:
+    properties:
+      contact_id:
+        type: string
+      converted:
+        type: boolean
+      duration_seconds:
+        type: integer
+      ended_at:
+        type: string
+      escalated:
+        type: boolean
+      id:
+        type: string
+      message_count:
+        type: integer
+      messages_from_agent:
+        type: integer
+      messages_from_contact:
+        type: integer
+      outcome_tags:
+        items:
+          type: string
+        type: array
+      pipeline_id:
+        type: string
+      resolved:
+        type: boolean
+      sentiment:
+        type: string
+      started_at:
+        type: string
+      status:
+        type: string
+      summary:
+        type: string
+      topics:
+        items:
+          type: string
+        type: array
+    type: object
+  github_com_caloi_ventros-crm_internal_application_queries.SessionSearchResultDTO:
+    properties:
+      contact_id:
+        type: string
+      id:
+        type: string
+      match_field:
+        type: string
+      match_score:
+        type: number
+      message_count:
+        type: integer
+      started_at:
+        type: string
+      status:
+        type: string
+      summary:
+        type: string
+      topics:
+        items:
+          type: string
+        type: array
+    type: object
   github_com_caloi_ventros-crm_internal_application_tracking.DecodeTrackingRequest:
     properties:
       message:
@@ -270,18 +694,21 @@ definitions:
     - active
     - closed
     type: string
-    x-enum-comments:
-      StatusTypeActive: Status ativo/em progresso
-      StatusTypeClosed: Status fechado/finalizado
-      StatusTypeOpen: Status inicial/aberto
-    x-enum-descriptions:
-    - Status inicial/aberto
-    - Status ativo/em progresso
-    - Status fechado/finalizado
     x-enum-varnames:
     - StatusTypeOpen
     - StatusTypeActive
     - StatusTypeClosed
+  infrastructure_http_handlers.AddParticipantRequest:
+    properties:
+      participant_id:
+        type: string
+      participant_type:
+        example: agent
+        type: string
+    required:
+    - participant_id
+    - participant_type
+    type: object
   infrastructure_http_handlers.ChangeContactStatusRequest:
     properties:
       notes:
@@ -319,6 +746,29 @@ definitions:
       base_url:
         example: https://api.ventros.com
         type: string
+    type: object
+  infrastructure_http_handlers.ConfirmMessageDeliveryRequest:
+    properties:
+      delivered_at:
+        example: "2025-10-09T10:30:00Z"
+        type: string
+      external_id:
+        example: wamid.123456
+        type: string
+      failure_reason:
+        example: Message expired
+        type: string
+      message_id:
+        type: string
+      read_at:
+        example: "2025-10-09T10:35:00Z"
+        type: string
+      status:
+        example: delivered
+        type: string
+    required:
+    - external_id
+    - status
     type: object
   infrastructure_http_handlers.CreateAgentRequest:
     properties:
@@ -364,9 +814,18 @@ definitions:
     type: object
   infrastructure_http_handlers.CreateChannelRequest:
     properties:
+      allow_groups:
+        example: false
+        type: boolean
       name:
         example: WhatsApp Principal
         type: string
+      session_timeout_minutes:
+        example: 30
+        type: integer
+      tracking_enabled:
+        example: true
+        type: boolean
       type:
         example: waha
         type: string
@@ -375,6 +834,21 @@ definitions:
     required:
     - name
     - type
+    type: object
+  infrastructure_http_handlers.CreateChatRequest:
+    properties:
+      chat_type:
+        example: individual
+        type: string
+      contact_id:
+        type: string
+      creator_id:
+        type: string
+      subject:
+        example: Team Discussion
+        type: string
+    required:
+    - chat_type
     type: object
   infrastructure_http_handlers.CreateContactRequest:
     properties:
@@ -569,18 +1043,15 @@ definitions:
   infrastructure_http_handlers.CreateWAHAConfigRequest:
     properties:
       api_key:
-        description: Chave da API para autenticação
         example: your-waha-api-key
         type: string
       base_url:
         example: http://localhost:3000
         type: string
       session_id:
-        description: ID da sessão (equivale ao ExternalID)
         example: default
         type: string
       token:
-        description: Token de acesso (alternativo)
         example: your-waha-token
         type: string
       webhook_url:
@@ -665,11 +1136,9 @@ definitions:
   infrastructure_http_handlers.ImportWAHAHistoryRequest:
     properties:
       limit:
-        description: Número de mensagens por chat (0 = todas)
         example: 100
         type: integer
       strategy:
-        description: '"all", "recent", "custom"'
         example: recent
         type: string
     type: object
@@ -693,6 +1162,50 @@ definitions:
         items:
           type: string
         type: array
+    type: object
+  infrastructure_http_handlers.SendMessageRequest:
+    properties:
+      channel_id:
+        example: 550e8400-e29b-41d4-a716-446655440001
+        type: string
+      contact_id:
+        example: 550e8400-e29b-41d4-a716-446655440000
+        type: string
+      content_type:
+        example: text
+        type: string
+      media_url:
+        example: https://example.com/image.jpg
+        type: string
+      metadata:
+        additionalProperties: true
+        type: object
+      reply_to_id:
+        type: string
+      text:
+        example: Hello, how can I help you?
+        type: string
+    required:
+    - channel_id
+    - contact_id
+    - content_type
+    type: object
+  infrastructure_http_handlers.SendMessageResponse:
+    properties:
+      error:
+        type: string
+      external_id:
+        example: wamid.123456
+        type: string
+      message_id:
+        example: 550e8400-e29b-41d4-a716-446655440002
+        type: string
+      sent_at:
+        example: "2025-10-09T10:30:00Z"
+        type: string
+      status:
+        example: sent
+        type: string
     type: object
   infrastructure_http_handlers.TestQRCodeRequest:
     properties:
@@ -828,6 +1341,14 @@ definitions:
         type: string
       name:
         type: string
+    type: object
+  infrastructure_http_handlers.UpdateSubjectRequest:
+    properties:
+      subject:
+        example: New Team Discussion
+        type: string
+    required:
+    - subject
     type: object
   infrastructure_http_handlers.UpdateWebhookRequest:
     properties:
@@ -1443,7 +1964,7 @@ paths:
       - Automation
   /api/v1/channels:
     get:
-      description: Lista todos os canais do usuário autenticado
+      description: List all channels for authenticated user
       produces:
       - application/json
       responses:
@@ -1470,7 +1991,7 @@ paths:
     post:
       consumes:
       - application/json
-      description: Cria um novo canal de comunicação (WAHA, WhatsApp, etc.)
+      description: Create a new communication channel (WAHA, WhatsApp, etc.)
       parameters:
       - description: Channel data
         in: body
@@ -1563,7 +2084,7 @@ paths:
       - sessions
   /api/v1/channels/{id}:
     delete:
-      description: Deleta um canal de comunicação
+      description: Delete a communication channel
       parameters:
       - description: Channel ID
         in: path
@@ -1604,7 +2125,7 @@ paths:
       tags:
       - channels
     get:
-      description: Obtém detalhes de um canal específico
+      description: Get details of a specific channel
       parameters:
       - description: Channel ID
         in: path
@@ -1646,7 +2167,7 @@ paths:
       - channels
   /api/v1/channels/{id}/activate:
     post:
-      description: Ativa um canal de comunicação
+      description: Activate a communication channel
       parameters:
       - description: Channel ID
         in: path
@@ -1690,7 +2211,7 @@ paths:
     post:
       consumes:
       - application/json
-      description: Ativa e inicializa uma sessão WAHA para um canal
+      description: Activate and initialize a WAHA session for a channel
       parameters:
       - description: Channel ID
         in: path
@@ -1734,7 +2255,7 @@ paths:
     post:
       consumes:
       - application/json
-      description: 'Configura automaticamente o webhook no canal externo (ex: WAHA)'
+      description: Automatically configure webhook in external channel (e.g. WAHA)
       parameters:
       - description: Channel ID
         in: path
@@ -1781,7 +2302,7 @@ paths:
       - channels
   /api/v1/channels/{id}/deactivate:
     post:
-      description: Desativa um canal de comunicação
+      description: Deactivate a communication channel
       parameters:
       - description: Channel ID
         in: path
@@ -1825,7 +2346,7 @@ paths:
     post:
       consumes:
       - application/json
-      description: Importa histórico de mensagens de um canal WAHA (chats e mensagens)
+      description: Import message history from a WAHA channel (chats and messages)
       parameters:
       - description: Channel ID
         in: path
@@ -1907,7 +2428,7 @@ paths:
       - sessions
   /api/v1/channels/{id}/webhook-info:
     get:
-      description: Retorna informações detalhadas sobre o webhook do canal
+      description: Return detailed information about channel webhook
       parameters:
       - description: Channel ID
         in: path
@@ -1944,8 +2465,8 @@ paths:
       - channels
   /api/v1/channels/{id}/webhook-url:
     get:
-      description: Retorna a URL do webhook que deve ser configurada no canal externo
-        (WAHA, WhatsApp, etc)
+      description: Return the webhook URL to be configured in external channel (WAHA,
+        WhatsApp, etc)
       parameters:
       - description: Channel ID
         in: path
@@ -1980,12 +2501,431 @@ paths:
       summary: Get channel webhook URL
       tags:
       - channels
+  /api/v1/chats:
+    get:
+      consumes:
+      - application/json
+      description: List chats with optional filters (project_id, contact_id, status,
+        chat_type)
+      parameters:
+      - description: Filter by project ID
+        in: query
+        name: project_id
+        type: string
+      - description: Filter by contact ID (participant)
+        in: query
+        name: contact_id
+        type: string
+      - description: Filter by status (active, archived, closed)
+        in: query
+        name: status
+        type: string
+      - description: Filter by chat type (individual, group, channel)
+        in: query
+        name: chat_type
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of chats
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid parameters
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Authentication required
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: List chats
+      tags:
+      - chats
+    post:
+      consumes:
+      - application/json
+      description: Create a new chat (individual, group, or channel)
+      parameters:
+      - description: Project ID
+        in: query
+        name: project_id
+        required: true
+        type: string
+      - description: Chat data
+        in: body
+        name: chat
+        required: true
+        schema:
+          $ref: '#/definitions/infrastructure_http_handlers.CreateChatRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Chat created successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Authentication required
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Create a new chat
+      tags:
+      - chats
+  /api/v1/chats/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Get detailed information about a specific chat
+      parameters:
+      - description: Chat ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Chat details
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid chat ID
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Authentication required
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Chat not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Get chat by ID
+      tags:
+      - chats
+  /api/v1/chats/{id}/archive:
+    post:
+      consumes:
+      - application/json
+      description: Archive a chat (can be unarchived later)
+      parameters:
+      - description: Chat ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Chat archived successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid chat ID
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Authentication required
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Chat not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Archive chat
+      tags:
+      - chats
+  /api/v1/chats/{id}/close:
+    post:
+      consumes:
+      - application/json
+      description: Permanently close a chat (cannot be reopened)
+      parameters:
+      - description: Chat ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Chat closed successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid chat ID
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Authentication required
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Chat not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Close chat
+      tags:
+      - chats
+  /api/v1/chats/{id}/participants:
+    post:
+      consumes:
+      - application/json
+      description: Add a contact or agent as a participant to a chat
+      parameters:
+      - description: Chat ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Participant data
+        in: body
+        name: participant
+        required: true
+        schema:
+          $ref: '#/definitions/infrastructure_http_handlers.AddParticipantRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Participant added successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Authentication required
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Chat not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Add participant to chat
+      tags:
+      - chats
+  /api/v1/chats/{id}/participants/{participant_id}:
+    delete:
+      consumes:
+      - application/json
+      description: Remove a participant from a chat
+      parameters:
+      - description: Chat ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Participant ID
+        in: path
+        name: participant_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Participant removed successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Authentication required
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Chat or participant not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Remove participant from chat
+      tags:
+      - chats
+  /api/v1/chats/{id}/subject:
+    patch:
+      consumes:
+      - application/json
+      description: Update the subject/name of a group or channel chat
+      parameters:
+      - description: Chat ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: New subject
+        in: body
+        name: subject
+        required: true
+        schema:
+          $ref: '#/definitions/infrastructure_http_handlers.UpdateSubjectRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Subject updated successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Authentication required
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Chat not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Update chat subject
+      tags:
+      - chats
+  /api/v1/chats/{id}/unarchive:
+    post:
+      consumes:
+      - application/json
+      description: Unarchive a chat (reactivate it)
+      parameters:
+      - description: Chat ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Chat unarchived successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid chat ID
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Authentication required
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Chat not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Unarchive chat
+      tags:
+      - chats
   /api/v1/contacts:
     get:
       consumes:
       - application/json
-      description: Lista todos os contatos com filtros opcionais (apenas do usuário
-        autenticado)
+      description: List all contacts with optional filters (authenticated user only)
       parameters:
       - description: Project ID
         in: query
@@ -2387,7 +3327,7 @@ paths:
     put:
       consumes:
       - application/json
-      description: Altera o status de um contato em um pipeline específico
+      description: Change contact status in a specific pipeline
       parameters:
       - description: Contact ID (UUID)
         in: path
@@ -2473,6 +3413,1413 @@ paths:
       summary: Get session by ID
       tags:
       - sessions
+  /api/v1/contacts/advanced:
+    get:
+      consumes:
+      - application/json
+      description: List contacts with advanced filters (name, phone, email, tags,
+        dates), pagination, and sorting
+      parameters:
+      - description: Filter by name (partial match)
+        in: query
+        name: name
+        type: string
+      - description: Filter by phone (partial match)
+        in: query
+        name: phone
+        type: string
+      - description: Filter by email (partial match)
+        in: query
+        name: email
+        type: string
+      - collectionFormat: csv
+        description: Filter by tags (comma-separated)
+        in: query
+        items:
+          type: string
+        name: tags
+        type: array
+      - description: Filter by created_after (YYYY-MM-DD)
+        in: query
+        name: created_after
+        type: string
+      - description: Filter by created_before (YYYY-MM-DD)
+        in: query
+        name: created_before
+        type: string
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 20
+        description: Page size
+        in: query
+        name: limit
+        type: integer
+      - default: created_at
+        description: Sort by field
+        in: query
+        name: sort_by
+        type: string
+      - default: desc
+        description: Sort direction
+        enum:
+        - asc
+        - desc
+        in: query
+        name: sort_dir
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of contacts with pagination
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid parameters
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Not authenticated
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: List contacts with advanced filters
+      tags:
+      - contacts
+  /api/v1/contacts/search:
+    get:
+      consumes:
+      - application/json
+      description: Full-text search on contact name, phone, and email with relevance
+        scoring
+      parameters:
+      - description: Search query
+        in: query
+        name: q
+        required: true
+        type: string
+      - default: 20
+        description: Result limit
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Search results with match scores
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid parameters
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Not authenticated
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Search contacts
+      tags:
+      - contacts
+  /api/v1/crm/agents/advanced:
+    get:
+      consumes:
+      - application/json
+      description: |-
+        Retrieve all agents (AI agents and human support staff) with comprehensive filtering capabilities. Agents handle customer conversations either autonomously (AI) or manually (human). Essential for team management, capacity planning, and performance monitoring.
+
+        **Filtering Capabilities:**
+        - Filter by project_id to view agents assigned to specific business units
+        - Filter by type to distinguish AI agents from human agents
+        - Filter by status (online, offline, busy) for real-time availability tracking
+        - Filter by active status to show/hide deactivated agents
+
+        **Common Use Cases:**
+        - Load all active agents for the team dashboard
+        - Build agent selector dropdowns for manual conversation assignment
+        - Monitor real-time agent availability and capacity
+        - Track agent performance and productivity metrics
+        - Identify offline or busy agents for workload balancing
+        - Generate agent reports by project or department
+        - Audit agent configurations and permissions
+
+        **Sorting Options:**
+        - Sort by name (alphabetical order)
+        - Sort by created_at (onboarding order)
+        - Ascending or descending order
+
+        **Performance:**
+        - Optimized GORM indexes on tenant+type for fast agent type queries
+        - Composite indexes on tenant+status for real-time availability checks
+        - Small result sets (typically < 200 agents per tenant) for instant responses
+      parameters:
+      - description: 'Filter by project UUID - Example: 550e8400-e29b-41d4-a716-446655440000'
+        in: query
+        name: project_id
+        type: string
+      - description: Filter by agent type
+        enum:
+        - ai
+        - human
+        example: human
+        in: query
+        name: type
+        type: string
+      - description: Filter by availability status
+        enum:
+        - online
+        - offline
+        - busy
+        example: online
+        in: query
+        name: status
+        type: string
+      - description: 'Filter by active status - true: only active, false: only inactive'
+        example: true
+        in: query
+        name: active
+        type: boolean
+      - default: 1
+        description: Page number for pagination (starts at 1)
+        example: 1
+        in: query
+        minimum: 1
+        name: page
+        type: integer
+      - default: 20
+        description: Results per page (max 100)
+        example: 20
+        in: query
+        maximum: 100
+        minimum: 1
+        name: limit
+        type: integer
+      - default: created_at
+        description: Field to sort by
+        enum:
+        - name
+        - created_at
+        example: name
+        in: query
+        name: sort_by
+        type: string
+      - default: desc
+        description: Sort direction
+        enum:
+        - asc
+        - desc
+        example: asc
+        in: query
+        name: sort_dir
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successfully retrieved agents with full details
+          schema:
+            $ref: '#/definitions/github_com_caloi_ventros-crm_internal_application_queries.ListAgentsResponse'
+        "400":
+          description: Bad Request - Invalid UUID or parameter format
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized - Authentication required
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Forbidden - No access to this tenant's agents
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List agents with advanced filters and pagination
+      tags:
+      - agents
+  /api/v1/crm/agents/search:
+    get:
+      consumes:
+      - application/json
+      description: |-
+        Full-text search across agent names and email addresses. Perfect for quickly finding specific team members in organizations with many agents.
+
+        **Search Capabilities:**
+        - Searches agent names (primary field)
+        - Searches agent email addresses (secondary field)
+        - Case-insensitive ILIKE matching
+
+        **Match Scoring:**
+        - Name matches: 1.5 score (higher priority)
+        - Email matches: 1.2 score (lower priority)
+
+        **Search Examples:**
+        - "João" - Find agents named João
+        - "support" - Find support team members
+        - "@gmail.com" - Find agents with Gmail addresses
+        - "sales" - Find sales team agents
+      parameters:
+      - description: Search query - name or email
+        example: João Silva
+        in: query
+        minLength: 1
+        name: q
+        required: true
+        type: string
+      - default: 20
+        description: Maximum results (max 100)
+        example: 10
+        in: query
+        maximum: 100
+        minimum: 1
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Found agents with match scores
+          schema:
+            $ref: '#/definitions/github_com_caloi_ventros-crm_internal_application_queries.SearchAgentsResponse'
+        "400":
+          description: Bad Request - Empty search query
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Search agents by name and email
+      tags:
+      - agents
+  /api/v1/crm/messages/advanced:
+    get:
+      consumes:
+      - application/json
+      description: |-
+        Retrieve a paginated list of messages with comprehensive filtering across contact, session, channel, direction, content type, and delivery status. Ideal for building message history views, conversation analytics, and customer interaction tracking.
+
+        **Filtering Capabilities:**
+        - Filter by contact to view all messages for a specific customer
+        - Filter by session to see complete conversation threads
+        - Filter by channel to analyze messages from specific communication channels (WhatsApp, Email, etc)
+        - Filter by project to segment messages by business unit or department
+        - Filter by channel_type (1=WhatsApp, 2=Email, 3=SMS, etc) for channel-specific analytics
+        - Filter by from_me (true=outbound agent messages, false=inbound customer messages)
+        - Filter by content_type (text, image, video, audio, document, location, contact, sticker) for media analysis
+        - Filter by status (pending, sent, delivered, read, failed) for delivery tracking
+        - Filter by agent_id to track individual agent performance
+        - Filter by timestamp range to analyze time-based patterns
+        - Filter by has_media flag to find messages with attachments
+
+        **Use Cases:**
+        - Build conversation history UIs with infinite scroll pagination
+        - Analyze customer response times and patterns
+        - Track message delivery rates across channels
+        - Monitor agent productivity and response quality
+        - Generate conversation transcripts for compliance
+        - Identify media-rich conversations for quality assurance
+
+        **Sorting Options:**
+        - Sort by timestamp (default), created_at for processing order
+        - Ascending or descending order
+
+        **Performance:**
+        - Optimized with composite GORM indexes on tenant+session, tenant+contact, tenant+channel
+        - GIN index on JSONB metadata field for custom attribute searches
+        - Maximum 100 messages per page for optimal response times
+        - Efficiently handles millions of messages per tenant
+      parameters:
+      - description: 'Filter by contact UUID - Example: 550e8400-e29b-41d4-a716-446655440000'
+        in: query
+        name: contact_id
+        type: string
+      - description: 'Filter by session UUID to get full conversation - Example: 660e8400-e29b-41d4-a716-446655440001'
+        in: query
+        name: session_id
+        type: string
+      - description: Filter by channel UUID (specific WhatsApp number, email account,
+          etc)
+        in: query
+        name: channel_id
+        type: string
+      - description: Filter by project UUID to segment by business unit
+        in: query
+        name: project_id
+        type: string
+      - description: Filter by channel type - 1:WhatsApp, 2:Email, 3:SMS, 4:Web Chat
+        example: 1
+        in: query
+        name: channel_type_id
+        type: integer
+      - description: 'Filter by direction - true: agent sent, false: customer sent'
+        example: false
+        in: query
+        name: from_me
+        type: boolean
+      - description: Filter by content type
+        enum:
+        - text
+        - image
+        - video
+        - audio
+        - document
+        - location
+        - contact
+        - sticker
+        example: text
+        in: query
+        name: content_type
+        type: string
+      - description: Filter by delivery status
+        enum:
+        - pending
+        - sent
+        - delivered
+        - read
+        - failed
+        example: delivered
+        in: query
+        name: status
+        type: string
+      - description: Filter by agent UUID for performance tracking
+        in: query
+        name: agent_id
+        type: string
+      - description: 'Messages sent after this timestamp - Format: 2006-01-02T15:04:05Z'
+        example: "2024-01-01T00:00:00Z"
+        in: query
+        name: timestamp_after
+        type: string
+      - description: Messages sent before this timestamp
+        example: "2024-12-31T23:59:59Z"
+        in: query
+        name: timestamp_before
+        type: string
+      - description: 'Filter messages with media attachments - true: only with media'
+        example: true
+        in: query
+        name: has_media
+        type: boolean
+      - default: 1
+        description: Page number for pagination (starts at 1)
+        example: 1
+        in: query
+        minimum: 1
+        name: page
+        type: integer
+      - default: 20
+        description: Messages per page (max 100)
+        example: 50
+        in: query
+        maximum: 100
+        minimum: 1
+        name: limit
+        type: integer
+      - default: timestamp
+        description: Field to sort by
+        enum:
+        - timestamp
+        - created_at
+        example: timestamp
+        in: query
+        name: sort_by
+        type: string
+      - default: desc
+        description: Sort direction
+        enum:
+        - asc
+        - desc
+        example: desc
+        in: query
+        name: sort_dir
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successfully retrieved messages with pagination and filter
+            metadata
+          schema:
+            $ref: '#/definitions/github_com_caloi_ventros-crm_internal_application_queries.ListMessagesResponse'
+        "400":
+          description: Bad Request - Invalid UUID format, invalid enum values, or
+            limit exceeds 100
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized - Missing or invalid authentication token
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Forbidden - User lacks permission to access this tenant's messages
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error - Database errors or query execution
+            failures
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List messages with advanced filters and pagination
+      tags:
+      - messages
+  /api/v1/crm/messages/search:
+    get:
+      consumes:
+      - application/json
+      description: |-
+        Perform intelligent full-text search across message text content using PostgreSQL ILIKE pattern matching. Perfect for finding specific conversations, keywords, customer questions, or agent responses within your entire message history.
+
+        **Search Capabilities:**
+        - Searches through message text content (case-insensitive)
+        - Supports partial word matches (e.g., "refund" matches "refunds", "refunded")
+        - Works across all message types (customer and agent messages)
+        - Searches only text content (media URLs are not searched)
+
+        **Match Scoring & Relevance:**
+        - All matches receive a score of 1.0 (simple ILIKE search, no complex scoring)
+        - Results ordered by timestamp (newest first) for relevance
+        - Match field always returns "text" since only text content is searched
+
+        **Common Use Cases:**
+        - Find all conversations mentioning "refund" or "cancellation"
+        - Search for product names across customer inquiries
+        - Locate conversations with specific error codes or reference numbers
+        - Find messages containing customer phone numbers or emails
+        - Search for competitor mentions in customer conversations
+        - Identify conversations with specific keywords for quality assurance
+        - Compliance searches for regulated terms or phrases
+
+        **Search Examples:**
+        - "order #12345" - Find messages mentioning specific order numbers
+        - "password reset" - Find password-related support conversations
+        - "urgent" or "emergency" - Identify high-priority conversations
+        - "@email.com" - Find messages containing email addresses
+        - "bug" or "error" - Locate technical issue reports
+
+        **Performance:**
+        - Optimized GORM indexes on tenant_id for fast tenant isolation
+        - ILIKE operator uses PostgreSQL's text search capabilities
+        - Maximum 100 results to ensure sub-second response times
+        - Handles searches across millions of messages efficiently
+      parameters:
+      - description: 'Search query - minimum 1 character, case-insensitive, supports
+          partial matches - Examples: ''refund'', ''order #12345'', ''password reset'',
+          ''urgent'''
+        example: refund request
+        in: query
+        minLength: 1
+        name: q
+        required: true
+        type: string
+      - default: 20
+        description: Maximum number of results (max 100)
+        example: 20
+        in: query
+        maximum: 100
+        minimum: 1
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successfully found matching messages with text excerpts and
+            context
+          schema:
+            $ref: '#/definitions/github_com_caloi_ventros-crm_internal_application_queries.SearchMessagesResponse'
+        "400":
+          description: Bad Request - Missing or empty search query, or limit exceeds
+            100
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized - Missing or invalid authentication token
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Forbidden - User lacks permission to search this tenant's messages
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error - Database connection errors or search
+            execution failures
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Full-text search across message content
+      tags:
+      - messages
+  /api/v1/crm/notes/advanced:
+    get:
+      consumes:
+      - application/json
+      description: |-
+        Retrieve all notes with comprehensive filtering capabilities. Notes are annotations, comments, and action items added by agents, automation, or the system during customer interactions. Essential for maintaining conversation context, tracking follow-ups, and audit trails.
+
+        **Filtering Capabilities:**
+        - Filter by contact_id to view all notes for a specific customer
+        - Filter by session_id to see notes from a particular conversation
+        - Filter by author_id to track notes from specific agents or automation rules
+        - Filter by author_type (agent, system, automation) to distinguish note sources
+        - Filter by note_type (comment, action, follow-up, escalation, resolution) to organize by purpose
+        - Filter by priority (low, medium, high, urgent) for task management
+        - Filter by visible_to_client flag to separate internal vs customer-facing notes
+        - Filter by pinned flag to identify important or starred notes
+
+        **Common Use Cases:**
+        - Build contact history timelines with all interactions and annotations
+        - Generate session summaries with agent notes and context
+        - Track agent activity and note-taking patterns
+        - Manage follow-up tasks and action items
+        - Identify escalated issues requiring attention
+        - Create customer-facing summaries (visible_to_client=true)
+        - Audit trail for compliance and quality assurance
+        - Filter high-priority notes for urgent follow-ups
+
+        **Sorting Options:**
+        - Sort by created_at (chronological order)
+        - Sort by priority (task prioritization)
+        - Ascending or descending order
+
+        **Performance:**
+        - Optimized GORM indexes on tenant+contact for fast contact note queries
+        - Composite indexes on tenant+session for session note retrieval
+        - Indexes on tenant+author for agent activity tracking
+        - Efficiently handles large note volumes per contact
+      parameters:
+      - description: 'Filter by contact UUID - Example: 550e8400-e29b-41d4-a716-446655440000'
+        in: query
+        name: contact_id
+        type: string
+      - description: 'Filter by session UUID - Example: 660e8400-e29b-41d4-a716-446655440001'
+        in: query
+        name: session_id
+        type: string
+      - description: Filter by author (agent/automation) UUID
+        in: query
+        name: author_id
+        type: string
+      - description: Filter by author type
+        enum:
+        - agent
+        - system
+        - automation
+        example: agent
+        in: query
+        name: author_type
+        type: string
+      - description: Filter by note purpose
+        enum:
+        - comment
+        - action
+        - follow-up
+        - escalation
+        - resolution
+        example: follow-up
+        in: query
+        name: note_type
+        type: string
+      - description: Filter by priority level
+        enum:
+        - low
+        - medium
+        - high
+        - urgent
+        example: high
+        in: query
+        name: priority
+        type: string
+      - description: 'Filter by client visibility - true: customer-facing notes only'
+        example: false
+        in: query
+        name: visible_to_client
+        type: boolean
+      - description: 'Filter by pinned status - true: important/starred notes only'
+        example: true
+        in: query
+        name: pinned
+        type: boolean
+      - default: 1
+        description: Page number for pagination (starts at 1)
+        example: 1
+        in: query
+        minimum: 1
+        name: page
+        type: integer
+      - default: 20
+        description: Results per page (max 100)
+        example: 20
+        in: query
+        maximum: 100
+        minimum: 1
+        name: limit
+        type: integer
+      - default: created_at
+        description: Field to sort by
+        enum:
+        - created_at
+        - priority
+        example: created_at
+        in: query
+        name: sort_by
+        type: string
+      - default: desc
+        description: Sort direction
+        enum:
+        - asc
+        - desc
+        example: desc
+        in: query
+        name: sort_dir
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successfully retrieved notes with full details
+          schema:
+            $ref: '#/definitions/github_com_caloi_ventros-crm_internal_application_queries.ListNotesResponse'
+        "400":
+          description: Bad Request - Invalid UUID or parameter format
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized - Authentication required
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Forbidden - No access to this tenant's notes
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List notes with advanced filters and pagination
+      tags:
+      - notes
+  /api/v1/crm/notes/search:
+    get:
+      consumes:
+      - application/json
+      description: |-
+        Full-text search across note content and author names. Perfect for finding specific annotations, comments, or action items across all customer interactions and conversations.
+
+        **Search Capabilities:**
+        - Searches note content/body (primary field)
+        - Searches author names (secondary field)
+        - Case-insensitive ILIKE matching
+
+        **Match Scoring:**
+        - Content matches: 1.5 score (higher priority)
+        - Author name matches: 1.2 score (lower priority)
+
+        **Search Examples:**
+        - "follow-up required" - Find notes about pending follow-ups
+        - "escalated to manager" - Locate escalation notes
+        - "pricing question" - Find pricing-related annotations
+        - "technical issue" - Search for technical problem notes
+        - "João" - Find notes written by agent João
+        - "urgent" - Locate urgent action items
+
+        **Performance:**
+        - Optimized GORM indexes on tenant_id for fast tenant isolation
+        - ILIKE operator uses PostgreSQL's text search capabilities
+        - Maximum 100 results to ensure sub-second response times
+      parameters:
+      - description: Search query - content or author name
+        example: follow-up required
+        in: query
+        minLength: 1
+        name: q
+        required: true
+        type: string
+      - default: 20
+        description: Maximum results (max 100)
+        example: 10
+        in: query
+        maximum: 100
+        minimum: 1
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Found notes with match scores
+          schema:
+            $ref: '#/definitions/github_com_caloi_ventros-crm_internal_application_queries.SearchNotesResponse'
+        "400":
+          description: Bad Request - Empty search query
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Search notes by content and author
+      tags:
+      - notes
+  /api/v1/crm/pipelines/advanced:
+    get:
+      consumes:
+      - application/json
+      description: |-
+        Retrieve all pipelines with filtering by project, active status, and color. Pipelines organize contacts into workflow stages with customizable statuses. Essential for sales processes, support tickets, and multi-stage customer journeys.
+
+        **Filtering Capabilities:**
+        - Filter by project_id to get pipelines for a specific business unit
+        - Filter by active status to show/hide archived pipelines
+        - Filter by color for UI organization and visual pipeline management
+
+        **Common Use Cases:**
+        - Load all active pipelines for a project's dashboard
+        - Build pipeline selector dropdowns for contact assignment
+        - Audit pipeline configuration across projects
+        - Identify inactive pipelines for cleanup
+        - Generate pipeline reports by color-coded categories
+
+        **Performance:**
+        - Optimized GORM indexes on tenant+active for fast active pipeline queries
+        - Small result sets (typically < 50 pipelines per tenant) for instant responses
+      parameters:
+      - description: Filter by project UUID
+        example: 550e8400-e29b-41d4-a716-446655440000
+        in: query
+        name: project_id
+        type: string
+      - description: 'Filter by active status - true: only active, false: only inactive'
+        example: true
+        in: query
+        name: active
+        type: boolean
+      - description: 'Filter by hex color code - Example: #FF5733, #3B82F6'
+        example: '#3B82F6'
+        in: query
+        name: color
+        type: string
+      - default: 1
+        description: Page number (starts at 1)
+        example: 1
+        in: query
+        minimum: 1
+        name: page
+        type: integer
+      - default: 20
+        description: Results per page (max 100)
+        example: 20
+        in: query
+        maximum: 100
+        minimum: 1
+        name: limit
+        type: integer
+      - default: created_at
+        description: Sort field
+        enum:
+        - name
+        - position
+        - created_at
+        example: position
+        in: query
+        name: sort_by
+        type: string
+      - default: desc
+        description: Sort direction
+        enum:
+        - asc
+        - desc
+        example: asc
+        in: query
+        name: sort_dir
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successfully retrieved pipelines with full configuration details
+          schema:
+            $ref: '#/definitions/github_com_caloi_ventros-crm_internal_application_queries.ListPipelinesResponse'
+        "400":
+          description: Bad Request - Invalid UUID or parameter format
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized - Authentication required
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Forbidden - No access to this tenant's pipelines
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List pipelines with advanced filters
+      tags:
+      - pipelines
+  /api/v1/crm/pipelines/search:
+    get:
+      consumes:
+      - application/json
+      description: |-
+        Full-text search across pipeline names and descriptions. Perfect for finding specific pipelines in large organizations with many workflow configurations.
+
+        **Search Capabilities:**
+        - Searches pipeline names (primary field)
+        - Searches pipeline descriptions (secondary field)
+        - Case-insensitive ILIKE matching
+
+        **Match Scoring:**
+        - Name matches: 1.5 score (higher priority)
+        - Description matches: 1.2 score (lower priority)
+
+        **Search Examples:**
+        - "sales" - Find all sales-related pipelines
+        - "support" - Find customer support workflows
+        - "onboarding" - Locate onboarding process pipelines
+      parameters:
+      - description: Search query - name or description
+        example: sales pipeline
+        in: query
+        minLength: 1
+        name: q
+        required: true
+        type: string
+      - default: 20
+        description: Maximum results (max 100)
+        example: 10
+        in: query
+        maximum: 100
+        minimum: 1
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Found pipelines with match scores
+          schema:
+            $ref: '#/definitions/github_com_caloi_ventros-crm_internal_application_queries.SearchPipelinesResponse'
+        "400":
+          description: Bad Request - Empty search query
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Search pipelines by name and description
+      tags:
+      - pipelines
+  /api/v1/crm/projects/advanced:
+    get:
+      consumes:
+      - application/json
+      description: |-
+        Retrieve all projects with filtering by customer and active status. Projects serve as organizational containers that group channels, pipelines, and contacts into business units or departments. Essential for multi-brand organizations and enterprise segmentation.
+
+        **Filtering Capabilities:**
+        - Filter by customer_id to view all projects for a specific customer account
+        - Filter by active status to show/hide archived projects
+
+        **Common Use Cases:**
+        - Load all active projects for the main dashboard
+        - Build project selector dropdowns for channel/pipeline assignment
+        - View complete project portfolio for a specific customer
+        - Audit project configurations across the organization
+        - Identify inactive projects for cleanup and archival
+        - Generate project reports and analytics by customer
+
+        **Sorting Options:**
+        - Sort by name (alphabetical organization)
+        - Sort by created_at (chronological order)
+        - Ascending or descending order
+
+        **Performance:**
+        - Optimized GORM indexes on tenant+customer for fast customer project queries
+        - Composite indexes on tenant+active for quick active project retrieval
+        - Small result sets (typically < 100 projects per tenant) for instant responses
+      parameters:
+      - description: 'Filter by customer UUID - Example: 550e8400-e29b-41d4-a716-446655440000'
+        in: query
+        name: customer_id
+        type: string
+      - description: 'Filter by active status - true: only active, false: only inactive'
+        example: true
+        in: query
+        name: active
+        type: boolean
+      - default: 1
+        description: Page number for pagination (starts at 1)
+        example: 1
+        in: query
+        minimum: 1
+        name: page
+        type: integer
+      - default: 20
+        description: Results per page (max 100)
+        example: 20
+        in: query
+        maximum: 100
+        minimum: 1
+        name: limit
+        type: integer
+      - default: created_at
+        description: Field to sort by
+        enum:
+        - name
+        - created_at
+        example: name
+        in: query
+        name: sort_by
+        type: string
+      - default: desc
+        description: Sort direction
+        enum:
+        - asc
+        - desc
+        example: asc
+        in: query
+        name: sort_dir
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successfully retrieved projects with full details
+          schema:
+            $ref: '#/definitions/github_com_caloi_ventros-crm_internal_application_queries.ListProjectsResponse'
+        "400":
+          description: Bad Request - Invalid UUID or parameter format
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized - Authentication required
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Forbidden - No access to this tenant's projects
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List projects with advanced filters and pagination
+      tags:
+      - projects
+  /api/v1/crm/projects/search:
+    get:
+      consumes:
+      - application/json
+      description: |-
+        Full-text search across project names and descriptions. Perfect for finding specific business units or departments in organizations with many projects.
+
+        **Search Capabilities:**
+        - Searches project names (primary field)
+        - Searches project descriptions (secondary field)
+        - Case-insensitive ILIKE matching
+
+        **Match Scoring:**
+        - Name matches: 1.5 score (higher priority)
+        - Description matches: 1.2 score (lower priority)
+
+        **Search Examples:**
+        - "sales" - Find all sales-related projects
+        - "support" - Find customer support departments
+        - "Q1 2024" - Locate quarterly projects
+        - "EMEA" - Find regional projects
+      parameters:
+      - description: Search query - name or description
+        example: sales project
+        in: query
+        minLength: 1
+        name: q
+        required: true
+        type: string
+      - default: 20
+        description: Maximum results (max 100)
+        example: 10
+        in: query
+        maximum: 100
+        minimum: 1
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Found projects with match scores
+          schema:
+            $ref: '#/definitions/github_com_caloi_ventros-crm_internal_application_queries.SearchProjectsResponse'
+        "400":
+          description: Bad Request - Empty search query
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Search projects by name and description
+      tags:
+      - projects
+  /api/v1/crm/sessions/advanced:
+    get:
+      consumes:
+      - application/json
+      description: |-
+        Retrieve a paginated list of sessions with advanced filtering capabilities including contact, pipeline, status, sentiment, and resolution flags. Supports sorting and pagination for efficient data retrieval. Perfect for building session dashboards and reports.
+
+        **Filtering Options:**
+        - Filter by contact to see all sessions for a specific customer
+        - Filter by pipeline to analyze sessions in a specific workflow
+        - Filter by status (active/ended) to focus on ongoing or completed sessions
+        - Filter by sentiment (positive/negative/neutral) for customer satisfaction analysis
+        - Filter by resolved/escalated/converted flags for outcome tracking
+        - Filter by date range to analyze sessions within specific time periods
+        - Filter by message count range to find short or long conversations
+
+        **Sorting Options:**
+        - Sort by started_at, ended_at, message_count, or duration
+        - Ascending or descending order
+
+        **Performance:**
+        - Optimized with composite GORM indexes on tenant+status, tenant+contact, tenant+pipeline
+        - GIN indexes on JSONB fields (agent_ids, topics, outcome_tags) for fast array searches
+        - Pagination prevents large result sets
+        - Maximum 100 results per page
+      parameters:
+      - description: 'Filter by contact UUID - Example: 550e8400-e29b-41d4-a716-446655440000'
+        in: query
+        name: contact_id
+        type: string
+      - description: 'Filter by pipeline UUID - Example: 660e8400-e29b-41d4-a716-446655440001'
+        in: query
+        name: pipeline_id
+        type: string
+      - description: Filter by session status
+        enum:
+        - active
+        - ended
+        example: active
+        in: query
+        name: status
+        type: string
+      - description: Filter by detected sentiment
+        enum:
+        - positive
+        - negative
+        - neutral
+        example: positive
+        in: query
+        name: sentiment
+        type: string
+      - description: 'Filter by resolved flag - true: only resolved sessions, false:
+          only unresolved'
+        example: true
+        in: query
+        name: resolved
+        type: boolean
+      - description: 'Filter by escalated flag - true: only escalated sessions'
+        example: false
+        in: query
+        name: escalated
+        type: boolean
+      - description: 'Filter by converted flag - true: sessions that led to conversions'
+        example: true
+        in: query
+        name: converted
+        type: boolean
+      - description: 'Filter sessions started after this timestamp - Format: 2006-01-02T15:04:05Z'
+        example: "2024-01-01T00:00:00Z"
+        in: query
+        name: started_after
+        type: string
+      - description: Filter sessions started before this timestamp
+        example: "2024-12-31T23:59:59Z"
+        in: query
+        name: started_before
+        type: string
+      - description: 'Minimum number of messages in session - Example: 5'
+        example: 5
+        in: query
+        name: min_messages
+        type: integer
+      - description: 'Maximum number of messages in session - Example: 100'
+        example: 100
+        in: query
+        name: max_messages
+        type: integer
+      - default: 1
+        description: Page number for pagination (starts at 1)
+        example: 1
+        in: query
+        minimum: 1
+        name: page
+        type: integer
+      - default: 20
+        description: Number of results per page (max 100)
+        example: 20
+        in: query
+        maximum: 100
+        minimum: 1
+        name: limit
+        type: integer
+      - default: started_at
+        description: Field to sort by
+        enum:
+        - started_at
+        - ended_at
+        - message_count
+        - duration_seconds
+        - created_at
+        example: started_at
+        in: query
+        name: sort_by
+        type: string
+      - default: desc
+        description: Sort direction
+        enum:
+        - asc
+        - desc
+        example: desc
+        in: query
+        name: sort_dir
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successfully retrieved sessions with pagination metadata
+          schema:
+            $ref: '#/definitions/github_com_caloi_ventros-crm_internal_application_queries.ListSessionsResponse'
+        "400":
+          description: Bad Request - Invalid parameters (e.g., invalid UUID format,
+            invalid page number, limit exceeds maximum)
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized - Missing or invalid authentication token
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Forbidden - User doesn't have permission to access this tenant's
+            sessions
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error - Database connection issues or unexpected
+            errors
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List sessions with advanced filters and pagination
+      tags:
+      - sessions
+  /api/v1/crm/sessions/search:
+    get:
+      consumes:
+      - application/json
+      description: |-
+        Perform intelligent full-text search across session summaries, topics, key entities, next steps, and outcome tags. Uses PostgreSQL ILIKE for case-insensitive pattern matching with relevance scoring.
+
+        **Search Capabilities:**
+        - Searches across session summary text (AI-generated conversation summaries)
+        - Searches through detected topics (array of conversation topics)
+        - Searches through outcome tags (categorization tags added at session end)
+        - Searches through key entities (people, products, companies mentioned)
+        - Searches through next steps (action items identified in conversation)
+
+        **Match Scoring:**
+        - Summary matches: 2.0 score (highest priority - main content)
+        - Topics matches: 1.5 score (high priority - categorization)
+        - Outcome tags matches: 1.3 score (medium priority - resolution info)
+        - Key entities/next steps matches: 1.0 score (standard priority)
+
+        **Search Examples:**
+        - Search for "refund" to find all sessions where refunds were discussed
+        - Search for "escalated" to find problematic sessions
+        - Search for "product-demo" to find sessions with demo requests
+        - Search for customer/company names mentioned in conversations
+
+        **Performance:**
+        - Optimized with GIN indexes on JSONB fields (topics, outcome_tags, key_entities)
+        - Results ordered by match score (highest relevance first)
+        - Maximum 100 results to ensure fast response times
+      parameters:
+      - description: 'Search query - minimum 1 character, case-insensitive - Example:
+          ''refund request'' or ''product-demo'' or ''escalated'''
+        example: refund request
+        in: query
+        minLength: 1
+        name: q
+        required: true
+        type: string
+      - default: 20
+        description: Maximum number of results to return (max 100)
+        example: 20
+        in: query
+        maximum: 100
+        minimum: 1
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successfully found matching sessions with relevance scores
+            and matched fields
+          schema:
+            $ref: '#/definitions/github_com_caloi_ventros-crm_internal_application_queries.SearchSessionsResponse'
+        "400":
+          description: Bad Request - Missing or invalid search query, limit exceeds
+            maximum
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized - Missing or invalid authentication token
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Forbidden - User doesn't have permission to search this tenant's
+            sessions
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error - Database connection issues or search
+            execution errors
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Full-text search across sessions
+      tags:
+      - sessions
   /api/v1/domain-events:
     get:
       description: Lista todos os eventos de domínio disparados em um projeto
@@ -2523,7 +4870,7 @@ paths:
       - domain-events
   /api/v1/messages:
     get:
-      description: Lista mensagens com filtros opcionais
+      description: List messages with optional filters
       parameters:
       - description: Filter by session ID (UUID)
         in: query
@@ -2581,7 +4928,7 @@ paths:
     post:
       consumes:
       - application/json
-      description: Cria uma nova mensagem
+      description: Create a new message
       parameters:
       - description: Message data
         in: body
@@ -2612,7 +4959,7 @@ paths:
       - messages
   /api/v1/messages/{id}:
     delete:
-      description: Remove uma mensagem (soft delete)
+      description: Remove a message (soft delete)
       parameters:
       - description: Message ID (UUID)
         in: path
@@ -2643,7 +4990,7 @@ paths:
       tags:
       - messages
     get:
-      description: Obtém detalhes de uma mensagem específica
+      description: Get details of a specific message
       parameters:
       - description: Message ID (UUID)
         in: path
@@ -2679,7 +5026,7 @@ paths:
     put:
       consumes:
       - application/json
-      description: Atualiza uma mensagem existente
+      description: Update an existing message
       parameters:
       - description: Message ID (UUID)
         in: path
@@ -2716,6 +5063,76 @@ paths:
             additionalProperties: true
             type: object
       summary: Update message
+      tags:
+      - messages
+  /api/v1/messages/confirm-delivery:
+    post:
+      consumes:
+      - application/json
+      description: Confirm delivery, reading or failure of a sent message
+      parameters:
+      - description: Delivery confirmation data
+        in: body
+        name: confirmation
+        required: true
+        schema:
+          $ref: '#/definitions/infrastructure_http_handlers.ConfirmMessageDeliveryRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Message status updated successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Message not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Confirm message delivery
+      tags:
+      - messages
+  /api/v1/messages/send:
+    post:
+      consumes:
+      - application/json
+      description: Send a message to a contact via specific channel
+      parameters:
+      - description: Message data
+        in: body
+        name: message
+        required: true
+        schema:
+          $ref: '#/definitions/infrastructure_http_handlers.SendMessageRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Message sent successfully
+          schema:
+            $ref: '#/definitions/infrastructure_http_handlers.SendMessageResponse'
+        "400":
+          description: Invalid request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Send message
       tags:
       - messages
   /api/v1/pipelines:
@@ -3331,7 +5748,7 @@ paths:
       - domain-events
   /api/v1/sessions/{session_id}/messages:
     get:
-      description: Obtém todas as mensagens de uma sessão específica
+      description: Get all messages from a specific session
       parameters:
       - description: Session ID (UUID)
         in: path
@@ -3755,29 +6172,16 @@ paths:
       summary: Get available WAHA events
       tags:
       - webhooks
-  /api/v1/webhooks/waha:
-    get:
-      description: Retorna informações sobre o endpoint de webhook WAHA
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Webhook info
-          schema:
-            additionalProperties: true
-            type: object
-      summary: Get webhook info
-      tags:
-      - webhooks
-  /api/v1/webhooks/waha/{session}:
+  /api/v1/webhooks/{webhook_id}:
     post:
       consumes:
       - application/json
-      description: Recebe eventos de webhook do WAHA (mensagens, chamadas, etc.)
+      description: Recebe eventos de webhook do WAHA usando ID único do webhook (padrão
+        indústria)
       parameters:
-      - description: Session ID
+      - description: Webhook ID único
         in: path
-        name: session
+        name: webhook_id
         required: true
         type: string
       produces:
@@ -3793,6 +6197,11 @@ paths:
           schema:
             additionalProperties: true
             type: object
+        "404":
+          description: Webhook not found
+          schema:
+            additionalProperties: true
+            type: object
         "500":
           description: Internal server error
           schema:
@@ -3801,6 +6210,70 @@ paths:
       summary: Receive WAHA webhook
       tags:
       - webhooks
+  /api/v1/webhooks/info:
+    get:
+      description: Retorna informações sobre o endpoint de webhook (padrão indústria)
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Webhook info
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get webhook info
+      tags:
+      - webhooks
+  /api/v1/ws/messages:
+    get:
+      description: Establishes WebSocket connection for bi-directional real-time messaging
+      parameters:
+      - description: Authentication token (alternative to Bearer header)
+        in: query
+        name: token
+        type: string
+      responses:
+        "101":
+          description: Switching Protocols - WebSocket connection established
+        "401":
+          description: Unauthorized - invalid or missing token
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden - origin not allowed
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: WebSocket connection for real-time messages
+      tags:
+      - websocket
+  /api/v1/ws/stats:
+    get:
+      description: Returns current WebSocket connection statistics
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: WebSocket statistics
+      tags:
+      - websocket
   /health:
     get:
       consumes:

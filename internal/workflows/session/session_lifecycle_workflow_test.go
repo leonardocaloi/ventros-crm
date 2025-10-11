@@ -6,6 +6,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+	"go.temporal.io/sdk/activity"
 	"go.temporal.io/sdk/testsuite"
 )
 
@@ -13,10 +14,11 @@ func TestSessionLifecycleWorkflow_Timeout(t *testing.T) {
 	testSuite := &testsuite.WorkflowTestSuite{}
 	env := testSuite.NewTestWorkflowEnvironment()
 
-	// Register mock activity
-	env.RegisterActivity(func(input EndSessionActivityInput) (EndSessionActivityResult, error) {
+	// Register mock EndSessionActivity
+	endSessionActivity := func(input EndSessionActivityInput) (EndSessionActivityResult, error) {
 		return EndSessionActivityResult{Success: true, EventsPublished: 2}, nil
-	})
+	}
+	env.RegisterActivity(endSessionActivity)
 
 	sessionID := uuid.New()
 	channelTypeID := 1
@@ -39,10 +41,15 @@ func TestSessionCleanupWorkflow(t *testing.T) {
 	testSuite := &testsuite.WorkflowTestSuite{}
 	env := testSuite.NewTestWorkflowEnvironment()
 
-	// Register mock activity
-	env.RegisterActivity(func(input CleanupSessionsActivityInput) (CleanupSessionsActivityResult, error) {
-		return CleanupSessionsActivityResult{SessionsCleaned: 5, EventsPublished: 10}, nil
-	})
+	// Register stub activity with explicit name
+	env.RegisterActivityWithOptions(
+		func(input CleanupSessionsActivityInput) (CleanupSessionsActivityResult, error) {
+			return CleanupSessionsActivityResult{SessionsCleaned: 5, EventsPublished: 10}, nil
+		},
+		activity.RegisterOptions{
+			Name: "CleanupSessionsActivity",
+		},
+	)
 
 	env.ExecuteWorkflow(SessionCleanupWorkflow)
 
@@ -54,10 +61,15 @@ func TestSessionCleanupWorkflow_Error(t *testing.T) {
 	testSuite := &testsuite.WorkflowTestSuite{}
 	env := testSuite.NewTestWorkflowEnvironment()
 
-	// Register failing mock activity
-	env.RegisterActivity(func(input CleanupSessionsActivityInput) (CleanupSessionsActivityResult, error) {
-		return CleanupSessionsActivityResult{}, assert.AnError
-	})
+	// Register failing stub activity with explicit name
+	env.RegisterActivityWithOptions(
+		func(input CleanupSessionsActivityInput) (CleanupSessionsActivityResult, error) {
+			return CleanupSessionsActivityResult{}, assert.AnError
+		},
+		activity.RegisterOptions{
+			Name: "CleanupSessionsActivity",
+		},
+	)
 
 	env.ExecuteWorkflow(SessionCleanupWorkflow)
 
@@ -71,9 +83,11 @@ func BenchmarkSessionLifecycleWorkflow(b *testing.B) {
 		testSuite := &testsuite.WorkflowTestSuite{}
 		env := testSuite.NewTestWorkflowEnvironment()
 
-		env.RegisterActivity(func(input EndSessionActivityInput) (EndSessionActivityResult, error) {
+		// Register mock EndSessionActivity
+		endSessionActivity := func(input EndSessionActivityInput) (EndSessionActivityResult, error) {
 			return EndSessionActivityResult{Success: true, EventsPublished: 2}, nil
-		})
+		}
+		env.RegisterActivity(endSessionActivity)
 
 		sessionID := uuid.New()
 		channelTypeID := 1

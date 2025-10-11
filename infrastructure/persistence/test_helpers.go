@@ -85,6 +85,16 @@ func (td *TestDatabase) TeardownTestDatabase(t *testing.T) {
 }
 
 // AutoMigrateTest runs all migrations for test database
+//
+// ⚠️ WARNING: This function uses GORM AutoMigrate and is ONLY for tests!
+// ⚠️ NEVER use AutoMigrate in production code - use SQL migrations instead.
+//
+// This is acceptable for tests because:
+// 1. Tests need quick schema setup for isolated test databases
+// 2. Tests run in containers (testcontainers) that are destroyed after each test
+// 3. Test schema doesn't need rollback capabilities
+//
+// For production, use SQL migrations located in infrastructure/database/migrations/*.sql
 func AutoMigrateTest(db *gorm.DB) error {
 	return db.AutoMigrate(
 		&entities.UserEntity{},
@@ -310,8 +320,4 @@ func (td *TestDatabase) CleanupTestData(t *testing.T, tenantID string) {
 	td.DB.Where("tenant_id = ?", tenantID).Delete(&entities.PipelineStatusEntity{})
 	td.DB.Where("tenant_id = ?", tenantID).Delete(&entities.PipelineEntity{})
 	td.DB.Where("tenant_id = ?", tenantID).Delete(&entities.ProjectEntity{})
-}
-
-func strPtr(s string) *string {
-	return &s
 }

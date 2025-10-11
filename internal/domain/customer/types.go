@@ -2,7 +2,6 @@ package customer
 
 import "errors"
 
-// Status representa o status de um cliente.
 type Status string
 
 const (
@@ -15,7 +14,6 @@ func (s Status) String() string {
 	return string(s)
 }
 
-// IsValid verifica se o status é válido.
 func (s Status) IsValid() bool {
 	switch s {
 	case StatusActive, StatusInactive, StatusSuspended:
@@ -25,7 +23,6 @@ func (s Status) IsValid() bool {
 	}
 }
 
-// ParseStatus converte string para Status.
 func ParseStatus(s string) (Status, error) {
 	status := Status(s)
 	if !status.IsValid() {

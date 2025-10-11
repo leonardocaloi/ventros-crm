@@ -72,7 +72,7 @@ func (m *AutomationRuleManager) CreateRule(ctx context.Context, input CreateRule
 	// Cria regra
 	pipelineIDPtr := &input.PipelineID
 	rule, err := pipeline.NewAutomation(
-		pipeline.AutomationTypePipeline, // tipo de automação
+		pipeline.AutomationTypePipelineBased, // tipo de automação baseada em pipeline
 		input.TenantID,
 		input.Name,
 		input.Trigger,

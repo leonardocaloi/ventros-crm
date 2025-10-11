@@ -2,7 +2,6 @@ package tracking
 
 import "fmt"
 
-// TrackingBuilder constrói trackings seguindo regras condicionais e validações
 type TrackingBuilder struct {
 	utm       *UTMStandard
 	contactID string
@@ -15,7 +14,6 @@ type TrackingBuilder struct {
 	errors    []error
 }
 
-// NewTrackingBuilder cria um novo builder
 func NewTrackingBuilder() *TrackingBuilder {
 	return &TrackingBuilder{
 		utm:      &UTMStandard{},
@@ -24,7 +22,6 @@ func NewTrackingBuilder() *TrackingBuilder {
 	}
 }
 
-// WithContact define o contato
 func (b *TrackingBuilder) WithContact(contactID, tenantID, projectID string) *TrackingBuilder {
 	b.contactID = contactID
 	b.tenantID = tenantID
@@ -32,17 +29,14 @@ func (b *TrackingBuilder) WithContact(contactID, tenantID, projectID string) *Tr
 	return b
 }
 
-// WithSession define a sessão (opcional)
 func (b *TrackingBuilder) WithSession(sessionID string) *TrackingBuilder {
 	b.sessionID = &sessionID
 	return b
 }
 
-// WithSourcePlatform define a plataforma macro e valida
 func (b *TrackingBuilder) WithSourcePlatform(platform UTMSourcePlatform) *TrackingBuilder {
 	b.utm.SourcePlatform = platform
 
-	// Valida se a plataforma é conhecida
 	validPlatforms := []UTMSourcePlatform{
 		PlatformMktDireto,
 		UTMPlatformMeta,
@@ -68,14 +62,12 @@ func (b *TrackingBuilder) WithSourcePlatform(platform UTMSourcePlatform) *Tracki
 	return b
 }
 
-// WithSource define a fonte específica dentro da plataforma
 func (b *TrackingBuilder) WithSource(source string) *TrackingBuilder {
 	if b.utm.SourcePlatform == "" {
 		b.errors = append(b.errors, fmt.Errorf("must set source_platform before source"))
 		return b
 	}
 
-	// Valida se a source é válida para a plataforma
 	if !IsValidSource(b.utm.SourcePlatform, source) {
 		validSources := GetValidSourcesForPlatform(b.utm.SourcePlatform)
 		b.errors = append(b.errors, fmt.Errorf("invalid source '%s' for platform '%s'. Valid sources: %v",
@@ -86,14 +78,12 @@ func (b *TrackingBuilder) WithSource(source string) *TrackingBuilder {
 	return b
 }
 
-// WithMedium define o medium e valida compatibilidade com plataforma
 func (b *TrackingBuilder) WithMedium(medium UTMMedium) *TrackingBuilder {
 	if b.utm.SourcePlatform == "" {
 		b.errors = append(b.errors, fmt.Errorf("must set source_platform before medium"))
 		return b
 	}
 
-	// Valida se o medium é válido para a plataforma
 	if !IsValidMedium(b.utm.SourcePlatform, medium) {
 		validMediums := GetValidMediumsForPlatform(b.utm.SourcePlatform)
 		b.errors = append(b.errors, fmt.Errorf("invalid medium '%s' for platform '%s'. Valid mediums: %v",
@@ -104,7 +94,6 @@ func (b *TrackingBuilder) WithMedium(medium UTMMedium) *TrackingBuilder {
 	return b
 }
 
-// WithCampaign define a campanha
 func (b *TrackingBuilder) WithCampaign(campaign string) *TrackingBuilder {
 	if campaign == "" {
 		b.errors = append(b.errors, fmt.Errorf("campaign cannot be empty"))
@@ -113,55 +102,46 @@ func (b *TrackingBuilder) WithCampaign(campaign string) *TrackingBuilder {
 	return b
 }
 
-// WithMarketingTactic define a tática de marketing (opcional)
 func (b *TrackingBuilder) WithMarketingTactic(tactic UTMMarketingTactic) *TrackingBuilder {
 	b.utm.MarketingTactic = tactic
 	return b
 }
 
-// WithTerm define o termo/público-alvo (opcional)
 func (b *TrackingBuilder) WithTerm(term string) *TrackingBuilder {
 	b.utm.Term = term
 	return b
 }
 
-// WithContent define o conteúdo/criativo (opcional)
 func (b *TrackingBuilder) WithContent(content string) *TrackingBuilder {
 	b.utm.Content = content
 	return b
 }
 
-// WithCreativeFormat define o formato do criativo (opcional)
 func (b *TrackingBuilder) WithCreativeFormat(format UTMCreativeFormat) *TrackingBuilder {
 	b.utm.CreativeFormat = format
 	return b
 }
 
-// WithAdID define o ID do anúncio
 func (b *TrackingBuilder) WithAdID(adID string) *TrackingBuilder {
 	b.adID = adID
-	// Por padrão, se content está vazio, usa ad_id como content
+
 	if b.utm.Content == "" && adID != "" {
 		b.utm.Content = "ad_id_" + adID
 	}
 	return b
 }
 
-// WithClickID define o Click ID (CTWA)
 func (b *TrackingBuilder) WithClickID(clickID string) *TrackingBuilder {
 	b.clickID = clickID
 	return b
 }
 
-// WithMetadata adiciona metadados customizados
 func (b *TrackingBuilder) WithMetadata(key string, value interface{}) *TrackingBuilder {
 	b.metadata[key] = value
 	return b
 }
 
-// Validate valida todas as regras antes de construir
 func (b *TrackingBuilder) Validate() error {
-	// Valida campos obrigatórios do tracking
 	if b.contactID == "" {
 		b.errors = append(b.errors, fmt.Errorf("contactID is required"))
 	}
@@ -172,12 +152,10 @@ func (b *TrackingBuilder) Validate() error {
 		b.errors = append(b.errors, fmt.Errorf("projectID is required"))
 	}
 
-	// Valida UTM Standard
 	if err := b.utm.Validate(); err != nil {
 		b.errors = append(b.errors, err)
 	}
 
-	// Se houver erros acumulados, retorna todos
 	if len(b.errors) > 0 {
 		errorMsg := "validation errors: "
 		for i, err := range b.errors {
@@ -192,20 +170,16 @@ func (b *TrackingBuilder) Validate() error {
 	return nil
 }
 
-// Build constrói o tracking após validação
 func (b *TrackingBuilder) Build() (*UTMStandard, map[string]interface{}, error) {
-	// Valida antes de construir
 	if err := b.Validate(); err != nil {
 		return nil, nil, err
 	}
 
-	// Adiciona metadados padrão
 	result := make(map[string]interface{})
 	for k, v := range b.metadata {
 		result[k] = v
 	}
 
-	// Adiciona informações de contexto
 	result["contact_id"] = b.contactID
 	result["tenant_id"] = b.tenantID
 	result["project_id"] = b.projectID
@@ -225,7 +199,6 @@ func (b *TrackingBuilder) Build() (*UTMStandard, map[string]interface{}, error) 
 	return b.utm, result, nil
 }
 
-// BuildURL constrói a URL completa com UTMs
 func (b *TrackingBuilder) BuildURL(baseURL string) (string, error) {
 	if err := b.Validate(); err != nil {
 		return "", err
@@ -236,13 +209,11 @@ func (b *TrackingBuilder) BuildURL(baseURL string) (string, error) {
 		return "", fmt.Errorf("base URL cannot be empty")
 	}
 
-	// Adiciona separador
 	separator := "?"
 	if contains(url, "?") {
 		separator = "&"
 	}
 
-	// Monta query params
 	params := []string{
 		fmt.Sprintf("utm_source_platform=%s", b.utm.SourcePlatform),
 		fmt.Sprintf("utm_source=%s", b.utm.Source),
@@ -263,7 +234,6 @@ func (b *TrackingBuilder) BuildURL(baseURL string) (string, error) {
 		params = append(params, fmt.Sprintf("utm_creative_format=%s", b.utm.CreativeFormat))
 	}
 
-	// Monta URL final
 	for i, param := range params {
 		if i == 0 {
 			url += separator + param
@@ -275,7 +245,6 @@ func (b *TrackingBuilder) BuildURL(baseURL string) (string, error) {
 	return url, nil
 }
 
-// Helper function
 func contains(s, substr string) bool {
 	return len(s) > 0 && len(substr) > 0 &&
 		(len(s) >= len(substr) && findSubstring(s, substr))

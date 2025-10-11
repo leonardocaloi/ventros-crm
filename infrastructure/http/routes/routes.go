@@ -1,6 +1,8 @@
 package routes
 
 import (
+	"time"
+
 	"github.com/caloi/ventros-crm/infrastructure/health"
 	"github.com/caloi/ventros-crm/infrastructure/http/handlers"
 	"github.com/caloi/ventros-crm/infrastructure/http/middleware"
@@ -72,11 +74,12 @@ func SetupRoutes(router *gin.Engine, logger *zap.Logger, healthChecker *health.H
 	// Health check handlers
 	healthHandler := handlers.NewHealthHandler(logger, healthChecker)
 
-	// Webhook routes (sem auth para receber da WAHA)
+	// Webhook inbound routes (sem auth para receber de serviços externos)
+	// Padrão indústria: /api/v1/webhooks/:webhook_id
 	webhooks := router.Group("/api/v1/webhooks")
 	{
-		webhooks.POST("/waha/:session", wahaHandler.ReceiveWebhook)
-		webhooks.GET("/waha", wahaHandler.GetWebhookInfo)
+		webhooks.POST("/:webhook_id", wahaHandler.ReceiveWebhook)
+		webhooks.GET("/info", wahaHandler.GetWebhookInfo)
 	}
 
 	// Health endpoints - General
@@ -132,6 +135,8 @@ func SetupRoutes(router *gin.Engine, logger *zap.Logger, healthChecker *health.H
 		// Contact routes
 		contacts := v1.Group("/contacts")
 		{
+			contacts.GET("/search", contactHandler.SearchContacts)         // Must be before /:id
+			contacts.GET("/advanced", contactHandler.ListContactsAdvanced) // Must be before /:id
 			contacts.GET("", contactHandler.ListContacts)
 			contacts.POST("", contactHandler.CreateContact)
 			contacts.GET("/:id", contactHandler.GetContact)
@@ -208,11 +213,12 @@ func SetupRoutesBasic(router *gin.Engine, logger *zap.Logger, healthChecker *hea
 	// Health check handlers
 	healthHandler := handlers.NewHealthHandler(logger, healthChecker)
 
-	// Webhook routes (sem auth para receber da WAHA)
+	// Webhook inbound routes (sem auth para receber de serviços externos)
+	// Padrão indústria: /api/v1/webhooks/:webhook_id
 	webhooks := router.Group("/api/v1/webhooks")
 	{
-		webhooks.POST("/waha/:session", wahaHandler.ReceiveWebhook)
-		webhooks.GET("/waha", wahaHandler.GetWebhookInfo)
+		webhooks.POST("/:webhook_id", wahaHandler.ReceiveWebhook)
+		webhooks.GET("/info", wahaHandler.GetWebhookInfo)
 	}
 
 	// Health endpoints - General
@@ -267,6 +273,8 @@ func SetupRoutesBasic(router *gin.Engine, logger *zap.Logger, healthChecker *hea
 		contacts.Use(authMiddleware.Authenticate())
 		contacts.Use(rlsMiddleware.SetUserContext())
 		{
+			contacts.GET("/search", contactHandler.SearchContacts)         // Must be before /:id
+			contacts.GET("/advanced", contactHandler.ListContactsAdvanced) // Must be before /:id
 			contacts.GET("", contactHandler.ListContacts)
 			contacts.POST("", contactHandler.CreateContact)
 			contacts.GET("/:id", contactHandler.GetContact)
@@ -300,17 +308,29 @@ func SetupRoutesBasic(router *gin.Engine, logger *zap.Logger, healthChecker *hea
 	}
 }
 
-// SetupRoutesBasicWithTest configura as rotas básicas com endpoints de teste, auth, channels, projects e pipelines
+// SetupRoutesBasicWithTest configura as rotas básicas com endpoints de teste, auth, channels, projects, pipelines, messages, chats e WebSocket
 // LEGACY: Mantido para compatibilidade
-func SetupRoutesBasicWithTest(router *gin.Engine, logger *zap.Logger, healthChecker *health.HealthChecker, authHandler *handlers.AuthHandler, channelHandler *handlers.ChannelHandler, projectHandler *handlers.ProjectHandler, pipelineHandler *handlers.PipelineHandler, wahaHandler *handlers.WAHAWebhookHandler, webhookHandler *handlers.WebhookSubscriptionHandler, queueHandler *handlers.QueueHandler, sessionHandler *handlers.SessionHandler, contactHandler *handlers.ContactHandler, trackingHandler *handlers.TrackingHandler, automationDiscoveryHandler *handlers.AutomationDiscoveryHandler, gormDB *gorm.DB, authMiddleware *middleware.AuthMiddleware, rlsMiddleware *middleware.RLSMiddleware) {
+func SetupRoutesBasicWithTest(router *gin.Engine, logger *zap.Logger, healthChecker *health.HealthChecker, authHandler *handlers.AuthHandler, channelHandler *handlers.ChannelHandler, projectHandler *handlers.ProjectHandler, pipelineHandler *handlers.PipelineHandler, wahaHandler *handlers.WAHAWebhookHandler, webhookHandler *handlers.WebhookSubscriptionHandler, queueHandler *handlers.QueueHandler, sessionHandler *handlers.SessionHandler, contactHandler *handlers.ContactHandler, trackingHandler *handlers.TrackingHandler, messageHandler *handlers.MessageHandler, chatHandler *handlers.ChatHandler, agentHandler *handlers.AgentHandler, noteHandler *handlers.NoteHandler, automationDiscoveryHandler *handlers.AutomationDiscoveryHandler, websocketHandler *handlers.WebSocketMessageHandler, wsRateLimiter *middleware.WebSocketRateLimiter, gormDB *gorm.DB, authMiddleware *middleware.AuthMiddleware, wsAuthMiddleware *middleware.WebSocketAuthMiddleware, rlsMiddleware *middleware.RLSMiddleware, rateLimiter *middleware.RateLimiter) {
 	// Add GORM context middleware FIRST (before any other middleware)
 	router.Use(middleware.GORMContextMiddleware(gormDB))
+
+	// Add Correlation ID middleware for distributed tracing
+	router.Use(middleware.CorrelationIDMiddleware())
 
 	// Use the basic setup first
 	SetupRoutesBasic(router, logger, healthChecker, wahaHandler, webhookHandler, queueHandler, sessionHandler, contactHandler, authMiddleware, rlsMiddleware)
 
-	// Add auth routes (public routes)
-	authRoutes := router.Group("/api/v1/crm/auth")
+	// Auth routes (INDEPENDENT - não faz parte do CRM)
+	// Moved from /api/v1/crm/auth to /api/v1/auth
+	// Rate limit: 10 requests per minute for auth endpoints (prevent brute force)
+	authRoutes := router.Group("/api/v1/auth")
+	if rateLimiter != nil {
+		authRoutes.Use(rateLimiter.RateLimitMiddleware(middleware.RateLimiterConfig{
+			MaxRequests: 10,
+			Window:      1 * time.Minute,
+			KeyPrefix:   "ratelimit:auth",
+		}))
+	}
 	{
 		authRoutes.POST("/register", authHandler.CreateUser)
 		authRoutes.POST("/login", authHandler.Login)
@@ -326,9 +346,17 @@ func SetupRoutesBasicWithTest(router *gin.Engine, logger *zap.Logger, healthChec
 	}
 
 	// Add channel routes (all protected)
+	// Rate limit: 1000 requests per minute for authenticated API endpoints
 	channels := router.Group("/api/v1/crm/channels")
 	channels.Use(authMiddleware.Authenticate())
 	channels.Use(rlsMiddleware.SetUserContext())
+	if rateLimiter != nil {
+		channels.Use(rateLimiter.RateLimitByUserMiddleware(middleware.RateLimiterConfig{
+			MaxRequests: 1000,
+			Window:      1 * time.Minute,
+			KeyPrefix:   "ratelimit:api:user",
+		}))
+	}
 	{
 		channels.GET("", channelHandler.ListChannels)
 		channels.POST("", channelHandler.CreateChannel)
@@ -356,6 +384,8 @@ func SetupRoutesBasicWithTest(router *gin.Engine, logger *zap.Logger, healthChec
 	projects.Use(authMiddleware.Authenticate())
 	projects.Use(rlsMiddleware.SetUserContext())
 	{
+		projects.GET("/search", projectHandler.SearchProjects)         // Must be before /:id
+		projects.GET("/advanced", projectHandler.ListProjectsAdvanced) // Must be before /:id
 		projects.GET("", projectHandler.ListProjects)
 		projects.POST("", projectHandler.CreateProject)
 		projects.GET("/:id", projectHandler.GetProject)
@@ -368,6 +398,8 @@ func SetupRoutesBasicWithTest(router *gin.Engine, logger *zap.Logger, healthChec
 	pipelines.Use(authMiddleware.Authenticate())
 	pipelines.Use(rlsMiddleware.SetUserContext())
 	{
+		pipelines.GET("/search", pipelineHandler.SearchPipelines)         // Must be before /:id
+		pipelines.GET("/advanced", pipelineHandler.ListPipelinesAdvanced) // Must be before /:id
 		pipelines.GET("", pipelineHandler.ListPipelines)
 		pipelines.POST("", pipelineHandler.CreatePipeline)
 		pipelines.GET("/:id", pipelineHandler.GetPipeline)
@@ -380,6 +412,15 @@ func SetupRoutesBasicWithTest(router *gin.Engine, logger *zap.Logger, healthChec
 		pipelines.GET("/:id/contacts/:contact_id/status", pipelineHandler.GetContactStatus)
 	}
 
+	// Add session routes (all protected) - advanced query endpoints
+	sessions := router.Group("/api/v1/crm/sessions")
+	sessions.Use(authMiddleware.Authenticate())
+	sessions.Use(rlsMiddleware.SetUserContext())
+	{
+		sessions.GET("/search", sessionHandler.SearchSessions)         // Must be before /:id
+		sessions.GET("/advanced", sessionHandler.ListSessionsAdvanced) // Must be before /:id
+	}
+
 	// Add tracking routes (all protected)
 	trackings := router.Group("/api/v1/crm/trackings")
 	trackings.Use(authMiddleware.Authenticate())
@@ -390,6 +431,80 @@ func SetupRoutesBasicWithTest(router *gin.Engine, logger *zap.Logger, healthChec
 		trackings.POST("/decode", trackingHandler.DecodeTracking)
 		trackings.POST("", trackingHandler.CreateTracking)
 		trackings.GET("/:id", trackingHandler.GetTracking)
+	}
+
+	// Add message routes (all protected)
+	messages := router.Group("/api/v1/crm/messages")
+	messages.Use(authMiddleware.Authenticate())
+	messages.Use(rlsMiddleware.SetUserContext())
+	{
+		messages.GET("/search", messageHandler.SearchMessages)         // Must be before /:id
+		messages.GET("/advanced", messageHandler.ListMessagesAdvanced) // Must be before /:id
+		messages.GET("", messageHandler.ListMessages)
+		messages.POST("", messageHandler.CreateMessage)
+		messages.POST("/send", messageHandler.SendMessage)
+		messages.POST("/confirm-delivery", messageHandler.ConfirmMessageDelivery)
+		messages.GET("/:id", messageHandler.GetMessage)
+		messages.PUT("/:id", messageHandler.UpdateMessage)
+		messages.DELETE("/:id", messageHandler.DeleteMessage)
+	}
+
+	// Add chat routes (all protected) - NOTE: chatHandler will be nil initially, add when ready
+	if chatHandler != nil {
+		chats := router.Group("/api/v1/crm/chats")
+		chats.Use(authMiddleware.Authenticate())
+		chats.Use(rlsMiddleware.SetUserContext())
+		{
+			chats.POST("", chatHandler.CreateChat)
+			chats.GET("", chatHandler.ListChats)
+			chats.GET("/:id", chatHandler.GetChat)
+			chats.POST("/:id/participants", chatHandler.AddParticipant)
+			chats.DELETE("/:id/participants/:participant_id", chatHandler.RemoveParticipant)
+			chats.POST("/:id/archive", chatHandler.ArchiveChat)
+			chats.POST("/:id/unarchive", chatHandler.UnarchiveChat)
+			chats.POST("/:id/close", chatHandler.CloseChat)
+			chats.PATCH("/:id/subject", chatHandler.UpdateChatSubject)
+		}
+	}
+
+	// Add agent routes (all protected)
+	if agentHandler != nil {
+		agents := router.Group("/api/v1/crm/agents")
+		agents.Use(authMiddleware.Authenticate())
+		agents.Use(rlsMiddleware.SetUserContext())
+		{
+			agents.GET("/search", agentHandler.SearchAgents)         // Must be before /:id
+			agents.GET("/advanced", agentHandler.ListAgentsAdvanced) // Must be before /:id
+			agents.GET("", agentHandler.ListAgents)
+			agents.POST("", agentHandler.CreateAgent)
+			agents.GET("/:id", agentHandler.GetAgent)
+			agents.PUT("/:id", agentHandler.UpdateAgent)
+			agents.DELETE("/:id", agentHandler.DeleteAgent)
+			agents.GET("/:id/stats", agentHandler.GetAgentStats)
+		}
+	}
+
+	// Add note routes (all protected)
+	if noteHandler != nil {
+		notes := router.Group("/api/v1/crm/notes")
+		notes.Use(authMiddleware.Authenticate())
+		notes.Use(rlsMiddleware.SetUserContext())
+		{
+			notes.GET("/search", noteHandler.SearchNotes)       // Must be before /:id
+			notes.GET("/advanced", noteHandler.ListNotesAdvanced) // Must be before /:id
+		}
+	}
+
+	// WebSocket routes (real-time messaging)
+	// SECURITY: Autenticação obrigatória via token + rate limiting
+	if websocketHandler != nil && wsRateLimiter != nil {
+		ws := router.Group("/api/v1/ws")
+		ws.Use(wsRateLimiter.RateLimit(5, 1*time.Minute)) // Max 5 conexões por minuto
+		ws.Use(wsAuthMiddleware.Authenticate())
+		{
+			ws.GET("/messages", websocketHandler.HandleWebSocket)
+			ws.GET("/stats", websocketHandler.GetStats) // Stats protegidas
+		}
 	}
 
 	// Add automation discovery routes (all protected)

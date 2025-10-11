@@ -9,13 +9,13 @@ import (
 	"github.com/google/uuid"
 )
 
-// CreateNoteExecutor implementa a ação de criar nota
+// CreateNoteExecutor implements the create note action.
 type CreateNoteExecutor struct {
-	noteRepository note.NoteRepository
+	noteRepository note.Repository
 }
 
-// NewCreateNoteExecutor cria um novo executor de criação de notas
-func NewCreateNoteExecutor(noteRepository note.NoteRepository) *CreateNoteExecutor {
+// NewCreateNoteExecutor creates a new note creation executor.
+func NewCreateNoteExecutor(noteRepository note.Repository) *CreateNoteExecutor {
 	return &CreateNoteExecutor{
 		noteRepository: noteRepository,
 	}
@@ -66,42 +66,26 @@ func (e *CreateNoteExecutor) Execute(ctx context.Context, params pipeline.Action
 
 	entityID, _ := uuid.Parse(entityIDStr)
 
-	// Título opcional
-	title := "Automation Note"
-	if t, ok := params.Action.Params["title"].(string); ok && t != "" {
-		title = t
-	}
-
-	// TODO: Interpolar variáveis no content e title
-	// content = interpolateVariables(content, params.Variables)
-	// title = interpolateVariables(title, params.Variables)
+	// TODO: Get agentID from context - for now use system automation
+	automationAgentID := uuid.Nil
 
 	// Cria a nota usando o domain
 	var noteEntity *note.Note
 	var err error
 
 	switch entityType {
-	case "agent":
-		noteEntity, err = note.NewAgentNote(
-			params.TenantID,
-			entityID,
-			title,
-			content,
-		)
 	case "contact":
-		noteEntity, err = note.NewContactNote(
-			params.TenantID,
+		noteEntity, err = note.NewNote(
 			entityID,
-			title,
-			content,
-		)
-	case "session":
-		noteEntity, err = note.NewSessionNote(
 			params.TenantID,
-			entityID,
-			title,
+			automationAgentID,
+			note.AuthorTypeSystem,
+			"Automation",
 			content,
+			note.NoteTypeGeneral,
 		)
+	case "agent", "session":
+		return fmt.Errorf("agent and session notes not yet supported - contact notes only")
 	default:
 		return fmt.Errorf("unsupported entity_type: %s", entityType)
 	}
@@ -111,7 +95,7 @@ func (e *CreateNoteExecutor) Execute(ctx context.Context, params pipeline.Action
 	}
 
 	// Persiste a nota
-	if err := e.noteRepository.Save(noteEntity); err != nil {
+	if err := e.noteRepository.Save(ctx, noteEntity); err != nil {
 		return fmt.Errorf("failed to save note: %w", err)
 	}
 

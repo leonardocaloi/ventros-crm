@@ -8,6 +8,9 @@ import (
 
 	"github.com/caloi/ventros-crm/infrastructure/channels/waha"
 	messageapp "github.com/caloi/ventros-crm/internal/application/message"
+	domainchannel "github.com/caloi/ventros-crm/internal/domain/channel"
+	domainchat "github.com/caloi/ventros-crm/internal/domain/chat"
+	domaincontact "github.com/caloi/ventros-crm/internal/domain/contact"
 	domainmessage "github.com/caloi/ventros-crm/internal/domain/message"
 	"github.com/google/uuid"
 	amqp "github.com/rabbitmq/amqp091-go"
@@ -21,6 +24,9 @@ type WAHARawEventProcessor struct {
 	eventBus           *WAHARawEventBus
 	wahaMessageService *messageapp.WAHAMessageService
 	messageRepo        domainmessage.Repository
+	channelRepo        domainchannel.Repository
+	contactRepo        domaincontact.Repository
+	chatRepo           domainchat.Repository
 }
 
 // NewWAHARawEventProcessor cria um novo processor de eventos raw
@@ -29,12 +35,18 @@ func NewWAHARawEventProcessor(
 	eventBus *WAHARawEventBus,
 	wahaMessageService *messageapp.WAHAMessageService,
 	messageRepo domainmessage.Repository,
+	channelRepo domainchannel.Repository,
+	contactRepo domaincontact.Repository,
+	chatRepo domainchat.Repository,
 ) *WAHARawEventProcessor {
 	return &WAHARawEventProcessor{
 		logger:             logger,
 		eventBus:           eventBus,
 		wahaMessageService: wahaMessageService,
 		messageRepo:        messageRepo,
+		channelRepo:        channelRepo,
+		contactRepo:        contactRepo,
+		chatRepo:           chatRepo,
 	}
 }
 
@@ -137,6 +149,9 @@ func (p *WAHARawEventProcessor) routeEvent(ctx context.Context, rawEvent waha.WA
 	case "group.v2.join", "group.v2.leave", "group.v2.update", "group.v2.participants":
 		return p.processGroupEvent(ctx, rawEvent, wahaEvent)
 
+	case "session.status":
+		return p.processSessionStatusEvent(ctx, rawEvent, wahaEvent)
+
 	default:
 		return p.processUnknownEvent(ctx, rawEvent, wahaEvent)
 	}
@@ -174,6 +189,10 @@ func (p *WAHARawEventProcessor) processMessageEvent(ctx context.Context, rawEven
 		return p.publishToProcessedQueue(ctx, rawEvent, wahaEvent, "waha.events.message.parsed")
 	}
 
+	// ✅ EXTRAÇÃO DE IDENTIFICADORES DO WHATSAPP
+	// Após processar a mensagem com sucesso, extrai e salva os identificadores normalizados
+	p.extractAndSaveWhatsAppIdentifiers(ctx, rawEvent, messageEvent)
+
 	p.logger.Info("Message event processed successfully",
 		zap.String("raw_event_id", rawEvent.ID),
 		zap.String("message_id", messageEvent.Payload.ID),
@@ -204,7 +223,18 @@ func (p *WAHARawEventProcessor) convertToMessageEvent(rawEvent waha.WAHARawEvent
 	}, nil
 }
 
-// processMessageAckEvent processa ACKs de mensagem (atualizações de status)
+// processMessageAckEvent processa ACKs de mensagem (atualizações de status).
+//
+// Fluxo de camadas:
+// 1. Infrastructure (WAHA): Recebe valores -1 a 4 do WhatsApp
+// 2. Application (este processor): Adapta usando waha.WhatsAppAck
+// 3. Domain (message.Status): Usa valores agnósticos (queued, sent, delivered, read, failed)
+//
+// O WhatsApp envia eventos message.ack quando o status de entrega/leitura muda:
+// - ACK 1 (SERVER)  → Mensagem enviada ao servidor WhatsApp
+// - ACK 2 (DEVICE)  → Mensagem entregue ao dispositivo (✓✓)
+// - ACK 3 (READ)    → Mensagem lida pelo destinatário (✓✓ azul)
+// - ACK 4 (PLAYED)  → Mensagem de mídia reproduzida/visualizada
 func (p *WAHARawEventProcessor) processMessageAckEvent(ctx context.Context, rawEvent waha.WAHARawEvent, wahaEvent *waha.WAHAWebhookEvent) error {
 	// Converte payload para extrair informações do ACK
 	payloadBytes, err := json.Marshal(wahaEvent.Payload)
@@ -213,9 +243,10 @@ func (p *WAHARawEventProcessor) processMessageAckEvent(ctx context.Context, rawE
 	}
 
 	var ackPayload struct {
-		ID   string `json:"id"`   // ID da mensagem no WhatsApp
-		Ack  int    `json:"ack"`  // Status: 1=sent, 2=delivered, 3=read, 4=played
-		From string `json:"from"` // Remetente
+		ID      string `json:"id"`      // ID da mensagem no WhatsApp
+		Ack     int    `json:"ack"`     // Status: -1 a 4 (ver WhatsAppAck)
+		AckName string `json:"ackName"` // Nome do ACK: "ERROR", "PENDING", "SERVER", "DEVICE", "READ", "PLAYED"
+		From    string `json:"from"`    // Remetente
 	}
 
 	if err := json.Unmarshal(payloadBytes, &ackPayload); err != nil {
@@ -225,20 +256,32 @@ func (p *WAHARawEventProcessor) processMessageAckEvent(ctx context.Context, rawE
 		return nil // Não falha, apenas ignora ACK malformado
 	}
 
-	// Mapeia ACK do WhatsApp para status do sistema
-	var newStatus string
-	switch ackPayload.Ack {
-	case 1:
-		newStatus = "sent"
-	case 2:
-		newStatus = "delivered"
-	case 3:
-		newStatus = "read"
-	case 4:
-		newStatus = "played" // Para áudios
-	default:
-		p.logger.Debug("Unknown ACK status, skipping",
+	// Cria WhatsAppAck value object (adapter infrastructure → domain)
+	whatsappAck, err := waha.NewWhatsAppAck(ackPayload.Ack)
+	if err != nil {
+		p.logger.Warn("Invalid WhatsApp ACK value, skipping",
+			zap.Error(err),
 			zap.Int("ack", ackPayload.Ack),
+			zap.String("ack_name", ackPayload.AckName),
+			zap.String("message_id", ackPayload.ID))
+		return nil // Não falha, apenas ignora ACK inválido
+	}
+
+	// ACKs de erro e pending não atualizam mensagens existentes
+	if !whatsappAck.ShouldUpdateStatus() {
+		p.logger.Debug("ACK should not update status, skipping",
+			zap.String("ack", whatsappAck.String()),
+			zap.Int("ack_value", whatsappAck.Value()),
+			zap.String("message_id", ackPayload.ID))
+		return nil
+	}
+
+	// Converte ACK para Status do domínio
+	newStatus, err := whatsappAck.ToStatus()
+	if err != nil {
+		p.logger.Error("Failed to convert ACK to status",
+			zap.Error(err),
+			zap.String("ack", whatsappAck.String()),
 			zap.String("message_id", ackPayload.ID))
 		return nil
 	}
@@ -249,18 +292,21 @@ func (p *WAHARawEventProcessor) processMessageAckEvent(ctx context.Context, rawE
 		// Mensagem não encontrada - pode ser que ainda não foi processada
 		p.logger.Debug("Message not found for ACK, might be processed later",
 			zap.String("channel_message_id", ackPayload.ID),
-			zap.String("status", newStatus))
+			zap.String("ack", whatsappAck.String()),
+			zap.String("status", string(newStatus)))
 		return nil // Não falha, ACK é best-effort
 	}
 
 	// Atualiza status da mensagem usando métodos do domínio
 	switch newStatus {
-	case "delivered":
+	case domainmessage.StatusDelivered:
 		msg.MarkAsDelivered()
-	case "read", "played":
+	case domainmessage.StatusRead:
 		msg.MarkAsRead()
-	case "sent":
-		// Já está como sent por padrão, não precisa fazer nada
+	case domainmessage.StatusSent:
+		// Já está como sent por padrão, não precisa atualizar
+	case domainmessage.StatusFailed:
+		msg.MarkAsFailed()
 	}
 
 	// Salva mensagem atualizada
@@ -268,15 +314,18 @@ func (p *WAHARawEventProcessor) processMessageAckEvent(ctx context.Context, rawE
 		p.logger.Warn("Failed to save message status from ACK",
 			zap.Error(err),
 			zap.String("channel_message_id", ackPayload.ID),
-			zap.String("new_status", newStatus))
+			zap.String("new_status", string(newStatus)),
+			zap.String("ack", whatsappAck.String()))
 		return nil // Não falha, ACK é best-effort
 	}
 
 	p.logger.Info("Message status updated from ACK",
 		zap.String("message_id", msg.ID().String()),
 		zap.String("channel_message_id", ackPayload.ID),
-		zap.String("new_status", newStatus),
-		zap.Int("ack", ackPayload.Ack))
+		zap.String("new_status", string(newStatus)),
+		zap.String("ack", whatsappAck.String()),
+		zap.Int("ack_value", whatsappAck.Value()),
+		zap.String("ack_name", ackPayload.AckName))
 
 	return nil
 }
@@ -293,14 +342,43 @@ func (p *WAHARawEventProcessor) processCallEvent(ctx context.Context, rawEvent w
 }
 
 // processLabelEvent processa eventos de label/tag
+// Eventos suportados:
+// - label.upsert: cria/atualiza label no canal
+// - label.deleted: remove label do canal
+// - label.chat.added: adiciona label a um chat
+// - label.chat.deleted: remove label de um chat
 func (p *WAHARawEventProcessor) processLabelEvent(ctx context.Context, rawEvent waha.WAHARawEvent, wahaEvent *waha.WAHAWebhookEvent) error {
-	// TODO: Implementar processamento de labels
 	p.logger.Info("Label event received",
 		zap.String("raw_event_id", rawEvent.ID),
 		zap.String("event", wahaEvent.Event),
 		zap.String("session", wahaEvent.Session))
 
-	return p.publishToProcessedQueue(ctx, rawEvent, wahaEvent, "waha.events.label.parsed")
+	// Busca canal pelo session
+	ch, err := p.channelRepo.GetByExternalID(wahaEvent.Session)
+	if err != nil {
+		p.logger.Warn("Channel not found for label event",
+			zap.String("session", wahaEvent.Session),
+			zap.String("raw_event_id", rawEvent.ID),
+			zap.Error(err))
+		return nil // Não falha se canal não encontrado
+	}
+
+	// Processa baseado no tipo de evento
+	switch wahaEvent.Event {
+	case "label.upsert":
+		return p.processLabelUpsert(ctx, ch, wahaEvent)
+	case "label.deleted":
+		return p.processLabelDeleted(ctx, ch, wahaEvent)
+	case "label.chat.added":
+		return p.processLabelChatAdded(ctx, ch, wahaEvent)
+	case "label.chat.deleted":
+		return p.processLabelChatDeleted(ctx, ch, wahaEvent)
+	default:
+		p.logger.Warn("Unknown label event type",
+			zap.String("event", wahaEvent.Event),
+			zap.String("raw_event_id", rawEvent.ID))
+		return nil
+	}
 }
 
 // processGroupEvent processa eventos de grupo
@@ -312,6 +390,89 @@ func (p *WAHARawEventProcessor) processGroupEvent(ctx context.Context, rawEvent 
 		zap.String("session", wahaEvent.Session))
 
 	return p.publishToProcessedQueue(ctx, rawEvent, wahaEvent, "waha.events.group.parsed")
+}
+
+// processSessionStatusEvent processa eventos de status da sessão
+//
+// Eventos session.status são usados para atualizar automaticamente o status do canal:
+// - STARTING → "connecting"
+// - WORKING → "active"
+// - STOPPED → "inactive"
+// - FAILED → "error"
+func (p *WAHARawEventProcessor) processSessionStatusEvent(ctx context.Context, rawEvent waha.WAHARawEvent, wahaEvent *waha.WAHAWebhookEvent) error {
+	// Converte payload para extrair informações do status da sessão
+	payloadBytes, err := json.Marshal(wahaEvent.Payload)
+	if err != nil {
+		return fmt.Errorf("failed to marshal session status payload: %w", err)
+	}
+
+	var statusPayload struct {
+		Name   string `json:"name"`   // Nome da sessão
+		Status string `json:"status"` // STARTING, WORKING, STOPPED, FAILED
+	}
+
+	if err := json.Unmarshal(payloadBytes, &statusPayload); err != nil {
+		p.logger.Warn("Failed to unmarshal session status payload, skipping",
+			zap.Error(err),
+			zap.String("raw_event_id", rawEvent.ID))
+		return nil // Não falha, apenas ignora status malformado
+	}
+
+	// Busca canal pelo ExternalID (que é o nome da sessão WAHA)
+	ch, err := p.channelRepo.GetByExternalID(wahaEvent.Session)
+	if err != nil {
+		p.logger.Warn("Channel not found for session",
+			zap.String("session", wahaEvent.Session),
+			zap.String("raw_event_id", rawEvent.ID),
+			zap.Error(err))
+		return nil // Não falha se canal não encontrado (pode ser sessão de outro sistema)
+	}
+
+	// Mapeia status do WAHA para status do canal
+	var newStatus domainchannel.ChannelStatus
+	switch statusPayload.Status {
+	case "STARTING":
+		newStatus = domainchannel.StatusConnecting
+	case "WORKING":
+		newStatus = domainchannel.StatusActive
+		ch.Activate() // Usa método do domínio
+	case "STOPPED":
+		newStatus = domainchannel.StatusInactive
+		ch.Deactivate() // Usa método do domínio
+	case "FAILED":
+		newStatus = domainchannel.StatusError
+		ch.SetError("WAHA session failed")
+	default:
+		p.logger.Debug("Unknown WAHA session status, skipping",
+			zap.String("status", statusPayload.Status),
+			zap.String("session", wahaEvent.Session))
+		return nil
+	}
+
+	// Atualiza status da sessão WAHA no config
+	if ch.Config == nil {
+		ch.Config = make(map[string]interface{})
+	}
+	ch.Config["waha_session_status"] = statusPayload.Status
+
+	// Salva canal atualizado
+	if err := p.channelRepo.Update(ch); err != nil {
+		p.logger.Error("Failed to update channel status from session event",
+			zap.Error(err),
+			zap.String("channel_id", ch.ID.String()),
+			zap.String("session", wahaEvent.Session),
+			zap.String("waha_status", statusPayload.Status),
+			zap.String("new_status", string(newStatus)))
+		return fmt.Errorf("failed to update channel: %w", err)
+	}
+
+	p.logger.Info("Channel status updated from session.status event",
+		zap.String("channel_id", ch.ID.String()),
+		zap.String("session", wahaEvent.Session),
+		zap.String("waha_status", statusPayload.Status),
+		zap.String("channel_status", string(newStatus)))
+
+	return nil
 }
 
 // processUnknownEvent processa eventos desconhecidos
@@ -365,6 +526,263 @@ func (p *WAHARawEventProcessor) handleParseError(ctx context.Context, rawEvent w
 
 	// Retorna erro original para que seja tratado pelo RabbitMQ
 	return fmt.Errorf("parse error (%s): %w", errorType, err)
+}
+
+// extractAndSaveWhatsAppIdentifiers extrai e salva identificadores do WhatsApp como custom fields
+func (p *WAHARawEventProcessor) extractAndSaveWhatsAppIdentifiers(ctx context.Context, rawEvent waha.WAHARawEvent, messageEvent waha.WAHAMessageEvent) {
+	// 1. Extrai identificadores usando o IdentifierExtractor
+	extractor := waha.NewIdentifierExtractor(p.logger)
+	identifiers, err := extractor.ExtractFromMessageEvent(messageEvent)
+	if err != nil {
+		p.logger.Warn("Failed to extract WhatsApp identifiers",
+			zap.Error(err),
+			zap.String("raw_event_id", rawEvent.ID),
+			zap.String("from", messageEvent.Payload.From))
+		return // Não falha o processamento da mensagem, apenas não salva identifiers
+	}
+
+	// 2. Converte para custom fields
+	customFields := identifiers.ToCustomFields()
+	if len(customFields) == 0 {
+		p.logger.Debug("No custom fields to save",
+			zap.String("raw_event_id", rawEvent.ID))
+		return
+	}
+
+	// 3. Extrai telefone do contato para buscar
+	// Remove sufixos do WhatsApp para obter apenas o número
+	contactPhone := messageEvent.Payload.From
+	if normalizedPhone, err := domaincontact.NormalizeWhatsAppID(contactPhone); err == nil {
+		contactPhone = normalizedPhone
+	}
+
+	// 4. Busca canal para obter ProjectID
+	channel, err := p.channelRepo.GetByExternalID(messageEvent.Session)
+	if err != nil {
+		p.logger.Warn("Channel not found for WhatsApp identifiers",
+			zap.Error(err),
+			zap.String("session", messageEvent.Session))
+		return
+	}
+
+	// 5. Busca contato pelo telefone e project
+	contact, err := p.contactRepo.FindByPhone(ctx, channel.ProjectID, contactPhone)
+	if err != nil {
+		p.logger.Warn("Contact not found for WhatsApp identifiers",
+			zap.Error(err),
+			zap.String("phone", contactPhone),
+			zap.String("project_id", channel.ProjectID.String()))
+		return
+	}
+
+	// 6. Salva custom fields
+	if err := p.contactRepo.SaveCustomFields(ctx, contact.ID(), customFields); err != nil {
+		p.logger.Error("Failed to save WhatsApp identifiers as custom fields",
+			zap.Error(err),
+			zap.String("contact_id", contact.ID().String()),
+			zap.Any("custom_fields", customFields))
+		return
+	}
+
+	p.logger.Info("WhatsApp identifiers saved as custom fields",
+		zap.String("contact_id", contact.ID().String()),
+		zap.String("wid", identifiers.WID()),
+		zap.Bool("has_lid", identifiers.HasLID()),
+		zap.Bool("has_jid", identifiers.HasJID()),
+		zap.Int("fields_saved", len(customFields)))
+}
+
+// processLabelUpsert processa evento de criação/atualização de label
+func (p *WAHARawEventProcessor) processLabelUpsert(ctx context.Context, ch *domainchannel.Channel, wahaEvent *waha.WAHAWebhookEvent) error {
+	// Converte payload para label data
+	payloadBytes, err := json.Marshal(wahaEvent.Payload)
+	if err != nil {
+		p.logger.Warn("Failed to marshal label payload", zap.Error(err))
+		return nil
+	}
+
+	var labelPayload waha.WAHALabelPayload
+	if err := json.Unmarshal(payloadBytes, &labelPayload); err != nil {
+		p.logger.Warn("Failed to unmarshal label payload", zap.Error(err))
+		return nil
+	}
+
+	// Cria label do domínio
+	label, err := domainchannel.NewLabel(labelPayload.ID, labelPayload.Name, labelPayload.Color, labelPayload.ColorHex)
+	if err != nil {
+		p.logger.Warn("Invalid label data from WAHA",
+			zap.Error(err),
+			zap.String("label_id", labelPayload.ID),
+			zap.String("label_name", labelPayload.Name))
+		return nil
+	}
+
+	// Adiciona/atualiza label no canal
+	if err := ch.AddLabel(label); err != nil {
+		p.logger.Error("Failed to add label to channel",
+			zap.Error(err),
+			zap.String("channel_id", ch.ID.String()),
+			zap.String("label_id", label.ID))
+		return nil
+	}
+
+	// Salva channel atualizado
+	if err := p.channelRepo.Update(ch); err != nil {
+		p.logger.Error("Failed to update channel with new label",
+			zap.Error(err),
+			zap.String("channel_id", ch.ID.String()),
+			zap.String("label_id", label.ID))
+		return fmt.Errorf("failed to update channel: %w", err)
+	}
+
+	p.logger.Info("Label upserted successfully",
+		zap.String("channel_id", ch.ID.String()),
+		zap.String("label_id", label.ID),
+		zap.String("label_name", label.Name))
+
+	return nil
+}
+
+// processLabelDeleted processa evento de remoção de label
+func (p *WAHARawEventProcessor) processLabelDeleted(ctx context.Context, ch *domainchannel.Channel, wahaEvent *waha.WAHAWebhookEvent) error {
+	// Converte payload para label data
+	payloadBytes, err := json.Marshal(wahaEvent.Payload)
+	if err != nil {
+		p.logger.Warn("Failed to marshal label payload", zap.Error(err))
+		return nil
+	}
+
+	var labelPayload waha.WAHALabelPayload
+	if err := json.Unmarshal(payloadBytes, &labelPayload); err != nil {
+		p.logger.Warn("Failed to unmarshal label payload", zap.Error(err))
+		return nil
+	}
+
+	// Remove label do canal
+	if err := ch.RemoveLabel(labelPayload.ID); err != nil {
+		p.logger.Warn("Failed to remove label from channel",
+			zap.Error(err),
+			zap.String("channel_id", ch.ID.String()),
+			zap.String("label_id", labelPayload.ID))
+		return nil // Não falha se label não existir
+	}
+
+	// Salva channel atualizado
+	if err := p.channelRepo.Update(ch); err != nil {
+		p.logger.Error("Failed to update channel after deleting label",
+			zap.Error(err),
+			zap.String("channel_id", ch.ID.String()),
+			zap.String("label_id", labelPayload.ID))
+		return fmt.Errorf("failed to update channel: %w", err)
+	}
+
+	p.logger.Info("Label deleted successfully",
+		zap.String("channel_id", ch.ID.String()),
+		zap.String("label_id", labelPayload.ID))
+
+	return nil
+}
+
+// processLabelChatAdded processa evento de label adicionada a um chat
+func (p *WAHARawEventProcessor) processLabelChatAdded(ctx context.Context, ch *domainchannel.Channel, wahaEvent *waha.WAHAWebhookEvent) error {
+	// Converte payload
+	payloadBytes, err := json.Marshal(wahaEvent.Payload)
+	if err != nil {
+		p.logger.Warn("Failed to marshal label chat payload", zap.Error(err))
+		return nil
+	}
+
+	var chatPayload waha.WAHALabelChatPayload
+	if err := json.Unmarshal(payloadBytes, &chatPayload); err != nil {
+		p.logger.Warn("Failed to unmarshal label chat payload", zap.Error(err))
+		return nil
+	}
+
+	// Busca chat pelo external ID (WhatsApp chat ID)
+	chat, err := p.chatRepo.FindByExternalID(ctx, chatPayload.ChatID)
+	if err != nil {
+		p.logger.Debug("Chat not found for label association",
+			zap.String("chat_id", chatPayload.ChatID),
+			zap.String("label_id", chatPayload.LabelID),
+			zap.Error(err))
+		return nil // Chat pode não existir ainda
+	}
+
+	// Adiciona label ao chat
+	if err := chat.AddLabel(chatPayload.LabelID); err != nil {
+		p.logger.Warn("Failed to add label to chat",
+			zap.Error(err),
+			zap.String("chat_id", chat.ID().String()),
+			zap.String("label_id", chatPayload.LabelID))
+		return nil
+	}
+
+	// Salva chat atualizado (Update para chat existente)
+	if err := p.chatRepo.Update(ctx, chat); err != nil {
+		p.logger.Error("Failed to update chat with label",
+			zap.Error(err),
+			zap.String("chat_id", chat.ID().String()),
+			zap.String("label_id", chatPayload.LabelID))
+		return fmt.Errorf("failed to update chat: %w", err)
+	}
+
+	p.logger.Info("Label added to chat successfully",
+		zap.String("chat_id", chat.ID().String()),
+		zap.String("external_chat_id", chatPayload.ChatID),
+		zap.String("label_id", chatPayload.LabelID))
+
+	return nil
+}
+
+// processLabelChatDeleted processa evento de label removida de um chat
+func (p *WAHARawEventProcessor) processLabelChatDeleted(ctx context.Context, ch *domainchannel.Channel, wahaEvent *waha.WAHAWebhookEvent) error {
+	// Converte payload
+	payloadBytes, err := json.Marshal(wahaEvent.Payload)
+	if err != nil {
+		p.logger.Warn("Failed to marshal label chat payload", zap.Error(err))
+		return nil
+	}
+
+	var chatPayload waha.WAHALabelChatPayload
+	if err := json.Unmarshal(payloadBytes, &chatPayload); err != nil {
+		p.logger.Warn("Failed to unmarshal label chat payload", zap.Error(err))
+		return nil
+	}
+
+	// Busca chat pelo external ID
+	chat, err := p.chatRepo.FindByExternalID(ctx, chatPayload.ChatID)
+	if err != nil {
+		p.logger.Debug("Chat not found for label removal",
+			zap.String("chat_id", chatPayload.ChatID),
+			zap.String("label_id", chatPayload.LabelID),
+			zap.Error(err))
+		return nil // Chat pode não existir
+	}
+
+	// Remove label do chat
+	if err := chat.RemoveLabel(chatPayload.LabelID); err != nil {
+		p.logger.Warn("Failed to remove label from chat",
+			zap.Error(err),
+			zap.String("chat_id", chat.ID().String()),
+			zap.String("label_id", chatPayload.LabelID))
+		return nil // Não falha se label não existir
+	}
+
+	// Salva chat atualizado (Update para chat existente)
+	if err := p.chatRepo.Update(ctx, chat); err != nil {
+		p.logger.Error("Failed to update chat after removing label",
+			zap.Error(err),
+			zap.String("chat_id", chat.ID().String()),
+			zap.String("label_id", chatPayload.LabelID))
+		return fmt.Errorf("failed to update chat: %w", err)
+	}
+
+	p.logger.Info("Label removed from chat successfully",
+		zap.String("chat_id", chat.ID().String()),
+		zap.String("external_chat_id", chatPayload.ChatID),
+		zap.String("label_id", chatPayload.LabelID))
+
+	return nil
 }
 
 // Start inicia o consumer de eventos raw

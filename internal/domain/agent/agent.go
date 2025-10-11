@@ -11,17 +11,15 @@ var (
 	ErrAgentNotFound = errors.New("agent not found")
 )
 
-// AgentType define os tipos de agentes
 type AgentType string
 
 const (
-	AgentTypeHuman   AgentType = "human"   // Agente humano (atendente/admin)
-	AgentTypeAI      AgentType = "ai"      // Agente de IA (externo via provider)
-	AgentTypeBot     AgentType = "bot"     // Bot/automação (interno)
-	AgentTypeChannel AgentType = "channel" // Canal/dispositivo
+	AgentTypeHuman   AgentType = "human"
+	AgentTypeAI      AgentType = "ai"
+	AgentTypeBot     AgentType = "bot"
+	AgentTypeChannel AgentType = "channel"
 )
 
-// AgentStatus define os status possíveis
 type AgentStatus string
 
 const (
@@ -31,12 +29,10 @@ const (
 	AgentStatusOffline   AgentStatus = "offline"
 )
 
-// Agent é o Aggregate Root para agentes do sistema.
-// Representa entidades que podem interagir com contatos: humanos, IAs, bots ou canais.
 type Agent struct {
 	id          uuid.UUID
 	projectID   uuid.UUID
-	userID      *uuid.UUID // Null para agentes não-humanos
+	userID      *uuid.UUID
 	tenantID    string
 	name        string
 	email       string
@@ -44,11 +40,10 @@ type Agent struct {
 	status      AgentStatus
 	role        Role
 	active      bool
-	config      map[string]interface{} // Configurações específicas (ex: AI provider, model)
+	config      map[string]interface{}
 	permissions map[string]bool
 	settings    map[string]interface{}
 
-	// Métricas
 	sessionsHandled   int
 	averageResponseMs int
 	lastActivityAt    *time.Time
@@ -57,17 +52,15 @@ type Agent struct {
 	updatedAt   time.Time
 	lastLoginAt *time.Time
 
-	// Domain Events
 	events []DomainEvent
 }
 
-// NewAgent cria um novo agente (factory method).
 func NewAgent(
 	projectID uuid.UUID,
 	tenantID string,
 	name string,
 	agentType AgentType,
-	userID *uuid.UUID, // Obrigatório para human, null para outros
+	userID *uuid.UUID,
 ) (*Agent, error) {
 	if projectID == uuid.Nil {
 		return nil, errors.New("projectID cannot be nil")
@@ -79,10 +72,9 @@ func NewAgent(
 		return nil, errors.New("name cannot be empty")
 	}
 	if agentType == "" {
-		agentType = AgentTypeHuman // Padrão
+		agentType = AgentTypeHuman
 	}
 
-	// Validação: agente humano precisa de userID
 	if agentType == AgentTypeHuman && (userID == nil || *userID == uuid.Nil) {
 		return nil, errors.New("human agent requires a valid userID")
 	}
@@ -96,7 +88,7 @@ func NewAgent(
 		name:              name,
 		agentType:         agentType,
 		status:            AgentStatusOffline,
-		role:              RoleHumanAgent, // Padrão para humanos
+		role:              RoleHumanAgent,
 		active:            true,
 		config:            make(map[string]interface{}),
 		permissions:       make(map[string]bool),
@@ -113,7 +105,6 @@ func NewAgent(
 	return agent, nil
 }
 
-// ReconstructAgent reconstrói um agente a partir de dados persistidos.
 func ReconstructAgent(
 	id uuid.UUID,
 	tenantID string,
@@ -143,7 +134,6 @@ func ReconstructAgent(
 	}
 }
 
-// UpdateProfile atualiza informações básicas do agente.
 func (a *Agent) UpdateProfile(name, email string) error {
 	if name == "" {
 		return errors.New("name cannot be empty")
@@ -170,7 +160,6 @@ func (a *Agent) UpdateProfile(name, email string) error {
 	return nil
 }
 
-// Activate ativa o agente.
 func (a *Agent) Activate() error {
 	if a.active {
 		return errors.New("agent is already active")
@@ -184,7 +173,6 @@ func (a *Agent) Activate() error {
 	return nil
 }
 
-// Deactivate desativa o agente.
 func (a *Agent) Deactivate() error {
 	if !a.active {
 		return errors.New("agent is already inactive")
@@ -198,7 +186,6 @@ func (a *Agent) Deactivate() error {
 	return nil
 }
 
-// RecordLogin registra o último login do agente.
 func (a *Agent) RecordLogin() {
 	now := time.Now()
 	a.lastLoginAt = &now
@@ -207,14 +194,13 @@ func (a *Agent) RecordLogin() {
 	a.addEvent(NewAgentLoggedInEvent(a.id))
 }
 
-// GrantPermission concede uma permissão ao agente.
 func (a *Agent) GrantPermission(permission string) error {
 	if permission == "" {
 		return errors.New("permission cannot be empty")
 	}
 
 	if a.permissions[permission] {
-		return nil // já tem a permissão
+		return nil
 	}
 
 	a.permissions[permission] = true
@@ -225,14 +211,13 @@ func (a *Agent) GrantPermission(permission string) error {
 	return nil
 }
 
-// RevokePermission revoga uma permissão do agente.
 func (a *Agent) RevokePermission(permission string) error {
 	if permission == "" {
 		return errors.New("permission cannot be empty")
 	}
 
 	if !a.permissions[permission] {
-		return nil // já não tem a permissão
+		return nil
 	}
 
 	delete(a.permissions, permission)
@@ -243,18 +228,15 @@ func (a *Agent) RevokePermission(permission string) error {
 	return nil
 }
 
-// HasPermission verifica se o agente tem uma permissão.
 func (a *Agent) HasPermission(permission string) bool {
 	return a.permissions[permission]
 }
 
-// UpdateSettings atualiza configurações do agente.
 func (a *Agent) UpdateSettings(settings map[string]interface{}) {
 	a.settings = settings
 	a.updatedAt = time.Now()
 }
 
-// SetStatus atualiza o status do agente
 func (a *Agent) SetStatus(status AgentStatus) {
 	if a.status != status {
 		a.status = status
@@ -263,17 +245,14 @@ func (a *Agent) SetStatus(status AgentStatus) {
 	}
 }
 
-// SetConfig atualiza configurações específicas do agente (ex: AI provider)
 func (a *Agent) SetConfig(config map[string]interface{}) {
 	a.config = config
 	a.updatedAt = time.Now()
 }
 
-// RecordSessionHandled registra que o agente atendeu uma sessão
 func (a *Agent) RecordSessionHandled(responseTimeMs int) {
 	a.sessionsHandled++
 
-	// Calcula média móvel do tempo de resposta
 	if a.averageResponseMs == 0 {
 		a.averageResponseMs = responseTimeMs
 	} else {
@@ -285,7 +264,6 @@ func (a *Agent) RecordSessionHandled(responseTimeMs int) {
 	a.updatedAt = now
 }
 
-// Getters
 func (a *Agent) ID() uuid.UUID                    { return a.id }
 func (a *Agent) ProjectID() uuid.UUID             { return a.projectID }
 func (a *Agent) UserID() *uuid.UUID               { return a.userID }
@@ -306,7 +284,6 @@ func (a *Agent) CreatedAt() time.Time             { return a.createdAt }
 func (a *Agent) UpdatedAt() time.Time             { return a.updatedAt }
 func (a *Agent) LastLoginAt() *time.Time          { return a.lastLoginAt }
 
-// Domain Events
 func (a *Agent) DomainEvents() []DomainEvent {
 	return a.events
 }

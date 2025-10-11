@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/caloi/ventros-crm/infrastructure/persistence/entities"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -35,254 +34,31 @@ func NewDatabase(config DatabaseConfig) (*gorm.DB, error) {
 	return db, nil
 }
 
-// fixSchemaIncompatibilities detecta e corrige automaticamente incompatibilidades de schema
-func fixSchemaIncompatibilities(db *gorm.DB) error {
-	fmt.Println("🔧 Starting fixSchemaIncompatibilities...")
-	log.Println("🔧 Starting fixSchemaIncompatibilities...")
-
-	type columnInfo struct {
-		TableName  string `gorm:"column:table_name"`
-		ColumnName string `gorm:"column:column_name"`
-		DataType   string `gorm:"column:data_type"`
-	}
-
-	// Mapeamento de conversões conhecidas: de tipo -> para tipo
-	typeConversions := map[string]map[string]string{
-		"webhook_subscriptions.events": {
-			"jsonb": "text[]",
-		},
-	}
-
-	// Buscar todas as colunas que podem precisar de conversão
-	var columns []columnInfo
-	result := db.Raw(`
-		SELECT table_name, column_name, data_type 
-		FROM information_schema.columns 
-		WHERE table_schema = 'public'
-		AND table_name IN ('webhook_subscriptions')
-	`).Scan(&columns)
-
-	if result.Error != nil {
-		log.Printf("⚠️  Warning: Failed to query columns: %v", result.Error)
-		return result.Error
-	}
-
-	log.Printf("🔍 Found %d columns to check for conversions", len(columns))
-
-	// Se não encontrou nada, tentar com current_schema
-	if len(columns) == 0 {
-		log.Println("🔍 No columns found in 'public' schema, trying with current_schema()...")
-		result = db.Raw(`
-			SELECT table_name, column_name, data_type 
-			FROM information_schema.columns 
-			WHERE table_schema = current_schema()
-			AND table_name IN ('webhook_subscriptions')
-		`).Scan(&columns)
-		log.Printf("🔍 Found %d columns with current_schema()", len(columns))
-	}
-
-	// Aplicar conversões necessárias
-	for _, col := range columns {
-		key := col.TableName + "." + col.ColumnName
-		log.Printf("🔍 Checking column: %s (type: %s)", key, col.DataType)
-
-		if conversions, exists := typeConversions[key]; exists {
-			if targetType, needsConversion := conversions[col.DataType]; needsConversion {
-				log.Printf("🔄 Converting %s.%s from %s to %s...", col.TableName, col.ColumnName, col.DataType, targetType)
-
-				var conversionSQL string
-				// Definir SQL de conversão baseado nos tipos
-				if col.DataType == "jsonb" && targetType == "text[]" {
-					// PostgreSQL não permite subqueries no USING, então usamos uma abordagem diferente
-					// Primeiro, criamos uma coluna temporária, depois copiamos os dados, e finalmente renomeamos
-					conversionSQL = fmt.Sprintf(`
-						DO $$ 
-						BEGIN
-							-- Adicionar coluna temporária
-							ALTER TABLE %s ADD COLUMN IF NOT EXISTS %s_temp text[];
-							
-							-- Copiar dados convertidos
-							UPDATE %s SET %s_temp = CASE 
-								WHEN jsonb_typeof(%s) = 'array' THEN 
-									(SELECT array_agg(value::text) FROM jsonb_array_elements_text(%s) AS value)
-								ELSE 
-									ARRAY[]::text[]
-							END;
-							
-							-- Remover coluna antiga
-							ALTER TABLE %s DROP COLUMN IF EXISTS %s;
-							
-							-- Renomear coluna temporária
-							ALTER TABLE %s RENAME COLUMN %s_temp TO %s;
-						END $$;
-					`, col.TableName, col.ColumnName,
-						col.TableName, col.ColumnName, col.ColumnName, col.ColumnName,
-						col.TableName, col.ColumnName,
-						col.TableName, col.ColumnName, col.ColumnName)
-				} else {
-					// Conversão genérica
-					conversionSQL = fmt.Sprintf(
-						"ALTER TABLE %s ALTER COLUMN %s TYPE %s USING %s::%s",
-						col.TableName, col.ColumnName, targetType, col.ColumnName, targetType,
-					)
-				}
-
-				if err := db.Exec(conversionSQL).Error; err != nil {
-					log.Printf("⚠️  Warning: Failed to convert %s.%s: %v", col.TableName, col.ColumnName, err)
-				} else {
-					log.Printf("✅ Successfully converted %s.%s to %s", col.TableName, col.ColumnName, targetType)
-				}
-			}
-		}
-	}
-
-	return nil
-}
-
-// AutoMigrate runs database migrations for all entities
-func AutoMigrate(db *gorm.DB) error {
-	fmt.Println("DEBUG: AutoMigrate function called")
-	log.Println("🔄 Running GORM auto-migrations...")
-
-	// Pré-migração: Corrigir incompatibilidades de tipos automaticamente
-	fmt.Println("DEBUG: About to call fixSchemaIncompatibilities")
-	log.Println("🔄 Pre-migration: Fixing schema incompatibilities...")
-	if err := fixSchemaIncompatibilities(db); err != nil {
-		log.Printf("⚠️  Warning: Some schema fixes failed: %v", err)
-	}
-	fmt.Println("DEBUG: fixSchemaIncompatibilities completed")
-
-	preMigrationUpdates := []string{
-		// Converter webhook_subscriptions.events de jsonb para text[] PRIMEIRO
-		`DO $$ 
-		BEGIN
-			IF EXISTS (
-				SELECT 1 FROM information_schema.columns 
-				WHERE table_name = 'webhook_subscriptions' 
-				AND column_name = 'events' 
-				AND data_type = 'jsonb'
-			) THEN
-				ALTER TABLE webhook_subscriptions 
-				ALTER COLUMN events TYPE text[] 
-				USING CASE 
-					WHEN jsonb_typeof(events) = 'array' THEN 
-						ARRAY(SELECT jsonb_array_elements_text(events))
-					ELSE 
-						ARRAY[]::text[] 
-				END;
-			END IF;
-		END $$;`,
-		// Adicionar password_hash aos usuários existentes
-		`DO $$ 
-		BEGIN
-			IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'password_hash' IS NULL) THEN
-				-- Adicionar coluna como nullable primeiro
-				ALTER TABLE users ADD COLUMN IF NOT EXISTS password_hash text;
-				-- Atualizar usuários sem password_hash (hash de 'changeme123')
-				UPDATE users SET password_hash = '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy' WHERE password_hash IS NULL;
-			END IF;
-		END $$;`,
-		// Atualizar messages.content_type para ter valor padrão
-		"UPDATE messages SET content_type = 'text' WHERE content_type IS NULL OR content_type = ''",
-		// Atualizar channel_types.provider para ter valor padrão
-		"UPDATE channel_types SET provider = 'unknown' WHERE provider IS NULL OR provider = ''",
-		// Renomear tabela customers para users
-		"ALTER TABLE IF EXISTS customers RENAME TO users",
-		// Renomear coluna customer_id para user_id em projects
-		"ALTER TABLE IF EXISTS projects RENAME COLUMN customer_id TO user_id",
-		// Renomear coluna customer_id para user_id em messages
-		"ALTER TABLE IF EXISTS messages RENAME COLUMN customer_id TO user_id",
-		// Drop old foreign key constraint if exists
-		"ALTER TABLE IF EXISTS projects DROP CONSTRAINT IF EXISTS projects_customers_projects",
-		"ALTER TABLE IF EXISTS projects DROP CONSTRAINT IF EXISTS fk_projects_customer",
-	}
-
-	for _, sql := range preMigrationUpdates {
-		if err := db.Exec(sql).Error; err != nil {
-			log.Printf("⚠️  Warning: Pre-migration update failed (may be expected): %v", err)
-			// Continuar mesmo se falhar (pode ser que a coluna não exista ainda)
-		}
-	}
-
-	// Executar AutoMigrate
-	err := db.AutoMigrate(
-		// Core entities
-		&entities.UserEntity{},
-		&entities.UserAPIKeyEntity{}, // ← ADICIONADO
-		&entities.ProjectEntity{},
-		&entities.BillingAccountEntity{}, // ← ADICIONADO
-		&entities.ChannelEntity{},        // ← ADICIONADO
-		&entities.ChannelTypeEntity{},
-
-		// Contact & Communication
-		&entities.ContactEntity{},
-		&entities.SessionEntity{},
-		&entities.MessageEntity{},
-		&entities.ContactEventEntity{},
-		&entities.NoteEntity{},         // ← ADICIONADO
-		&entities.AIProcessingEntity{}, // ← ADICIONADO
-
-		// Agents
-		&entities.AgentEntity{},
-		&entities.AgentSessionEntity{},
-
-		// Webhooks
-		&entities.WebhookSubscriptionEntity{},
-
-		// Pipelines
-		&entities.PipelineEntity{},
-		&entities.PipelineStatusEntity{},
-		&entities.ContactPipelineStatusEntity{},
-
-		// Custom Fields
-		&entities.ContactCustomFieldEntity{},
-		&entities.SessionCustomFieldEntity{},
-
-		// Contact Lists
-		&entities.ContactListEntity{},
-		&entities.ContactListFilterRuleEntity{},
-		&entities.ContactListMemberEntity{},
-
-		// Event Logs
-		&entities.DomainEventLogEntity{},
-
-		// Outbox Pattern (Transactional Outbox + Idempotency)
-		&entities.OutboxEventEntity{},    // ← ADICIONADO
-		&entities.ProcessedEventEntity{}, // ← ADICIONADO
-
-		// Tracking (Attribution)
-		&entities.TrackingEntity{},           // ← ADICIONADO
-		&entities.TrackingEnrichmentEntity{}, // ← ADICIONADO
-	)
-
-	if err != nil {
-		return fmt.Errorf("failed to run migrations: %w", err)
-	}
-
-	// 🎯 Otimizações pós-migração (índices customizados)
-	log.Println("🔄 Applying post-migration optimizations...")
-	postMigrationOptimizations := []string{
-		// Otimiza índice do channel_message_id para deduplicação e ACKs
-		`DROP INDEX IF EXISTS idx_messages_channel_message_id`,
-		`CREATE INDEX IF NOT EXISTS idx_messages_channel_message_id_lookup 
-		 ON messages(channel_message_id) 
-		 WHERE channel_message_id IS NOT NULL`,
-		`CREATE INDEX IF NOT EXISTS idx_messages_channel_msg_status 
-		 ON messages(channel_message_id, status) 
-		 WHERE channel_message_id IS NOT NULL`,
-	}
-
-	for _, sql := range postMigrationOptimizations {
-		if err := db.Exec(sql).Error; err != nil {
-			log.Printf("⚠️  Warning: Post-migration optimization failed: %v", err)
-			// Continua mesmo se falhar (índice pode já existir)
-		}
-	}
-	log.Println("✅ Post-migration optimizations completed")
-
-	log.Println("✅ GORM migrations completed successfully!")
-	return nil
-}
+// ⚠️ DEPRECATED: AutoMigrate function REMOVED
+//
+// This project uses 100% SQL migrations (NO GORM AutoMigrate).
+// All schema changes must be in SQL migration files located at:
+// infrastructure/database/migrations/*.sql
+//
+// Migration files follow the pattern:
+// - 000001_initial_schema.up.sql    (create tables/indexes)
+// - 000001_initial_schema.down.sql  (drop tables/indexes)
+//
+// To apply migrations, use:
+// - Atlas CLI: atlas migrate apply --url "postgres://..."
+// - OR any other migration tool that supports SQL files
+//
+// The AutoMigrate function and related schema fixes have been removed because:
+// 1. GORM AutoMigrate is not reliable for production (can't handle complex migrations)
+// 2. SQL migrations provide full control over schema changes
+// 3. Migration rollback (.down.sql files) is critical for production safety
+// 4. SQL migrations are version-controlled and reviewable
+//
+// All previous schema fixes, pre-migration updates, and post-migration optimizations
+// have been moved to proper SQL migration files.
+//
+// For local development, ensure migrations are applied before starting the API:
+//   atlas migrate apply --url "postgres://localhost:5432/ventros_crm?sslmode=disable"
 
 // CreateIndexes creates additional database indexes for performance
 func CreateIndexes(db *gorm.DB) error {

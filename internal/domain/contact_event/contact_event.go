@@ -7,49 +7,39 @@ import (
 	"github.com/google/uuid"
 )
 
-// ContactEvent é o Aggregate Root para eventos de contato em tempo real.
-// Esses eventos são visíveis para clientes e podem ser transmitidos via streaming.
 type ContactEvent struct {
-	// Identidade
 	id        uuid.UUID
 	contactID uuid.UUID
 	sessionID *uuid.UUID
 	tenantID  string
 
-	// Detalhes do evento
 	eventType string
 	category  Category
 	priority  Priority
 
-	// Conteúdo
 	title       *string
 	description *string
 	payload     map[string]interface{}
 	metadata    map[string]interface{}
 
-	// Origem e rastreamento
 	source            Source
-	triggeredBy       *uuid.UUID // Agent ID
+	triggeredBy       *uuid.UUID
 	integrationSource *string
 
-	// Entrega em tempo real
 	isRealtime  bool
 	delivered   bool
 	deliveredAt *time.Time
 	read        bool
 	readAt      *time.Time
 
-	// Visibilidade
 	visibleToClient bool
 	visibleToAgent  bool
 	expiresAt       *time.Time
 
-	// Timestamps
 	occurredAt time.Time
 	createdAt  time.Time
 }
 
-// NewContactEvent cria um novo evento de contato.
 func NewContactEvent(
 	contactID uuid.UUID,
 	tenantID string,
@@ -58,7 +48,6 @@ func NewContactEvent(
 	priority Priority,
 	source Source,
 ) (*ContactEvent, error) {
-	// Validações
 	if contactID == uuid.Nil {
 		return nil, errors.New("contactID cannot be nil")
 	}
@@ -99,7 +88,6 @@ func NewContactEvent(
 	}, nil
 }
 
-// ReconstructContactEvent reconstrói um ContactEvent a partir de dados persistidos.
 func ReconstructContactEvent(
 	id uuid.UUID,
 	contactID uuid.UUID,
@@ -161,7 +149,6 @@ func ReconstructContactEvent(
 	}
 }
 
-// AttachToSession associa o evento a uma sessão.
 func (e *ContactEvent) AttachToSession(sessionID uuid.UUID) error {
 	if sessionID == uuid.Nil {
 		return errors.New("sessionID cannot be nil")
@@ -170,27 +157,22 @@ func (e *ContactEvent) AttachToSession(sessionID uuid.UUID) error {
 	return nil
 }
 
-// SetTitle define o título do evento.
 func (e *ContactEvent) SetTitle(title string) {
 	e.title = &title
 }
 
-// SetDescription define a descrição do evento.
 func (e *ContactEvent) SetDescription(description string) {
 	e.description = &description
 }
 
-// AddPayloadField adiciona um campo ao payload.
 func (e *ContactEvent) AddPayloadField(key string, value interface{}) {
 	e.payload[key] = value
 }
 
-// AddMetadataField adiciona um campo ao metadata.
 func (e *ContactEvent) AddMetadataField(key string, value interface{}) {
 	e.metadata[key] = value
 }
 
-// SetTriggeredBy define o agente que disparou o evento.
 func (e *ContactEvent) SetTriggeredBy(agentID uuid.UUID) error {
 	if agentID == uuid.Nil {
 		return errors.New("agentID cannot be nil")
@@ -199,12 +181,10 @@ func (e *ContactEvent) SetTriggeredBy(agentID uuid.UUID) error {
 	return nil
 }
 
-// SetIntegrationSource define a fonte de integração.
 func (e *ContactEvent) SetIntegrationSource(source string) {
 	e.integrationSource = &source
 }
 
-// MarkAsDelivered marca o evento como entregue.
 func (e *ContactEvent) MarkAsDelivered() {
 	if !e.delivered {
 		now := time.Now()
@@ -213,7 +193,6 @@ func (e *ContactEvent) MarkAsDelivered() {
 	}
 }
 
-// MarkAsRead marca o evento como lido.
 func (e *ContactEvent) MarkAsRead() {
 	if !e.read {
 		now := time.Now()
@@ -222,18 +201,15 @@ func (e *ContactEvent) MarkAsRead() {
 	}
 }
 
-// SetRealtimeDelivery define se o evento deve ser entregue em tempo real.
 func (e *ContactEvent) SetRealtimeDelivery(enabled bool) {
 	e.isRealtime = enabled
 }
 
-// SetVisibility define a visibilidade do evento.
 func (e *ContactEvent) SetVisibility(visibleToClient, visibleToAgent bool) {
 	e.visibleToClient = visibleToClient
 	e.visibleToAgent = visibleToAgent
 }
 
-// SetExpiresAt define quando o evento expira.
 func (e *ContactEvent) SetExpiresAt(expiresAt time.Time) error {
 	if expiresAt.Before(time.Now()) {
 		return errors.New("expiresAt cannot be in the past")
@@ -242,7 +218,6 @@ func (e *ContactEvent) SetExpiresAt(expiresAt time.Time) error {
 	return nil
 }
 
-// IsExpired verifica se o evento expirou.
 func (e *ContactEvent) IsExpired() bool {
 	if e.expiresAt == nil {
 		return false
@@ -250,47 +225,37 @@ func (e *ContactEvent) IsExpired() bool {
 	return time.Now().After(*e.expiresAt)
 }
 
-// IsDelivered verifica se o evento foi entregue.
 func (e *ContactEvent) IsDelivered() bool {
 	return e.delivered
 }
 
-// IsRead verifica se o evento foi lido.
 func (e *ContactEvent) IsRead() bool {
 	return e.read
 }
 
-// ShouldBeDeliveredInRealtime verifica se deve ser entregue em tempo real.
 func (e *ContactEvent) ShouldBeDeliveredInRealtime() bool {
 	return e.isRealtime && !e.delivered && !e.IsExpired()
 }
 
-// IsVisibleToClient verifica se é visível para o cliente.
 func (e *ContactEvent) IsVisibleToClient() bool {
 	return e.visibleToClient && !e.IsExpired()
 }
 
-// IsVisibleToAgent verifica se é visível para o agente.
 func (e *ContactEvent) IsVisibleToAgent() bool {
 	return e.visibleToAgent && !e.IsExpired()
 }
 
-// HasSession verifica se o evento está associado a uma sessão.
 func (e *ContactEvent) HasSession() bool {
 	return e.sessionID != nil
 }
 
-// IsHighPriority verifica se é alta prioridade.
 func (e *ContactEvent) IsHighPriority() bool {
 	return e.priority == PriorityHigh || e.priority == PriorityUrgent
 }
 
-// IsSystemGenerated verifica se foi gerado pelo sistema.
 func (e *ContactEvent) IsSystemGenerated() bool {
 	return e.source == SourceSystem
 }
-
-// Getters
 
 func (e *ContactEvent) ID() uuid.UUID              { return e.id }
 func (e *ContactEvent) ContactID() uuid.UUID       { return e.contactID }
@@ -310,7 +275,6 @@ func (e *ContactEvent) ExpiresAt() *time.Time      { return e.expiresAt }
 func (e *ContactEvent) OccurredAt() time.Time      { return e.occurredAt }
 func (e *ContactEvent) CreatedAt() time.Time       { return e.createdAt }
 
-// Payload retorna uma cópia do payload.
 func (e *ContactEvent) Payload() map[string]interface{} {
 	copy := make(map[string]interface{})
 	for k, v := range e.payload {
@@ -319,7 +283,6 @@ func (e *ContactEvent) Payload() map[string]interface{} {
 	return copy
 }
 
-// Metadata retorna uma cópia do metadata.
 func (e *ContactEvent) Metadata() map[string]interface{} {
 	copy := make(map[string]interface{})
 	for k, v := range e.metadata {

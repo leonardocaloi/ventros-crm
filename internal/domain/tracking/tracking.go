@@ -13,21 +13,19 @@ var (
 	ErrInvalidSource    = errors.New("invalid tracking source")
 )
 
-// Source representa as fontes de tracking suportadas
 type Source string
 
 const (
-	SourceMetaAds   Source = "meta_ads"   // Facebook/Instagram Ads
-	SourceGoogleAds Source = "google_ads" // Google Ads
-	SourceTikTokAds Source = "tiktok_ads" // TikTok Ads
-	SourceLinkedIn  Source = "linkedin"   // LinkedIn Ads
-	SourceOrganic   Source = "organic"    // Tráfego orgânico
-	SourceDirect    Source = "direct"     // Acesso direto
-	SourceReferral  Source = "referral"   // Referência
-	SourceOther     Source = "other"      // Outros
+	SourceMetaAds   Source = "meta_ads"
+	SourceGoogleAds Source = "google_ads"
+	SourceTikTokAds Source = "tiktok_ads"
+	SourceLinkedIn  Source = "linkedin"
+	SourceOrganic   Source = "organic"
+	SourceDirect    Source = "direct"
+	SourceReferral  Source = "referral"
+	SourceOther     Source = "other"
 )
 
-// Platform representa as plataformas de origem
 type Platform string
 
 const (
@@ -40,44 +38,36 @@ const (
 	PlatformOther     Platform = "other"
 )
 
-// Tracking é o Aggregate Root para tracking de conversões e atribuição.
-// Rastreia origens de contatos vindos de anúncios, campanhas, etc.
 type Tracking struct {
 	id        uuid.UUID
-	contactID uuid.UUID  // Referência ao contato
-	sessionID *uuid.UUID // Referência à sessão (opcional)
+	contactID uuid.UUID
+	sessionID *uuid.UUID
 	tenantID  string
 	projectID uuid.UUID
 
-	// Ad Tracking - Informações de origem
-	source   Source   // Fonte principal: meta_ads, google_ads, etc
-	platform Platform // Plataforma: instagram, facebook, etc
-	campaign string   // Nome/ID da campanha
-	adID     string   // ID do anúncio na plataforma
-	adURL    string   // URL do anúncio/post
+	source   Source
+	platform Platform
+	campaign string
+	adID     string
+	adURL    string
 
-	// Click & Conversion Tracking
-	clickID        string // Click-to-WhatsApp Click ID (CTWA)
-	conversionData string // Dados encriptados da plataforma
+	clickID        string
+	conversionData string
 
-	// UTM Parameters
-	utmSource   string // utm_source
-	utmMedium   string // utm_medium
-	utmCampaign string // utm_campaign
-	utmTerm     string // utm_term
-	utmContent  string // utm_content
+	utmSource   string
+	utmMedium   string
+	utmCampaign string
+	utmTerm     string
+	utmContent  string
 
-	// Metadata
-	metadata map[string]interface{} // Dados adicionais específicos da fonte
+	metadata map[string]interface{}
 
 	createdAt time.Time
 	updatedAt time.Time
 
-	// Domain Events
 	events []DomainEvent
 }
 
-// NewTracking cria um novo tracking de conversão.
 func NewTracking(
 	contactID uuid.UUID,
 	sessionID *uuid.UUID,
@@ -127,7 +117,6 @@ func NewTracking(
 	return tracking, nil
 }
 
-// ReconstructTracking reconstrói um tracking a partir de dados persistidos.
 func ReconstructTracking(
 	id uuid.UUID,
 	contactID uuid.UUID,
@@ -175,7 +164,6 @@ func ReconstructTracking(
 	}
 }
 
-// SetCampaign define a campanha do tracking.
 func (t *Tracking) SetCampaign(campaign string) {
 	if t.campaign != campaign {
 		t.campaign = campaign
@@ -183,7 +171,6 @@ func (t *Tracking) SetCampaign(campaign string) {
 	}
 }
 
-// SetAdInfo define informações do anúncio.
 func (t *Tracking) SetAdInfo(adID, adURL string) {
 	changed := false
 	if t.adID != adID {
@@ -199,7 +186,6 @@ func (t *Tracking) SetAdInfo(adID, adURL string) {
 	}
 }
 
-// SetClickID define o click ID (CTWA).
 func (t *Tracking) SetClickID(clickID string) {
 	if t.clickID != clickID {
 		t.clickID = clickID
@@ -207,7 +193,6 @@ func (t *Tracking) SetClickID(clickID string) {
 	}
 }
 
-// SetConversionData define os dados de conversão encriptados.
 func (t *Tracking) SetConversionData(data string) {
 	if t.conversionData != data {
 		t.conversionData = data
@@ -215,7 +200,6 @@ func (t *Tracking) SetConversionData(data string) {
 	}
 }
 
-// SetUTMParameters define os parâmetros UTM.
 func (t *Tracking) SetUTMParameters(source, medium, campaign, term, content string) {
 	changed := false
 	if t.utmSource != source {
@@ -243,13 +227,11 @@ func (t *Tracking) SetUTMParameters(source, medium, campaign, term, content stri
 	}
 }
 
-// SetMetadata define metadados adicionais.
 func (t *Tracking) SetMetadata(metadata map[string]interface{}) {
 	t.metadata = metadata
 	t.updatedAt = time.Now()
 }
 
-// AddMetadata adiciona um metadado específico.
 func (t *Tracking) AddMetadata(key string, value interface{}) {
 	if t.metadata == nil {
 		t.metadata = make(map[string]interface{})
@@ -258,7 +240,6 @@ func (t *Tracking) AddMetadata(key string, value interface{}) {
 	t.updatedAt = time.Now()
 }
 
-// Enrich enriquece o tracking com dados adicionais.
 func (t *Tracking) Enrich(changes map[string]interface{}) {
 	t.updatedAt = time.Now()
 
@@ -269,7 +250,6 @@ func (t *Tracking) Enrich(changes map[string]interface{}) {
 	))
 }
 
-// Getters
 func (t *Tracking) ID() uuid.UUID                    { return t.id }
 func (t *Tracking) ContactID() uuid.UUID             { return t.contactID }
 func (t *Tracking) SessionID() *uuid.UUID            { return t.sessionID }
@@ -291,7 +271,6 @@ func (t *Tracking) Metadata() map[string]interface{} { return t.metadata }
 func (t *Tracking) CreatedAt() time.Time             { return t.createdAt }
 func (t *Tracking) UpdatedAt() time.Time             { return t.updatedAt }
 
-// Domain Events
 func (t *Tracking) DomainEvents() []DomainEvent {
 	return t.events
 }

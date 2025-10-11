@@ -111,6 +111,142 @@ func (r *GormSessionRepository) FindActiveBeforeTime(ctx context.Context, cutoff
 	return sessions, nil
 }
 
+func (r *GormSessionRepository) FindByTenantWithFilters(ctx context.Context, filters session.SessionFilters) ([]*session.Session, int64, error) {
+	query := r.db.WithContext(ctx).Model(&entities.SessionEntity{})
+
+	// Apply tenant filter (required)
+	query = query.Where("tenant_id = ?", filters.TenantID)
+
+	// Apply optional filters
+	if filters.ContactID != nil {
+		query = query.Where("contact_id = ?", *filters.ContactID)
+	}
+	if filters.PipelineID != nil {
+		query = query.Where("pipeline_id = ?", *filters.PipelineID)
+	}
+	if filters.ChannelTypeID != nil {
+		query = query.Where("channel_type_id = ?", *filters.ChannelTypeID)
+	}
+	if filters.Status != nil {
+		query = query.Where("status = ?", *filters.Status)
+	}
+	if filters.Resolved != nil {
+		query = query.Where("resolved = ?", *filters.Resolved)
+	}
+	if filters.Escalated != nil {
+		query = query.Where("escalated = ?", *filters.Escalated)
+	}
+	if filters.Converted != nil {
+		query = query.Where("converted = ?", *filters.Converted)
+	}
+	if filters.Sentiment != nil {
+		query = query.Where("sentiment = ?", *filters.Sentiment)
+	}
+	if filters.StartedAfter != nil {
+		query = query.Where("started_at >= ?", *filters.StartedAfter)
+	}
+	if filters.StartedBefore != nil {
+		query = query.Where("started_at <= ?", *filters.StartedBefore)
+	}
+	if filters.EndedAfter != nil {
+		query = query.Where("ended_at >= ?", *filters.EndedAfter)
+	}
+	if filters.EndedBefore != nil {
+		query = query.Where("ended_at <= ?", *filters.EndedBefore)
+	}
+	if filters.MinMessages != nil {
+		query = query.Where("message_count >= ?", *filters.MinMessages)
+	}
+	if filters.MaxMessages != nil {
+		query = query.Where("message_count <= ?", *filters.MaxMessages)
+	}
+
+	// Count total results
+	var total int64
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	// Apply sorting
+	sortBy := "started_at"
+	if filters.SortBy != "" {
+		sortBy = filters.SortBy
+	}
+	sortOrder := "DESC"
+	if filters.SortOrder == "asc" {
+		sortOrder = "ASC"
+	}
+	query = query.Order(sortBy + " " + sortOrder)
+
+	// Apply pagination
+	if filters.Limit > 0 {
+		query = query.Limit(filters.Limit)
+	}
+	if filters.Offset > 0 {
+		query = query.Offset(filters.Offset)
+	}
+
+	// Execute query
+	var sessionEntities []entities.SessionEntity
+	if err := query.Find(&sessionEntities).Error; err != nil {
+		return nil, 0, err
+	}
+
+	// Convert to domain
+	sessions := make([]*session.Session, len(sessionEntities))
+	for i, entity := range sessionEntities {
+		sessions[i] = r.entityToDomain(&entity)
+	}
+
+	return sessions, total, nil
+}
+
+func (r *GormSessionRepository) SearchByText(ctx context.Context, tenantID string, searchText string, limit int, offset int) ([]*session.Session, int64, error) {
+	query := r.db.WithContext(ctx).Model(&entities.SessionEntity{})
+
+	// Apply tenant filter
+	query = query.Where("tenant_id = ?", tenantID)
+
+	// Text search across summary, topics, next_steps, outcome_tags
+	searchPattern := "%" + searchText + "%"
+	query = query.Where(
+		r.db.Where("summary ILIKE ?", searchPattern).
+			Or("topics::text ILIKE ?", searchPattern).
+			Or("next_steps::text ILIKE ?", searchPattern).
+			Or("outcome_tags::text ILIKE ?", searchPattern).
+			Or("end_reason ILIKE ?", searchPattern),
+	)
+
+	// Count total results
+	var total int64
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	// Apply pagination and sorting
+	query = query.Order("started_at DESC")
+	if limit > 0 {
+		query = query.Limit(limit)
+	}
+	if offset > 0 {
+		query = query.Offset(offset)
+	}
+
+	// Execute query
+	var sessionEntities []entities.SessionEntity
+	if err := query.Find(&sessionEntities).Error; err != nil {
+		return nil, 0, err
+	}
+
+	// Convert to domain
+	sessions := make([]*session.Session, len(sessionEntities))
+	for i, entity := range sessionEntities {
+		sessions[i] = r.entityToDomain(&entity)
+	}
+
+	return sessions, total, nil
+}
+
 // Mappers: Domain → Entity
 func (r *GormSessionRepository) domainToEntity(s *session.Session) *entities.SessionEntity {
 	entity := &entities.SessionEntity{

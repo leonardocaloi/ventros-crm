@@ -9,6 +9,7 @@ import (
 	"github.com/caloi/ventros-crm/infrastructure/persistence"
 	"github.com/caloi/ventros-crm/infrastructure/webhooks"
 	"github.com/caloi/ventros-crm/internal/domain/outbox"
+	"github.com/caloi/ventros-crm/internal/domain/saga"
 	"github.com/caloi/ventros-crm/internal/domain/shared"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -73,6 +74,9 @@ func NewDomainEventBus(
 // 6. Marca evento como processado
 //
 // **NÃO** publica diretamente no RabbitMQ para garantir atomicidade.
+//
+// **Saga Support**: Se o contexto contiver Saga metadata (correlation_id, saga_type, saga_step),
+// esses metadados serão automaticamente anexados ao evento no outbox para rastreamento de Saga.
 func (bus *DomainEventBus) Publish(ctx context.Context, event shared.DomainEvent) error {
 	// Serializa evento como JSON
 	payload, err := json.Marshal(event)
@@ -85,6 +89,22 @@ func (bus *DomainEventBus) Publish(ctx context.Context, event shared.DomainEvent
 	var tenantID *string
 	var projectID *uuid.UUID
 
+	// ✅ Saga Support: Extrai Saga metadata do contexto
+	var sagaMetadata map[string]interface{}
+	if sagaMeta := saga.GetMetadata(ctx); sagaMeta != nil {
+		sagaMetadata = map[string]interface{}{
+			"correlation_id": sagaMeta.CorrelationID,
+			"saga_type":      sagaMeta.SagaType,
+			"saga_step":      sagaMeta.SagaStep,
+			"step_number":    sagaMeta.StepNumber,
+		}
+
+		// Se há TenantID no Saga metadata, usa ele
+		if sagaMeta.TenantID != "" {
+			tenantID = &sagaMeta.TenantID
+		}
+	}
+
 	// Cria evento de outbox
 	outboxEvent := &outbox.OutboxEvent{
 		ID:            uuid.New(),
@@ -94,6 +114,7 @@ func (bus *DomainEventBus) Publish(ctx context.Context, event shared.DomainEvent
 		EventType:     event.EventName(),
 		EventVersion:  event.EventVersion(),
 		EventData:     payload,
+		Metadata:      sagaMetadata, // ✅ Saga metadata para correlação
 		TenantID:      tenantID,
 		ProjectID:     projectID,
 		CreatedAt:     time.Now(),

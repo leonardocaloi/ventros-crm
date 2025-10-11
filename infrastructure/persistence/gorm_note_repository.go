@@ -224,3 +224,132 @@ func (r *GormNoteRepository) entityToDomain(entity *entities.NoteEntity) (*note.
 		deletedAt,
 	), nil
 }
+
+func (r *GormNoteRepository) FindByTenantWithFilters(ctx context.Context, filters note.NoteFilters) ([]*note.Note, int64, error) {
+	query := r.db.WithContext(ctx).Model(&entities.NoteEntity{})
+
+	// Apply tenant filter (required)
+	query = query.Where("tenant_id = ?", filters.TenantID)
+
+	// Apply optional filters
+	if filters.ContactID != nil {
+		query = query.Where("contact_id = ?", *filters.ContactID)
+	}
+	if filters.SessionID != nil {
+		query = query.Where("session_id = ?", *filters.SessionID)
+	}
+	if filters.AuthorID != nil {
+		query = query.Where("author_id = ?", *filters.AuthorID)
+	}
+	if filters.AuthorType != nil {
+		query = query.Where("author_type = ?", *filters.AuthorType)
+	}
+	if filters.NoteType != nil {
+		query = query.Where("note_type = ?", *filters.NoteType)
+	}
+	if filters.Priority != nil {
+		query = query.Where("priority = ?", *filters.Priority)
+	}
+	if filters.VisibleToClient != nil {
+		query = query.Where("visible_to_client = ?", *filters.VisibleToClient)
+	}
+	if filters.Pinned != nil {
+		query = query.Where("pinned = ?", *filters.Pinned)
+	}
+	if filters.CreatedAfter != nil {
+		query = query.Where("created_at >= ?", *filters.CreatedAfter)
+	}
+	if filters.CreatedBefore != nil {
+		query = query.Where("created_at <= ?", *filters.CreatedBefore)
+	}
+
+	// Count total results
+	var total int64
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	// Apply sorting
+	sortBy := "created_at"
+	if filters.SortBy != "" {
+		sortBy = filters.SortBy
+	}
+	sortOrder := "DESC"
+	if filters.SortOrder == "asc" {
+		sortOrder = "ASC"
+	}
+	query = query.Order(sortBy + " " + sortOrder)
+
+	// Apply pagination
+	if filters.Limit > 0 {
+		query = query.Limit(filters.Limit)
+	}
+	if filters.Offset > 0 {
+		query = query.Offset(filters.Offset)
+	}
+
+	// Execute query
+	var noteEntities []entities.NoteEntity
+	if err := query.Find(&noteEntities).Error; err != nil {
+		return nil, 0, err
+	}
+
+	// Convert to domain
+	notes := make([]*note.Note, len(noteEntities))
+	for i, entity := range noteEntities {
+		n, err := r.entityToDomain(&entity)
+		if err != nil {
+			return nil, 0, err
+		}
+		notes[i] = n
+	}
+
+	return notes, total, nil
+}
+
+func (r *GormNoteRepository) SearchByText(ctx context.Context, tenantID string, searchText string, limit int, offset int) ([]*note.Note, int64, error) {
+	query := r.db.WithContext(ctx).Model(&entities.NoteEntity{})
+
+	// Apply tenant filter
+	query = query.Where("tenant_id = ?", tenantID)
+
+	// Text search in content and author_name
+	searchPattern := "%" + searchText + "%"
+	query = query.Where(
+		r.db.Where("content ILIKE ?", searchPattern).
+			Or("author_name ILIKE ?", searchPattern),
+	)
+
+	// Count total results
+	var total int64
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	// Apply pagination and sorting
+	query = query.Order("created_at DESC")
+	if limit > 0 {
+		query = query.Limit(limit)
+	}
+	if offset > 0 {
+		query = query.Offset(offset)
+	}
+
+	// Execute query
+	var noteEntities []entities.NoteEntity
+	if err := query.Find(&noteEntities).Error; err != nil {
+		return nil, 0, err
+	}
+
+	// Convert to domain
+	notes := make([]*note.Note, len(noteEntities))
+	for i, entity := range noteEntities {
+		n, err := r.entityToDomain(&entity)
+		if err != nil {
+			return nil, 0, err
+		}
+		notes[i] = n
+	}
+
+	return notes, total, nil
+}

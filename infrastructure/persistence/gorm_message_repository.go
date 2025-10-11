@@ -100,6 +100,134 @@ func (r *GormMessageRepository) CountBySession(ctx context.Context, sessionID uu
 	return int(count), err
 }
 
+func (r *GormMessageRepository) FindByTenantWithFilters(ctx context.Context, filters message.MessageFilters) ([]*message.Message, int64, error) {
+	query := r.db.WithContext(ctx).Model(&entities.MessageEntity{})
+
+	// Apply tenant filter (required)
+	query = query.Where("tenant_id = ?", filters.TenantID)
+
+	// Apply optional filters
+	if filters.ContactID != nil {
+		query = query.Where("contact_id = ?", *filters.ContactID)
+	}
+	if filters.SessionID != nil {
+		query = query.Where("session_id = ?", *filters.SessionID)
+	}
+	if filters.ChannelID != nil {
+		query = query.Where("channel_id = ?", *filters.ChannelID)
+	}
+	if filters.ProjectID != nil {
+		query = query.Where("project_id = ?", *filters.ProjectID)
+	}
+	if filters.ChannelTypeID != nil {
+		query = query.Where("channel_type_id = ?", *filters.ChannelTypeID)
+	}
+	if filters.FromMe != nil {
+		query = query.Where("from_me = ?", *filters.FromMe)
+	}
+	if filters.ContentType != nil {
+		query = query.Where("content_type = ?", *filters.ContentType)
+	}
+	if filters.Status != nil {
+		query = query.Where("status = ?", *filters.Status)
+	}
+	if filters.AgentID != nil {
+		query = query.Where("agent_id = ?", *filters.AgentID)
+	}
+	if filters.TimestampAfter != nil {
+		query = query.Where("timestamp >= ?", *filters.TimestampAfter)
+	}
+	if filters.TimestampBefore != nil {
+		query = query.Where("timestamp <= ?", *filters.TimestampBefore)
+	}
+	if filters.HasMedia != nil {
+		if *filters.HasMedia {
+			query = query.Where("media_url IS NOT NULL")
+		} else {
+			query = query.Where("media_url IS NULL")
+		}
+	}
+
+	// Count total results
+	var total int64
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	// Apply sorting
+	sortBy := "timestamp"
+	if filters.SortBy != "" {
+		sortBy = filters.SortBy
+	}
+	sortOrder := "DESC"
+	if filters.SortOrder == "asc" {
+		sortOrder = "ASC"
+	}
+	query = query.Order(sortBy + " " + sortOrder)
+
+	// Apply pagination
+	if filters.Limit > 0 {
+		query = query.Limit(filters.Limit)
+	}
+	if filters.Offset > 0 {
+		query = query.Offset(filters.Offset)
+	}
+
+	// Execute query
+	var messageEntities []entities.MessageEntity
+	if err := query.Find(&messageEntities).Error; err != nil {
+		return nil, 0, err
+	}
+
+	// Convert to domain
+	messages := make([]*message.Message, len(messageEntities))
+	for i, entity := range messageEntities {
+		messages[i] = r.entityToDomain(&entity)
+	}
+
+	return messages, total, nil
+}
+
+func (r *GormMessageRepository) SearchByText(ctx context.Context, tenantID string, searchText string, limit int, offset int) ([]*message.Message, int64, error) {
+	query := r.db.WithContext(ctx).Model(&entities.MessageEntity{})
+
+	// Apply tenant filter
+	query = query.Where("tenant_id = ?", tenantID)
+
+	// Text search in message text content
+	searchPattern := "%" + searchText + "%"
+	query = query.Where("text ILIKE ?", searchPattern)
+
+	// Count total results
+	var total int64
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	// Apply pagination and sorting
+	query = query.Order("timestamp DESC")
+	if limit > 0 {
+		query = query.Limit(limit)
+	}
+	if offset > 0 {
+		query = query.Offset(offset)
+	}
+
+	// Execute query
+	var messageEntities []entities.MessageEntity
+	if err := query.Find(&messageEntities).Error; err != nil {
+		return nil, 0, err
+	}
+
+	// Convert to domain
+	messages := make([]*message.Message, len(messageEntities))
+	for i, entity := range messageEntities {
+		messages[i] = r.entityToDomain(&entity)
+	}
+
+	return messages, total, nil
+}
+
 // FindBySessionIDForEnrichment retorna informações simplificadas das mensagens para enrichment de eventos
 func (r *GormMessageRepository) FindBySessionIDForEnrichment(ctx context.Context, sessionID uuid.UUID) ([]MessageInfoForEnrichment, error) {
 	type Result struct {
@@ -166,6 +294,7 @@ func (r *GormMessageRepository) domainToEntity(m *message.Message) *entities.Mes
 		Language:         m.Language(),
 		AgentID:          m.AgentID(),
 		Metadata:         m.Metadata(),
+		Mentions:         m.Mentions(),
 		DeliveredAt:      m.DeliveredAt(),
 		ReadAt:           m.ReadAt(),
 		CreatedAt:        m.Timestamp(),
@@ -202,5 +331,6 @@ func (r *GormMessageRepository) entityToDomain(entity *entities.MessageEntity) *
 		entity.Metadata,
 		entity.DeliveredAt,
 		entity.ReadAt,
+		entity.Mentions,
 	)
 }

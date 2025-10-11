@@ -16,7 +16,7 @@ import (
 type ChannelHandler struct {
 	logger         *zap.Logger
 	channelService *channelapp.ChannelService
-	temporalClient interface{} // Temporal client for workflows (interface para não acoplar)
+	temporalClient interface{}
 }
 
 func NewChannelHandler(logger *zap.Logger, channelService *channelapp.ChannelService, temporalClient interface{}) *ChannelHandler {
@@ -27,27 +27,29 @@ func NewChannelHandler(logger *zap.Logger, channelService *channelapp.ChannelSer
 	}
 }
 
-// CreateChannelRequest representa o payload para criar um canal
+// CreateChannelRequest represents the request to create a channel.
 type CreateChannelRequest struct {
 	Name                  string                   `json:"name" binding:"required" example:"WhatsApp Principal"`
 	Type                  string                   `json:"type" binding:"required" example:"waha"`
-	SessionTimeoutMinutes *int                     `json:"session_timeout_minutes,omitempty" example:"30"` // Timeout das sessões em minutos (sobrescreve pipeline se ambos existirem)
+	SessionTimeoutMinutes *int                     `json:"session_timeout_minutes,omitempty" example:"30"`
+	AllowGroups           *bool                    `json:"allow_groups,omitempty" example:"false"`
+	TrackingEnabled       *bool                    `json:"tracking_enabled,omitempty" example:"true"`
 	WAHAConfig            *CreateWAHAConfigRequest `json:"waha_config,omitempty"`
 }
 
-// CreateWAHAConfigRequest representa a configuração WAHA
+// CreateWAHAConfigRequest represents WAHA configuration.
 type CreateWAHAConfigRequest struct {
 	BaseURL    string `json:"base_url" binding:"required" example:"http://localhost:3000"`
-	APIKey     string `json:"api_key" example:"your-waha-api-key"` // Chave da API para autenticação
-	Token      string `json:"token" example:"your-waha-token"`     // Token de acesso (alternativo)
-	SessionID  string `json:"session_id" example:"default"`        // ID da sessão (equivale ao ExternalID)
+	APIKey     string `json:"api_key" example:"your-waha-api-key"`
+	Token      string `json:"token" example:"your-waha-token"`
+	SessionID  string `json:"session_id" example:"default"`
 	WebhookURL string `json:"webhook_url" example:"http://localhost:8080/api/v1/webhooks/waha"`
 }
 
 // CreateChannel creates a new communication channel
 //
 //	@Summary		Create channel
-//	@Description	Cria um novo canal de comunicação (WAHA, WhatsApp, etc.)
+//	@Description	Create a new communication channel (WAHA, WhatsApp, etc.)
 //	@Tags			channels
 //	@Accept			json
 //	@Produce		json
@@ -60,7 +62,6 @@ type CreateWAHAConfigRequest struct {
 //	@Failure		500		{object}	map[string]interface{}	"Internal server error"
 //	@Router			/api/v1/channels [post]
 func (h *ChannelHandler) CreateChannel(c *gin.Context) {
-	// Obter contexto do usuário autenticado
 	authCtx, exists := middleware.GetAuthContext(c)
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Authentication required"})
@@ -74,17 +75,17 @@ func (h *ChannelHandler) CreateChannel(c *gin.Context) {
 		return
 	}
 
-	// Preparar request para o service
 	serviceReq := channelapp.CreateChannelRequest{
 		UserID:                authCtx.UserID,
 		ProjectID:             authCtx.ProjectID,
 		TenantID:              authCtx.TenantID,
 		Name:                  req.Name,
 		Type:                  req.Type,
-		SessionTimeoutMinutes: req.SessionTimeoutMinutes, // Timeout do canal (opcional)
+		SessionTimeoutMinutes: req.SessionTimeoutMinutes,
+		AllowGroups:           req.AllowGroups,
+		TrackingEnabled:       req.TrackingEnabled,
 	}
 
-	// Configuração WAHA se fornecida
 	if req.WAHAConfig != nil {
 		serviceReq.WAHAConfig = &channelapp.WAHAConfigRequest{
 			BaseURL:    req.WAHAConfig.BaseURL,
@@ -112,7 +113,7 @@ func (h *ChannelHandler) CreateChannel(c *gin.Context) {
 // ListChannels lists all channels for the authenticated user
 //
 //	@Summary		List channels
-//	@Description	Lista todos os canais do usuário autenticado
+//	@Description	List all channels for authenticated user
 //	@Tags			channels
 //	@Produce		json
 //	@Security		ApiKeyAuth
@@ -143,7 +144,7 @@ func (h *ChannelHandler) ListChannels(c *gin.Context) {
 // GetChannel gets a specific channel
 //
 //	@Summary		Get channel
-//	@Description	Obtém detalhes de um canal específico
+//	@Description	Get details of a specific channel
 //	@Tags			channels
 //	@Produce		json
 //	@Security		ApiKeyAuth
@@ -174,7 +175,6 @@ func (h *ChannelHandler) GetChannel(c *gin.Context) {
 		return
 	}
 
-	// Verificar se o canal pertence ao usuário (RLS já filtra, mas double-check)
 	if channel.UserID != authCtx.UserID {
 		c.JSON(http.StatusForbidden, gin.H{"error": "Access denied"})
 		return
@@ -188,7 +188,7 @@ func (h *ChannelHandler) GetChannel(c *gin.Context) {
 // ActivateChannel activates a channel
 //
 //	@Summary		Activate channel
-//	@Description	Ativa um canal de comunicação
+//	@Description	Activate a communication channel
 //	@Tags			channels
 //	@Produce		json
 //	@Security		ApiKeyAuth
@@ -212,7 +212,6 @@ func (h *ChannelHandler) ActivateChannel(c *gin.Context) {
 		return
 	}
 
-	// Verificar se o canal existe e pertence ao usuário
 	channel, err := h.channelService.GetChannel(c.Request.Context(), channelID)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Channel not found"})
@@ -238,7 +237,7 @@ func (h *ChannelHandler) ActivateChannel(c *gin.Context) {
 // DeactivateChannel deactivates a channel
 //
 //	@Summary		Deactivate channel
-//	@Description	Desativa um canal de comunicação
+//	@Description	Deactivate a communication channel
 //	@Tags			channels
 //	@Produce		json
 //	@Security		ApiKeyAuth
@@ -262,7 +261,6 @@ func (h *ChannelHandler) DeactivateChannel(c *gin.Context) {
 		return
 	}
 
-	// Verificar se o canal existe e pertence ao usuário
 	channel, err := h.channelService.GetChannel(c.Request.Context(), channelID)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Channel not found"})
@@ -288,7 +286,7 @@ func (h *ChannelHandler) DeactivateChannel(c *gin.Context) {
 // DeleteChannel deletes a channel
 //
 //	@Summary		Delete channel
-//	@Description	Deleta um canal de comunicação
+//	@Description	Delete a communication channel
 //	@Tags			channels
 //	@Produce		json
 //	@Security		ApiKeyAuth
@@ -312,7 +310,6 @@ func (h *ChannelHandler) DeleteChannel(c *gin.Context) {
 		return
 	}
 
-	// Verificar se o canal existe e pertence ao usuário
 	channel, err := h.channelService.GetChannel(c.Request.Context(), channelID)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Channel not found"})
@@ -335,10 +332,10 @@ func (h *ChannelHandler) DeleteChannel(c *gin.Context) {
 	})
 }
 
-// GetChannelWebhookURL obtém a URL do webhook para configurar no canal externo
+// GetChannelWebhookURL gets the webhook URL for configuring the external channel
 //
 //	@Summary		Get channel webhook URL
-//	@Description	Retorna a URL do webhook que deve ser configurada no canal externo (WAHA, WhatsApp, etc)
+//	@Description	Return the webhook URL to be configured in external channel (WAHA, WhatsApp, etc)
 //	@Tags			channels
 //	@Produce		json
 //	@Security		ApiKeyAuth
@@ -361,7 +358,6 @@ func (h *ChannelHandler) GetChannelWebhookURL(c *gin.Context) {
 		return
 	}
 
-	// Verificar se o canal existe e pertence ao usuário
 	channel, err := h.channelService.GetChannel(c.Request.Context(), channelID)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Channel not found"})
@@ -373,10 +369,9 @@ func (h *ChannelHandler) GetChannelWebhookURL(c *gin.Context) {
 		return
 	}
 
-	// Obter base URL da aplicação (pode vir de env ou header)
 	baseURL := c.GetHeader("X-Base-URL")
 	if baseURL == "" {
-		baseURL = "http://localhost:8080" // Fallback
+		baseURL = "http://localhost:8080"
 	}
 
 	webhookURL, err := h.channelService.GetWebhookURL(c.Request.Context(), channelID, baseURL)
@@ -399,10 +394,10 @@ func (h *ChannelHandler) GetChannelWebhookURL(c *gin.Context) {
 	})
 }
 
-// ConfigureChannelWebhook configura o webhook automaticamente no canal externo
+// ConfigureChannelWebhook configures the webhook automatically in the external channel
 //
 //	@Summary		Configure channel webhook
-//	@Description	Configura automaticamente o webhook no canal externo (ex: WAHA)
+//	@Description	Automatically configure webhook in external channel (e.g. WAHA)
 //	@Tags			channels
 //	@Accept			json
 //	@Produce		json
@@ -428,7 +423,6 @@ func (h *ChannelHandler) ConfigureChannelWebhook(c *gin.Context) {
 		return
 	}
 
-	// Verificar se o canal existe e pertence ao usuário
 	channel, err := h.channelService.GetChannel(c.Request.Context(), channelID)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Channel not found"})
@@ -440,14 +434,11 @@ func (h *ChannelHandler) ConfigureChannelWebhook(c *gin.Context) {
 		return
 	}
 
-	// Parse request (opcional)
 	var req ConfigureWebhookRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		// Se não tiver body, usa valores padrão
 		req.BaseURL = "http://localhost:8080"
 	}
 
-	// Se não forneceu base URL, tenta obter do header ou usa padrão
 	if req.BaseURL == "" {
 		req.BaseURL = c.GetHeader("X-Base-URL")
 		if req.BaseURL == "" {
@@ -455,7 +446,6 @@ func (h *ChannelHandler) ConfigureChannelWebhook(c *gin.Context) {
 		}
 	}
 
-	// Gerar URL do webhook
 	webhookURL, err := h.channelService.GetWebhookURL(c.Request.Context(), channelID, req.BaseURL)
 	if err != nil {
 		h.logger.Error("Failed to get webhook URL", zap.Error(err))
@@ -463,7 +453,6 @@ func (h *ChannelHandler) ConfigureChannelWebhook(c *gin.Context) {
 		return
 	}
 
-	// Configurar webhook no canal externo
 	if err := h.channelService.ConfigureWebhook(c.Request.Context(), channelID, webhookURL); err != nil {
 		h.logger.Error("Failed to configure webhook", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to configure webhook: " + err.Error()})
@@ -478,10 +467,10 @@ func (h *ChannelHandler) ConfigureChannelWebhook(c *gin.Context) {
 	})
 }
 
-// GetChannelWebhookInfo obtém informações sobre o webhook do canal
+// GetChannelWebhookInfo gets information about the channel webhook
 //
 //	@Summary		Get channel webhook info
-//	@Description	Retorna informações detalhadas sobre o webhook do canal
+//	@Description	Return detailed information about channel webhook
 //	@Tags			channels
 //	@Produce		json
 //	@Security		ApiKeyAuth
@@ -504,7 +493,6 @@ func (h *ChannelHandler) GetChannelWebhookInfo(c *gin.Context) {
 		return
 	}
 
-	// Verificar se o canal existe e pertence ao usuário
 	channel, err := h.channelService.GetChannel(c.Request.Context(), channelID)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Channel not found"})
@@ -516,7 +504,6 @@ func (h *ChannelHandler) GetChannelWebhookInfo(c *gin.Context) {
 		return
 	}
 
-	// Obter informações do webhook
 	info, err := h.channelService.GetWebhookInfo(c.Request.Context(), channelID)
 	if err != nil {
 		h.logger.Error("Failed to get webhook info", zap.Error(err))
@@ -527,13 +514,13 @@ func (h *ChannelHandler) GetChannelWebhookInfo(c *gin.Context) {
 	c.JSON(http.StatusOK, info)
 }
 
-// ConfigureWebhookRequest representa o request para configurar webhook
+// ConfigureWebhookRequest represents the request to configure webhook.
 type ConfigureWebhookRequest struct {
 	BaseURL string `json:"base_url" example:"https://api.ventros.com"`
 }
 
-// GetChannelQRCode obtém o QR code de um canal WAHA
-// TEMPORARIAMENTE COMENTADO - PRECISA IMPLEMENTAR MÉTODOS NO SERVICE
+// GetChannelQRCode gets the QR code of a WAHA channel.
+// TEMPORARILY DISABLED - NEEDS SERVICE METHODS IMPLEMENTATION
 /*
 // @Summary Get channel QR code
 // @Description Obtém o QR code para conectar um canal WAHA
@@ -560,7 +547,6 @@ func (h *ChannelHandler) GetChannelQRCode(c *gin.Context) {
 		return
 	}
 
-	// Verificar se o canal existe e pertence ao usuário
 	channel, err := h.channelService.GetChannel(c.Request.Context(), channelID)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Channel not found"})
@@ -572,13 +558,11 @@ func (h *ChannelHandler) GetChannelQRCode(c *gin.Context) {
 		return
 	}
 
-	// Verificar se é canal WAHA
 	if !channel.IsWAHA() {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Channel is not WAHA type"})
 		return
 	}
 
-	// Verificar status da sessão
 	status := channel.GetWAHASessionStatus()
 
 	response := gin.H{
@@ -587,25 +571,22 @@ func (h *ChannelHandler) GetChannelQRCode(c *gin.Context) {
 		"status":     string(status),
 	}
 
-	// Se já está conectado, não precisa de QR code
 	if status == channel.WAHASessionStatusWorking {
 		response["message"] = "Channel is already connected"
 		c.JSON(http.StatusOK, response)
 		return
 	}
 
-	// Se tem QR code válido, retorna ele
 	if channel.IsWAHAQRCodeValid() {
 		response["qr_code"] = channel.GetWAHAQRCode()
 		if generatedAt, ok := channel.Config["qr_generated_at"].(int64); ok {
 			response["qr_generated_at"] = generatedAt
-			response["qr_expires_at"] = generatedAt + 120 // 2 minutos
+			response["qr_expires_at"] = generatedAt + 120
 		}
 		c.JSON(http.StatusOK, response)
 		return
 	}
 
-	// Se precisa de novo QR code, indica que deve ser solicitado via WAHA
 	if channel.NeedsNewQRCode() {
 		response["message"] = "QR code expired or not available. Please request a new session from WAHA."
 		response["needs_new_qr"] = true
@@ -618,10 +599,10 @@ func (h *ChannelHandler) GetChannelQRCode(c *gin.Context) {
 }
 */
 
-// ActivateWAHAChannel ativa um canal WAHA específico
+// ActivateWAHAChannel activates a specific WAHA channel
 //
 //	@Summary		Activate WAHA channel
-//	@Description	Ativa e inicializa uma sessão WAHA para um canal
+//	@Description	Activate and initialize a WAHA session for a channel
 //	@Tags			channels
 //	@Accept			json
 //	@Produce		json
@@ -646,7 +627,6 @@ func (h *ChannelHandler) ActivateWAHAChannel(c *gin.Context) {
 		return
 	}
 
-	// Verificar se o canal existe e pertence ao usuário
 	channel, err := h.channelService.GetChannel(c.Request.Context(), channelID)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Channel not found"})
@@ -658,13 +638,11 @@ func (h *ChannelHandler) ActivateWAHAChannel(c *gin.Context) {
 		return
 	}
 
-	// Verificar se é canal WAHA
 	if channel.Type != "waha" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Channel is not WAHA type"})
 		return
 	}
 
-	// Ativar canal WAHA (isso configurará o webhook e iniciará a sessão)
 	if err := h.channelService.ActivateChannel(c.Request.Context(), channelID); err != nil {
 		h.logger.Error("Failed to activate WAHA channel", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to activate WAHA channel: " + err.Error()})
@@ -682,16 +660,16 @@ func (h *ChannelHandler) ActivateWAHAChannel(c *gin.Context) {
 	})
 }
 
-// ImportWAHAHistoryRequest representa o request para importar histórico
+// ImportWAHAHistoryRequest represents the request to import history.
 type ImportWAHAHistoryRequest struct {
-	Strategy string `json:"strategy" example:"recent"` // "all", "recent", "custom"
-	Limit    int    `json:"limit" example:"100"`       // Número de mensagens por chat (0 = todas)
+	Strategy string `json:"strategy" example:"recent"`
+	Limit    int    `json:"limit" example:"100"`
 }
 
-// ImportWAHAHistory importa histórico de mensagens de um canal WAHA
+// ImportWAHAHistory imports message history from a WAHA channel
 //
 //	@Summary		Import WAHA message history
-//	@Description	Importa histórico de mensagens de um canal WAHA (chats e mensagens)
+//	@Description	Import message history from a WAHA channel (chats and messages)
 //	@Tags			channels
 //	@Accept			json
 //	@Produce		json
@@ -717,7 +695,6 @@ func (h *ChannelHandler) ImportWAHAHistory(c *gin.Context) {
 		return
 	}
 
-	// Verificar se o canal existe e pertence ao usuário
 	channel, err := h.channelService.GetChannel(c.Request.Context(), channelID)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Channel not found"})
@@ -729,21 +706,17 @@ func (h *ChannelHandler) ImportWAHAHistory(c *gin.Context) {
 		return
 	}
 
-	// Verificar se é canal WAHA
 	if channel.Type != "waha" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Channel is not WAHA type"})
 		return
 	}
 
-	// Parse request (opcional)
 	var req ImportWAHAHistoryRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		// Se não tiver body, usa valores padrão
 		req.Strategy = "recent"
 		req.Limit = 100
 	}
 
-	// Default values
 	if req.Strategy == "" {
 		req.Strategy = "recent"
 	}
@@ -751,11 +724,8 @@ func (h *ChannelHandler) ImportWAHAHistory(c *gin.Context) {
 		req.Limit = 100
 	}
 
-	// Get WAHA config from channel Config
-	// Channel response has Config as map[string]interface{}
 	sessionID := channel.ExternalID
 	if sessionID == "" {
-		// Try to get from config
 		if sessionIDVal, exists := channel.Config["session_id"]; exists {
 			var ok bool
 			sessionID, ok = sessionIDVal.(string)
@@ -769,14 +739,12 @@ func (h *ChannelHandler) ImportWAHAHistory(c *gin.Context) {
 		}
 	}
 
-	// Verificar se Temporal client está configurado
 	if h.temporalClient == nil {
 		h.logger.Error("Temporal client not configured")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Workflow engine not configured"})
 		return
 	}
 
-	// Type assertion para client.Client
 	temporalClient, ok := h.temporalClient.(client.Client)
 	if !ok {
 		h.logger.Error("Invalid Temporal client type")
@@ -784,7 +752,6 @@ func (h *ChannelHandler) ImportWAHAHistory(c *gin.Context) {
 		return
 	}
 
-	// Preparar input para o workflow
 	workflowInput := channelworkflow.WAHAHistoryImportWorkflowInput{
 		ChannelID: channelID.String(),
 		SessionID: sessionID,
@@ -795,7 +762,6 @@ func (h *ChannelHandler) ImportWAHAHistory(c *gin.Context) {
 		UserID:    authCtx.UserID.String(),
 	}
 
-	// Iniciar workflow Temporal
 	workflowID := fmt.Sprintf("waha-import-%s", channelID.String())
 	workflowOptions := client.StartWorkflowOptions{
 		ID:        workflowID,

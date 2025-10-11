@@ -6,13 +6,11 @@ import (
 	"github.com/google/uuid"
 )
 
-// DomainEvent é a interface base para eventos de domínio.
 type DomainEvent interface {
 	EventName() string
 	OccurredAt() time.Time
 }
 
-// ChannelCreatedEvent - Canal criado no sistema.
 type ChannelCreatedEvent struct {
 	ChannelID  uuid.UUID
 	ProjectID  uuid.UUID
@@ -26,7 +24,6 @@ type ChannelCreatedEvent struct {
 func (e ChannelCreatedEvent) EventName() string     { return "channel.created" }
 func (e ChannelCreatedEvent) OccurredAt() time.Time { return e.CreatedAt }
 
-// ChannelActivatedEvent - Canal ativado.
 type ChannelActivatedEvent struct {
 	ChannelID   uuid.UUID
 	ActivatedAt time.Time
@@ -35,7 +32,6 @@ type ChannelActivatedEvent struct {
 func (e ChannelActivatedEvent) EventName() string     { return "channel.activated" }
 func (e ChannelActivatedEvent) OccurredAt() time.Time { return e.ActivatedAt }
 
-// ChannelDeactivatedEvent - Canal desativado.
 type ChannelDeactivatedEvent struct {
 	ChannelID     uuid.UUID
 	DeactivatedAt time.Time
@@ -44,7 +40,6 @@ type ChannelDeactivatedEvent struct {
 func (e ChannelDeactivatedEvent) EventName() string     { return "channel.deactivated" }
 func (e ChannelDeactivatedEvent) OccurredAt() time.Time { return e.DeactivatedAt }
 
-// ChannelDeletedEvent - Canal deletado.
 type ChannelDeletedEvent struct {
 	ChannelID uuid.UUID
 	DeletedAt time.Time
@@ -53,7 +48,6 @@ type ChannelDeletedEvent struct {
 func (e ChannelDeletedEvent) EventName() string     { return "channel.deleted" }
 func (e ChannelDeletedEvent) OccurredAt() time.Time { return e.DeletedAt }
 
-// ChannelPipelineAssociatedEvent - Pipeline associado ao canal.
 type ChannelPipelineAssociatedEvent struct {
 	ChannelID    uuid.UUID
 	PipelineID   uuid.UUID
@@ -63,7 +57,6 @@ type ChannelPipelineAssociatedEvent struct {
 func (e ChannelPipelineAssociatedEvent) EventName() string     { return "channel.pipeline.associated" }
 func (e ChannelPipelineAssociatedEvent) OccurredAt() time.Time { return e.AssociatedAt }
 
-// ChannelPipelineDisassociatedEvent - Pipeline desassociado do canal.
 type ChannelPipelineDisassociatedEvent struct {
 	ChannelID       uuid.UUID
 	PipelineID      uuid.UUID
@@ -74,3 +67,24 @@ func (e ChannelPipelineDisassociatedEvent) EventName() string {
 	return "channel.pipeline.disassociated"
 }
 func (e ChannelPipelineDisassociatedEvent) OccurredAt() time.Time { return e.DisassociatedAt }
+
+// Label Events
+
+type ChannelLabelUpsertedEvent struct {
+	ChannelID uuid.UUID
+	LabelID   string
+	LabelName string
+	Timestamp time.Time
+}
+
+func (e ChannelLabelUpsertedEvent) EventName() string     { return "channel.label.upserted" }
+func (e ChannelLabelUpsertedEvent) OccurredAt() time.Time { return e.Timestamp }
+
+type ChannelLabelDeletedEvent struct {
+	ChannelID uuid.UUID
+	LabelID   string
+	Timestamp time.Time
+}
+
+func (e ChannelLabelDeletedEvent) EventName() string     { return "channel.label.deleted" }
+func (e ChannelLabelDeletedEvent) OccurredAt() time.Time { return e.Timestamp }

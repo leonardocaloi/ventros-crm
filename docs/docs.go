@@ -887,7 +887,7 @@ const docTemplate = `{
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "Lista todos os canais do usuário autenticado",
+                "description": "List all channels for authenticated user",
                 "produces": [
                     "application/json"
                 ],
@@ -925,7 +925,7 @@ const docTemplate = `{
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "Cria um novo canal de comunicação (WAHA, WhatsApp, etc.)",
+                "description": "Create a new communication channel (WAHA, WhatsApp, etc.)",
                 "consumes": [
                     "application/json"
                 ],
@@ -1067,7 +1067,7 @@ const docTemplate = `{
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "Obtém detalhes de um canal específico",
+                "description": "Get details of a specific channel",
                 "produces": [
                     "application/json"
                 ],
@@ -1128,7 +1128,7 @@ const docTemplate = `{
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "Deleta um canal de comunicação",
+                "description": "Delete a communication channel",
                 "produces": [
                     "application/json"
                 ],
@@ -1191,7 +1191,7 @@ const docTemplate = `{
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "Ativa um canal de comunicação",
+                "description": "Activate a communication channel",
                 "produces": [
                     "application/json"
                 ],
@@ -1254,7 +1254,7 @@ const docTemplate = `{
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "Ativa e inicializa uma sessão WAHA para um canal",
+                "description": "Activate and initialize a WAHA session for a channel",
                 "consumes": [
                     "application/json"
                 ],
@@ -1320,7 +1320,7 @@ const docTemplate = `{
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "Configura automaticamente o webhook no canal externo (ex: WAHA)",
+                "description": "Automatically configure webhook in external channel (e.g. WAHA)",
                 "consumes": [
                     "application/json"
                 ],
@@ -1394,7 +1394,7 @@ const docTemplate = `{
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "Desativa um canal de comunicação",
+                "description": "Deactivate a communication channel",
                 "produces": [
                     "application/json"
                 ],
@@ -1457,7 +1457,7 @@ const docTemplate = `{
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "Importa histórico de mensagens de um canal WAHA (chats e mensagens)",
+                "description": "Import message history from a WAHA channel (chats and messages)",
                 "consumes": [
                     "application/json"
                 ],
@@ -1582,7 +1582,7 @@ const docTemplate = `{
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "Retorna informações detalhadas sobre o webhook do canal",
+                "description": "Return detailed information about channel webhook",
                 "produces": [
                     "application/json"
                 ],
@@ -1638,7 +1638,7 @@ const docTemplate = `{
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "Retorna a URL do webhook que deve ser configurada no canal externo (WAHA, WhatsApp, etc)",
+                "description": "Return the webhook URL to be configured in external channel (WAHA, WhatsApp, etc)",
                 "produces": [
                     "application/json"
                 ],
@@ -1687,9 +1687,638 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/chats": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "List chats with optional filters (project_id, contact_id, status, chat_type)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "chats"
+                ],
+                "summary": "List chats",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Filter by project ID",
+                        "name": "project_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by contact ID (participant)",
+                        "name": "contact_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by status (active, archived, closed)",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by chat type (individual, group, channel)",
+                        "name": "chat_type",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of chats",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid parameters",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Authentication required",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Create a new chat (individual, group, or channel)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "chats"
+                ],
+                "summary": "Create a new chat",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Project ID",
+                        "name": "project_id",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "description": "Chat data",
+                        "name": "chat",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/infrastructure_http_handlers.CreateChatRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Chat created successfully",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Authentication required",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/chats/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Get detailed information about a specific chat",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "chats"
+                ],
+                "summary": "Get chat by ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Chat ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Chat details",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid chat ID",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Authentication required",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Chat not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/chats/{id}/archive": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Archive a chat (can be unarchived later)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "chats"
+                ],
+                "summary": "Archive chat",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Chat ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Chat archived successfully",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid chat ID",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Authentication required",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Chat not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/chats/{id}/close": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Permanently close a chat (cannot be reopened)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "chats"
+                ],
+                "summary": "Close chat",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Chat ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Chat closed successfully",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid chat ID",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Authentication required",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Chat not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/chats/{id}/participants": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Add a contact or agent as a participant to a chat",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "chats"
+                ],
+                "summary": "Add participant to chat",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Chat ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Participant data",
+                        "name": "participant",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/infrastructure_http_handlers.AddParticipantRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Participant added successfully",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Authentication required",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Chat not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/chats/{id}/participants/{participant_id}": {
+            "delete": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Remove a participant from a chat",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "chats"
+                ],
+                "summary": "Remove participant from chat",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Chat ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Participant ID",
+                        "name": "participant_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Participant removed successfully",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Authentication required",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Chat or participant not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/chats/{id}/subject": {
+            "patch": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Update the subject/name of a group or channel chat",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "chats"
+                ],
+                "summary": "Update chat subject",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Chat ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "New subject",
+                        "name": "subject",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/infrastructure_http_handlers.UpdateSubjectRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Subject updated successfully",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Authentication required",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Chat not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/chats/{id}/unarchive": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Unarchive a chat (reactivate it)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "chats"
+                ],
+                "summary": "Unarchive chat",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Chat ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Chat unarchived successfully",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid chat ID",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Authentication required",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Chat not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/contacts": {
             "get": {
-                "description": "Lista todos os contatos com filtros opcionais (apenas do usuário autenticado)",
+                "description": "List all contacts with optional filters (authenticated user only)",
                 "consumes": [
                     "application/json"
                 ],
@@ -1801,6 +2430,196 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "Invalid request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/contacts/advanced": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "List contacts with advanced filters (name, phone, email, tags, dates), pagination, and sorting",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "contacts"
+                ],
+                "summary": "List contacts with advanced filters",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Filter by name (partial match)",
+                        "name": "name",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by phone (partial match)",
+                        "name": "phone",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by email (partial match)",
+                        "name": "email",
+                        "in": "query"
+                    },
+                    {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "collectionFormat": "csv",
+                        "description": "Filter by tags (comma-separated)",
+                        "name": "tags",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by created_after (YYYY-MM-DD)",
+                        "name": "created_after",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by created_before (YYYY-MM-DD)",
+                        "name": "created_before",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 1,
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 20,
+                        "description": "Page size",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "default": "created_at",
+                        "description": "Sort by field",
+                        "name": "sort_by",
+                        "in": "query"
+                    },
+                    {
+                        "enum": [
+                            "asc",
+                            "desc"
+                        ],
+                        "type": "string",
+                        "default": "desc",
+                        "description": "Sort direction",
+                        "name": "sort_dir",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of contacts with pagination",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid parameters",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Not authenticated",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/contacts/search": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Full-text search on contact name, phone, and email with relevance scoring",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "contacts"
+                ],
+                "summary": "Search contacts",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Search query",
+                        "name": "q",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "default": 20,
+                        "description": "Result limit",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Search results with match scores",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid parameters",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Not authenticated",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -2290,7 +3109,7 @@ const docTemplate = `{
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "Altera o status de um contato em um pipeline específico",
+                "description": "Change contact status in a specific pipeline",
                 "consumes": [
                     "application/json"
                 ],
@@ -2416,6 +3235,1399 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/crm/agents/advanced": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve all agents (AI agents and human support staff) with comprehensive filtering capabilities. Agents handle customer conversations either autonomously (AI) or manually (human). Essential for team management, capacity planning, and performance monitoring.\n\n**Filtering Capabilities:**\n- Filter by project_id to view agents assigned to specific business units\n- Filter by type to distinguish AI agents from human agents\n- Filter by status (online, offline, busy) for real-time availability tracking\n- Filter by active status to show/hide deactivated agents\n\n**Common Use Cases:**\n- Load all active agents for the team dashboard\n- Build agent selector dropdowns for manual conversation assignment\n- Monitor real-time agent availability and capacity\n- Track agent performance and productivity metrics\n- Identify offline or busy agents for workload balancing\n- Generate agent reports by project or department\n- Audit agent configurations and permissions\n\n**Sorting Options:**\n- Sort by name (alphabetical order)\n- Sort by created_at (onboarding order)\n- Ascending or descending order\n\n**Performance:**\n- Optimized GORM indexes on tenant+type for fast agent type queries\n- Composite indexes on tenant+status for real-time availability checks\n- Small result sets (typically \u003c 200 agents per tenant) for instant responses",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "agents"
+                ],
+                "summary": "List agents with advanced filters and pagination",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Filter by project UUID - Example: 550e8400-e29b-41d4-a716-446655440000",
+                        "name": "project_id",
+                        "in": "query"
+                    },
+                    {
+                        "enum": [
+                            "ai",
+                            "human"
+                        ],
+                        "type": "string",
+                        "example": "human",
+                        "description": "Filter by agent type",
+                        "name": "type",
+                        "in": "query"
+                    },
+                    {
+                        "enum": [
+                            "online",
+                            "offline",
+                            "busy"
+                        ],
+                        "type": "string",
+                        "example": "online",
+                        "description": "Filter by availability status",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "example": true,
+                        "description": "Filter by active status - true: only active, false: only inactive",
+                        "name": "active",
+                        "in": "query"
+                    },
+                    {
+                        "minimum": 1,
+                        "type": "integer",
+                        "default": 1,
+                        "example": 1,
+                        "description": "Page number for pagination (starts at 1)",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "maximum": 100,
+                        "minimum": 1,
+                        "type": "integer",
+                        "default": 20,
+                        "example": 20,
+                        "description": "Results per page (max 100)",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "enum": [
+                            "name",
+                            "created_at"
+                        ],
+                        "type": "string",
+                        "default": "created_at",
+                        "example": "name",
+                        "description": "Field to sort by",
+                        "name": "sort_by",
+                        "in": "query"
+                    },
+                    {
+                        "enum": [
+                            "asc",
+                            "desc"
+                        ],
+                        "type": "string",
+                        "default": "desc",
+                        "example": "asc",
+                        "description": "Sort direction",
+                        "name": "sort_dir",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successfully retrieved agents with full details",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_caloi_ventros-crm_internal_application_queries.ListAgentsResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request - Invalid UUID or parameter format",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized - Authentication required",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden - No access to this tenant's agents",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/crm/agents/search": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Full-text search across agent names and email addresses. Perfect for quickly finding specific team members in organizations with many agents.\n\n**Search Capabilities:**\n- Searches agent names (primary field)\n- Searches agent email addresses (secondary field)\n- Case-insensitive ILIKE matching\n\n**Match Scoring:**\n- Name matches: 1.5 score (higher priority)\n- Email matches: 1.2 score (lower priority)\n\n**Search Examples:**\n- \"João\" - Find agents named João\n- \"support\" - Find support team members\n- \"@gmail.com\" - Find agents with Gmail addresses\n- \"sales\" - Find sales team agents",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "agents"
+                ],
+                "summary": "Search agents by name and email",
+                "parameters": [
+                    {
+                        "minLength": 1,
+                        "type": "string",
+                        "example": "João Silva",
+                        "description": "Search query - name or email",
+                        "name": "q",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "maximum": 100,
+                        "minimum": 1,
+                        "type": "integer",
+                        "default": 20,
+                        "example": 10,
+                        "description": "Maximum results (max 100)",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Found agents with match scores",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_caloi_ventros-crm_internal_application_queries.SearchAgentsResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request - Empty search query",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/crm/messages/advanced": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve a paginated list of messages with comprehensive filtering across contact, session, channel, direction, content type, and delivery status. Ideal for building message history views, conversation analytics, and customer interaction tracking.\n\n**Filtering Capabilities:**\n- Filter by contact to view all messages for a specific customer\n- Filter by session to see complete conversation threads\n- Filter by channel to analyze messages from specific communication channels (WhatsApp, Email, etc)\n- Filter by project to segment messages by business unit or department\n- Filter by channel_type (1=WhatsApp, 2=Email, 3=SMS, etc) for channel-specific analytics\n- Filter by from_me (true=outbound agent messages, false=inbound customer messages)\n- Filter by content_type (text, image, video, audio, document, location, contact, sticker) for media analysis\n- Filter by status (pending, sent, delivered, read, failed) for delivery tracking\n- Filter by agent_id to track individual agent performance\n- Filter by timestamp range to analyze time-based patterns\n- Filter by has_media flag to find messages with attachments\n\n**Use Cases:**\n- Build conversation history UIs with infinite scroll pagination\n- Analyze customer response times and patterns\n- Track message delivery rates across channels\n- Monitor agent productivity and response quality\n- Generate conversation transcripts for compliance\n- Identify media-rich conversations for quality assurance\n\n**Sorting Options:**\n- Sort by timestamp (default), created_at for processing order\n- Ascending or descending order\n\n**Performance:**\n- Optimized with composite GORM indexes on tenant+session, tenant+contact, tenant+channel\n- GIN index on JSONB metadata field for custom attribute searches\n- Maximum 100 messages per page for optimal response times\n- Efficiently handles millions of messages per tenant",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "messages"
+                ],
+                "summary": "List messages with advanced filters and pagination",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Filter by contact UUID - Example: 550e8400-e29b-41d4-a716-446655440000",
+                        "name": "contact_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by session UUID to get full conversation - Example: 660e8400-e29b-41d4-a716-446655440001",
+                        "name": "session_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by channel UUID (specific WhatsApp number, email account, etc)",
+                        "name": "channel_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by project UUID to segment by business unit",
+                        "name": "project_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "example": 1,
+                        "description": "Filter by channel type - 1:WhatsApp, 2:Email, 3:SMS, 4:Web Chat",
+                        "name": "channel_type_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "example": false,
+                        "description": "Filter by direction - true: agent sent, false: customer sent",
+                        "name": "from_me",
+                        "in": "query"
+                    },
+                    {
+                        "enum": [
+                            "text",
+                            "image",
+                            "video",
+                            "audio",
+                            "document",
+                            "location",
+                            "contact",
+                            "sticker"
+                        ],
+                        "type": "string",
+                        "example": "text",
+                        "description": "Filter by content type",
+                        "name": "content_type",
+                        "in": "query"
+                    },
+                    {
+                        "enum": [
+                            "pending",
+                            "sent",
+                            "delivered",
+                            "read",
+                            "failed"
+                        ],
+                        "type": "string",
+                        "example": "delivered",
+                        "description": "Filter by delivery status",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by agent UUID for performance tracking",
+                        "name": "agent_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "example": "2024-01-01T00:00:00Z",
+                        "description": "Messages sent after this timestamp - Format: 2006-01-02T15:04:05Z",
+                        "name": "timestamp_after",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "example": "2024-12-31T23:59:59Z",
+                        "description": "Messages sent before this timestamp",
+                        "name": "timestamp_before",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "example": true,
+                        "description": "Filter messages with media attachments - true: only with media",
+                        "name": "has_media",
+                        "in": "query"
+                    },
+                    {
+                        "minimum": 1,
+                        "type": "integer",
+                        "default": 1,
+                        "example": 1,
+                        "description": "Page number for pagination (starts at 1)",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "maximum": 100,
+                        "minimum": 1,
+                        "type": "integer",
+                        "default": 20,
+                        "example": 50,
+                        "description": "Messages per page (max 100)",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "enum": [
+                            "timestamp",
+                            "created_at"
+                        ],
+                        "type": "string",
+                        "default": "timestamp",
+                        "example": "timestamp",
+                        "description": "Field to sort by",
+                        "name": "sort_by",
+                        "in": "query"
+                    },
+                    {
+                        "enum": [
+                            "asc",
+                            "desc"
+                        ],
+                        "type": "string",
+                        "default": "desc",
+                        "example": "desc",
+                        "description": "Sort direction",
+                        "name": "sort_dir",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successfully retrieved messages with pagination and filter metadata",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_caloi_ventros-crm_internal_application_queries.ListMessagesResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request - Invalid UUID format, invalid enum values, or limit exceeds 100",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized - Missing or invalid authentication token",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden - User lacks permission to access this tenant's messages",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error - Database errors or query execution failures",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/crm/messages/search": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Perform intelligent full-text search across message text content using PostgreSQL ILIKE pattern matching. Perfect for finding specific conversations, keywords, customer questions, or agent responses within your entire message history.\n\n**Search Capabilities:**\n- Searches through message text content (case-insensitive)\n- Supports partial word matches (e.g., \"refund\" matches \"refunds\", \"refunded\")\n- Works across all message types (customer and agent messages)\n- Searches only text content (media URLs are not searched)\n\n**Match Scoring \u0026 Relevance:**\n- All matches receive a score of 1.0 (simple ILIKE search, no complex scoring)\n- Results ordered by timestamp (newest first) for relevance\n- Match field always returns \"text\" since only text content is searched\n\n**Common Use Cases:**\n- Find all conversations mentioning \"refund\" or \"cancellation\"\n- Search for product names across customer inquiries\n- Locate conversations with specific error codes or reference numbers\n- Find messages containing customer phone numbers or emails\n- Search for competitor mentions in customer conversations\n- Identify conversations with specific keywords for quality assurance\n- Compliance searches for regulated terms or phrases\n\n**Search Examples:**\n- \"order #12345\" - Find messages mentioning specific order numbers\n- \"password reset\" - Find password-related support conversations\n- \"urgent\" or \"emergency\" - Identify high-priority conversations\n- \"@email.com\" - Find messages containing email addresses\n- \"bug\" or \"error\" - Locate technical issue reports\n\n**Performance:**\n- Optimized GORM indexes on tenant_id for fast tenant isolation\n- ILIKE operator uses PostgreSQL's text search capabilities\n- Maximum 100 results to ensure sub-second response times\n- Handles searches across millions of messages efficiently",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "messages"
+                ],
+                "summary": "Full-text search across message content",
+                "parameters": [
+                    {
+                        "minLength": 1,
+                        "type": "string",
+                        "example": "refund request",
+                        "description": "Search query - minimum 1 character, case-insensitive, supports partial matches - Examples: 'refund', 'order #12345', 'password reset', 'urgent'",
+                        "name": "q",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "maximum": 100,
+                        "minimum": 1,
+                        "type": "integer",
+                        "default": 20,
+                        "example": 20,
+                        "description": "Maximum number of results (max 100)",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successfully found matching messages with text excerpts and context",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_caloi_ventros-crm_internal_application_queries.SearchMessagesResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request - Missing or empty search query, or limit exceeds 100",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized - Missing or invalid authentication token",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden - User lacks permission to search this tenant's messages",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error - Database connection errors or search execution failures",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/crm/notes/advanced": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve all notes with comprehensive filtering capabilities. Notes are annotations, comments, and action items added by agents, automation, or the system during customer interactions. Essential for maintaining conversation context, tracking follow-ups, and audit trails.\n\n**Filtering Capabilities:**\n- Filter by contact_id to view all notes for a specific customer\n- Filter by session_id to see notes from a particular conversation\n- Filter by author_id to track notes from specific agents or automation rules\n- Filter by author_type (agent, system, automation) to distinguish note sources\n- Filter by note_type (comment, action, follow-up, escalation, resolution) to organize by purpose\n- Filter by priority (low, medium, high, urgent) for task management\n- Filter by visible_to_client flag to separate internal vs customer-facing notes\n- Filter by pinned flag to identify important or starred notes\n\n**Common Use Cases:**\n- Build contact history timelines with all interactions and annotations\n- Generate session summaries with agent notes and context\n- Track agent activity and note-taking patterns\n- Manage follow-up tasks and action items\n- Identify escalated issues requiring attention\n- Create customer-facing summaries (visible_to_client=true)\n- Audit trail for compliance and quality assurance\n- Filter high-priority notes for urgent follow-ups\n\n**Sorting Options:**\n- Sort by created_at (chronological order)\n- Sort by priority (task prioritization)\n- Ascending or descending order\n\n**Performance:**\n- Optimized GORM indexes on tenant+contact for fast contact note queries\n- Composite indexes on tenant+session for session note retrieval\n- Indexes on tenant+author for agent activity tracking\n- Efficiently handles large note volumes per contact",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "notes"
+                ],
+                "summary": "List notes with advanced filters and pagination",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Filter by contact UUID - Example: 550e8400-e29b-41d4-a716-446655440000",
+                        "name": "contact_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by session UUID - Example: 660e8400-e29b-41d4-a716-446655440001",
+                        "name": "session_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by author (agent/automation) UUID",
+                        "name": "author_id",
+                        "in": "query"
+                    },
+                    {
+                        "enum": [
+                            "agent",
+                            "system",
+                            "automation"
+                        ],
+                        "type": "string",
+                        "example": "agent",
+                        "description": "Filter by author type",
+                        "name": "author_type",
+                        "in": "query"
+                    },
+                    {
+                        "enum": [
+                            "comment",
+                            "action",
+                            "follow-up",
+                            "escalation",
+                            "resolution"
+                        ],
+                        "type": "string",
+                        "example": "follow-up",
+                        "description": "Filter by note purpose",
+                        "name": "note_type",
+                        "in": "query"
+                    },
+                    {
+                        "enum": [
+                            "low",
+                            "medium",
+                            "high",
+                            "urgent"
+                        ],
+                        "type": "string",
+                        "example": "high",
+                        "description": "Filter by priority level",
+                        "name": "priority",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "example": false,
+                        "description": "Filter by client visibility - true: customer-facing notes only",
+                        "name": "visible_to_client",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "example": true,
+                        "description": "Filter by pinned status - true: important/starred notes only",
+                        "name": "pinned",
+                        "in": "query"
+                    },
+                    {
+                        "minimum": 1,
+                        "type": "integer",
+                        "default": 1,
+                        "example": 1,
+                        "description": "Page number for pagination (starts at 1)",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "maximum": 100,
+                        "minimum": 1,
+                        "type": "integer",
+                        "default": 20,
+                        "example": 20,
+                        "description": "Results per page (max 100)",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "enum": [
+                            "created_at",
+                            "priority"
+                        ],
+                        "type": "string",
+                        "default": "created_at",
+                        "example": "created_at",
+                        "description": "Field to sort by",
+                        "name": "sort_by",
+                        "in": "query"
+                    },
+                    {
+                        "enum": [
+                            "asc",
+                            "desc"
+                        ],
+                        "type": "string",
+                        "default": "desc",
+                        "example": "desc",
+                        "description": "Sort direction",
+                        "name": "sort_dir",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successfully retrieved notes with full details",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_caloi_ventros-crm_internal_application_queries.ListNotesResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request - Invalid UUID or parameter format",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized - Authentication required",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden - No access to this tenant's notes",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/crm/notes/search": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Full-text search across note content and author names. Perfect for finding specific annotations, comments, or action items across all customer interactions and conversations.\n\n**Search Capabilities:**\n- Searches note content/body (primary field)\n- Searches author names (secondary field)\n- Case-insensitive ILIKE matching\n\n**Match Scoring:**\n- Content matches: 1.5 score (higher priority)\n- Author name matches: 1.2 score (lower priority)\n\n**Search Examples:**\n- \"follow-up required\" - Find notes about pending follow-ups\n- \"escalated to manager\" - Locate escalation notes\n- \"pricing question\" - Find pricing-related annotations\n- \"technical issue\" - Search for technical problem notes\n- \"João\" - Find notes written by agent João\n- \"urgent\" - Locate urgent action items\n\n**Performance:**\n- Optimized GORM indexes on tenant_id for fast tenant isolation\n- ILIKE operator uses PostgreSQL's text search capabilities\n- Maximum 100 results to ensure sub-second response times",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "notes"
+                ],
+                "summary": "Search notes by content and author",
+                "parameters": [
+                    {
+                        "minLength": 1,
+                        "type": "string",
+                        "example": "follow-up required",
+                        "description": "Search query - content or author name",
+                        "name": "q",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "maximum": 100,
+                        "minimum": 1,
+                        "type": "integer",
+                        "default": 20,
+                        "example": 10,
+                        "description": "Maximum results (max 100)",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Found notes with match scores",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_caloi_ventros-crm_internal_application_queries.SearchNotesResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request - Empty search query",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/crm/pipelines/advanced": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve all pipelines with filtering by project, active status, and color. Pipelines organize contacts into workflow stages with customizable statuses. Essential for sales processes, support tickets, and multi-stage customer journeys.\n\n**Filtering Capabilities:**\n- Filter by project_id to get pipelines for a specific business unit\n- Filter by active status to show/hide archived pipelines\n- Filter by color for UI organization and visual pipeline management\n\n**Common Use Cases:**\n- Load all active pipelines for a project's dashboard\n- Build pipeline selector dropdowns for contact assignment\n- Audit pipeline configuration across projects\n- Identify inactive pipelines for cleanup\n- Generate pipeline reports by color-coded categories\n\n**Performance:**\n- Optimized GORM indexes on tenant+active for fast active pipeline queries\n- Small result sets (typically \u003c 50 pipelines per tenant) for instant responses",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "pipelines"
+                ],
+                "summary": "List pipelines with advanced filters",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "example": "550e8400-e29b-41d4-a716-446655440000",
+                        "description": "Filter by project UUID",
+                        "name": "project_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "example": true,
+                        "description": "Filter by active status - true: only active, false: only inactive",
+                        "name": "active",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "example": "#3B82F6",
+                        "description": "Filter by hex color code - Example: #FF5733, #3B82F6",
+                        "name": "color",
+                        "in": "query"
+                    },
+                    {
+                        "minimum": 1,
+                        "type": "integer",
+                        "default": 1,
+                        "example": 1,
+                        "description": "Page number (starts at 1)",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "maximum": 100,
+                        "minimum": 1,
+                        "type": "integer",
+                        "default": 20,
+                        "example": 20,
+                        "description": "Results per page (max 100)",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "enum": [
+                            "name",
+                            "position",
+                            "created_at"
+                        ],
+                        "type": "string",
+                        "default": "created_at",
+                        "example": "position",
+                        "description": "Sort field",
+                        "name": "sort_by",
+                        "in": "query"
+                    },
+                    {
+                        "enum": [
+                            "asc",
+                            "desc"
+                        ],
+                        "type": "string",
+                        "default": "desc",
+                        "example": "asc",
+                        "description": "Sort direction",
+                        "name": "sort_dir",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successfully retrieved pipelines with full configuration details",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_caloi_ventros-crm_internal_application_queries.ListPipelinesResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request - Invalid UUID or parameter format",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized - Authentication required",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden - No access to this tenant's pipelines",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/crm/pipelines/search": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Full-text search across pipeline names and descriptions. Perfect for finding specific pipelines in large organizations with many workflow configurations.\n\n**Search Capabilities:**\n- Searches pipeline names (primary field)\n- Searches pipeline descriptions (secondary field)\n- Case-insensitive ILIKE matching\n\n**Match Scoring:**\n- Name matches: 1.5 score (higher priority)\n- Description matches: 1.2 score (lower priority)\n\n**Search Examples:**\n- \"sales\" - Find all sales-related pipelines\n- \"support\" - Find customer support workflows\n- \"onboarding\" - Locate onboarding process pipelines",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "pipelines"
+                ],
+                "summary": "Search pipelines by name and description",
+                "parameters": [
+                    {
+                        "minLength": 1,
+                        "type": "string",
+                        "example": "sales pipeline",
+                        "description": "Search query - name or description",
+                        "name": "q",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "maximum": 100,
+                        "minimum": 1,
+                        "type": "integer",
+                        "default": 20,
+                        "example": 10,
+                        "description": "Maximum results (max 100)",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Found pipelines with match scores",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_caloi_ventros-crm_internal_application_queries.SearchPipelinesResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request - Empty search query",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/crm/projects/advanced": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve all projects with filtering by customer and active status. Projects serve as organizational containers that group channels, pipelines, and contacts into business units or departments. Essential for multi-brand organizations and enterprise segmentation.\n\n**Filtering Capabilities:**\n- Filter by customer_id to view all projects for a specific customer account\n- Filter by active status to show/hide archived projects\n\n**Common Use Cases:**\n- Load all active projects for the main dashboard\n- Build project selector dropdowns for channel/pipeline assignment\n- View complete project portfolio for a specific customer\n- Audit project configurations across the organization\n- Identify inactive projects for cleanup and archival\n- Generate project reports and analytics by customer\n\n**Sorting Options:**\n- Sort by name (alphabetical organization)\n- Sort by created_at (chronological order)\n- Ascending or descending order\n\n**Performance:**\n- Optimized GORM indexes on tenant+customer for fast customer project queries\n- Composite indexes on tenant+active for quick active project retrieval\n- Small result sets (typically \u003c 100 projects per tenant) for instant responses",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "projects"
+                ],
+                "summary": "List projects with advanced filters and pagination",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Filter by customer UUID - Example: 550e8400-e29b-41d4-a716-446655440000",
+                        "name": "customer_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "example": true,
+                        "description": "Filter by active status - true: only active, false: only inactive",
+                        "name": "active",
+                        "in": "query"
+                    },
+                    {
+                        "minimum": 1,
+                        "type": "integer",
+                        "default": 1,
+                        "example": 1,
+                        "description": "Page number for pagination (starts at 1)",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "maximum": 100,
+                        "minimum": 1,
+                        "type": "integer",
+                        "default": 20,
+                        "example": 20,
+                        "description": "Results per page (max 100)",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "enum": [
+                            "name",
+                            "created_at"
+                        ],
+                        "type": "string",
+                        "default": "created_at",
+                        "example": "name",
+                        "description": "Field to sort by",
+                        "name": "sort_by",
+                        "in": "query"
+                    },
+                    {
+                        "enum": [
+                            "asc",
+                            "desc"
+                        ],
+                        "type": "string",
+                        "default": "desc",
+                        "example": "asc",
+                        "description": "Sort direction",
+                        "name": "sort_dir",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successfully retrieved projects with full details",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_caloi_ventros-crm_internal_application_queries.ListProjectsResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request - Invalid UUID or parameter format",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized - Authentication required",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden - No access to this tenant's projects",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/crm/projects/search": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Full-text search across project names and descriptions. Perfect for finding specific business units or departments in organizations with many projects.\n\n**Search Capabilities:**\n- Searches project names (primary field)\n- Searches project descriptions (secondary field)\n- Case-insensitive ILIKE matching\n\n**Match Scoring:**\n- Name matches: 1.5 score (higher priority)\n- Description matches: 1.2 score (lower priority)\n\n**Search Examples:**\n- \"sales\" - Find all sales-related projects\n- \"support\" - Find customer support departments\n- \"Q1 2024\" - Locate quarterly projects\n- \"EMEA\" - Find regional projects",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "projects"
+                ],
+                "summary": "Search projects by name and description",
+                "parameters": [
+                    {
+                        "minLength": 1,
+                        "type": "string",
+                        "example": "sales project",
+                        "description": "Search query - name or description",
+                        "name": "q",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "maximum": 100,
+                        "minimum": 1,
+                        "type": "integer",
+                        "default": 20,
+                        "example": 10,
+                        "description": "Maximum results (max 100)",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Found projects with match scores",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_caloi_ventros-crm_internal_application_queries.SearchProjectsResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request - Empty search query",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/crm/sessions/advanced": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve a paginated list of sessions with advanced filtering capabilities including contact, pipeline, status, sentiment, and resolution flags. Supports sorting and pagination for efficient data retrieval. Perfect for building session dashboards and reports.\n\n**Filtering Options:**\n- Filter by contact to see all sessions for a specific customer\n- Filter by pipeline to analyze sessions in a specific workflow\n- Filter by status (active/ended) to focus on ongoing or completed sessions\n- Filter by sentiment (positive/negative/neutral) for customer satisfaction analysis\n- Filter by resolved/escalated/converted flags for outcome tracking\n- Filter by date range to analyze sessions within specific time periods\n- Filter by message count range to find short or long conversations\n\n**Sorting Options:**\n- Sort by started_at, ended_at, message_count, or duration\n- Ascending or descending order\n\n**Performance:**\n- Optimized with composite GORM indexes on tenant+status, tenant+contact, tenant+pipeline\n- GIN indexes on JSONB fields (agent_ids, topics, outcome_tags) for fast array searches\n- Pagination prevents large result sets\n- Maximum 100 results per page",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "sessions"
+                ],
+                "summary": "List sessions with advanced filters and pagination",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Filter by contact UUID - Example: 550e8400-e29b-41d4-a716-446655440000",
+                        "name": "contact_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by pipeline UUID - Example: 660e8400-e29b-41d4-a716-446655440001",
+                        "name": "pipeline_id",
+                        "in": "query"
+                    },
+                    {
+                        "enum": [
+                            "active",
+                            "ended"
+                        ],
+                        "type": "string",
+                        "example": "active",
+                        "description": "Filter by session status",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "enum": [
+                            "positive",
+                            "negative",
+                            "neutral"
+                        ],
+                        "type": "string",
+                        "example": "positive",
+                        "description": "Filter by detected sentiment",
+                        "name": "sentiment",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "example": true,
+                        "description": "Filter by resolved flag - true: only resolved sessions, false: only unresolved",
+                        "name": "resolved",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "example": false,
+                        "description": "Filter by escalated flag - true: only escalated sessions",
+                        "name": "escalated",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "example": true,
+                        "description": "Filter by converted flag - true: sessions that led to conversions",
+                        "name": "converted",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "example": "2024-01-01T00:00:00Z",
+                        "description": "Filter sessions started after this timestamp - Format: 2006-01-02T15:04:05Z",
+                        "name": "started_after",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "example": "2024-12-31T23:59:59Z",
+                        "description": "Filter sessions started before this timestamp",
+                        "name": "started_before",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "example": 5,
+                        "description": "Minimum number of messages in session - Example: 5",
+                        "name": "min_messages",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "example": 100,
+                        "description": "Maximum number of messages in session - Example: 100",
+                        "name": "max_messages",
+                        "in": "query"
+                    },
+                    {
+                        "minimum": 1,
+                        "type": "integer",
+                        "default": 1,
+                        "example": 1,
+                        "description": "Page number for pagination (starts at 1)",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "maximum": 100,
+                        "minimum": 1,
+                        "type": "integer",
+                        "default": 20,
+                        "example": 20,
+                        "description": "Number of results per page (max 100)",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "enum": [
+                            "started_at",
+                            "ended_at",
+                            "message_count",
+                            "duration_seconds",
+                            "created_at"
+                        ],
+                        "type": "string",
+                        "default": "started_at",
+                        "example": "started_at",
+                        "description": "Field to sort by",
+                        "name": "sort_by",
+                        "in": "query"
+                    },
+                    {
+                        "enum": [
+                            "asc",
+                            "desc"
+                        ],
+                        "type": "string",
+                        "default": "desc",
+                        "example": "desc",
+                        "description": "Sort direction",
+                        "name": "sort_dir",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successfully retrieved sessions with pagination metadata",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_caloi_ventros-crm_internal_application_queries.ListSessionsResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request - Invalid parameters (e.g., invalid UUID format, invalid page number, limit exceeds maximum)",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized - Missing or invalid authentication token",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden - User doesn't have permission to access this tenant's sessions",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error - Database connection issues or unexpected errors",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/crm/sessions/search": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Perform intelligent full-text search across session summaries, topics, key entities, next steps, and outcome tags. Uses PostgreSQL ILIKE for case-insensitive pattern matching with relevance scoring.\n\n**Search Capabilities:**\n- Searches across session summary text (AI-generated conversation summaries)\n- Searches through detected topics (array of conversation topics)\n- Searches through outcome tags (categorization tags added at session end)\n- Searches through key entities (people, products, companies mentioned)\n- Searches through next steps (action items identified in conversation)\n\n**Match Scoring:**\n- Summary matches: 2.0 score (highest priority - main content)\n- Topics matches: 1.5 score (high priority - categorization)\n- Outcome tags matches: 1.3 score (medium priority - resolution info)\n- Key entities/next steps matches: 1.0 score (standard priority)\n\n**Search Examples:**\n- Search for \"refund\" to find all sessions where refunds were discussed\n- Search for \"escalated\" to find problematic sessions\n- Search for \"product-demo\" to find sessions with demo requests\n- Search for customer/company names mentioned in conversations\n\n**Performance:**\n- Optimized with GIN indexes on JSONB fields (topics, outcome_tags, key_entities)\n- Results ordered by match score (highest relevance first)\n- Maximum 100 results to ensure fast response times",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "sessions"
+                ],
+                "summary": "Full-text search across sessions",
+                "parameters": [
+                    {
+                        "minLength": 1,
+                        "type": "string",
+                        "example": "refund request",
+                        "description": "Search query - minimum 1 character, case-insensitive - Example: 'refund request' or 'product-demo' or 'escalated'",
+                        "name": "q",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "maximum": 100,
+                        "minimum": 1,
+                        "type": "integer",
+                        "default": 20,
+                        "example": 20,
+                        "description": "Maximum number of results to return (max 100)",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successfully found matching sessions with relevance scores and matched fields",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_caloi_ventros-crm_internal_application_queries.SearchSessionsResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request - Missing or invalid search query, limit exceeds maximum",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized - Missing or invalid authentication token",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden - User doesn't have permission to search this tenant's sessions",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error - Database connection issues or search execution errors",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/domain-events": {
             "get": {
                 "description": "Lista todos os eventos de domínio disparados em um projeto",
@@ -2490,7 +4702,7 @@ const docTemplate = `{
         },
         "/api/v1/messages": {
             "get": {
-                "description": "Lista mensagens com filtros opcionais",
+                "description": "List messages with optional filters",
                 "produces": [
                     "application/json"
                 ],
@@ -2572,7 +4784,7 @@ const docTemplate = `{
                 }
             },
             "post": {
-                "description": "Cria uma nova mensagem",
+                "description": "Create a new message",
                 "consumes": [
                     "application/json"
                 ],
@@ -2619,9 +4831,113 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/messages/confirm-delivery": {
+            "post": {
+                "description": "Confirm delivery, reading or failure of a sent message",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "messages"
+                ],
+                "summary": "Confirm message delivery",
+                "parameters": [
+                    {
+                        "description": "Delivery confirmation data",
+                        "name": "confirmation",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/infrastructure_http_handlers.ConfirmMessageDeliveryRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Message status updated successfully",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Message not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/messages/send": {
+            "post": {
+                "description": "Send a message to a contact via specific channel",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "messages"
+                ],
+                "summary": "Send message",
+                "parameters": [
+                    {
+                        "description": "Message data",
+                        "name": "message",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/infrastructure_http_handlers.SendMessageRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Message sent successfully",
+                        "schema": {
+                            "$ref": "#/definitions/infrastructure_http_handlers.SendMessageResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/messages/{id}": {
             "get": {
-                "description": "Obtém detalhes de uma mensagem específica",
+                "description": "Get details of a specific message",
                 "produces": [
                     "application/json"
                 ],
@@ -2670,7 +4986,7 @@ const docTemplate = `{
                 }
             },
             "put": {
-                "description": "Atualiza uma mensagem existente",
+                "description": "Update an existing message",
                 "consumes": [
                     "application/json"
                 ],
@@ -2731,7 +5047,7 @@ const docTemplate = `{
                 }
             },
             "delete": {
-                "description": "Remove uma mensagem (soft delete)",
+                "description": "Remove a message (soft delete)",
                 "produces": [
                     "application/json"
                 ],
@@ -3721,7 +6037,7 @@ const docTemplate = `{
         },
         "/api/v1/sessions/{session_id}/messages": {
             "get": {
-                "description": "Obtém todas as mensagens de uma sessão específica",
+                "description": "Get all messages from a specific session",
                 "produces": [
                     "application/json"
                 ],
@@ -4318,9 +6634,9 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/webhooks/waha": {
+        "/api/v1/webhooks/info": {
             "get": {
-                "description": "Retorna informações sobre o endpoint de webhook WAHA",
+                "description": "Retorna informações sobre o endpoint de webhook (padrão indústria)",
                 "produces": [
                     "application/json"
                 ],
@@ -4339,9 +6655,9 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/webhooks/waha/{session}": {
+        "/api/v1/webhooks/{webhook_id}": {
             "post": {
-                "description": "Recebe eventos de webhook do WAHA (mensagens, chamadas, etc.)",
+                "description": "Recebe eventos de webhook do WAHA usando ID único do webhook (padrão indústria)",
                 "consumes": [
                     "application/json"
                 ],
@@ -4355,8 +6671,8 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Session ID",
-                        "name": "session",
+                        "description": "Webhook ID único",
+                        "name": "webhook_id",
                         "in": "path",
                         "required": true
                     }
@@ -4376,8 +6692,95 @@ const docTemplate = `{
                             "additionalProperties": true
                         }
                     },
+                    "404": {
+                        "description": "Webhook not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
                     "500": {
                         "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/ws/messages": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Establishes WebSocket connection for bi-directional real-time messaging",
+                "tags": [
+                    "websocket"
+                ],
+                "summary": "WebSocket connection for real-time messages",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Authentication token (alternative to Bearer header)",
+                        "name": "token",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "101": {
+                        "description": "Switching Protocols - WebSocket connection established"
+                    },
+                    "401": {
+                        "description": "Unauthorized - invalid or missing token",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden - origin not allowed",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/ws/stats": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns current WebSocket connection statistics",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "websocket"
+                ],
+                "summary": "WebSocket statistics",
+                "responses": {
+                    "200": {
+                        "description": "OK",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -4958,6 +7361,650 @@ const docTemplate = `{
                 }
             }
         },
+        "github_com_caloi_ventros-crm_internal_application_queries.AgentDTO": {
+            "type": "object",
+            "properties": {
+                "active": {
+                    "type": "boolean"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_caloi_ventros-crm_internal_application_queries.AgentSearchResultDTO": {
+            "type": "object",
+            "properties": {
+                "active": {
+                    "type": "boolean"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "match_field": {
+                    "type": "string"
+                },
+                "match_score": {
+                    "type": "number"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_caloi_ventros-crm_internal_application_queries.ListAgentsResponse": {
+            "type": "object",
+            "properties": {
+                "agents": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_caloi_ventros-crm_internal_application_queries.AgentDTO"
+                    }
+                },
+                "limit": {
+                    "type": "integer"
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "totalCount": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "totalPages": {
+                    "type": "integer"
+                }
+            }
+        },
+        "github_com_caloi_ventros-crm_internal_application_queries.ListMessageDTO": {
+            "type": "object",
+            "properties": {
+                "agent_id": {
+                    "type": "string"
+                },
+                "channel_id": {
+                    "type": "string"
+                },
+                "contact_id": {
+                    "type": "string"
+                },
+                "content_type": {
+                    "type": "string"
+                },
+                "from_me": {
+                    "type": "boolean"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "media_url": {
+                    "type": "string"
+                },
+                "metadata": {
+                    "type": "object",
+                    "additionalProperties": true
+                },
+                "session_id": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "text": {
+                    "type": "string"
+                },
+                "timestamp": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_caloi_ventros-crm_internal_application_queries.ListMessagesResponse": {
+            "type": "object",
+            "properties": {
+                "limit": {
+                    "type": "integer"
+                },
+                "messages": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_caloi_ventros-crm_internal_application_queries.ListMessageDTO"
+                    }
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "totalCount": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "totalPages": {
+                    "type": "integer"
+                }
+            }
+        },
+        "github_com_caloi_ventros-crm_internal_application_queries.ListNotesResponse": {
+            "type": "object",
+            "properties": {
+                "limit": {
+                    "type": "integer"
+                },
+                "notes": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_caloi_ventros-crm_internal_application_queries.NoteDTO"
+                    }
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "totalCount": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "totalPages": {
+                    "type": "integer"
+                }
+            }
+        },
+        "github_com_caloi_ventros-crm_internal_application_queries.ListPipelinesResponse": {
+            "type": "object",
+            "properties": {
+                "limit": {
+                    "type": "integer"
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "pipelines": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_caloi_ventros-crm_internal_application_queries.PipelineDTO"
+                    }
+                },
+                "totalCount": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "totalPages": {
+                    "type": "integer"
+                }
+            }
+        },
+        "github_com_caloi_ventros-crm_internal_application_queries.ListProjectsResponse": {
+            "type": "object",
+            "properties": {
+                "limit": {
+                    "type": "integer"
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "projects": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_caloi_ventros-crm_internal_application_queries.ProjectDTO"
+                    }
+                },
+                "totalCount": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "totalPages": {
+                    "type": "integer"
+                }
+            }
+        },
+        "github_com_caloi_ventros-crm_internal_application_queries.ListSessionsResponse": {
+            "type": "object",
+            "properties": {
+                "limit": {
+                    "type": "integer"
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "sessions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_caloi_ventros-crm_internal_application_queries.SessionDTO"
+                    }
+                },
+                "totalCount": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "totalPages": {
+                    "type": "integer"
+                }
+            }
+        },
+        "github_com_caloi_ventros-crm_internal_application_queries.MessageSearchResultDTO": {
+            "type": "object",
+            "properties": {
+                "contact_id": {
+                    "type": "string"
+                },
+                "content_type": {
+                    "type": "string"
+                },
+                "from_me": {
+                    "type": "boolean"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "match_score": {
+                    "type": "number"
+                },
+                "text": {
+                    "type": "string"
+                },
+                "timestamp": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_caloi_ventros-crm_internal_application_queries.NoteDTO": {
+            "type": "object",
+            "properties": {
+                "author_id": {
+                    "type": "string"
+                },
+                "author_name": {
+                    "type": "string"
+                },
+                "author_type": {
+                    "type": "string"
+                },
+                "contact_id": {
+                    "type": "string"
+                },
+                "content": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "note_type": {
+                    "type": "string"
+                },
+                "pinned": {
+                    "type": "boolean"
+                },
+                "priority": {
+                    "type": "string"
+                },
+                "session_id": {
+                    "type": "string"
+                },
+                "tags": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "visible_to_client": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "github_com_caloi_ventros-crm_internal_application_queries.NoteSearchResultDTO": {
+            "type": "object",
+            "properties": {
+                "author_name": {
+                    "type": "string"
+                },
+                "contact_id": {
+                    "type": "string"
+                },
+                "content": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "match_field": {
+                    "type": "string"
+                },
+                "match_score": {
+                    "type": "number"
+                },
+                "note_type": {
+                    "type": "string"
+                },
+                "pinned": {
+                    "type": "boolean"
+                },
+                "priority": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_caloi_ventros-crm_internal_application_queries.PipelineDTO": {
+            "type": "object",
+            "properties": {
+                "active": {
+                    "type": "boolean"
+                },
+                "color": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "position": {
+                    "type": "integer"
+                },
+                "project_id": {
+                    "type": "string"
+                },
+                "session_timeout_minutes": {
+                    "type": "integer"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_caloi_ventros-crm_internal_application_queries.PipelineSearchResultDTO": {
+            "type": "object",
+            "properties": {
+                "active": {
+                    "type": "boolean"
+                },
+                "color": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "match_field": {
+                    "type": "string"
+                },
+                "match_score": {
+                    "type": "number"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_caloi_ventros-crm_internal_application_queries.ProjectDTO": {
+            "type": "object",
+            "properties": {
+                "active": {
+                    "type": "boolean"
+                },
+                "billing_account_id": {
+                    "type": "string"
+                },
+                "configuration": {
+                    "type": "object",
+                    "additionalProperties": true
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "customer_id": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "session_timeout_minutes": {
+                    "type": "integer"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_caloi_ventros-crm_internal_application_queries.ProjectSearchResultDTO": {
+            "type": "object",
+            "properties": {
+                "active": {
+                    "type": "boolean"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "match_field": {
+                    "type": "string"
+                },
+                "match_score": {
+                    "type": "number"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_caloi_ventros-crm_internal_application_queries.SearchAgentsResponse": {
+            "type": "object",
+            "properties": {
+                "agents": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_caloi_ventros-crm_internal_application_queries.AgentSearchResultDTO"
+                    }
+                },
+                "count": {
+                    "type": "integer"
+                }
+            }
+        },
+        "github_com_caloi_ventros-crm_internal_application_queries.SearchMessagesResponse": {
+            "type": "object",
+            "properties": {
+                "count": {
+                    "type": "integer"
+                },
+                "messages": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_caloi_ventros-crm_internal_application_queries.MessageSearchResultDTO"
+                    }
+                }
+            }
+        },
+        "github_com_caloi_ventros-crm_internal_application_queries.SearchNotesResponse": {
+            "type": "object",
+            "properties": {
+                "count": {
+                    "type": "integer"
+                },
+                "notes": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_caloi_ventros-crm_internal_application_queries.NoteSearchResultDTO"
+                    }
+                }
+            }
+        },
+        "github_com_caloi_ventros-crm_internal_application_queries.SearchPipelinesResponse": {
+            "type": "object",
+            "properties": {
+                "count": {
+                    "type": "integer"
+                },
+                "pipelines": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_caloi_ventros-crm_internal_application_queries.PipelineSearchResultDTO"
+                    }
+                }
+            }
+        },
+        "github_com_caloi_ventros-crm_internal_application_queries.SearchProjectsResponse": {
+            "type": "object",
+            "properties": {
+                "count": {
+                    "type": "integer"
+                },
+                "projects": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_caloi_ventros-crm_internal_application_queries.ProjectSearchResultDTO"
+                    }
+                }
+            }
+        },
+        "github_com_caloi_ventros-crm_internal_application_queries.SearchSessionsResponse": {
+            "type": "object",
+            "properties": {
+                "count": {
+                    "type": "integer"
+                },
+                "sessions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_caloi_ventros-crm_internal_application_queries.SessionSearchResultDTO"
+                    }
+                }
+            }
+        },
+        "github_com_caloi_ventros-crm_internal_application_queries.SessionDTO": {
+            "type": "object",
+            "properties": {
+                "contact_id": {
+                    "type": "string"
+                },
+                "converted": {
+                    "type": "boolean"
+                },
+                "duration_seconds": {
+                    "type": "integer"
+                },
+                "ended_at": {
+                    "type": "string"
+                },
+                "escalated": {
+                    "type": "boolean"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "message_count": {
+                    "type": "integer"
+                },
+                "messages_from_agent": {
+                    "type": "integer"
+                },
+                "messages_from_contact": {
+                    "type": "integer"
+                },
+                "outcome_tags": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "pipeline_id": {
+                    "type": "string"
+                },
+                "resolved": {
+                    "type": "boolean"
+                },
+                "sentiment": {
+                    "type": "string"
+                },
+                "started_at": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "summary": {
+                    "type": "string"
+                },
+                "topics": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "github_com_caloi_ventros-crm_internal_application_queries.SessionSearchResultDTO": {
+            "type": "object",
+            "properties": {
+                "contact_id": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "match_field": {
+                    "type": "string"
+                },
+                "match_score": {
+                    "type": "number"
+                },
+                "message_count": {
+                    "type": "integer"
+                },
+                "started_at": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "summary": {
+                    "type": "string"
+                },
+                "topics": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
         "github_com_caloi_ventros-crm_internal_application_tracking.DecodeTrackingRequest": {
             "type": "object",
             "required": [
@@ -5126,21 +8173,27 @@ const docTemplate = `{
                 "active",
                 "closed"
             ],
-            "x-enum-comments": {
-                "StatusTypeActive": "Status ativo/em progresso",
-                "StatusTypeClosed": "Status fechado/finalizado",
-                "StatusTypeOpen": "Status inicial/aberto"
-            },
-            "x-enum-descriptions": [
-                "Status inicial/aberto",
-                "Status ativo/em progresso",
-                "Status fechado/finalizado"
-            ],
             "x-enum-varnames": [
                 "StatusTypeOpen",
                 "StatusTypeActive",
                 "StatusTypeClosed"
             ]
+        },
+        "infrastructure_http_handlers.AddParticipantRequest": {
+            "type": "object",
+            "required": [
+                "participant_id",
+                "participant_type"
+            ],
+            "properties": {
+                "participant_id": {
+                    "type": "string"
+                },
+                "participant_type": {
+                    "type": "string",
+                    "example": "agent"
+                }
+            }
         },
         "infrastructure_http_handlers.ChangeContactStatusRequest": {
             "type": "object",
@@ -5196,6 +8249,38 @@ const docTemplate = `{
                 "base_url": {
                     "type": "string",
                     "example": "https://api.ventros.com"
+                }
+            }
+        },
+        "infrastructure_http_handlers.ConfirmMessageDeliveryRequest": {
+            "type": "object",
+            "required": [
+                "external_id",
+                "status"
+            ],
+            "properties": {
+                "delivered_at": {
+                    "type": "string",
+                    "example": "2025-10-09T10:30:00Z"
+                },
+                "external_id": {
+                    "type": "string",
+                    "example": "wamid.123456"
+                },
+                "failure_reason": {
+                    "type": "string",
+                    "example": "Message expired"
+                },
+                "message_id": {
+                    "type": "string"
+                },
+                "read_at": {
+                    "type": "string",
+                    "example": "2025-10-09T10:35:00Z"
+                },
+                "status": {
+                    "type": "string",
+                    "example": "delivered"
                 }
             }
         },
@@ -5264,9 +8349,21 @@ const docTemplate = `{
                 "type"
             ],
             "properties": {
+                "allow_groups": {
+                    "type": "boolean",
+                    "example": false
+                },
                 "name": {
                     "type": "string",
                     "example": "WhatsApp Principal"
+                },
+                "session_timeout_minutes": {
+                    "type": "integer",
+                    "example": 30
+                },
+                "tracking_enabled": {
+                    "type": "boolean",
+                    "example": true
                 },
                 "type": {
                     "type": "string",
@@ -5274,6 +8371,28 @@ const docTemplate = `{
                 },
                 "waha_config": {
                     "$ref": "#/definitions/infrastructure_http_handlers.CreateWAHAConfigRequest"
+                }
+            }
+        },
+        "infrastructure_http_handlers.CreateChatRequest": {
+            "type": "object",
+            "required": [
+                "chat_type"
+            ],
+            "properties": {
+                "chat_type": {
+                    "type": "string",
+                    "example": "individual"
+                },
+                "contact_id": {
+                    "type": "string"
+                },
+                "creator_id": {
+                    "type": "string"
+                },
+                "subject": {
+                    "type": "string",
+                    "example": "Team Discussion"
                 }
             }
         },
@@ -5554,7 +8673,6 @@ const docTemplate = `{
             ],
             "properties": {
                 "api_key": {
-                    "description": "Chave da API para autenticação",
                     "type": "string",
                     "example": "your-waha-api-key"
                 },
@@ -5563,12 +8681,10 @@ const docTemplate = `{
                     "example": "http://localhost:3000"
                 },
                 "session_id": {
-                    "description": "ID da sessão (equivale ao ExternalID)",
                     "type": "string",
                     "example": "default"
                 },
                 "token": {
-                    "description": "Token de acesso (alternativo)",
                     "type": "string",
                     "example": "your-waha-token"
                 },
@@ -5685,12 +8801,10 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "limit": {
-                    "description": "Número de mensagens por chat (0 = todas)",
                     "type": "integer",
                     "example": 100
                 },
                 "strategy": {
-                    "description": "\"all\", \"recent\", \"custom\"",
                     "type": "string",
                     "example": "recent"
                 }
@@ -5724,6 +8838,67 @@ const docTemplate = `{
                     "items": {
                         "type": "string"
                     }
+                }
+            }
+        },
+        "infrastructure_http_handlers.SendMessageRequest": {
+            "type": "object",
+            "required": [
+                "channel_id",
+                "contact_id",
+                "content_type"
+            ],
+            "properties": {
+                "channel_id": {
+                    "type": "string",
+                    "example": "550e8400-e29b-41d4-a716-446655440001"
+                },
+                "contact_id": {
+                    "type": "string",
+                    "example": "550e8400-e29b-41d4-a716-446655440000"
+                },
+                "content_type": {
+                    "type": "string",
+                    "example": "text"
+                },
+                "media_url": {
+                    "type": "string",
+                    "example": "https://example.com/image.jpg"
+                },
+                "metadata": {
+                    "type": "object",
+                    "additionalProperties": true
+                },
+                "reply_to_id": {
+                    "type": "string"
+                },
+                "text": {
+                    "type": "string",
+                    "example": "Hello, how can I help you?"
+                }
+            }
+        },
+        "infrastructure_http_handlers.SendMessageResponse": {
+            "type": "object",
+            "properties": {
+                "error": {
+                    "type": "string"
+                },
+                "external_id": {
+                    "type": "string",
+                    "example": "wamid.123456"
+                },
+                "message_id": {
+                    "type": "string",
+                    "example": "550e8400-e29b-41d4-a716-446655440002"
+                },
+                "sent_at": {
+                    "type": "string",
+                    "example": "2025-10-09T10:30:00Z"
+                },
+                "status": {
+                    "type": "string",
+                    "example": "sent"
                 }
             }
         },
@@ -5927,6 +9102,18 @@ const docTemplate = `{
                 },
                 "name": {
                     "type": "string"
+                }
+            }
+        },
+        "infrastructure_http_handlers.UpdateSubjectRequest": {
+            "type": "object",
+            "required": [
+                "subject"
+            ],
+            "properties": {
+                "subject": {
+                    "type": "string",
+                    "example": "New Team Discussion"
                 }
             }
         },

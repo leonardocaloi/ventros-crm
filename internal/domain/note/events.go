@@ -7,7 +7,6 @@ import (
 	"github.com/google/uuid"
 )
 
-// NoteAddedEvent é disparado quando uma nota é adicionada
 type NoteAddedEvent struct {
 	shared.BaseEvent
 	NoteID     uuid.UUID
@@ -46,7 +45,6 @@ func (e NoteAddedEvent) AggregateID() uuid.UUID {
 	return e.NoteID
 }
 
-// NoteUpdatedEvent é disparado quando uma nota é atualizada
 type NoteUpdatedEvent struct {
 	shared.BaseEvent
 	NoteID     uuid.UUID
@@ -77,7 +75,6 @@ func (e NoteUpdatedEvent) AggregateID() uuid.UUID {
 	return e.NoteID
 }
 
-// NoteDeletedEvent é disparado quando uma nota é deletada
 type NoteDeletedEvent struct {
 	shared.BaseEvent
 	NoteID    uuid.UUID
@@ -104,7 +101,6 @@ func (e NoteDeletedEvent) AggregateID() uuid.UUID {
 	return e.NoteID
 }
 
-// NotePinnedEvent é disparado quando uma nota é fixada
 type NotePinnedEvent struct {
 	shared.BaseEvent
 	NoteID    uuid.UUID

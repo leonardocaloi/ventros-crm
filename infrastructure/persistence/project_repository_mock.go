@@ -30,3 +30,11 @@ func (r *MockProjectRepository) FindByTenantID(ctx context.Context, tenantID str
 func (r *MockProjectRepository) FindByCustomer(ctx context.Context, customerID uuid.UUID) ([]*project.Project, error) {
 	return nil, fmt.Errorf("not implemented")
 }
+
+func (r *MockProjectRepository) FindByTenantWithFilters(ctx context.Context, filters project.ProjectFilters) ([]*project.Project, int64, error) {
+	return nil, 0, fmt.Errorf("not implemented")
+}
+
+func (r *MockProjectRepository) SearchByText(ctx context.Context, tenantID string, searchText string, limit int, offset int) ([]*project.Project, int64, error) {
+	return nil, 0, fmt.Errorf("not implemented")
+}

@@ -8,18 +8,15 @@ import (
 	"github.com/google/uuid"
 )
 
-// ContactCustomField é uma entidade que persiste campos customizados do contato.
-// É uma entidade (não Value Object) porque tem ID próprio e ciclo de vida independente.
 type ContactCustomField struct {
 	id          uuid.UUID
 	contactID   uuid.UUID
 	tenantID    string
-	customField *shared.CustomField // Value Object encapsulado
+	customField *shared.CustomField
 	createdAt   time.Time
 	updatedAt   time.Time
 }
 
-// NewContactCustomField cria um novo campo customizado para um contato.
 func NewContactCustomField(
 	contactID uuid.UUID,
 	tenantID string,
@@ -46,7 +43,6 @@ func NewContactCustomField(
 	}, nil
 }
 
-// ReconstructContactCustomField reconstrói a partir de dados persistidos.
 func ReconstructContactCustomField(
 	id uuid.UUID,
 	contactID uuid.UUID,
@@ -65,13 +61,11 @@ func ReconstructContactCustomField(
 	}
 }
 
-// UpdateValue atualiza o valor do campo.
 func (ccf *ContactCustomField) UpdateValue(newField *shared.CustomField) error {
 	if newField == nil {
 		return errors.New("new field cannot be nil")
 	}
 
-	// Validar que mantém a mesma chave e tipo
 	if ccf.customField.Key() != newField.Key() {
 		return errors.New("cannot change field key")
 	}
@@ -84,7 +78,6 @@ func (ccf *ContactCustomField) UpdateValue(newField *shared.CustomField) error {
 	return nil
 }
 
-// Getters
 func (ccf *ContactCustomField) ID() uuid.UUID                    { return ccf.id }
 func (ccf *ContactCustomField) ContactID() uuid.UUID             { return ccf.contactID }
 func (ccf *ContactCustomField) TenantID() string                 { return ccf.tenantID }

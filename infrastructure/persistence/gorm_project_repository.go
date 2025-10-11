@@ -62,20 +62,11 @@ func (r *GormProjectRepository) FindByTenantID(ctx context.Context, tenantID str
 	return r.entityToDomain(&entity)
 }
 
-// FindByCustomerID finds projects by customer ID
-func (r *GormProjectRepository) FindByCustomerID(ctx context.Context, customerID uuid.UUID, limit, offset int) ([]*project.Project, error) {
+// FindByCustomer finds projects by customer ID (implements interface method)
+func (r *GormProjectRepository) FindByCustomer(ctx context.Context, customerID uuid.UUID) ([]*project.Project, error) {
 	var entities []entities.ProjectEntity
 
-	query := r.db.WithContext(ctx).Where("user_id = ?", customerID)
-
-	if limit > 0 {
-		query = query.Limit(limit)
-	}
-	if offset > 0 {
-		query = query.Offset(offset)
-	}
-
-	err := query.Find(&entities).Error
+	err := r.db.WithContext(ctx).Where("user_id = ?", customerID).Find(&entities).Error
 	if err != nil {
 		return nil, fmt.Errorf("failed to find projects by customer ID: %w", err)
 	}
@@ -168,4 +159,109 @@ func (r *GormProjectRepository) entityToDomain(entity *entities.ProjectEntity) (
 		entity.CreatedAt,
 		entity.UpdatedAt,
 	), nil
+}
+
+func (r *GormProjectRepository) FindByTenantWithFilters(ctx context.Context, filters project.ProjectFilters) ([]*project.Project, int64, error) {
+	query := r.db.WithContext(ctx).Model(&entities.ProjectEntity{})
+
+	// Apply tenant filter (required)
+	query = query.Where("tenant_id = ?", filters.TenantID)
+
+	// Apply optional filters
+	if filters.CustomerID != nil {
+		query = query.Where("user_id = ?", *filters.CustomerID)
+	}
+	if filters.Active != nil {
+		query = query.Where("active = ?", *filters.Active)
+	}
+
+	// Count total results
+	var total int64
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	// Apply sorting
+	sortBy := "name"
+	if filters.SortBy != "" {
+		sortBy = filters.SortBy
+	}
+	sortOrder := "ASC"
+	if filters.SortOrder == "desc" {
+		sortOrder = "DESC"
+	}
+	query = query.Order(sortBy + " " + sortOrder)
+
+	// Apply pagination
+	if filters.Limit > 0 {
+		query = query.Limit(filters.Limit)
+	}
+	if filters.Offset > 0 {
+		query = query.Offset(filters.Offset)
+	}
+
+	// Execute query
+	var projectEntities []entities.ProjectEntity
+	if err := query.Find(&projectEntities).Error; err != nil {
+		return nil, 0, err
+	}
+
+	// Convert to domain
+	projects := make([]*project.Project, len(projectEntities))
+	for i, entity := range projectEntities {
+		proj, err := r.entityToDomain(&entity)
+		if err != nil {
+			return nil, 0, fmt.Errorf("failed to convert entity to domain: %w", err)
+		}
+		projects[i] = proj
+	}
+
+	return projects, total, nil
+}
+
+func (r *GormProjectRepository) SearchByText(ctx context.Context, tenantID string, searchText string, limit int, offset int) ([]*project.Project, int64, error) {
+	query := r.db.WithContext(ctx).Model(&entities.ProjectEntity{})
+
+	// Apply tenant filter
+	query = query.Where("tenant_id = ?", tenantID)
+
+	// Text search in name and description
+	searchPattern := "%" + searchText + "%"
+	query = query.Where(
+		r.db.Where("name ILIKE ?", searchPattern).
+			Or("description ILIKE ?", searchPattern),
+	)
+
+	// Count total results
+	var total int64
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	// Apply pagination and sorting
+	query = query.Order("name ASC")
+	if limit > 0 {
+		query = query.Limit(limit)
+	}
+	if offset > 0 {
+		query = query.Offset(offset)
+	}
+
+	// Execute query
+	var projectEntities []entities.ProjectEntity
+	if err := query.Find(&projectEntities).Error; err != nil {
+		return nil, 0, err
+	}
+
+	// Convert to domain
+	projects := make([]*project.Project, len(projectEntities))
+	for i, entity := range projectEntities {
+		proj, err := r.entityToDomain(&entity)
+		if err != nil {
+			return nil, 0, fmt.Errorf("failed to convert entity to domain: %w", err)
+		}
+		projects[i] = proj
+	}
+
+	return projects, total, nil
 }

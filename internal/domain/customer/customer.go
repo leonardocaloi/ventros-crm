@@ -7,7 +7,6 @@ import (
 	"github.com/google/uuid"
 )
 
-// Customer é o Aggregate Root para organizações/empresas.
 type Customer struct {
 	id        uuid.UUID
 	name      string
@@ -20,7 +19,6 @@ type Customer struct {
 	events []DomainEvent
 }
 
-// NewCustomer cria um novo cliente.
 func NewCustomer(name, email string) (*Customer, error) {
 	if name == "" {
 		return nil, errors.New("name cannot be empty")
@@ -51,7 +49,6 @@ func NewCustomer(name, email string) (*Customer, error) {
 	return customer, nil
 }
 
-// ReconstructCustomer reconstrói um Customer a partir de dados persistidos.
 func ReconstructCustomer(
 	id uuid.UUID,
 	name string,
@@ -77,7 +74,6 @@ func ReconstructCustomer(
 	}
 }
 
-// Activate ativa o cliente.
 func (c *Customer) Activate() error {
 	if c.status == StatusActive {
 		return nil
@@ -94,7 +90,6 @@ func (c *Customer) Activate() error {
 	return nil
 }
 
-// Suspend suspende o cliente.
 func (c *Customer) Suspend() error {
 	if c.status == StatusSuspended {
 		return nil
@@ -111,30 +106,26 @@ func (c *Customer) Suspend() error {
 	return nil
 }
 
-// UpdateSettings atualiza as configurações do cliente.
 func (c *Customer) UpdateSettings(settings map[string]interface{}) {
 	c.settings = settings
 	c.updatedAt = time.Now()
 }
 
-// GetSetting retorna uma configuração específica.
 func (c *Customer) GetSetting(key string) (interface{}, bool) {
 	val, ok := c.settings[key]
 	return val, ok
 }
 
-// IsActive verifica se o cliente está ativo.
 func (c *Customer) IsActive() bool {
 	return c.status == StatusActive
 }
 
-// Getters
 func (c *Customer) ID() uuid.UUID  { return c.id }
 func (c *Customer) Name() string   { return c.name }
 func (c *Customer) Email() string  { return c.email }
 func (c *Customer) Status() Status { return c.status }
 func (c *Customer) Settings() map[string]interface{} {
-	// Return copy
+
 	copy := make(map[string]interface{})
 	for k, v := range c.settings {
 		copy[k] = v
@@ -144,7 +135,6 @@ func (c *Customer) Settings() map[string]interface{} {
 func (c *Customer) CreatedAt() time.Time { return c.createdAt }
 func (c *Customer) UpdatedAt() time.Time { return c.updatedAt }
 
-// Domain Events
 func (c *Customer) DomainEvents() []DomainEvent {
 	return append([]DomainEvent{}, c.events...)
 }

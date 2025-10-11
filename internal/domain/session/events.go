@@ -7,10 +7,8 @@ import (
 	"github.com/google/uuid"
 )
 
-// DomainEvent é um alias para shared.DomainEvent (compatibilidade retroativa).
 type DomainEvent = shared.DomainEvent
 
-// SessionStartedEvent - Sessão iniciada.
 type SessionStartedEvent struct {
 	shared.BaseEvent
 	SessionID     uuid.UUID
@@ -20,7 +18,6 @@ type SessionStartedEvent struct {
 	StartedAt     time.Time
 }
 
-// NewSessionStartedEvent cria um novo evento de sessão iniciada.
 func NewSessionStartedEvent(sessionID, contactID uuid.UUID, tenantID string, channelTypeID *int) SessionStartedEvent {
 	return SessionStartedEvent{
 		BaseEvent:     shared.NewBaseEvent("session.started", time.Now()),
@@ -32,8 +29,6 @@ func NewSessionStartedEvent(sessionID, contactID uuid.UUID, tenantID string, cha
 	}
 }
 
-// SessionEndedEvent - Sessão encerrada com contexto completo.
-// Inclui canal, contato, mensagens e eventos da sessão para facilitar processamento downstream.
 type SessionEndedEvent struct {
 	shared.BaseEvent
 	SessionID     uuid.UUID
@@ -45,22 +40,19 @@ type SessionEndedEvent struct {
 	EndedAt       time.Time
 	StartedAt     time.Time
 	Reason        EndReason
-	Duration      int // segundos
-
-	// Contexto completo da sessão (adicionado para webhook enrichment)
-	MessageIDs    []uuid.UUID            // Lista de IDs das mensagens (ordenado por timestamp)
-	TriggerMsgID  *uuid.UUID             // ID da primeira mensagem que iniciou a sessão
-	EventsSummary map[string]int         // Resumo de eventos: {"message.created": 5, "tracking.captured": 1}
-	Metrics       SessionEndedMetrics    // Métricas da sessão
+	Duration      int
+	MessageIDs    []uuid.UUID
+	TriggerMsgID  *uuid.UUID
+	EventsSummary map[string]int
+	Metrics       SessionEndedMetrics
 }
 
-// SessionEndedMetrics contém métricas da sessão encerrada
 type SessionEndedMetrics struct {
-	TotalMessages     int // Total de mensagens
-	InboundMessages   int // Mensagens recebidas do contato
-	OutboundMessages  int // Mensagens enviadas pelo sistema/agente
-	FirstMessageAt    *time.Time // Timestamp da primeira mensagem
-	LastMessageAt     *time.Time // Timestamp da última mensagem
+	TotalMessages    int
+	InboundMessages  int
+	OutboundMessages int
+	FirstMessageAt   *time.Time
+	LastMessageAt    *time.Time
 }
 
 func NewSessionEndedEvent(
@@ -92,7 +84,6 @@ func NewSessionEndedEvent(
 	}
 }
 
-// WithMessages adiciona informações de mensagens ao evento
 func (e SessionEndedEvent) WithMessages(messageIDs []uuid.UUID, triggerMsgID *uuid.UUID, totalMsgs, inbound, outbound int, firstMsgAt, lastMsgAt *time.Time) SessionEndedEvent {
 	e.MessageIDs = messageIDs
 	e.TriggerMsgID = triggerMsgID
@@ -106,13 +97,11 @@ func (e SessionEndedEvent) WithMessages(messageIDs []uuid.UUID, triggerMsgID *uu
 	return e
 }
 
-// WithEventsSummary adiciona resumo de eventos ao evento
 func (e SessionEndedEvent) WithEventsSummary(summary map[string]int) SessionEndedEvent {
 	e.EventsSummary = summary
 	return e
 }
 
-// MessageRecordedEvent - Mensagem registrada na sessão.
 type MessageRecordedEvent struct {
 	shared.BaseEvent
 	SessionID   uuid.UUID
@@ -129,7 +118,6 @@ func NewMessageRecordedEvent(sessionID uuid.UUID, fromContact bool) MessageRecor
 	}
 }
 
-// AgentAssignedEvent - Agente atribuído à sessão.
 type AgentAssignedEvent struct {
 	shared.BaseEvent
 	SessionID  uuid.UUID
@@ -146,7 +134,6 @@ func NewAgentAssignedEvent(sessionID, agentID uuid.UUID) AgentAssignedEvent {
 	}
 }
 
-// SessionResolvedEvent - Sessão marcada como resolvida.
 type SessionResolvedEvent struct {
 	shared.BaseEvent
 	SessionID  uuid.UUID
@@ -161,7 +148,6 @@ func NewSessionResolvedEvent(sessionID uuid.UUID) SessionResolvedEvent {
 	}
 }
 
-// SessionEscalatedEvent - Sessão escalada.
 type SessionEscalatedEvent struct {
 	shared.BaseEvent
 	SessionID   uuid.UUID
@@ -176,7 +162,6 @@ func NewSessionEscalatedEvent(sessionID uuid.UUID) SessionEscalatedEvent {
 	}
 }
 
-// SessionSummarizedEvent - Resumo gerado por IA.
 type SessionSummarizedEvent struct {
 	shared.BaseEvent
 	SessionID      uuid.UUID
@@ -197,7 +182,6 @@ func NewSessionSummarizedEvent(sessionID uuid.UUID, summary string, sentiment Se
 	}
 }
 
-// SessionAbandonedEvent - Sessão abandonada (cliente parou de responder).
 type SessionAbandonedEvent struct {
 	shared.BaseEvent
 	SessionID                 uuid.UUID

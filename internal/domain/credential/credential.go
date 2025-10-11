@@ -7,7 +7,6 @@ import (
 	"github.com/google/uuid"
 )
 
-// Credential é o Aggregate Root para credenciais criptografadas
 type Credential struct {
 	id             uuid.UUID
 	tenantID       string
@@ -16,13 +15,10 @@ type Credential struct {
 	name           string
 	description    string
 
-	// Dados criptografados
 	encryptedValue EncryptedValue
 
-	// OAuth specific (quando aplicável)
 	oauthToken *OAuthToken
 
-	// Metadata
 	metadata   map[string]interface{}
 	isActive   bool
 	expiresAt  *time.Time
@@ -34,7 +30,6 @@ type Credential struct {
 	events []DomainEvent
 }
 
-// NewCredential cria uma nova credencial
 func NewCredential(
 	tenantID string,
 	credentialType CredentialType,
@@ -55,7 +50,6 @@ func NewCredential(
 		return nil, errors.New("invalid credential type")
 	}
 
-	// Criptografa o valor
 	encryptedValue, err := encryptor.Encrypt(plainValue)
 	if err != nil {
 		return nil, err
@@ -86,7 +80,6 @@ func NewCredential(
 	return cred, nil
 }
 
-// ReconstructCredential reconstrói uma Credential a partir de dados persistidos
 func ReconstructCredential(
 	id uuid.UUID,
 	tenantID string,
@@ -126,7 +119,6 @@ func ReconstructCredential(
 	}
 }
 
-// SetOAuthToken armazena tokens OAuth (Access + Refresh)
 func (c *Credential) SetOAuthToken(
 	accessToken string,
 	refreshToken string,
@@ -157,7 +149,6 @@ func (c *Credential) SetOAuthToken(
 	return nil
 }
 
-// RefreshOAuthToken renova o access token usando refresh token
 func (c *Credential) RefreshOAuthToken(
 	newAccessToken string,
 	expiresIn int,
@@ -184,7 +175,6 @@ func (c *Credential) RefreshOAuthToken(
 	return nil
 }
 
-// UpdateValue atualiza o valor criptografado
 func (c *Credential) UpdateValue(plainValue string, encryptor Encryptor) error {
 	if plainValue == "" {
 		return errors.New("value cannot be empty")
@@ -206,19 +196,16 @@ func (c *Credential) UpdateValue(plainValue string, encryptor Encryptor) error {
 	return nil
 }
 
-// UpdateDescription atualiza a descrição
 func (c *Credential) UpdateDescription(description string) {
 	c.description = description
 	c.updatedAt = time.Now()
 }
 
-// SetProjectID associa a credencial a um projeto
 func (c *Credential) SetProjectID(projectID uuid.UUID) {
 	c.projectID = &projectID
 	c.updatedAt = time.Now()
 }
 
-// IsExpired verifica se a credencial expirou
 func (c *Credential) IsExpired() bool {
 	if c.expiresAt == nil {
 		return false
@@ -226,7 +213,6 @@ func (c *Credential) IsExpired() bool {
 	return time.Now().After(*c.expiresAt)
 }
 
-// NeedsRefresh verifica se precisa renovar (30 min antes de expirar)
 func (c *Credential) NeedsRefresh() bool {
 	if c.expiresAt == nil || c.oauthToken == nil {
 		return false
@@ -234,12 +220,10 @@ func (c *Credential) NeedsRefresh() bool {
 	return c.oauthToken.NeedsRefresh()
 }
 
-// Decrypt retorna o valor descriptografado
 func (c *Credential) Decrypt(encryptor Encryptor) (string, error) {
 	return encryptor.Decrypt(c.encryptedValue)
 }
 
-// GetAccessToken retorna o access token OAuth descriptografado
 func (c *Credential) GetAccessToken(encryptor Encryptor) (string, error) {
 	if c.oauthToken == nil {
 		return "", errors.New("no OAuth token available")
@@ -247,7 +231,6 @@ func (c *Credential) GetAccessToken(encryptor Encryptor) (string, error) {
 	return c.oauthToken.GetAccessToken(encryptor)
 }
 
-// GetRefreshToken retorna o refresh token OAuth descriptografado
 func (c *Credential) GetRefreshToken(encryptor Encryptor) (string, error) {
 	if c.oauthToken == nil {
 		return "", errors.New("no OAuth token available")
@@ -255,7 +238,6 @@ func (c *Credential) GetRefreshToken(encryptor Encryptor) (string, error) {
 	return c.oauthToken.GetRefreshToken(encryptor)
 }
 
-// MarkAsUsed atualiza lastUsedAt
 func (c *Credential) MarkAsUsed() {
 	now := time.Now()
 	c.lastUsedAt = &now
@@ -267,7 +249,6 @@ func (c *Credential) MarkAsUsed() {
 	})
 }
 
-// Deactivate desativa a credencial
 func (c *Credential) Deactivate() {
 	if c.isActive {
 		c.isActive = false
@@ -280,7 +261,6 @@ func (c *Credential) Deactivate() {
 	}
 }
 
-// Activate ativa a credencial
 func (c *Credential) Activate() {
 	if !c.isActive {
 		c.isActive = true
@@ -293,19 +273,16 @@ func (c *Credential) Activate() {
 	}
 }
 
-// SetMetadata adiciona metadata
 func (c *Credential) SetMetadata(key string, value interface{}) {
 	c.metadata[key] = value
 	c.updatedAt = time.Now()
 }
 
-// GetMetadata obtém metadata
 func (c *Credential) GetMetadata(key string) (interface{}, bool) {
 	val, exists := c.metadata[key]
 	return val, exists
 }
 
-// Getters
 func (c *Credential) ID() uuid.UUID                  { return c.id }
 func (c *Credential) TenantID() string               { return c.tenantID }
 func (c *Credential) ProjectID() *uuid.UUID          { return c.projectID }
@@ -327,7 +304,6 @@ func (c *Credential) Metadata() map[string]interface{} {
 	return copy
 }
 
-// Domain Events
 func (c *Credential) DomainEvents() []DomainEvent {
 	return append([]DomainEvent{}, c.events...)
 }

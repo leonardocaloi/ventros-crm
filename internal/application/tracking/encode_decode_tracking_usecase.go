@@ -93,9 +93,9 @@ func (uc *EncodeTrackingUseCase) buildDebugInfo(trackingID int64, ternary, encod
 		charCodes = append(charCodes, code)
 
 		if i < len(ternary) {
-			ternaryDigit := string(ternary[i])
-			charMapping = append(charMapping, fmt.Sprintf("Digit %s → SAFE_CHAR[%d] (U+%04X)",
-				ternaryDigit, ternaryDigit, code))
+			digitValue := int(ternary[i] - '0')
+			charMapping = append(charMapping, fmt.Sprintf("Digit %d → SAFE_CHAR[%d] (U+%04X)",
+				digitValue, digitValue, code))
 		}
 	}
 

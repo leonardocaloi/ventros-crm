@@ -6,15 +6,11 @@ import (
 	"github.com/google/uuid"
 )
 
-// DomainEvent é a interface base para eventos de domínio
 type DomainEvent interface {
 	EventName() string
 	OccurredAt() time.Time
 }
 
-// Pipeline Events
-
-// PipelineCreatedEvent - Pipeline criado
 type PipelineCreatedEvent struct {
 	PipelineID uuid.UUID
 	ProjectID  uuid.UUID
@@ -26,7 +22,6 @@ type PipelineCreatedEvent struct {
 func (e PipelineCreatedEvent) EventName() string     { return "pipeline.created" }
 func (e PipelineCreatedEvent) OccurredAt() time.Time { return e.CreatedAt }
 
-// PipelineUpdatedEvent - Pipeline atualizado
 type PipelineUpdatedEvent struct {
 	PipelineID uuid.UUID
 	Field      string
@@ -38,7 +33,6 @@ type PipelineUpdatedEvent struct {
 func (e PipelineUpdatedEvent) EventName() string     { return "pipeline.updated" }
 func (e PipelineUpdatedEvent) OccurredAt() time.Time { return e.UpdatedAt }
 
-// PipelineActivatedEvent - Pipeline ativado
 type PipelineActivatedEvent struct {
 	PipelineID  uuid.UUID
 	ActivatedAt time.Time
@@ -47,7 +41,6 @@ type PipelineActivatedEvent struct {
 func (e PipelineActivatedEvent) EventName() string     { return "pipeline.activated" }
 func (e PipelineActivatedEvent) OccurredAt() time.Time { return e.ActivatedAt }
 
-// PipelineDeactivatedEvent - Pipeline desativado
 type PipelineDeactivatedEvent struct {
 	PipelineID    uuid.UUID
 	DeactivatedAt time.Time
@@ -56,9 +49,6 @@ type PipelineDeactivatedEvent struct {
 func (e PipelineDeactivatedEvent) EventName() string     { return "pipeline.deactivated" }
 func (e PipelineDeactivatedEvent) OccurredAt() time.Time { return e.DeactivatedAt }
 
-// Status Events
-
-// StatusCreatedEvent - Status criado
 type StatusCreatedEvent struct {
 	StatusID   uuid.UUID
 	PipelineID uuid.UUID
@@ -70,7 +60,6 @@ type StatusCreatedEvent struct {
 func (e StatusCreatedEvent) EventName() string     { return "status.created" }
 func (e StatusCreatedEvent) OccurredAt() time.Time { return e.CreatedAt }
 
-// StatusUpdatedEvent - Status atualizado
 type StatusUpdatedEvent struct {
 	StatusID  uuid.UUID
 	Field     string
@@ -82,7 +71,6 @@ type StatusUpdatedEvent struct {
 func (e StatusUpdatedEvent) EventName() string     { return "status.updated" }
 func (e StatusUpdatedEvent) OccurredAt() time.Time { return e.UpdatedAt }
 
-// StatusActivatedEvent - Status ativado
 type StatusActivatedEvent struct {
 	StatusID    uuid.UUID
 	ActivatedAt time.Time
@@ -91,7 +79,6 @@ type StatusActivatedEvent struct {
 func (e StatusActivatedEvent) EventName() string     { return "status.activated" }
 func (e StatusActivatedEvent) OccurredAt() time.Time { return e.ActivatedAt }
 
-// StatusDeactivatedEvent - Status desativado
 type StatusDeactivatedEvent struct {
 	StatusID      uuid.UUID
 	DeactivatedAt time.Time
@@ -100,9 +87,6 @@ type StatusDeactivatedEvent struct {
 func (e StatusDeactivatedEvent) EventName() string     { return "status.deactivated" }
 func (e StatusDeactivatedEvent) OccurredAt() time.Time { return e.DeactivatedAt }
 
-// Pipeline-Status Relationship Events
-
-// StatusAddedToPipelineEvent - Status adicionado ao pipeline
 type StatusAddedToPipelineEvent struct {
 	PipelineID uuid.UUID
 	StatusID   uuid.UUID
@@ -113,7 +97,6 @@ type StatusAddedToPipelineEvent struct {
 func (e StatusAddedToPipelineEvent) EventName() string     { return "pipeline.status_added" }
 func (e StatusAddedToPipelineEvent) OccurredAt() time.Time { return e.AddedAt }
 
-// StatusRemovedFromPipelineEvent - Status removido do pipeline
 type StatusRemovedFromPipelineEvent struct {
 	PipelineID uuid.UUID
 	StatusID   uuid.UUID
@@ -124,9 +107,6 @@ type StatusRemovedFromPipelineEvent struct {
 func (e StatusRemovedFromPipelineEvent) EventName() string     { return "pipeline.status_removed" }
 func (e StatusRemovedFromPipelineEvent) OccurredAt() time.Time { return e.RemovedAt }
 
-// Contact Status Change Events
-
-// ContactStatusChangedEvent - Status do contato alterado
 type ContactStatusChangedEvent struct {
 	ContactID     uuid.UUID
 	PipelineID    uuid.UUID
@@ -135,43 +115,38 @@ type ContactStatusChangedEvent struct {
 	OldStatusName *string
 	NewStatusName string
 	ChangedAt     time.Time
-	ChangedBy     *uuid.UUID // ID do usuário que fez a mudança
-	Reason        string     // Motivo da mudança
+	ChangedBy     *uuid.UUID
+	Reason        string
 }
 
 func (e ContactStatusChangedEvent) EventName() string     { return "contact.status_changed" }
 func (e ContactStatusChangedEvent) OccurredAt() time.Time { return e.ChangedAt }
 
-// ContactEnteredPipelineEvent - Contato entrou no pipeline
 type ContactEnteredPipelineEvent struct {
 	ContactID  uuid.UUID
 	PipelineID uuid.UUID
 	StatusID   uuid.UUID
 	StatusName string
 	EnteredAt  time.Time
-	EnteredBy  *uuid.UUID // ID do usuário que adicionou
+	EnteredBy  *uuid.UUID
 }
 
 func (e ContactEnteredPipelineEvent) EventName() string     { return "contact.entered_pipeline" }
 func (e ContactEnteredPipelineEvent) OccurredAt() time.Time { return e.EnteredAt }
 
-// ContactExitedPipelineEvent - Contato saiu do pipeline
 type ContactExitedPipelineEvent struct {
 	ContactID      uuid.UUID
 	PipelineID     uuid.UUID
 	LastStatusID   uuid.UUID
 	LastStatusName string
 	ExitedAt       time.Time
-	ExitedBy       *uuid.UUID // ID do usuário que removeu
-	Reason         string     // Motivo da saída
+	ExitedBy       *uuid.UUID
+	Reason         string
 }
 
 func (e ContactExitedPipelineEvent) EventName() string     { return "contact.exited_pipeline" }
 func (e ContactExitedPipelineEvent) OccurredAt() time.Time { return e.ExitedAt }
 
-// Follow-up Rule Events
-
-// AutomationCreatedEvent - Regra de follow-up criada
 type AutomationCreatedEvent struct {
 	RuleID     uuid.UUID
 	PipelineID uuid.UUID
@@ -184,7 +159,6 @@ type AutomationCreatedEvent struct {
 func (e AutomationCreatedEvent) EventName() string     { return "automation.created" }
 func (e AutomationCreatedEvent) OccurredAt() time.Time { return e.CreatedAt }
 
-// AutomationEnabledEvent - Automação ativada
 type AutomationEnabledEvent struct {
 	RuleID    uuid.UUID
 	EnabledAt time.Time
@@ -193,7 +167,6 @@ type AutomationEnabledEvent struct {
 func (e AutomationEnabledEvent) EventName() string     { return "automation.enabled" }
 func (e AutomationEnabledEvent) OccurredAt() time.Time { return e.EnabledAt }
 
-// AutomationDisabledEvent - Automação desativada
 type AutomationDisabledEvent struct {
 	RuleID     uuid.UUID
 	DisabledAt time.Time
@@ -202,7 +175,6 @@ type AutomationDisabledEvent struct {
 func (e AutomationDisabledEvent) EventName() string     { return "automation.disabled" }
 func (e AutomationDisabledEvent) OccurredAt() time.Time { return e.DisabledAt }
 
-// AutomationRuleTriggeredEvent - Regra de follow-up disparada
 type AutomationRuleTriggeredEvent struct {
 	RuleID      uuid.UUID
 	SessionID   *uuid.UUID
@@ -215,7 +187,6 @@ type AutomationRuleTriggeredEvent struct {
 func (e AutomationRuleTriggeredEvent) EventName() string     { return "automation_rule.triggered" }
 func (e AutomationRuleTriggeredEvent) OccurredAt() time.Time { return e.TriggeredAt }
 
-// AutomationRuleExecutedEvent - Regra de follow-up executada com sucesso
 type AutomationRuleExecutedEvent struct {
 	RuleID       uuid.UUID
 	SessionID    *uuid.UUID
@@ -227,7 +198,6 @@ type AutomationRuleExecutedEvent struct {
 func (e AutomationRuleExecutedEvent) EventName() string     { return "automation_rule.executed" }
 func (e AutomationRuleExecutedEvent) OccurredAt() time.Time { return e.ExecutedAt }
 
-// AutomationRuleFailedEvent - Regra de follow-up falhou ao executar
 type AutomationRuleFailedEvent struct {
 	RuleID    uuid.UUID
 	SessionID *uuid.UUID
@@ -238,3 +208,55 @@ type AutomationRuleFailedEvent struct {
 
 func (e AutomationRuleFailedEvent) EventName() string     { return "automation_rule.failed" }
 func (e AutomationRuleFailedEvent) OccurredAt() time.Time { return e.FailedAt }
+
+// Lead Qualification Events
+
+type LeadQualificationEnabledEvent struct {
+	PipelineID uuid.UUID
+	EnabledAt  time.Time
+}
+
+func (e LeadQualificationEnabledEvent) EventName() string     { return "pipeline.lead_qualification_enabled" }
+func (e LeadQualificationEnabledEvent) OccurredAt() time.Time { return e.EnabledAt }
+
+type LeadQualificationDisabledEvent struct {
+	PipelineID uuid.UUID
+	DisabledAt time.Time
+}
+
+func (e LeadQualificationDisabledEvent) EventName() string     { return "pipeline.lead_qualification_disabled" }
+func (e LeadQualificationDisabledEvent) OccurredAt() time.Time { return e.DisabledAt }
+
+type LeadQualificationConfigUpdatedEvent struct {
+	PipelineID uuid.UUID
+	UpdatedAt  time.Time
+}
+
+func (e LeadQualificationConfigUpdatedEvent) EventName() string     { return "pipeline.lead_qualification_config_updated" }
+func (e LeadQualificationConfigUpdatedEvent) OccurredAt() time.Time { return e.UpdatedAt }
+
+// ProfilePictureReceivedEvent - dispara quando contato recebe foto de perfil
+// Este evento é consumido para processar qualificação
+type ProfilePictureReceivedEvent struct {
+	ContactID       uuid.UUID
+	PipelineID      *uuid.UUID // Pipeline atual do contato (se tiver)
+	ProfilePictureURL string
+	ReceivedAt      time.Time
+}
+
+func (e ProfilePictureReceivedEvent) EventName() string     { return "contact.profile_picture_received" }
+func (e ProfilePictureReceivedEvent) OccurredAt() time.Time { return e.ReceivedAt }
+
+// LeadQualifiedEvent - dispara após análise da foto completar
+type LeadQualifiedEvent struct {
+	ContactID  uuid.UUID
+	PipelineID uuid.UUID
+	Score      int                // 0-10
+	Qualified  bool               // Se passou no score mínimo
+	Answers    map[string]string  // Respostas da IA
+	Confidence string             // high, medium, low
+	QualifiedAt time.Time
+}
+
+func (e LeadQualifiedEvent) EventName() string     { return "contact.lead_qualified" }
+func (e LeadQualifiedEvent) OccurredAt() time.Time { return e.QualifiedAt }

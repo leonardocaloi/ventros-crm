@@ -3,10 +3,14 @@ package handlers
 import (
 	"net/http"
 	"strconv"
+	"strings"
 
+	apierrors "github.com/caloi/ventros-crm/infrastructure/http/errors"
 	"github.com/caloi/ventros-crm/infrastructure/http/middleware"
 	contactapp "github.com/caloi/ventros-crm/internal/application/contact"
+	"github.com/caloi/ventros-crm/internal/application/queries"
 	"github.com/caloi/ventros-crm/internal/domain/contact"
+	"github.com/caloi/ventros-crm/internal/domain/shared"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
@@ -16,6 +20,9 @@ type ContactHandler struct {
 	logger                      *zap.Logger
 	contactRepo                 contact.Repository
 	changePipelineStatusUseCase *contactapp.ChangePipelineStatusUseCase
+	// Query handlers
+	listContactsQueryHandler   *queries.ListContactsQueryHandler
+	searchContactsQueryHandler *queries.SearchContactsQueryHandler
 	// TODO: Add use cases when needed
 	// createContactUseCase *contactapp.CreateContactUseCase
 }
@@ -25,10 +32,12 @@ func NewContactHandler(logger *zap.Logger, contactRepo contact.Repository, chang
 		logger:                      logger,
 		contactRepo:                 contactRepo,
 		changePipelineStatusUseCase: changePipelineStatusUseCase,
+		listContactsQueryHandler:    queries.NewListContactsQueryHandler(contactRepo, logger),
+		searchContactsQueryHandler:  queries.NewSearchContactsQueryHandler(contactRepo, logger),
 	}
 }
 
-// CreateContactRequest representa o payload para criar um contato
+// CreateContactRequest represents the request to create a contact.
 type CreateContactRequest struct {
 	Name          string            `json:"name" binding:"required" example:"João Silva"`
 	Email         string            `json:"email" example:"joao@example.com"`
@@ -41,7 +50,7 @@ type CreateContactRequest struct {
 	CustomFields  map[string]string `json:"custom_fields" example:"company:Empresa XYZ"`
 }
 
-// UpdateContactRequest representa o payload para atualizar um contato
+// UpdateContactRequest represents the request to update a contact.
 type UpdateContactRequest struct {
 	Name          *string           `json:"name,omitempty"`
 	Email         *string           `json:"email,omitempty"`
@@ -57,7 +66,7 @@ type UpdateContactRequest struct {
 // ListContacts lists all contacts with optional filters
 //
 //	@Summary		List contacts
-//	@Description	Lista todos os contatos com filtros opcionais (apenas do usuário autenticado)
+//	@Description	List all contacts with optional filters (authenticated user only)
 //	@Tags			contacts
 //	@Accept			json
 //	@Produce		json
@@ -71,26 +80,24 @@ type UpdateContactRequest struct {
 //	@Failure		500			{object}	map[string]interface{}	"Internal server error"
 //	@Router			/api/v1/contacts [get]
 func (h *ContactHandler) ListContacts(c *gin.Context) {
-	// Verificar autenticação
 	_, exists := middleware.GetAuthContext(c)
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Authentication required"})
+		apierrors.Unauthorized(c, "Authentication required")
 		return
 	}
 
 	projectIDStr := c.Query("project_id")
 	if projectIDStr == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "project_id is required"})
+		apierrors.ValidationError(c, "project_id", "project_id query parameter is required")
 		return
 	}
 
 	projectID, err := uuid.Parse(projectIDStr)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid project_id format"})
+		apierrors.ValidationError(c, "project_id", "Invalid project_id format (must be UUID)")
 		return
 	}
 
-	// Parse pagination parameters
 	page := 1
 	pageSize := 20
 
@@ -113,7 +120,7 @@ func (h *ContactHandler) ListContacts(c *gin.Context) {
 	total, err := h.contactRepo.CountByProject(c.Request.Context(), projectID)
 	if err != nil {
 		h.logger.Error("Failed to count contacts", zap.Error(err))
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve contacts"})
+		apierrors.InternalError(c, "Failed to count contacts", err)
 		return
 	}
 
@@ -121,7 +128,7 @@ func (h *ContactHandler) ListContacts(c *gin.Context) {
 	contacts, err := h.contactRepo.FindByProject(c.Request.Context(), projectID, pageSize, offset)
 	if err != nil {
 		h.logger.Error("Failed to list contacts", zap.Error(err))
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve contacts"})
+		apierrors.InternalError(c, "Failed to retrieve contacts", err)
 		return
 	}
 
@@ -155,20 +162,20 @@ func (h *ContactHandler) ListContacts(c *gin.Context) {
 func (h *ContactHandler) CreateContact(c *gin.Context) {
 	projectIDStr := c.Query("project_id")
 	if projectIDStr == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "project_id is required"})
+		apierrors.ValidationError(c, "project_id", "project_id query parameter is required")
 		return
 	}
 
 	projectID, err := uuid.Parse(projectIDStr)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid project_id format"})
+		apierrors.ValidationError(c, "project_id", "Invalid project_id format (must be UUID)")
 		return
 	}
 
 	var req CreateContactRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		h.logger.Error("Failed to parse contact request", zap.Error(err))
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request: " + err.Error()})
+		apierrors.BadRequest(c, "Invalid request body: "+err.Error())
 		return
 	}
 
@@ -179,21 +186,21 @@ func (h *ContactHandler) CreateContact(c *gin.Context) {
 	domainContact, err := contact.NewContact(projectID, tenantID, req.Name)
 	if err != nil {
 		h.logger.Error("Failed to create domain contact", zap.Error(err))
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		apierrors.RespondWithError(c, err)
 		return
 	}
 
 	// Set optional fields
 	if req.Email != "" {
 		if err := domainContact.SetEmail(req.Email); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid email: " + err.Error()})
+			apierrors.ValidationError(c, "email", "Invalid email format")
 			return
 		}
 	}
 
 	if req.Phone != "" {
 		if err := domainContact.SetPhone(req.Phone); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid phone: " + err.Error()})
+			apierrors.ValidationError(c, "phone", "Invalid phone format")
 			return
 		}
 	}
@@ -222,7 +229,7 @@ func (h *ContactHandler) CreateContact(c *gin.Context) {
 	// Save contact
 	if err := h.contactRepo.Save(c.Request.Context(), domainContact); err != nil {
 		h.logger.Error("Failed to save contact", zap.Error(err))
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create contact"})
+		apierrors.InternalError(c, "Failed to save contact", err)
 		return
 	}
 
@@ -257,19 +264,19 @@ func (h *ContactHandler) GetContact(c *gin.Context) {
 	idStr := c.Param("id")
 	contactID, err := uuid.Parse(idStr)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid contact ID format"})
+		apierrors.ValidationError(c, "id", "Invalid contact ID format (must be UUID)")
 		return
 	}
 
 	domainContact, err := h.contactRepo.FindByID(c.Request.Context(), contactID)
 	if err != nil {
-		h.logger.Error("Failed to find contact", zap.String("contact_id", contactID.String()), zap.Error(err))
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve contact"})
+		// Error is already a DomainError from repository
+		apierrors.RespondWithError(c, err)
 		return
 	}
 
 	if domainContact == nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Contact not found"})
+		apierrors.NotFound(c, "contact", contactID.String())
 		return
 	}
 
@@ -296,27 +303,26 @@ func (h *ContactHandler) UpdateContact(c *gin.Context) {
 	idStr := c.Param("id")
 	contactID, err := uuid.Parse(idStr)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid contact ID format"})
+		apierrors.ValidationError(c, "id", "Invalid contact ID format (must be UUID)")
 		return
 	}
 
 	var req UpdateContactRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		h.logger.Error("Failed to parse update request", zap.Error(err))
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request: " + err.Error()})
+		apierrors.BadRequest(c, "Invalid request body: "+err.Error())
 		return
 	}
 
 	// Find existing contact
 	domainContact, err := h.contactRepo.FindByID(c.Request.Context(), contactID)
 	if err != nil {
-		h.logger.Error("Failed to find contact", zap.String("contact_id", contactID.String()), zap.Error(err))
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve contact"})
+		apierrors.RespondWithError(c, err)
 		return
 	}
 
 	if domainContact == nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Contact not found"})
+		apierrors.NotFound(c, "contact", contactID.String())
 		return
 	}
 
@@ -327,14 +333,14 @@ func (h *ContactHandler) UpdateContact(c *gin.Context) {
 
 	if req.Email != nil {
 		if err := domainContact.SetEmail(*req.Email); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid email: " + err.Error()})
+			apierrors.ValidationError(c, "email", "Invalid email format")
 			return
 		}
 	}
 
 	if req.Phone != nil {
 		if err := domainContact.SetPhone(*req.Phone); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid phone: " + err.Error()})
+			apierrors.ValidationError(c, "phone", "Invalid phone format")
 			return
 		}
 	}
@@ -367,7 +373,7 @@ func (h *ContactHandler) UpdateContact(c *gin.Context) {
 	// Save updated contact
 	if err := h.contactRepo.Save(c.Request.Context(), domainContact); err != nil {
 		h.logger.Error("Failed to save contact", zap.Error(err))
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update contact"})
+		apierrors.InternalError(c, "Failed to update contact", err)
 		return
 	}
 
@@ -392,20 +398,19 @@ func (h *ContactHandler) DeleteContact(c *gin.Context) {
 	idStr := c.Param("id")
 	contactID, err := uuid.Parse(idStr)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid contact ID format"})
+		apierrors.ValidationError(c, "id", "Invalid contact ID format (must be UUID)")
 		return
 	}
 
 	// Find existing contact
 	domainContact, err := h.contactRepo.FindByID(c.Request.Context(), contactID)
 	if err != nil {
-		h.logger.Error("Failed to find contact", zap.String("contact_id", contactID.String()), zap.Error(err))
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve contact"})
+		apierrors.RespondWithError(c, err)
 		return
 	}
 
 	if domainContact == nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Contact not found"})
+		apierrors.NotFound(c, "contact", contactID.String())
 		return
 	}
 
@@ -415,7 +420,7 @@ func (h *ContactHandler) DeleteContact(c *gin.Context) {
 	// Save updated contact
 	if err := h.contactRepo.Save(c.Request.Context(), domainContact); err != nil {
 		h.logger.Error("Failed to delete contact", zap.Error(err))
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete contact"})
+		apierrors.InternalError(c, "Failed to delete contact", err)
 		return
 	}
 
@@ -447,16 +452,16 @@ func (h *ContactHandler) contactToResponse(c *contact.Contact) map[string]interf
 	return response
 }
 
-// ChangePipelineStatusRequest representa o request para mudar status no pipeline
+// ChangePipelineStatusRequest represents the request to change pipeline status.
 type ChangePipelineStatusRequest struct {
 	StatusID uuid.UUID `json:"status_id" binding:"required"`
 	Reason   string    `json:"reason,omitempty"`
 }
 
-// ChangePipelineStatus muda o status de um contato em um pipeline
+// ChangePipelineStatus changes a contact's status in a pipeline
 //
 //	@Summary		Change contact pipeline status
-//	@Description	Altera o status de um contato em um pipeline específico
+//	@Description	Change contact status in a specific pipeline
 //	@Tags			contacts
 //	@Accept			json
 //	@Produce		json
@@ -473,29 +478,28 @@ type ChangePipelineStatusRequest struct {
 func (h *ContactHandler) ChangePipelineStatus(c *gin.Context) {
 	authCtx, exists := middleware.GetAuthContext(c)
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Authentication required"})
+		apierrors.Unauthorized(c, "Authentication required")
 		return
 	}
 
 	contactID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid contact ID"})
+		apierrors.ValidationError(c, "id", "Invalid contact ID format (must be UUID)")
 		return
 	}
 
 	pipelineID, err := uuid.Parse(c.Param("pipeline_id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid pipeline ID"})
+		apierrors.ValidationError(c, "pipeline_id", "Invalid pipeline ID format (must be UUID)")
 		return
 	}
 
 	var req ChangePipelineStatusRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request: " + err.Error()})
+		apierrors.BadRequest(c, "Invalid request body: "+err.Error())
 		return
 	}
 
-	// Execute use case
 	input := contactapp.ChangePipelineStatusInput{
 		ContactID:  contactID,
 		PipelineID: pipelineID,
@@ -509,7 +513,7 @@ func (h *ContactHandler) ChangePipelineStatus(c *gin.Context) {
 	output, err := h.changePipelineStatusUseCase.Execute(c.Request.Context(), input)
 	if err != nil {
 		h.logger.Error("Failed to change pipeline status", zap.Error(err))
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		apierrors.RespondWithError(c, err)
 		return
 	}
 
@@ -523,4 +527,153 @@ func (h *ContactHandler) ChangePipelineStatus(c *gin.Context) {
 		"new_status_name":      output.NewStatusName,
 		"changed_at":           output.ChangedAt,
 	})
+}
+
+// ListContactsAdvanced lists contacts with advanced filters, pagination, and sorting
+//
+//	@Summary		List contacts with advanced filters
+//	@Description	List contacts with advanced filters (name, phone, email, tags, dates), pagination, and sorting
+//	@Tags			contacts
+//	@Accept			json
+//	@Produce		json
+//	@Security		ApiKeyAuth
+//	@Param			name			query		string					false	"Filter by name (partial match)"
+//	@Param			phone			query		string					false	"Filter by phone (partial match)"
+//	@Param			email			query		string					false	"Filter by email (partial match)"
+//	@Param			tags			query		[]string				false	"Filter by tags (comma-separated)"
+//	@Param			created_after	query		string					false	"Filter by created_after (YYYY-MM-DD)"
+//	@Param			created_before	query		string					false	"Filter by created_before (YYYY-MM-DD)"
+//	@Param			page			query		int						false	"Page number"		default(1)
+//	@Param			limit			query		int						false	"Page size"			default(20)
+//	@Param			sort_by			query		string					false	"Sort by field"		default(created_at)
+//	@Param			sort_dir		query		string					false	"Sort direction"	default(desc)	Enums(asc, desc)
+//	@Success		200				{object}	map[string]interface{}	"List of contacts with pagination"
+//	@Failure		400				{object}	map[string]interface{}	"Invalid parameters"
+//	@Failure		401				{object}	map[string]interface{}	"Not authenticated"
+//	@Failure		500				{object}	map[string]interface{}	"Internal server error"
+//	@Router			/api/v1/contacts/advanced [get]
+func (h *ContactHandler) ListContactsAdvanced(c *gin.Context) {
+	authCtx, exists := middleware.GetAuthContext(c)
+	if !exists {
+		apierrors.Unauthorized(c, "Authentication required")
+		return
+	}
+
+	// Parse pagination
+	page := 1
+	limit := 20
+	if pageStr := c.Query("page"); pageStr != "" {
+		if p, err := strconv.Atoi(pageStr); err == nil && p > 0 {
+			page = p
+		}
+	}
+	if limitStr := c.Query("limit"); limitStr != "" {
+		if l, err := strconv.Atoi(limitStr); err == nil && l > 0 && l <= 100 {
+			limit = l
+		}
+	}
+
+	// Parse sorting
+	sortBy := c.DefaultQuery("sort_by", "created_at")
+	sortDir := c.DefaultQuery("sort_dir", "desc")
+
+	// Parse filters
+	filters := queries.ContactFilters{
+		Name:          c.Query("name"),
+		Phone:         c.Query("phone"),
+		Email:         c.Query("email"),
+		CreatedAfter:  c.Query("created_after"),
+		CreatedBefore: c.Query("created_before"),
+	}
+
+	// Parse tags (comma-separated)
+	if tagsStr := c.Query("tags"); tagsStr != "" {
+		filters.Tags = strings.Split(tagsStr, ",")
+	}
+
+	// Create tenant ID
+	tenantID, err := shared.NewTenantID(authCtx.TenantID)
+	if err != nil {
+		apierrors.ValidationError(c, "tenant_id", "Invalid tenant ID")
+		return
+	}
+
+	// Execute query
+	query := queries.ListContactsQuery{
+		TenantID: tenantID,
+		Filters:  filters,
+		Page:     page,
+		Limit:    limit,
+		SortBy:   sortBy,
+		SortDir:  sortDir,
+	}
+
+	response, err := h.listContactsQueryHandler.Handle(c.Request.Context(), query)
+	if err != nil {
+		h.logger.Error("Failed to list contacts", zap.Error(err))
+		apierrors.InternalError(c, "Failed to retrieve contacts", err)
+		return
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
+// SearchContacts performs full-text search on contacts
+//
+//	@Summary		Search contacts
+//	@Description	Full-text search on contact name, phone, and email with relevance scoring
+//	@Tags			contacts
+//	@Accept			json
+//	@Produce		json
+//	@Security		ApiKeyAuth
+//	@Param			q		query		string					true	"Search query"
+//	@Param			limit	query		int						false	"Result limit"	default(20)
+//	@Success		200		{object}	map[string]interface{}	"Search results with match scores"
+//	@Failure		400		{object}	map[string]interface{}	"Invalid parameters"
+//	@Failure		401		{object}	map[string]interface{}	"Not authenticated"
+//	@Failure		500		{object}	map[string]interface{}	"Internal server error"
+//	@Router			/api/v1/contacts/search [get]
+func (h *ContactHandler) SearchContacts(c *gin.Context) {
+	authCtx, exists := middleware.GetAuthContext(c)
+	if !exists {
+		apierrors.Unauthorized(c, "Authentication required")
+		return
+	}
+
+	searchText := c.Query("q")
+	if searchText == "" {
+		apierrors.ValidationError(c, "q", "Search query 'q' is required")
+		return
+	}
+
+	// Parse limit
+	limit := 20
+	if limitStr := c.Query("limit"); limitStr != "" {
+		if l, err := strconv.Atoi(limitStr); err == nil && l > 0 && l <= 100 {
+			limit = l
+		}
+	}
+
+	// Create tenant ID
+	tenantID, err := shared.NewTenantID(authCtx.TenantID)
+	if err != nil {
+		apierrors.ValidationError(c, "tenant_id", "Invalid tenant ID")
+		return
+	}
+
+	// Execute search
+	query := queries.SearchContactsQuery{
+		TenantID:   tenantID,
+		SearchText: searchText,
+		Limit:      limit,
+	}
+
+	response, err := h.searchContactsQueryHandler.Handle(c.Request.Context(), query)
+	if err != nil {
+		h.logger.Error("Failed to search contacts", zap.Error(err))
+		apierrors.InternalError(c, "Failed to search contacts", err)
+		return
+	}
+
+	c.JSON(http.StatusOK, response)
 }

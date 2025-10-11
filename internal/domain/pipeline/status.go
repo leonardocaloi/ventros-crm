@@ -7,16 +7,14 @@ import (
 	"github.com/google/uuid"
 )
 
-// StatusType define os tipos de status
 type StatusType string
 
 const (
-	StatusTypeOpen   StatusType = "open"   // Status inicial/aberto
-	StatusTypeActive StatusType = "active" // Status ativo/em progresso
-	StatusTypeClosed StatusType = "closed" // Status fechado/finalizado
+	StatusTypeOpen   StatusType = "open"
+	StatusTypeActive StatusType = "active"
+	StatusTypeClosed StatusType = "closed"
 )
 
-// Status representa um status dentro de um pipeline
 type Status struct {
 	id          uuid.UUID
 	pipelineID  uuid.UUID
@@ -29,11 +27,9 @@ type Status struct {
 	createdAt   time.Time
 	updatedAt   time.Time
 
-	// Domain Events
 	events []DomainEvent
 }
 
-// NewStatus cria um novo status
 func NewStatus(pipelineID uuid.UUID, name string, statusType StatusType) (*Status, error) {
 	if pipelineID == uuid.Nil {
 		return nil, errors.New("pipelineID cannot be nil")
@@ -69,7 +65,6 @@ func NewStatus(pipelineID uuid.UUID, name string, statusType StatusType) (*Statu
 	return status, nil
 }
 
-// ReconstructStatus reconstrói um status a partir de dados persistidos
 func ReconstructStatus(
 	id, pipelineID uuid.UUID,
 	name, description, color string,
@@ -93,7 +88,6 @@ func ReconstructStatus(
 	}
 }
 
-// UpdateName atualiza o nome do status
 func (s *Status) UpdateName(name string) error {
 	if name == "" {
 		return errors.New("name cannot be empty")
@@ -114,7 +108,6 @@ func (s *Status) UpdateName(name string) error {
 	return nil
 }
 
-// UpdateDescription atualiza a descrição do status
 func (s *Status) UpdateDescription(description string) {
 	oldDescription := s.description
 	s.description = description
@@ -129,7 +122,6 @@ func (s *Status) UpdateDescription(description string) {
 	})
 }
 
-// UpdateColor atualiza a cor do status
 func (s *Status) UpdateColor(color string) {
 	oldColor := s.color
 	s.color = color
@@ -144,7 +136,6 @@ func (s *Status) UpdateColor(color string) {
 	})
 }
 
-// UpdatePosition atualiza a posição do status
 func (s *Status) UpdatePosition(position int) {
 	oldPosition := s.position
 	s.position = position
@@ -159,7 +150,6 @@ func (s *Status) UpdatePosition(position int) {
 	})
 }
 
-// UpdateType atualiza o tipo do status
 func (s *Status) UpdateType(statusType StatusType) error {
 	if statusType == "" {
 		return errors.New("statusType cannot be empty")
@@ -180,7 +170,6 @@ func (s *Status) UpdateType(statusType StatusType) error {
 	return nil
 }
 
-// Activate ativa o status
 func (s *Status) Activate() {
 	if !s.active {
 		s.active = true
@@ -193,7 +182,6 @@ func (s *Status) Activate() {
 	}
 }
 
-// Deactivate desativa o status
 func (s *Status) Deactivate() {
 	if s.active {
 		s.active = false
@@ -206,22 +194,18 @@ func (s *Status) Deactivate() {
 	}
 }
 
-// IsOpen verifica se é um status de abertura
 func (s *Status) IsOpen() bool {
 	return s.statusType == StatusTypeOpen
 }
 
-// IsActive verifica se é um status ativo
 func (s *Status) IsActiveType() bool {
 	return s.statusType == StatusTypeActive
 }
 
-// IsClosed verifica se é um status de fechamento
 func (s *Status) IsClosed() bool {
 	return s.statusType == StatusTypeClosed
 }
 
-// Getters
 func (s *Status) ID() uuid.UUID          { return s.id }
 func (s *Status) PipelineID() uuid.UUID  { return s.pipelineID }
 func (s *Status) Name() string           { return s.name }
@@ -233,17 +217,14 @@ func (s *Status) IsActiveStatus() bool   { return s.active }
 func (s *Status) CreatedAt() time.Time   { return s.createdAt }
 func (s *Status) UpdatedAt() time.Time   { return s.updatedAt }
 
-// DomainEvents retorna os eventos de domínio
 func (s *Status) DomainEvents() []DomainEvent {
 	return append([]DomainEvent{}, s.events...)
 }
 
-// ClearEvents limpa os eventos (após publicação)
 func (s *Status) ClearEvents() {
 	s.events = []DomainEvent{}
 }
 
-// addEvent adiciona um evento de domínio
 func (s *Status) addEvent(event DomainEvent) {
 	s.events = append(s.events, event)
 }

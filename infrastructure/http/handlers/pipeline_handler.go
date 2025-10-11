@@ -2,24 +2,31 @@ package handlers
 
 import (
 	"net/http"
+	"strconv"
 
-	"github.com/caloi/ventros-crm/infrastructure/http/helpers"
+	apierrors "github.com/caloi/ventros-crm/infrastructure/http/errors"
 	"github.com/caloi/ventros-crm/infrastructure/http/middleware"
+	"github.com/caloi/ventros-crm/internal/application/queries"
 	"github.com/caloi/ventros-crm/internal/domain/pipeline"
+	"github.com/caloi/ventros-crm/internal/domain/shared"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 )
 
 type PipelineHandler struct {
-	logger       *zap.Logger
-	pipelineRepo pipeline.Repository
+	logger                       *zap.Logger
+	pipelineRepo                 pipeline.Repository
+	listPipelinesQueryHandler    *queries.ListPipelinesQueryHandler
+	searchPipelinesQueryHandler  *queries.SearchPipelinesQueryHandler
 }
 
 func NewPipelineHandler(logger *zap.Logger, pipelineRepo pipeline.Repository) *PipelineHandler {
 	return &PipelineHandler{
-		logger:       logger,
-		pipelineRepo: pipelineRepo,
+		logger:                      logger,
+		pipelineRepo:                pipelineRepo,
+		listPipelinesQueryHandler:   queries.NewListPipelinesQueryHandler(pipelineRepo, logger),
+		searchPipelinesQueryHandler: queries.NewSearchPipelinesQueryHandler(pipelineRepo, logger),
 	}
 }
 
@@ -83,29 +90,26 @@ type ChangeContactStatusRequest struct {
 //	@Failure		500			{object}	map[string]interface{}	"Internal server error"
 //	@Router			/api/v1/pipelines [get]
 func (h *PipelineHandler) ListPipelines(c *gin.Context) {
-	// Verificar autenticação
-	authCtx, exists := middleware.GetAuthContext(c)
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Authentication required"})
+	// RLS middleware já garante autenticação e acesso aos recursos do usuário
+
+	projectIDStr := c.Query("project_id")
+	if projectIDStr == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "project_id is required"})
 		return
 	}
 
-	ownershipHelper := helpers.NewOwnershipHelper()
-	projectID, ok := ownershipHelper.ParseUUID(c, c.Query("project_id"), "project_id")
-	if !ok {
+	projectID, err := uuid.Parse(projectIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid project_id format"})
 		return
 	}
 
-	// Verificar se o projeto pertence ao usuário
-	if !ownershipHelper.CheckProjectOwnership(c, projectID, authCtx.UserID) {
-		ownershipHelper.DenyAccess(c, "Project")
-		return
-	}
+	// RLS middleware já garante acesso apenas aos recursos do usuário
+	// Removido ownership check - RLS cuida disso automaticamente
 
 	activeOnly := c.Query("active") == "true"
 
 	var pipelines []*pipeline.Pipeline
-	var err error
 	if activeOnly {
 		pipelines, err = h.pipelineRepo.FindActivePipelinesByProject(c.Request.Context(), projectID)
 		if err != nil {
@@ -483,4 +487,194 @@ func (h *PipelineHandler) statusToResponse(s *pipeline.Status) map[string]interf
 		"created_at":  s.CreatedAt(),
 		"updated_at":  s.UpdatedAt(),
 	}
+}
+
+// ListPipelinesAdvanced lists pipelines with advanced filters, pagination, and sorting
+//
+//	@Summary		List pipelines with advanced filters
+//	@Description	Retrieve all pipelines with filtering by project, active status, and color. Pipelines organize contacts into workflow stages with customizable statuses. Essential for sales processes, support tickets, and multi-stage customer journeys.
+//	@Description
+//	@Description	**Filtering Capabilities:**
+//	@Description	- Filter by project_id to get pipelines for a specific business unit
+//	@Description	- Filter by active status to show/hide archived pipelines
+//	@Description	- Filter by color for UI organization and visual pipeline management
+//	@Description
+//	@Description	**Common Use Cases:**
+//	@Description	- Load all active pipelines for a project's dashboard
+//	@Description	- Build pipeline selector dropdowns for contact assignment
+//	@Description	- Audit pipeline configuration across projects
+//	@Description	- Identify inactive pipelines for cleanup
+//	@Description	- Generate pipeline reports by color-coded categories
+//	@Description
+//	@Description	**Performance:**
+//	@Description	- Optimized GORM indexes on tenant+active for fast active pipeline queries
+//	@Description	- Small result sets (typically < 50 pipelines per tenant) for instant responses
+//	@Tags			pipelines
+//	@Accept			json
+//	@Produce		json
+//	@Security		BearerAuth
+//	@Param			project_id	query		string	false	"Filter by project UUID" example(550e8400-e29b-41d4-a716-446655440000)
+//	@Param			active		query		bool	false	"Filter by active status - true: only active, false: only inactive" example(true)
+//	@Param			color		query		string	false	"Filter by hex color code - Example: #FF5733, #3B82F6" example(#3B82F6)
+//	@Param			page		query		int		false	"Page number (starts at 1)" default(1) minimum(1) example(1)
+//	@Param			limit		query		int		false	"Results per page (max 100)" default(20) minimum(1) maximum(100) example(20)
+//	@Param			sort_by		query		string	false	"Sort field" Enums(name, position, created_at) default(created_at) example(position)
+//	@Param			sort_dir	query		string	false	"Sort direction" Enums(asc, desc) default(desc) example(asc)
+//	@Success		200			{object}	queries.ListPipelinesResponse	"Successfully retrieved pipelines with full configuration details"
+//	@Failure		400			{object}	map[string]interface{}			"Bad Request - Invalid UUID or parameter format"
+//	@Failure		401			{object}	map[string]interface{}			"Unauthorized - Authentication required"
+//	@Failure		403			{object}	map[string]interface{}			"Forbidden - No access to this tenant's pipelines"
+//	@Failure		500			{object}	map[string]interface{}			"Internal Server Error"
+//	@Router			/api/v1/crm/pipelines/advanced [get]
+func (h *PipelineHandler) ListPipelinesAdvanced(c *gin.Context) {
+	authCtx, exists := middleware.GetAuthContext(c)
+	if !exists {
+		apierrors.Unauthorized(c, "Authentication required")
+		return
+	}
+
+	tenantID, err := shared.NewTenantID(authCtx.TenantID)
+	if err != nil {
+		h.logger.Error("Invalid tenant ID", zap.Error(err))
+		apierrors.InternalError(c, "Invalid tenant configuration", err)
+		return
+	}
+
+	// Parse pagination
+	page := 1
+	if pageStr := c.Query("page"); pageStr != "" {
+		if p, err := strconv.Atoi(pageStr); err == nil && p > 0 {
+			page = p
+		}
+	}
+
+	limit := 20
+	if limitStr := c.Query("limit"); limitStr != "" {
+		if l, err := strconv.Atoi(limitStr); err == nil && l > 0 && l <= 100 {
+			limit = l
+		}
+	}
+
+	// Parse sorting
+	sortBy := c.DefaultQuery("sort_by", "created_at")
+	sortDir := c.DefaultQuery("sort_dir", "desc")
+
+	// Parse project_id filter
+	var projectID *uuid.UUID
+	if projectIDStr := c.Query("project_id"); projectIDStr != "" {
+		if pid, err := uuid.Parse(projectIDStr); err == nil {
+			projectID = &pid
+		} else {
+			apierrors.ValidationError(c, "project_id", "Invalid UUID format")
+			return
+		}
+	}
+
+	// Parse active filter
+	var active *bool
+	if activeStr := c.Query("active"); activeStr != "" {
+		if a, err := strconv.ParseBool(activeStr); err == nil {
+			active = &a
+		}
+	}
+
+	// Parse color filter
+	var color *string
+	if colorStr := c.Query("color"); colorStr != "" {
+		color = &colorStr
+	}
+
+	query := queries.ListPipelinesQuery{
+		TenantID:  tenantID,
+		ProjectID: projectID,
+		Active:    active,
+		Color:     color,
+		Page:      page,
+		Limit:     limit,
+		SortBy:    sortBy,
+		SortDir:   sortDir,
+	}
+
+	response, err := h.listPipelinesQueryHandler.Handle(c.Request.Context(), query)
+	if err != nil {
+		h.logger.Error("Failed to list pipelines", zap.Error(err))
+		apierrors.InternalError(c, "Failed to retrieve pipelines", err)
+		return
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
+// SearchPipelines performs full-text search on pipelines
+//
+//	@Summary		Search pipelines by name and description
+//	@Description	Full-text search across pipeline names and descriptions. Perfect for finding specific pipelines in large organizations with many workflow configurations.
+//	@Description
+//	@Description	**Search Capabilities:**
+//	@Description	- Searches pipeline names (primary field)
+//	@Description	- Searches pipeline descriptions (secondary field)
+//	@Description	- Case-insensitive ILIKE matching
+//	@Description
+//	@Description	**Match Scoring:**
+//	@Description	- Name matches: 1.5 score (higher priority)
+//	@Description	- Description matches: 1.2 score (lower priority)
+//	@Description
+//	@Description	**Search Examples:**
+//	@Description	- "sales" - Find all sales-related pipelines
+//	@Description	- "support" - Find customer support workflows
+//	@Description	- "onboarding" - Locate onboarding process pipelines
+//	@Tags			pipelines
+//	@Accept			json
+//	@Produce		json
+//	@Security		BearerAuth
+//	@Param			q		query		string	true	"Search query - name or description" minlength(1) example(sales pipeline)
+//	@Param			limit	query		int		false	"Maximum results (max 100)" default(20) minimum(1) maximum(100) example(10)
+//	@Success		200		{object}	queries.SearchPipelinesResponse	"Found pipelines with match scores"
+//	@Failure		400		{object}	map[string]interface{}			"Bad Request - Empty search query"
+//	@Failure		401		{object}	map[string]interface{}			"Unauthorized"
+//	@Failure		403		{object}	map[string]interface{}			"Forbidden"
+//	@Failure		500		{object}	map[string]interface{}			"Internal Server Error"
+//	@Router			/api/v1/crm/pipelines/search [get]
+func (h *PipelineHandler) SearchPipelines(c *gin.Context) {
+	authCtx, exists := middleware.GetAuthContext(c)
+	if !exists {
+		apierrors.Unauthorized(c, "Authentication required")
+		return
+	}
+
+	tenantID, err := shared.NewTenantID(authCtx.TenantID)
+	if err != nil {
+		h.logger.Error("Invalid tenant ID", zap.Error(err))
+		apierrors.InternalError(c, "Invalid tenant configuration", err)
+		return
+	}
+
+	searchText := c.Query("q")
+	if searchText == "" {
+		apierrors.ValidationError(c, "q", "Search query 'q' is required")
+		return
+	}
+
+	// Parse limit
+	limit := 20
+	if limitStr := c.Query("limit"); limitStr != "" {
+		if l, err := strconv.Atoi(limitStr); err == nil && l > 0 && l <= 100 {
+			limit = l
+		}
+	}
+
+	query := queries.SearchPipelinesQuery{
+		TenantID:   tenantID,
+		SearchText: searchText,
+		Limit:      limit,
+	}
+
+	response, err := h.searchPipelinesQueryHandler.Handle(c.Request.Context(), query)
+	if err != nil {
+		h.logger.Error("Failed to search pipelines", zap.Error(err))
+		apierrors.InternalError(c, "Failed to search pipelines", err)
+		return
+	}
+
+	c.JSON(http.StatusOK, response)
 }
