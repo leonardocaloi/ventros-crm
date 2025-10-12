@@ -101,8 +101,10 @@ func (a *BillingRepositoryAdapter) domainToEntity(account *billing.BillingAccoun
 
 	return &entities.BillingAccountEntity{
 		ID:               account.ID(),
+		Version:          account.Version(),
 		UserID:           account.UserID(),
 		Name:             account.Name(),
+		StripeCustomerID: account.StripeCustomerID(),
 		PaymentStatus:    string(account.PaymentStatus()),
 		PaymentMethods:   paymentMethodsBytes,
 		BillingEmail:     account.BillingEmail(),
@@ -127,8 +129,10 @@ func (a *BillingRepositoryAdapter) entityToDomain(entity *entities.BillingAccoun
 
 	return billing.ReconstructBillingAccount(
 		entity.ID,
+		entity.Version,
 		entity.UserID,
 		entity.Name,
+		entity.StripeCustomerID,
 		billing.PaymentStatus(entity.PaymentStatus),
 		paymentMethods,
 		entity.BillingEmail,

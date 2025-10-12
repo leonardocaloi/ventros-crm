@@ -9,6 +9,7 @@ import (
 // BroadcastEntity represents a broadcast in the database
 type BroadcastEntity struct {
 	ID              uuid.UUID  `gorm:"type:uuid;primary_key"`
+	Version         int        `gorm:"default:1;not null"` // Optimistic locking
 	TenantID        string     `gorm:"type:varchar(255);not null;index:idx_broadcasts_tenant"`
 	Name            string     `gorm:"type:varchar(255);not null"`
 	ListID          uuid.UUID  `gorm:"type:uuid;not null;index:idx_broadcasts_list"`

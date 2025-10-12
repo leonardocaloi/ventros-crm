@@ -10,6 +10,7 @@ import (
 // PipelineEntity representa a entidade Pipeline no banco de dados
 type PipelineEntity struct {
 	ID          uuid.UUID `gorm:"type:uuid;primary_key;default:gen_random_uuid()"`
+	Version     int       `gorm:"default:1;not null"` // Optimistic locking
 	ProjectID   uuid.UUID `gorm:"type:uuid;not null;index:idx_pipelines_project"`
 	TenantID    string    `gorm:"not null;index:idx_pipelines_tenant;index:idx_pipelines_tenant_active,priority:1;index:idx_pipelines_tenant_name,priority:1"`
 	Name        string    `gorm:"not null;index:idx_pipelines_name;index:idx_pipelines_tenant_name,priority:2"`

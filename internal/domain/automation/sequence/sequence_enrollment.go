@@ -5,28 +5,29 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/caloi/ventros-crm/internal/domain/core/shared"
 )
 
 // SequenceEnrollment representa a participação de um contato em uma sequência
 type SequenceEnrollment struct {
-	id              uuid.UUID
-	sequenceID      uuid.UUID
-	contactID       uuid.UUID
-	status          EnrollmentStatus
+	id               uuid.UUID
+	sequenceID       uuid.UUID
+	contactID        uuid.UUID
+	status           EnrollmentStatus
 	currentStepOrder int        // Ordem do step atual
-	nextScheduledAt *time.Time // Quando enviar próxima mensagem
+	nextScheduledAt  *time.Time // Quando enviar próxima mensagem
 
 	// Exit tracking
-	exitedAt     *time.Time
-	exitReason   *string
+	exitedAt   *time.Time
+	exitReason *string
 
 	// Completion tracking
-	completedAt  *time.Time
+	completedAt *time.Time
 
-	enrolledAt   time.Time
-	updatedAt    time.Time
+	enrolledAt time.Time
+	updatedAt  time.Time
 
-	events []DomainEvent
+	events []shared.DomainEvent
 }
 
 type EnrollmentStatus string
@@ -63,15 +64,10 @@ func NewSequenceEnrollment(
 		nextScheduledAt:  &nextScheduled,
 		enrolledAt:       now,
 		updatedAt:        now,
-		events:           []DomainEvent{},
+		events:           []shared.DomainEvent{},
 	}
 
-	enrollment.addEvent(&ContactEnrolledEvent{
-		EnrollmentID: enrollment.id,
-		SequenceID:   sequenceID,
-		ContactID:    contactID,
-		Timestamp:    now,
-	})
+	enrollment.addEvent(NewContactEnrolledEvent(enrollment.id, sequenceID, contactID))
 
 	return enrollment, nil
 }
@@ -101,7 +97,7 @@ func ReconstructEnrollment(
 		completedAt:      completedAt,
 		enrolledAt:       enrolledAt,
 		updatedAt:        updatedAt,
-		events:           []DomainEvent{},
+		events:           []shared.DomainEvent{},
 	}
 }
 
@@ -125,11 +121,7 @@ func (e *SequenceEnrollment) AdvanceToNextStep(nextStepDelay time.Duration, hasN
 
 	e.updatedAt = time.Now()
 
-	e.addEvent(&EnrollmentAdvancedEvent{
-		EnrollmentID: e.id,
-		NewStepOrder: e.currentStepOrder,
-		Timestamp:    time.Now(),
-	})
+	e.addEvent(NewEnrollmentAdvancedEvent(e.id, e.currentStepOrder))
 
 	return nil
 }
@@ -143,10 +135,7 @@ func (e *SequenceEnrollment) Pause() error {
 	e.status = EnrollmentStatusPaused
 	e.updatedAt = time.Now()
 
-	e.addEvent(&EnrollmentPausedEvent{
-		EnrollmentID: e.id,
-		Timestamp:    time.Now(),
-	})
+	e.addEvent(NewEnrollmentPausedEvent(e.id))
 
 	return nil
 }
@@ -160,10 +149,7 @@ func (e *SequenceEnrollment) Resume() error {
 	e.status = EnrollmentStatusActive
 	e.updatedAt = time.Now()
 
-	e.addEvent(&EnrollmentResumedEvent{
-		EnrollmentID: e.id,
-		Timestamp:    time.Now(),
-	})
+	e.addEvent(NewEnrollmentResumedEvent(e.id))
 
 	return nil
 }
@@ -180,10 +166,7 @@ func (e *SequenceEnrollment) Complete() error {
 	e.nextScheduledAt = nil
 	e.updatedAt = now
 
-	e.addEvent(&EnrollmentCompletedEvent{
-		EnrollmentID: e.id,
-		Timestamp:    now,
-	})
+	e.addEvent(NewEnrollmentCompletedEvent(e.id))
 
 	return nil
 }
@@ -201,11 +184,7 @@ func (e *SequenceEnrollment) Exit(reason string) error {
 	e.nextScheduledAt = nil
 	e.updatedAt = now
 
-	e.addEvent(&EnrollmentExitedEvent{
-		EnrollmentID: e.id,
-		Reason:       reason,
-		Timestamp:    now,
-	})
+	e.addEvent(NewEnrollmentExitedEvent(e.id, reason))
 
 	return nil
 }
@@ -222,27 +201,27 @@ func (e *SequenceEnrollment) IsReadyForNextStep() bool {
 }
 
 // Getters
-func (e *SequenceEnrollment) ID() uuid.UUID                  { return e.id }
-func (e *SequenceEnrollment) SequenceID() uuid.UUID          { return e.sequenceID }
-func (e *SequenceEnrollment) ContactID() uuid.UUID           { return e.contactID }
-func (e *SequenceEnrollment) Status() EnrollmentStatus       { return e.status }
-func (e *SequenceEnrollment) CurrentStepOrder() int          { return e.currentStepOrder }
-func (e *SequenceEnrollment) NextScheduledAt() *time.Time    { return e.nextScheduledAt }
-func (e *SequenceEnrollment) ExitedAt() *time.Time           { return e.exitedAt }
-func (e *SequenceEnrollment) ExitReason() *string            { return e.exitReason }
-func (e *SequenceEnrollment) CompletedAt() *time.Time        { return e.completedAt }
-func (e *SequenceEnrollment) EnrolledAt() time.Time          { return e.enrolledAt }
-func (e *SequenceEnrollment) UpdatedAt() time.Time           { return e.updatedAt }
+func (e *SequenceEnrollment) ID() uuid.UUID               { return e.id }
+func (e *SequenceEnrollment) SequenceID() uuid.UUID       { return e.sequenceID }
+func (e *SequenceEnrollment) ContactID() uuid.UUID        { return e.contactID }
+func (e *SequenceEnrollment) Status() EnrollmentStatus    { return e.status }
+func (e *SequenceEnrollment) CurrentStepOrder() int       { return e.currentStepOrder }
+func (e *SequenceEnrollment) NextScheduledAt() *time.Time { return e.nextScheduledAt }
+func (e *SequenceEnrollment) ExitedAt() *time.Time        { return e.exitedAt }
+func (e *SequenceEnrollment) ExitReason() *string         { return e.exitReason }
+func (e *SequenceEnrollment) CompletedAt() *time.Time     { return e.completedAt }
+func (e *SequenceEnrollment) EnrolledAt() time.Time       { return e.enrolledAt }
+func (e *SequenceEnrollment) UpdatedAt() time.Time        { return e.updatedAt }
 
-func (e *SequenceEnrollment) DomainEvents() []DomainEvent {
-	return append([]DomainEvent{}, e.events...)
+func (e *SequenceEnrollment) DomainEvents() []shared.DomainEvent {
+	return append([]shared.DomainEvent{}, e.events...)
 }
 
 func (e *SequenceEnrollment) ClearEvents() {
-	e.events = []DomainEvent{}
+	e.events = []shared.DomainEvent{}
 }
 
-func (e *SequenceEnrollment) addEvent(event DomainEvent) {
+func (e *SequenceEnrollment) addEvent(event shared.DomainEvent) {
 	e.events = append(e.events, event)
 }
 

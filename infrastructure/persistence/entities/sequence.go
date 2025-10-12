@@ -8,20 +8,21 @@ import (
 
 // SequenceEntity represents a sequence in the database
 type SequenceEntity struct {
-	ID             uuid.UUID  `gorm:"type:uuid;primary_key"`
-	TenantID       string     `gorm:"type:varchar(255);not null;index:idx_sequences_tenant"`
-	Name           string     `gorm:"type:varchar(255);not null"`
-	Description    string     `gorm:"type:text"`
-	Status         string     `gorm:"type:varchar(50);not null;index:idx_sequences_status"`
-	TriggerType    string     `gorm:"type:varchar(50);not null;index:idx_sequences_trigger_type"`
-	TriggerData    []byte     `gorm:"type:jsonb"` // JSON data for trigger configuration
-	ExitOnReply    bool       `gorm:"type:boolean;default:true"`
-	TotalEnrolled  int        `gorm:"type:int;default:0"`
-	ActiveCount    int        `gorm:"type:int;default:0"`
-	CompletedCount int        `gorm:"type:int;default:0"`
-	ExitedCount    int        `gorm:"type:int;default:0"`
-	CreatedAt      time.Time  `gorm:"type:timestamp;not null;default:CURRENT_TIMESTAMP"`
-	UpdatedAt      time.Time  `gorm:"type:timestamp;not null;default:CURRENT_TIMESTAMP"`
+	ID             uuid.UUID `gorm:"type:uuid;primary_key"`
+	Version        int       `gorm:"default:1;not null"` // Optimistic locking
+	TenantID       string    `gorm:"type:varchar(255);not null;index:idx_sequences_tenant"`
+	Name           string    `gorm:"type:varchar(255);not null"`
+	Description    string    `gorm:"type:text"`
+	Status         string    `gorm:"type:varchar(50);not null;index:idx_sequences_status"`
+	TriggerType    string    `gorm:"type:varchar(50);not null;index:idx_sequences_trigger_type"`
+	TriggerData    []byte    `gorm:"type:jsonb"` // JSON data for trigger configuration
+	ExitOnReply    bool      `gorm:"type:boolean;default:true"`
+	TotalEnrolled  int       `gorm:"type:int;default:0"`
+	ActiveCount    int       `gorm:"type:int;default:0"`
+	CompletedCount int       `gorm:"type:int;default:0"`
+	ExitedCount    int       `gorm:"type:int;default:0"`
+	CreatedAt      time.Time `gorm:"type:timestamp;not null;default:CURRENT_TIMESTAMP"`
+	UpdatedAt      time.Time `gorm:"type:timestamp;not null;default:CURRENT_TIMESTAMP"`
 }
 
 // TableName specifies the table name for GORM

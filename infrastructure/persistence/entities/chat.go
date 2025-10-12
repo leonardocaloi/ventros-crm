@@ -11,6 +11,7 @@ import (
 // ChatEntity represents the Chat aggregate in the database
 type ChatEntity struct {
 	ID            uuid.UUID      `gorm:"type:uuid;primary_key;default:gen_random_uuid()"`
+	Version       int            `gorm:"default:1;not null"` // Optimistic locking
 	ProjectID     uuid.UUID      `gorm:"type:uuid;not null;index:idx_chats_project"`
 	TenantID      string         `gorm:"not null;index:idx_chats_tenant;index:idx_chats_tenant_status,priority:1;index:idx_chats_tenant_type,priority:1"`
 	ChatType      string         `gorm:"not null;index:idx_chats_type;index:idx_chats_tenant_type,priority:2"`   // individual, group, channel

@@ -3,70 +3,98 @@ package credential
 import (
 	"time"
 
+	"github.com/caloi/ventros-crm/internal/domain/core/shared"
 	"github.com/google/uuid"
 )
 
-type DomainEvent interface {
-	EventName() string
-	OccurredAt() time.Time
-}
-
 type CredentialCreatedEvent struct {
+	shared.BaseEvent
 	CredentialID   uuid.UUID
 	TenantID       string
 	CredentialType CredentialType
 	Name           string
-	CreatedAt      time.Time
 }
 
-func (e CredentialCreatedEvent) EventName() string     { return "credential.created" }
-func (e CredentialCreatedEvent) OccurredAt() time.Time { return e.CreatedAt }
+func NewCredentialCreatedEvent(credentialID uuid.UUID, tenantID string, credentialType CredentialType, name string) CredentialCreatedEvent {
+	return CredentialCreatedEvent{
+		BaseEvent:      shared.NewBaseEvent("credential.created", time.Now()),
+		CredentialID:   credentialID,
+		TenantID:       tenantID,
+		CredentialType: credentialType,
+		Name:           name,
+	}
+}
 
 type CredentialUpdatedEvent struct {
+	shared.BaseEvent
 	CredentialID uuid.UUID
-	UpdatedAt    time.Time
 }
 
-func (e CredentialUpdatedEvent) EventName() string     { return "credential.updated" }
-func (e CredentialUpdatedEvent) OccurredAt() time.Time { return e.UpdatedAt }
+func NewCredentialUpdatedEvent(credentialID uuid.UUID) CredentialUpdatedEvent {
+	return CredentialUpdatedEvent{
+		BaseEvent:    shared.NewBaseEvent("credential.updated", time.Now()),
+		CredentialID: credentialID,
+	}
+}
 
 type OAuthTokenRefreshedEvent struct {
+	shared.BaseEvent
 	CredentialID uuid.UUID
 	ExpiresAt    time.Time
-	RefreshedAt  time.Time
 }
 
-func (e OAuthTokenRefreshedEvent) EventName() string     { return "credential.oauth_refreshed" }
-func (e OAuthTokenRefreshedEvent) OccurredAt() time.Time { return e.RefreshedAt }
+func NewOAuthTokenRefreshedEvent(credentialID uuid.UUID, expiresAt time.Time) OAuthTokenRefreshedEvent {
+	return OAuthTokenRefreshedEvent{
+		BaseEvent:    shared.NewBaseEvent("credential.oauth_refreshed", time.Now()),
+		CredentialID: credentialID,
+		ExpiresAt:    expiresAt,
+	}
+}
 
 type CredentialActivatedEvent struct {
+	shared.BaseEvent
 	CredentialID uuid.UUID
-	ActivatedAt  time.Time
 }
 
-func (e CredentialActivatedEvent) EventName() string     { return "credential.activated" }
-func (e CredentialActivatedEvent) OccurredAt() time.Time { return e.ActivatedAt }
+func NewCredentialActivatedEvent(credentialID uuid.UUID) CredentialActivatedEvent {
+	return CredentialActivatedEvent{
+		BaseEvent:    shared.NewBaseEvent("credential.activated", time.Now()),
+		CredentialID: credentialID,
+	}
+}
 
 type CredentialDeactivatedEvent struct {
-	CredentialID  uuid.UUID
-	DeactivatedAt time.Time
+	shared.BaseEvent
+	CredentialID uuid.UUID
 }
 
-func (e CredentialDeactivatedEvent) EventName() string     { return "credential.deactivated" }
-func (e CredentialDeactivatedEvent) OccurredAt() time.Time { return e.DeactivatedAt }
+func NewCredentialDeactivatedEvent(credentialID uuid.UUID) CredentialDeactivatedEvent {
+	return CredentialDeactivatedEvent{
+		BaseEvent:    shared.NewBaseEvent("credential.deactivated", time.Now()),
+		CredentialID: credentialID,
+	}
+}
 
 type CredentialUsedEvent struct {
+	shared.BaseEvent
 	CredentialID uuid.UUID
-	UsedAt       time.Time
 }
 
-func (e CredentialUsedEvent) EventName() string     { return "credential.used" }
-func (e CredentialUsedEvent) OccurredAt() time.Time { return e.UsedAt }
+func NewCredentialUsedEvent(credentialID uuid.UUID) CredentialUsedEvent {
+	return CredentialUsedEvent{
+		BaseEvent:    shared.NewBaseEvent("credential.used", time.Now()),
+		CredentialID: credentialID,
+	}
+}
 
 type CredentialExpiredEvent struct {
+	shared.BaseEvent
 	CredentialID uuid.UUID
-	ExpiredAt    time.Time
 }
 
-func (e CredentialExpiredEvent) EventName() string     { return "credential.expired" }
-func (e CredentialExpiredEvent) OccurredAt() time.Time { return e.ExpiredAt }
+func NewCredentialExpiredEvent(credentialID uuid.UUID) CredentialExpiredEvent {
+	return CredentialExpiredEvent{
+		BaseEvent:    shared.NewBaseEvent("credential.expired", time.Now()),
+		CredentialID: credentialID,
+	}
+}

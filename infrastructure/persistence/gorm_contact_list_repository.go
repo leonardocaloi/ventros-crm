@@ -47,9 +47,41 @@ func (r *GormContactListRepository) Update(ctx context.Context, list *contact_li
 	entity := r.domainToEntity(list)
 
 	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		// Atualizar lista
-		if err := tx.Updates(entity).Error; err != nil {
+		// Get existing entity for version check
+		var existing entities.ContactListEntity
+		err := tx.Where("id = ?", entity.ID).First(&existing).Error
+		if err != nil {
 			return err
+		}
+
+		// Update list with optimistic locking
+		result := tx.Model(&entities.ContactListEntity{}).
+			Where("id = ? AND version = ?", entity.ID, existing.Version).
+			Updates(map[string]interface{}{
+				"version":            existing.Version + 1, // Increment version
+				"project_id":         entity.ProjectID,
+				"tenant_id":          entity.TenantID,
+				"name":               entity.Name,
+				"description":        entity.Description,
+				"logical_operator":   entity.LogicalOperator,
+				"is_static":          entity.IsStatic,
+				"contact_count":      entity.ContactCount,
+				"last_calculated_at": entity.LastCalculatedAt,
+				"updated_at":         entity.UpdatedAt,
+			})
+
+		if result.Error != nil {
+			return result.Error
+		}
+
+		// Check optimistic locking - if 0 rows affected, version mismatch (concurrent update)
+		if result.RowsAffected == 0 {
+			return shared.NewOptimisticLockError(
+				"ContactList",
+				entity.ID.String(),
+				existing.Version,
+				entity.Version,
+			)
 		}
 
 		// Deletar regras antigas e criar novas
@@ -464,6 +496,7 @@ func (r *GormContactListRepository) IsContactInList(ctx context.Context, listID,
 func (r *GormContactListRepository) domainToEntity(list *contact_list.ContactList) *entities.ContactListEntity {
 	entity := &entities.ContactListEntity{
 		ID:               list.ID(),
+		Version:          list.Version(),
 		ProjectID:        list.ProjectID(),
 		TenantID:         list.TenantID(),
 		Name:             list.Name(),
@@ -532,6 +565,7 @@ func (r *GormContactListRepository) entityToDomain(entity *entities.ContactListE
 
 	return contact_list.ReconstructContactList(
 		entity.ID,
+		entity.Version,
 		entity.ProjectID,
 		entity.TenantID,
 		entity.Name,

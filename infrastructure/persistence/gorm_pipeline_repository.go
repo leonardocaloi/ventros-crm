@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	"github.com/caloi/ventros-crm/infrastructure/persistence/entities"
+	"github.com/caloi/ventros-crm/internal/domain/core/shared"
 	"github.com/caloi/ventros-crm/internal/domain/crm/pipeline"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -21,7 +22,49 @@ func NewGormPipelineRepository(db *gorm.DB) pipeline.Repository {
 // Pipeline operations
 func (r *GormPipelineRepository) SavePipeline(ctx context.Context, p *pipeline.Pipeline) error {
 	entity := r.pipelineDomainToEntity(p)
-	return r.db.WithContext(ctx).Save(entity).Error
+
+	// Check if exists
+	var existing entities.PipelineEntity
+	err := r.db.WithContext(ctx).Where("id = ?", entity.ID).First(&existing).Error
+
+	if err == nil {
+		// Update with optimistic locking
+		result := r.db.WithContext(ctx).Model(&entities.PipelineEntity{}).
+			Where("id = ? AND version = ?", entity.ID, existing.Version).
+			Updates(map[string]interface{}{
+				"version":                  existing.Version + 1, // Increment version
+				"project_id":               entity.ProjectID,
+				"tenant_id":                entity.TenantID,
+				"name":                     entity.Name,
+				"description":              entity.Description,
+				"color":                    entity.Color,
+				"position":                 entity.Position,
+				"active":                   entity.Active,
+				"session_timeout_minutes":  entity.SessionTimeoutMinutes,
+				"updated_at":               entity.UpdatedAt,
+			})
+
+		if result.Error != nil {
+			return result.Error
+		}
+
+		// Check optimistic locking - if 0 rows affected, version mismatch (concurrent update)
+		if result.RowsAffected == 0 {
+			return shared.NewOptimisticLockError(
+				"Pipeline",
+				entity.ID.String(),
+				existing.Version,
+				entity.Version,
+			)
+		}
+
+		return nil
+	} else if errors.Is(err, gorm.ErrRecordNotFound) {
+		// Insert
+		return r.db.WithContext(ctx).Create(entity).Error
+	}
+
+	return err
 }
 
 func (r *GormPipelineRepository) FindPipelineByID(ctx context.Context, id uuid.UUID) (*pipeline.Pipeline, error) {
@@ -104,7 +147,48 @@ func (r *GormPipelineRepository) DeletePipeline(ctx context.Context, id uuid.UUI
 // Status operations
 func (r *GormPipelineRepository) SaveStatus(ctx context.Context, status *pipeline.Status) error {
 	entity := r.statusDomainToEntity(status)
-	return r.db.WithContext(ctx).Save(entity).Error
+
+	// Check if exists
+	var existing entities.PipelineStatusEntity
+	err := r.db.WithContext(ctx).Where("id = ?", entity.ID).First(&existing).Error
+
+	if err == nil {
+		// Update with optimistic locking
+		result := r.db.WithContext(ctx).Model(&entities.PipelineStatusEntity{}).
+			Where("id = ? AND version = ?", entity.ID, existing.Version).
+			Updates(map[string]interface{}{
+				"version":     existing.Version + 1, // Increment version
+				"pipeline_id": entity.PipelineID,
+				"name":        entity.Name,
+				"description": entity.Description,
+				"color":       entity.Color,
+				"status_type": entity.StatusType,
+				"position":    entity.Position,
+				"active":      entity.Active,
+				"updated_at":  entity.UpdatedAt,
+			})
+
+		if result.Error != nil {
+			return result.Error
+		}
+
+		// Check optimistic locking - if 0 rows affected, version mismatch (concurrent update)
+		if result.RowsAffected == 0 {
+			return shared.NewOptimisticLockError(
+				"PipelineStatus",
+				entity.ID.String(),
+				existing.Version,
+				entity.Version,
+			)
+		}
+
+		return nil
+	} else if errors.Is(err, gorm.ErrRecordNotFound) {
+		// Insert
+		return r.db.WithContext(ctx).Create(entity).Error
+	}
+
+	return err
 }
 
 func (r *GormPipelineRepository) FindStatusByID(ctx context.Context, id uuid.UUID) (*pipeline.Status, error) {
@@ -315,6 +399,7 @@ func (r *GormPipelineRepository) SearchByText(ctx context.Context, tenantID stri
 func (r *GormPipelineRepository) pipelineDomainToEntity(p *pipeline.Pipeline) *entities.PipelineEntity {
 	return &entities.PipelineEntity{
 		ID:                    p.ID(),
+		Version:               p.Version(),
 		ProjectID:             p.ProjectID(),
 		TenantID:              p.TenantID(),
 		Name:                  p.Name(),
@@ -333,6 +418,7 @@ func (r *GormPipelineRepository) pipelineEntityToDomain(entity *entities.Pipelin
 	return pipeline.ReconstructPipeline(
 		entity.ID,
 		entity.ProjectID,
+		entity.Version,
 		entity.TenantID,
 		entity.Name,
 		entity.Description,
@@ -349,6 +435,7 @@ func (r *GormPipelineRepository) pipelineEntityToDomain(entity *entities.Pipelin
 func (r *GormPipelineRepository) statusDomainToEntity(s *pipeline.Status) *entities.PipelineStatusEntity {
 	return &entities.PipelineStatusEntity{
 		ID:          s.ID(),
+		Version:     s.Version(),
 		PipelineID:  s.PipelineID(),
 		Name:        s.Name(),
 		Description: s.Description(),
@@ -365,6 +452,7 @@ func (r *GormPipelineRepository) statusEntityToDomain(entity *entities.PipelineS
 	return pipeline.ReconstructStatus(
 		entity.ID,
 		entity.PipelineID,
+		entity.Version,
 		entity.Name,
 		entity.Description,
 		entity.Color,

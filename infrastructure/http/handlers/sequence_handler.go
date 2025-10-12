@@ -26,18 +26,19 @@ func NewSequenceHandler(logger *zap.Logger, db *gorm.DB) *SequenceHandler {
 }
 
 // ListSequences lists all sequences for the authenticated tenant
-// @Summary List sequences
-// @Description Get a paginated list of sequences with optional filters
-// @Tags AUTOMATION - Sequences
-// @Accept json
-// @Produce json
-// @Param status query string false "Filter by status (draft, active, paused, archived)"
-// @Param page query int false "Page number (default: 1)"
-// @Param limit query int false "Items per page (default: 20, max: 100)"
-// @Success 200 {object} map[string]interface{} "sequences: array of sequences, total: total count, page: current page, limit: items per page"
-// @Failure 400 {object} map[string]interface{} "error: validation error message"
-// @Failure 500 {object} map[string]interface{} "error: internal server error message"
-// @Router /api/v1/automation/sequences [get]
+//
+//	@Summary		List sequences
+//	@Description	Get a paginated list of sequences with optional filters
+//	@Tags			AUTOMATION - Sequences
+//	@Accept			json
+//	@Produce		json
+//	@Param			status	query		string					false	"Filter by status (draft, active, paused, archived)"
+//	@Param			page	query		int						false	"Page number (default: 1)"
+//	@Param			limit	query		int						false	"Items per page (default: 20, max: 100)"
+//	@Success		200		{object}	map[string]interface{}	"sequences: array of sequences, total: total count, page: current page, limit: items per page"
+//	@Failure		400		{object}	map[string]interface{}	"error: validation error message"
+//	@Failure		500		{object}	map[string]interface{}	"error: internal server error message"
+//	@Router			/api/v1/automation/sequences [get]
 func (h *SequenceHandler) ListSequences(c *gin.Context) {
 	tenantID := c.GetString("tenant_id")
 
@@ -109,16 +110,17 @@ func (h *SequenceHandler) ListSequences(c *gin.Context) {
 }
 
 // CreateSequence creates a new sequence
-// @Summary Create sequence
-// @Description Create a new automated sequence
-// @Tags AUTOMATION - Sequences
-// @Accept json
-// @Produce json
-// @Param sequence body CreateSequenceRequest true "Sequence details"
-// @Success 201 {object} map[string]interface{} "sequence: created sequence object"
-// @Failure 400 {object} map[string]interface{} "error: validation error message"
-// @Failure 500 {object} map[string]interface{} "error: internal server error message"
-// @Router /api/v1/automation/sequences [post]
+//
+//	@Summary		Create sequence
+//	@Description	Create a new automated sequence
+//	@Tags			AUTOMATION - Sequences
+//	@Accept			json
+//	@Produce		json
+//	@Param			sequence	body		CreateSequenceRequest	true	"Sequence details"
+//	@Success		201			{object}	map[string]interface{}	"sequence: created sequence object"
+//	@Failure		400			{object}	map[string]interface{}	"error: validation error message"
+//	@Failure		500			{object}	map[string]interface{}	"error: internal server error message"
+//	@Router			/api/v1/automation/sequences [post]
 func (h *SequenceHandler) CreateSequence(c *gin.Context) {
 	tenantID := c.GetString("tenant_id")
 
@@ -188,16 +190,17 @@ func (h *SequenceHandler) CreateSequence(c *gin.Context) {
 }
 
 // GetSequence gets a sequence by ID
-// @Summary Get sequence
-// @Description Get a sequence by ID
-// @Tags AUTOMATION - Sequences
-// @Accept json
-// @Produce json
-// @Param id path string true "Sequence ID"
-// @Success 200 {object} map[string]interface{} "sequence: sequence object"
-// @Failure 404 {object} map[string]interface{} "error: sequence not found"
-// @Failure 500 {object} map[string]interface{} "error: internal server error message"
-// @Router /api/v1/automation/sequences/{id} [get]
+//
+//	@Summary		Get sequence
+//	@Description	Get a sequence by ID
+//	@Tags			AUTOMATION - Sequences
+//	@Accept			json
+//	@Produce		json
+//	@Param			id	path		string					true	"Sequence ID"
+//	@Success		200	{object}	map[string]interface{}	"sequence: sequence object"
+//	@Failure		404	{object}	map[string]interface{}	"error: sequence not found"
+//	@Failure		500	{object}	map[string]interface{}	"error: internal server error message"
+//	@Router			/api/v1/automation/sequences/{id} [get]
 func (h *SequenceHandler) GetSequence(c *gin.Context) {
 	tenantID := c.GetString("tenant_id")
 	sequenceID, err := uuid.Parse(c.Param("id"))
@@ -226,18 +229,19 @@ func (h *SequenceHandler) GetSequence(c *gin.Context) {
 }
 
 // UpdateSequence updates a sequence
-// @Summary Update sequence
-// @Description Update a sequence (only allowed in draft status)
-// @Tags AUTOMATION - Sequences
-// @Accept json
-// @Produce json
-// @Param id path string true "Sequence ID"
-// @Param sequence body UpdateSequenceRequest true "Updated sequence details"
-// @Success 200 {object} map[string]interface{} "sequence: updated sequence object"
-// @Failure 400 {object} map[string]interface{} "error: validation error message"
-// @Failure 404 {object} map[string]interface{} "error: sequence not found"
-// @Failure 500 {object} map[string]interface{} "error: internal server error message"
-// @Router /api/v1/automation/sequences/{id} [put]
+//
+//	@Summary		Update sequence
+//	@Description	Update a sequence (only allowed in draft status)
+//	@Tags			AUTOMATION - Sequences
+//	@Accept			json
+//	@Produce		json
+//	@Param			id			path		string					true	"Sequence ID"
+//	@Param			sequence	body		UpdateSequenceRequest	true	"Updated sequence details"
+//	@Success		200			{object}	map[string]interface{}	"sequence: updated sequence object"
+//	@Failure		400			{object}	map[string]interface{}	"error: validation error message"
+//	@Failure		404			{object}	map[string]interface{}	"error: sequence not found"
+//	@Failure		500			{object}	map[string]interface{}	"error: internal server error message"
+//	@Router			/api/v1/automation/sequences/{id} [put]
 func (h *SequenceHandler) UpdateSequence(c *gin.Context) {
 	tenantID := c.GetString("tenant_id")
 	sequenceID, err := uuid.Parse(c.Param("id"))
@@ -296,17 +300,18 @@ func (h *SequenceHandler) UpdateSequence(c *gin.Context) {
 }
 
 // ActivateSequence activates a sequence
-// @Summary Activate sequence
-// @Description Activate a sequence to start accepting enrollments
-// @Tags AUTOMATION - Sequences
-// @Accept json
-// @Produce json
-// @Param id path string true "Sequence ID"
-// @Success 200 {object} map[string]interface{} "sequence: activated sequence object"
-// @Failure 400 {object} map[string]interface{} "error: validation error message"
-// @Failure 404 {object} map[string]interface{} "error: sequence not found"
-// @Failure 500 {object} map[string]interface{} "error: internal server error message"
-// @Router /api/v1/automation/sequences/{id}/activate [post]
+//
+//	@Summary		Activate sequence
+//	@Description	Activate a sequence to start accepting enrollments
+//	@Tags			AUTOMATION - Sequences
+//	@Accept			json
+//	@Produce		json
+//	@Param			id	path		string					true	"Sequence ID"
+//	@Success		200	{object}	map[string]interface{}	"sequence: activated sequence object"
+//	@Failure		400	{object}	map[string]interface{}	"error: validation error message"
+//	@Failure		404	{object}	map[string]interface{}	"error: sequence not found"
+//	@Failure		500	{object}	map[string]interface{}	"error: internal server error message"
+//	@Router			/api/v1/automation/sequences/{id}/activate [post]
 func (h *SequenceHandler) ActivateSequence(c *gin.Context) {
 	tenantID := c.GetString("tenant_id")
 	sequenceID, err := uuid.Parse(c.Param("id"))
@@ -348,17 +353,18 @@ func (h *SequenceHandler) ActivateSequence(c *gin.Context) {
 }
 
 // PauseSequence pauses a sequence
-// @Summary Pause sequence
-// @Description Pause an active sequence
-// @Tags AUTOMATION - Sequences
-// @Accept json
-// @Produce json
-// @Param id path string true "Sequence ID"
-// @Success 200 {object} map[string]interface{} "sequence: paused sequence object"
-// @Failure 400 {object} map[string]interface{} "error: validation error message"
-// @Failure 404 {object} map[string]interface{} "error: sequence not found"
-// @Failure 500 {object} map[string]interface{} "error: internal server error message"
-// @Router /api/v1/automation/sequences/{id}/pause [post]
+//
+//	@Summary		Pause sequence
+//	@Description	Pause an active sequence
+//	@Tags			AUTOMATION - Sequences
+//	@Accept			json
+//	@Produce		json
+//	@Param			id	path		string					true	"Sequence ID"
+//	@Success		200	{object}	map[string]interface{}	"sequence: paused sequence object"
+//	@Failure		400	{object}	map[string]interface{}	"error: validation error message"
+//	@Failure		404	{object}	map[string]interface{}	"error: sequence not found"
+//	@Failure		500	{object}	map[string]interface{}	"error: internal server error message"
+//	@Router			/api/v1/automation/sequences/{id}/pause [post]
 func (h *SequenceHandler) PauseSequence(c *gin.Context) {
 	tenantID := c.GetString("tenant_id")
 	sequenceID, err := uuid.Parse(c.Param("id"))
@@ -400,17 +406,18 @@ func (h *SequenceHandler) PauseSequence(c *gin.Context) {
 }
 
 // ResumeSequence resumes a paused sequence
-// @Summary Resume sequence
-// @Description Resume a paused sequence
-// @Tags AUTOMATION - Sequences
-// @Accept json
-// @Produce json
-// @Param id path string true "Sequence ID"
-// @Success 200 {object} map[string]interface{} "sequence: resumed sequence object"
-// @Failure 400 {object} map[string]interface{} "error: validation error message"
-// @Failure 404 {object} map[string]interface{} "error: sequence not found"
-// @Failure 500 {object} map[string]interface{} "error: internal server error message"
-// @Router /api/v1/automation/sequences/{id}/resume [post]
+//
+//	@Summary		Resume sequence
+//	@Description	Resume a paused sequence
+//	@Tags			AUTOMATION - Sequences
+//	@Accept			json
+//	@Produce		json
+//	@Param			id	path		string					true	"Sequence ID"
+//	@Success		200	{object}	map[string]interface{}	"sequence: resumed sequence object"
+//	@Failure		400	{object}	map[string]interface{}	"error: validation error message"
+//	@Failure		404	{object}	map[string]interface{}	"error: sequence not found"
+//	@Failure		500	{object}	map[string]interface{}	"error: internal server error message"
+//	@Router			/api/v1/automation/sequences/{id}/resume [post]
 func (h *SequenceHandler) ResumeSequence(c *gin.Context) {
 	tenantID := c.GetString("tenant_id")
 	sequenceID, err := uuid.Parse(c.Param("id"))
@@ -452,17 +459,18 @@ func (h *SequenceHandler) ResumeSequence(c *gin.Context) {
 }
 
 // ArchiveSequence archives a sequence
-// @Summary Archive sequence
-// @Description Archive a sequence
-// @Tags AUTOMATION - Sequences
-// @Accept json
-// @Produce json
-// @Param id path string true "Sequence ID"
-// @Success 200 {object} map[string]interface{} "sequence: archived sequence object"
-// @Failure 400 {object} map[string]interface{} "error: validation error message"
-// @Failure 404 {object} map[string]interface{} "error: sequence not found"
-// @Failure 500 {object} map[string]interface{} "error: internal server error message"
-// @Router /api/v1/automation/sequences/{id}/archive [post]
+//
+//	@Summary		Archive sequence
+//	@Description	Archive a sequence
+//	@Tags			AUTOMATION - Sequences
+//	@Accept			json
+//	@Produce		json
+//	@Param			id	path		string					true	"Sequence ID"
+//	@Success		200	{object}	map[string]interface{}	"sequence: archived sequence object"
+//	@Failure		400	{object}	map[string]interface{}	"error: validation error message"
+//	@Failure		404	{object}	map[string]interface{}	"error: sequence not found"
+//	@Failure		500	{object}	map[string]interface{}	"error: internal server error message"
+//	@Router			/api/v1/automation/sequences/{id}/archive [post]
 func (h *SequenceHandler) ArchiveSequence(c *gin.Context) {
 	tenantID := c.GetString("tenant_id")
 	sequenceID, err := uuid.Parse(c.Param("id"))
@@ -504,17 +512,18 @@ func (h *SequenceHandler) ArchiveSequence(c *gin.Context) {
 }
 
 // DeleteSequence deletes a sequence
-// @Summary Delete sequence
-// @Description Delete a sequence (only in draft status)
-// @Tags AUTOMATION - Sequences
-// @Accept json
-// @Produce json
-// @Param id path string true "Sequence ID"
-// @Success 200 {object} map[string]interface{} "message: success message"
-// @Failure 400 {object} map[string]interface{} "error: validation error message"
-// @Failure 404 {object} map[string]interface{} "error: sequence not found"
-// @Failure 500 {object} map[string]interface{} "error: internal server error message"
-// @Router /api/v1/automation/sequences/{id} [delete]
+//
+//	@Summary		Delete sequence
+//	@Description	Delete a sequence (only in draft status)
+//	@Tags			AUTOMATION - Sequences
+//	@Accept			json
+//	@Produce		json
+//	@Param			id	path		string					true	"Sequence ID"
+//	@Success		200	{object}	map[string]interface{}	"message: success message"
+//	@Failure		400	{object}	map[string]interface{}	"error: validation error message"
+//	@Failure		404	{object}	map[string]interface{}	"error: sequence not found"
+//	@Failure		500	{object}	map[string]interface{}	"error: internal server error message"
+//	@Router			/api/v1/automation/sequences/{id} [delete]
 func (h *SequenceHandler) DeleteSequence(c *gin.Context) {
 	tenantID := c.GetString("tenant_id")
 	sequenceID, err := uuid.Parse(c.Param("id"))
@@ -555,16 +564,17 @@ func (h *SequenceHandler) DeleteSequence(c *gin.Context) {
 }
 
 // GetSequenceStats gets sequence statistics
-// @Summary Get sequence stats
-// @Description Get statistics for a sequence
-// @Tags AUTOMATION - Sequences
-// @Accept json
-// @Produce json
-// @Param id path string true "Sequence ID"
-// @Success 200 {object} map[string]interface{} "stats: sequence statistics object"
-// @Failure 404 {object} map[string]interface{} "error: sequence not found"
-// @Failure 500 {object} map[string]interface{} "error: internal server error message"
-// @Router /api/v1/automation/sequences/{id}/stats [get]
+//
+//	@Summary		Get sequence stats
+//	@Description	Get statistics for a sequence
+//	@Tags			AUTOMATION - Sequences
+//	@Accept			json
+//	@Produce		json
+//	@Param			id	path		string					true	"Sequence ID"
+//	@Success		200	{object}	map[string]interface{}	"stats: sequence statistics object"
+//	@Failure		404	{object}	map[string]interface{}	"error: sequence not found"
+//	@Failure		500	{object}	map[string]interface{}	"error: internal server error message"
+//	@Router			/api/v1/automation/sequences/{id}/stats [get]
 func (h *SequenceHandler) GetSequenceStats(c *gin.Context) {
 	tenantID := c.GetString("tenant_id")
 	sequenceID, err := uuid.Parse(c.Param("id"))
@@ -600,18 +610,19 @@ func (h *SequenceHandler) GetSequenceStats(c *gin.Context) {
 }
 
 // EnrollContact enrolls a contact in a sequence
-// @Summary Enroll contact
-// @Description Enroll a contact in a sequence
-// @Tags AUTOMATION - Sequences
-// @Accept json
-// @Produce json
-// @Param id path string true "Sequence ID"
-// @Param enrollment body EnrollContactRequest true "Enrollment details"
-// @Success 201 {object} map[string]interface{} "enrollment: created enrollment object"
-// @Failure 400 {object} map[string]interface{} "error: validation error message"
-// @Failure 404 {object} map[string]interface{} "error: sequence not found"
-// @Failure 500 {object} map[string]interface{} "error: internal server error message"
-// @Router /api/v1/automation/sequences/{id}/enroll [post]
+//
+//	@Summary		Enroll contact
+//	@Description	Enroll a contact in a sequence
+//	@Tags			AUTOMATION - Sequences
+//	@Accept			json
+//	@Produce		json
+//	@Param			id			path		string					true	"Sequence ID"
+//	@Param			enrollment	body		EnrollContactRequest	true	"Enrollment details"
+//	@Success		201			{object}	map[string]interface{}	"enrollment: created enrollment object"
+//	@Failure		400			{object}	map[string]interface{}	"error: validation error message"
+//	@Failure		404			{object}	map[string]interface{}	"error: sequence not found"
+//	@Failure		500			{object}	map[string]interface{}	"error: internal server error message"
+//	@Router			/api/v1/automation/sequences/{id}/enroll [post]
 func (h *SequenceHandler) EnrollContact(c *gin.Context) {
 	tenantID := c.GetString("tenant_id")
 	sequenceID, err := uuid.Parse(c.Param("id"))
@@ -708,16 +719,17 @@ func (h *SequenceHandler) EnrollContact(c *gin.Context) {
 }
 
 // ListEnrollments lists all enrollments for a sequence
-// @Summary List enrollments
-// @Description Get all enrollments for a sequence
-// @Tags AUTOMATION - Sequences
-// @Accept json
-// @Produce json
-// @Param id path string true "Sequence ID"
-// @Success 200 {object} map[string]interface{} "enrollments: array of enrollments"
-// @Failure 404 {object} map[string]interface{} "error: sequence not found"
-// @Failure 500 {object} map[string]interface{} "error: internal server error message"
-// @Router /api/v1/automation/sequences/{id}/enrollments [get]
+//
+//	@Summary		List enrollments
+//	@Description	Get all enrollments for a sequence
+//	@Tags			AUTOMATION - Sequences
+//	@Accept			json
+//	@Produce		json
+//	@Param			id	path		string					true	"Sequence ID"
+//	@Success		200	{object}	map[string]interface{}	"enrollments: array of enrollments"
+//	@Failure		404	{object}	map[string]interface{}	"error: sequence not found"
+//	@Failure		500	{object}	map[string]interface{}	"error: internal server error message"
+//	@Router			/api/v1/automation/sequences/{id}/enrollments [get]
 func (h *SequenceHandler) ListEnrollments(c *gin.Context) {
 	tenantID := c.GetString("tenant_id")
 	sequenceID, err := uuid.Parse(c.Param("id"))
@@ -815,9 +827,9 @@ func (h *SequenceHandler) enrollmentToResponse(enrollment *sequence.SequenceEnro
 
 // Request/Response types
 type CreateSequenceRequest struct {
-	Name        string                    `json:"name" binding:"required"`
-	Description string                    `json:"description"`
-	TriggerType string                    `json:"trigger_type" binding:"required"`
+	Name        string                      `json:"name" binding:"required"`
+	Description string                      `json:"description"`
+	TriggerType string                      `json:"trigger_type" binding:"required"`
 	Steps       []CreateSequenceStepRequest `json:"steps"`
 }
 

@@ -5,12 +5,14 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/caloi/ventros-crm/internal/domain/core/shared"
 )
 
 // Campaign represents a complex multi-step marketing campaign
 // that can orchestrate broadcasts, sequences, and conditional logic
 type Campaign struct {
 	id          uuid.UUID
+	version     int // Optimistic locking - prevents lost updates
 	tenantID    string
 	name        string
 	description string
@@ -32,7 +34,7 @@ type Campaign struct {
 	updatedAt time.Time
 
 	// Domain events
-	events []interface{}
+	events []shared.DomainEvent
 }
 
 type CampaignStatus string
@@ -69,6 +71,7 @@ func NewCampaign(tenantID, name, description string, goalType GoalType, goalValu
 	now := time.Now()
 	campaign := &Campaign{
 		id:               uuid.New(),
+		version:          1, // Start with version 1 for new aggregates
 		tenantID:         tenantID,
 		name:             name,
 		description:      description,
@@ -80,19 +83,18 @@ func NewCampaign(tenantID, name, description string, goalType GoalType, goalValu
 		conversionsCount: 0,
 		createdAt:        now,
 		updatedAt:        now,
-		events:           []interface{}{},
+		events:           []shared.DomainEvent{},
 	}
 
 	// Emit domain event
-	campaign.addEvent(CampaignCreatedEvent{
-		CampaignID:  campaign.id,
-		TenantID:    campaign.tenantID,
-		Name:        campaign.name,
-		Description: campaign.description,
-		GoalType:    campaign.goalType,
-		GoalValue:   campaign.goalValue,
-		OccurredAt:  now,
-	})
+	campaign.addEvent(NewCampaignCreatedEvent(
+		campaign.id,
+		campaign.tenantID,
+		campaign.name,
+		campaign.description,
+		campaign.goalType,
+		campaign.goalValue,
+	))
 
 	return campaign, nil
 }
@@ -100,6 +102,7 @@ func NewCampaign(tenantID, name, description string, goalType GoalType, goalValu
 // ReconstructCampaign reconstructs a campaign from persistence
 func ReconstructCampaign(
 	id uuid.UUID,
+	version int, // Optimistic locking version
 	tenantID string,
 	name string,
 	description string,
@@ -114,8 +117,13 @@ func ReconstructCampaign(
 	createdAt time.Time,
 	updatedAt time.Time,
 ) *Campaign {
+	if version == 0 {
+		version = 1 // Default to version 1 (backwards compatibility)
+	}
+
 	return &Campaign{
 		id:               id,
+		version:          version,
 		tenantID:         tenantID,
 		name:             name,
 		description:      description,
@@ -129,7 +137,7 @@ func ReconstructCampaign(
 		endDate:          endDate,
 		createdAt:        createdAt,
 		updatedAt:        updatedAt,
-		events:           []interface{}{},
+		events:           []shared.DomainEvent{},
 	}
 }
 
@@ -147,10 +155,7 @@ func (c *Campaign) Activate() error {
 	c.status = CampaignStatusActive
 	c.updatedAt = time.Now()
 
-	c.addEvent(CampaignActivatedEvent{
-		CampaignID: c.id,
-		OccurredAt: c.updatedAt,
-	})
+	c.addEvent(NewCampaignActivatedEvent(c.id))
 
 	return nil
 }
@@ -171,11 +176,7 @@ func (c *Campaign) Schedule(startDate time.Time) error {
 	c.startDate = &startDate
 	c.updatedAt = time.Now()
 
-	c.addEvent(CampaignScheduledEvent{
-		CampaignID: c.id,
-		StartDate:  startDate,
-		OccurredAt: c.updatedAt,
-	})
+	c.addEvent(NewCampaignScheduledEvent(c.id, startDate))
 
 	return nil
 }
@@ -189,10 +190,7 @@ func (c *Campaign) Pause() error {
 	c.status = CampaignStatusPaused
 	c.updatedAt = time.Now()
 
-	c.addEvent(CampaignPausedEvent{
-		CampaignID: c.id,
-		OccurredAt: c.updatedAt,
-	})
+	c.addEvent(NewCampaignPausedEvent(c.id))
 
 	return nil
 }
@@ -206,10 +204,7 @@ func (c *Campaign) Resume() error {
 	c.status = CampaignStatusActive
 	c.updatedAt = time.Now()
 
-	c.addEvent(CampaignResumedEvent{
-		CampaignID: c.id,
-		OccurredAt: c.updatedAt,
-	})
+	c.addEvent(NewCampaignResumedEvent(c.id))
 
 	return nil
 }
@@ -225,10 +220,7 @@ func (c *Campaign) Complete() error {
 	c.endDate = &now
 	c.updatedAt = now
 
-	c.addEvent(CampaignCompletedEvent{
-		CampaignID: c.id,
-		OccurredAt: c.updatedAt,
-	})
+	c.addEvent(NewCampaignCompletedEvent(c.id))
 
 	return nil
 }
@@ -242,10 +234,7 @@ func (c *Campaign) Archive() error {
 	c.status = CampaignStatusArchived
 	c.updatedAt = time.Now()
 
-	c.addEvent(CampaignArchivedEvent{
-		CampaignID: c.id,
-		OccurredAt: c.updatedAt,
-	})
+	c.addEvent(NewCampaignArchivedEvent(c.id))
 
 	return nil
 }
@@ -268,13 +257,7 @@ func (c *Campaign) AddStep(step CampaignStep) error {
 	c.steps = append(c.steps, step)
 	c.updatedAt = time.Now()
 
-	c.addEvent(CampaignStepAddedEvent{
-		CampaignID: c.id,
-		StepID:     step.ID,
-		StepType:   step.Type,
-		Order:      step.Order,
-		OccurredAt: c.updatedAt,
-	})
+	c.addEvent(NewCampaignStepAddedEvent(c.id, step.ID, step.Type, step.Order))
 
 	return nil
 }
@@ -290,11 +273,7 @@ func (c *Campaign) RemoveStep(stepID uuid.UUID) error {
 			c.steps = append(c.steps[:i], c.steps[i+1:]...)
 			c.updatedAt = time.Now()
 
-			c.addEvent(CampaignStepRemovedEvent{
-				CampaignID: c.id,
-				StepID:     stepID,
-				OccurredAt: c.updatedAt,
-			})
+			c.addEvent(NewCampaignStepRemovedEvent(c.id, stepID))
 
 			return nil
 		}
@@ -409,27 +388,28 @@ func (c *Campaign) UpdateGoal(goalType GoalType, goalValue int) error {
 
 // Getters
 
-func (c *Campaign) ID() uuid.UUID              { return c.id }
-func (c *Campaign) TenantID() string           { return c.tenantID }
-func (c *Campaign) Name() string               { return c.name }
-func (c *Campaign) Description() string        { return c.description }
-func (c *Campaign) Status() CampaignStatus     { return c.status }
-func (c *Campaign) Steps() []CampaignStep      { return c.steps }
-func (c *Campaign) GoalType() GoalType         { return c.goalType }
-func (c *Campaign) GoalValue() int             { return c.goalValue }
-func (c *Campaign) ContactsReached() int       { return c.contactsReached }
-func (c *Campaign) ConversionsCount() int      { return c.conversionsCount }
-func (c *Campaign) StartDate() *time.Time      { return c.startDate }
-func (c *Campaign) EndDate() *time.Time        { return c.endDate }
-func (c *Campaign) CreatedAt() time.Time       { return c.createdAt }
-func (c *Campaign) UpdatedAt() time.Time       { return c.updatedAt }
-func (c *Campaign) DomainEvents() []interface{} { return c.events }
+func (c *Campaign) ID() uuid.UUID                    { return c.id }
+func (c *Campaign) Version() int                     { return c.version }
+func (c *Campaign) TenantID() string                 { return c.tenantID }
+func (c *Campaign) Name() string                     { return c.name }
+func (c *Campaign) Description() string              { return c.description }
+func (c *Campaign) Status() CampaignStatus           { return c.status }
+func (c *Campaign) Steps() []CampaignStep            { return c.steps }
+func (c *Campaign) GoalType() GoalType               { return c.goalType }
+func (c *Campaign) GoalValue() int                   { return c.goalValue }
+func (c *Campaign) ContactsReached() int             { return c.contactsReached }
+func (c *Campaign) ConversionsCount() int            { return c.conversionsCount }
+func (c *Campaign) StartDate() *time.Time            { return c.startDate }
+func (c *Campaign) EndDate() *time.Time              { return c.endDate }
+func (c *Campaign) CreatedAt() time.Time             { return c.createdAt }
+func (c *Campaign) UpdatedAt() time.Time             { return c.updatedAt }
+func (c *Campaign) DomainEvents() []shared.DomainEvent { return c.events }
 
 func (c *Campaign) ClearEvents() {
-	c.events = []interface{}{}
+	c.events = []shared.DomainEvent{}
 }
 
-func (c *Campaign) addEvent(event interface{}) {
+func (c *Campaign) addEvent(event shared.DomainEvent) {
 	c.events = append(c.events, event)
 }
 
@@ -440,3 +420,6 @@ type CampaignStats struct {
 	ConversionRate   float64 `json:"conversion_rate"`
 	ProgressRate     float64 `json:"progress_rate"`
 }
+
+// Compile-time check that Campaign implements AggregateRoot interface
+var _ shared.AggregateRoot = (*Campaign)(nil)

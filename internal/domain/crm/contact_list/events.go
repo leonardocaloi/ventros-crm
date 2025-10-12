@@ -3,97 +3,136 @@ package contact_list
 import (
 	"time"
 
+	"github.com/caloi/ventros-crm/internal/domain/core/shared"
 	"github.com/google/uuid"
 )
 
-type DomainEvent interface {
-	EventName() string
-	OccurredAt() time.Time
-}
-
 type ContactListCreatedEvent struct {
+	shared.BaseEvent
 	ContactListID uuid.UUID
 	ProjectID     uuid.UUID
 	TenantID      string
 	Name          string
 	IsStatic      bool
-	CreatedAt     time.Time
 }
 
-func (e ContactListCreatedEvent) EventName() string     { return "contact_list.created" }
-func (e ContactListCreatedEvent) OccurredAt() time.Time { return e.CreatedAt }
+func NewContactListCreatedEvent(contactListID, projectID uuid.UUID, tenantID, name string, isStatic bool) ContactListCreatedEvent {
+	return ContactListCreatedEvent{
+		BaseEvent:     shared.NewBaseEvent("contact_list.created", time.Now()),
+		ContactListID: contactListID,
+		ProjectID:     projectID,
+		TenantID:      tenantID,
+		Name:          name,
+		IsStatic:      isStatic,
+	}
+}
 
 type ContactListUpdatedEvent struct {
+	shared.BaseEvent
 	ContactListID uuid.UUID
 	UpdatedFields []string
-	UpdatedAt     time.Time
 }
 
-func (e ContactListUpdatedEvent) EventName() string     { return "contact_list.updated" }
-func (e ContactListUpdatedEvent) OccurredAt() time.Time { return e.UpdatedAt }
+func NewContactListUpdatedEvent(contactListID uuid.UUID, updatedFields []string) ContactListUpdatedEvent {
+	return ContactListUpdatedEvent{
+		BaseEvent:     shared.NewBaseEvent("contact_list.updated", time.Now()),
+		ContactListID: contactListID,
+		UpdatedFields: updatedFields,
+	}
+}
 
 type ContactListDeletedEvent struct {
+	shared.BaseEvent
 	ContactListID uuid.UUID
-	DeletedAt     time.Time
 }
 
-func (e ContactListDeletedEvent) EventName() string     { return "contact_list.deleted" }
-func (e ContactListDeletedEvent) OccurredAt() time.Time { return e.DeletedAt }
+func NewContactListDeletedEvent(contactListID uuid.UUID) ContactListDeletedEvent {
+	return ContactListDeletedEvent{
+		BaseEvent:     shared.NewBaseEvent("contact_list.deleted", time.Now()),
+		ContactListID: contactListID,
+	}
+}
 
 type ContactListFilterRuleAddedEvent struct {
+	shared.BaseEvent
 	ContactListID uuid.UUID
 	FilterRuleID  uuid.UUID
 	FilterType    string
-	AddedAt       time.Time
 }
 
-func (e ContactListFilterRuleAddedEvent) EventName() string     { return "contact_list.filter_rule_added" }
-func (e ContactListFilterRuleAddedEvent) OccurredAt() time.Time { return e.AddedAt }
+func NewContactListFilterRuleAddedEvent(contactListID, filterRuleID uuid.UUID, filterType string) ContactListFilterRuleAddedEvent {
+	return ContactListFilterRuleAddedEvent{
+		BaseEvent:     shared.NewBaseEvent("contact_list.filter_rule_added", time.Now()),
+		ContactListID: contactListID,
+		FilterRuleID:  filterRuleID,
+		FilterType:    filterType,
+	}
+}
 
 type ContactListFilterRuleRemovedEvent struct {
+	shared.BaseEvent
 	ContactListID uuid.UUID
 	FilterRuleID  uuid.UUID
-	RemovedAt     time.Time
 }
 
-func (e ContactListFilterRuleRemovedEvent) EventName() string {
-	return "contact_list.filter_rule_removed"
+func NewContactListFilterRuleRemovedEvent(contactListID, filterRuleID uuid.UUID) ContactListFilterRuleRemovedEvent {
+	return ContactListFilterRuleRemovedEvent{
+		BaseEvent:     shared.NewBaseEvent("contact_list.filter_rule_removed", time.Now()),
+		ContactListID: contactListID,
+		FilterRuleID:  filterRuleID,
+	}
 }
-func (e ContactListFilterRuleRemovedEvent) OccurredAt() time.Time { return e.RemovedAt }
 
 type ContactListFilterRulesClearedEvent struct {
+	shared.BaseEvent
 	ContactListID uuid.UUID
-	ClearedAt     time.Time
 }
 
-func (e ContactListFilterRulesClearedEvent) EventName() string {
-	return "contact_list.filter_rules_cleared"
+func NewContactListFilterRulesClearedEvent(contactListID uuid.UUID) ContactListFilterRulesClearedEvent {
+	return ContactListFilterRulesClearedEvent{
+		BaseEvent:     shared.NewBaseEvent("contact_list.filter_rules_cleared", time.Now()),
+		ContactListID: contactListID,
+	}
 }
-func (e ContactListFilterRulesClearedEvent) OccurredAt() time.Time { return e.ClearedAt }
 
 type ContactListRecalculatedEvent struct {
+	shared.BaseEvent
 	ContactListID uuid.UUID
 	ContactCount  int
-	CalculatedAt  time.Time
 }
 
-func (e ContactListRecalculatedEvent) EventName() string     { return "contact_list.recalculated" }
-func (e ContactListRecalculatedEvent) OccurredAt() time.Time { return e.CalculatedAt }
+func NewContactListRecalculatedEvent(contactListID uuid.UUID, contactCount int) ContactListRecalculatedEvent {
+	return ContactListRecalculatedEvent{
+		BaseEvent:     shared.NewBaseEvent("contact_list.recalculated", time.Now()),
+		ContactListID: contactListID,
+		ContactCount:  contactCount,
+	}
+}
 
 type ContactAddedToListEvent struct {
+	shared.BaseEvent
 	ContactListID uuid.UUID
 	ContactID     uuid.UUID
-	AddedAt       time.Time
 }
 
-func (e ContactAddedToListEvent) EventName() string     { return "contact_list.contact_added" }
-func (e ContactAddedToListEvent) OccurredAt() time.Time { return e.AddedAt }
+func NewContactAddedToListEvent(contactListID, contactID uuid.UUID) ContactAddedToListEvent {
+	return ContactAddedToListEvent{
+		BaseEvent:     shared.NewBaseEvent("contact_list.contact_added", time.Now()),
+		ContactListID: contactListID,
+		ContactID:     contactID,
+	}
+}
 
 type ContactRemovedFromListEvent struct {
+	shared.BaseEvent
 	ContactListID uuid.UUID
 	ContactID     uuid.UUID
-	RemovedAt     time.Time
 }
 
-func (e ContactRemovedFromListEvent) EventName() string     { return "contact_list.contact_removed" }
-func (e ContactRemovedFromListEvent) OccurredAt() time.Time { return e.RemovedAt }
+func NewContactRemovedFromListEvent(contactListID, contactID uuid.UUID) ContactRemovedFromListEvent {
+	return ContactRemovedFromListEvent{
+		BaseEvent:     shared.NewBaseEvent("contact_list.contact_removed", time.Now()),
+		ContactListID: contactListID,
+		ContactID:     contactID,
+	}
+}

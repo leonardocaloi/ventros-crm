@@ -20,6 +20,7 @@ type Config struct {
 	RateLimit            RateLimitConfig
 	WAHA                 WAHAConfig
 	AI                   AIConfig
+	Stripe               StripeConfig
 	UseSagaOrchestration bool // Feature flag: Saga Orchestration (Temporal workflows)
 }
 
@@ -119,6 +120,15 @@ type AIConfig struct {
 	GPT4VisionAPIKey string // OpenAI API key for GPT-4 Vision
 }
 
+// StripeConfig holds Stripe billing configuration
+type StripeConfig struct {
+	APIKey         string // Stripe secret key (sk_test_... ou sk_live_...)
+	WebhookSecret  string // Webhook signing secret (whsec_...)
+	PublishableKey string // Publishable key (pk_test_... ou pk_live_...) - para frontend
+	Environment    string // test ou live
+	APIVersion     string // API version (default: 2025-06-30.basil)
+}
+
 // Load loads configuration from environment variables
 // Automatically loads .env file if it exists (development)
 func Load() *Config {
@@ -193,6 +203,13 @@ func Load() *Config {
 
 			// GPT-4 Vision (video) - opcional, disabled by default
 			GPT4VisionAPIKey: getEnv("GPT4_VISION_API_KEY", ""),
+		},
+		Stripe: StripeConfig{
+			APIKey:         getEnv("STRIPE_API_KEY", ""),
+			WebhookSecret:  getEnv("STRIPE_WEBHOOK_SECRET", ""),
+			PublishableKey: getEnv("STRIPE_PUBLISHABLE_KEY", ""),
+			Environment:    getEnv("STRIPE_ENVIRONMENT", "test"),
+			APIVersion:     getEnv("STRIPE_API_VERSION", "2025-06-30.basil"),
 		},
 	}
 }

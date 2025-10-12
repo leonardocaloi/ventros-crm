@@ -57,13 +57,12 @@ func NewCampaignEnrollment(campaignID, contactID uuid.UUID, firstStepDelay time.
 	}
 
 	// Emit domain event
-	enrollment.addEvent(ContactEnrolledEvent{
-		EnrollmentID:    enrollment.id,
-		CampaignID:      campaignID,
-		ContactID:       contactID,
-		NextScheduledAt: nextScheduled,
-		OccurredAt:      now,
-	})
+	enrollment.addEvent(NewContactEnrolledEvent(
+		enrollment.id,
+		campaignID,
+		contactID,
+		nextScheduled,
+	))
 
 	return enrollment, nil
 }
@@ -115,14 +114,13 @@ func (e *CampaignEnrollment) AdvanceToNextStep(nextStepDelay time.Duration, hasN
 		return e.Complete()
 	}
 
-	e.addEvent(EnrollmentAdvancedEvent{
-		EnrollmentID:     e.id,
-		CampaignID:       e.campaignID,
-		ContactID:        e.contactID,
-		CurrentStepOrder: e.currentStepOrder,
-		NextScheduledAt:  e.nextScheduledAt,
-		OccurredAt:       e.updatedAt,
-	})
+	e.addEvent(NewEnrollmentAdvancedEvent(
+		e.id,
+		e.campaignID,
+		e.contactID,
+		e.currentStepOrder,
+		e.nextScheduledAt,
+	))
 
 	return nil
 }
@@ -147,12 +145,7 @@ func (e *CampaignEnrollment) Pause() error {
 	e.status = EnrollmentStatusPaused
 	e.updatedAt = time.Now()
 
-	e.addEvent(EnrollmentPausedEvent{
-		EnrollmentID: e.id,
-		CampaignID:   e.campaignID,
-		ContactID:    e.contactID,
-		OccurredAt:   e.updatedAt,
-	})
+	e.addEvent(NewEnrollmentPausedEvent(e.id, e.campaignID, e.contactID))
 
 	return nil
 }
@@ -166,12 +159,7 @@ func (e *CampaignEnrollment) Resume() error {
 	e.status = EnrollmentStatusActive
 	e.updatedAt = time.Now()
 
-	e.addEvent(EnrollmentResumedEvent{
-		EnrollmentID: e.id,
-		CampaignID:   e.campaignID,
-		ContactID:    e.contactID,
-		OccurredAt:   e.updatedAt,
-	})
+	e.addEvent(NewEnrollmentResumedEvent(e.id, e.campaignID, e.contactID))
 
 	return nil
 }
@@ -188,13 +176,7 @@ func (e *CampaignEnrollment) Complete() error {
 	e.nextScheduledAt = nil
 	e.updatedAt = now
 
-	e.addEvent(EnrollmentCompletedEvent{
-		EnrollmentID: e.id,
-		CampaignID:   e.campaignID,
-		ContactID:    e.contactID,
-		CompletedAt:  now,
-		OccurredAt:   now,
-	})
+	e.addEvent(NewEnrollmentCompletedEvent(e.id, e.campaignID, e.contactID, now))
 
 	return nil
 }
@@ -212,32 +194,25 @@ func (e *CampaignEnrollment) Exit(reason string) error {
 	e.nextScheduledAt = nil
 	e.updatedAt = now
 
-	e.addEvent(EnrollmentExitedEvent{
-		EnrollmentID: e.id,
-		CampaignID:   e.campaignID,
-		ContactID:    e.contactID,
-		ExitReason:   reason,
-		ExitedAt:     now,
-		OccurredAt:   now,
-	})
+	e.addEvent(NewEnrollmentExitedEvent(e.id, e.campaignID, e.contactID, reason, now))
 
 	return nil
 }
 
 // Getters
 
-func (e *CampaignEnrollment) ID() uuid.UUID                 { return e.id }
-func (e *CampaignEnrollment) CampaignID() uuid.UUID         { return e.campaignID }
-func (e *CampaignEnrollment) ContactID() uuid.UUID          { return e.contactID }
-func (e *CampaignEnrollment) Status() EnrollmentStatus      { return e.status }
-func (e *CampaignEnrollment) CurrentStepOrder() int         { return e.currentStepOrder }
-func (e *CampaignEnrollment) NextScheduledAt() *time.Time   { return e.nextScheduledAt }
-func (e *CampaignEnrollment) ExitedAt() *time.Time          { return e.exitedAt }
-func (e *CampaignEnrollment) ExitReason() *string           { return e.exitReason }
-func (e *CampaignEnrollment) CompletedAt() *time.Time       { return e.completedAt }
-func (e *CampaignEnrollment) EnrolledAt() time.Time         { return e.enrolledAt }
-func (e *CampaignEnrollment) UpdatedAt() time.Time          { return e.updatedAt }
-func (e *CampaignEnrollment) DomainEvents() []interface{}   { return e.events }
+func (e *CampaignEnrollment) ID() uuid.UUID               { return e.id }
+func (e *CampaignEnrollment) CampaignID() uuid.UUID       { return e.campaignID }
+func (e *CampaignEnrollment) ContactID() uuid.UUID        { return e.contactID }
+func (e *CampaignEnrollment) Status() EnrollmentStatus    { return e.status }
+func (e *CampaignEnrollment) CurrentStepOrder() int       { return e.currentStepOrder }
+func (e *CampaignEnrollment) NextScheduledAt() *time.Time { return e.nextScheduledAt }
+func (e *CampaignEnrollment) ExitedAt() *time.Time        { return e.exitedAt }
+func (e *CampaignEnrollment) ExitReason() *string         { return e.exitReason }
+func (e *CampaignEnrollment) CompletedAt() *time.Time     { return e.completedAt }
+func (e *CampaignEnrollment) EnrolledAt() time.Time       { return e.enrolledAt }
+func (e *CampaignEnrollment) UpdatedAt() time.Time        { return e.updatedAt }
+func (e *CampaignEnrollment) DomainEvents() []interface{} { return e.events }
 
 func (e *CampaignEnrollment) ClearEvents() {
 	e.events = []interface{}{}

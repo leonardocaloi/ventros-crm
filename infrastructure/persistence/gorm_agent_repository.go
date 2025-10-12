@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/caloi/ventros-crm/infrastructure/persistence/entities"
+	"github.com/caloi/ventros-crm/internal/domain/core/shared"
 	"github.com/caloi/ventros-crm/internal/domain/crm/agent"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -38,8 +39,42 @@ func (r *GormAgentRepository) Save(ctx context.Context, a *agent.Agent) error {
 		return r.db.WithContext(ctx).Create(entity).Error
 	}
 
-	// Update
-	return r.db.WithContext(ctx).Save(entity).Error
+	// Update with optimistic locking
+	result := r.db.WithContext(ctx).Model(&entities.AgentEntity{}).
+		Where("id = ? AND version = ?", entity.ID, existing.Version).
+		Updates(map[string]interface{}{
+			"version":            existing.Version + 1, // Increment version
+			"project_id":         entity.ProjectID,
+			"user_id":            entity.UserID,
+			"tenant_id":          entity.TenantID,
+			"name":               entity.Name,
+			"email":              entity.Email,
+			"type":               entity.Type,
+			"status":             entity.Status,
+			"active":             entity.Active,
+			"config":             entity.Config,
+			"sessions_handled":   entity.SessionsHandled,
+			"average_response_ms": entity.AverageResponseMs,
+			"last_activity_at":   entity.LastActivityAt,
+			"virtual_metadata":   entity.VirtualMetadata,
+			"updated_at":         entity.UpdatedAt,
+		})
+
+	if result.Error != nil {
+		return result.Error
+	}
+
+	// Check optimistic locking - if 0 rows affected, version mismatch (concurrent update)
+	if result.RowsAffected == 0 {
+		return shared.NewOptimisticLockError(
+			"Agent",
+			entity.ID.String(),
+			existing.Version,
+			entity.Version,
+		)
+	}
+
+	return nil
 }
 
 // FindByID busca um agente por ID
@@ -113,6 +148,7 @@ func (r *GormAgentRepository) Delete(ctx context.Context, id uuid.UUID) error {
 func (r *GormAgentRepository) domainToEntity(a *agent.Agent) *entities.AgentEntity {
 	entity := &entities.AgentEntity{
 		ID:                a.ID(),
+		Version:           a.Version(),
 		ProjectID:         a.ProjectID(),
 		UserID:            a.UserID(),
 		TenantID:          a.TenantID(),
@@ -189,6 +225,7 @@ func (r *GormAgentRepository) entityToDomain(entity *entities.AgentEntity) *agen
 
 	return agent.ReconstructAgent(
 		entity.ID,
+		entity.Version,
 		entity.ProjectID,
 		entity.UserID,
 		entity.TenantID,

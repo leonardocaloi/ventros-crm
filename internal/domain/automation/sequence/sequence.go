@@ -5,34 +5,36 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/caloi/ventros-crm/internal/domain/core/shared"
 )
 
 // Sequence representa uma sequência automatizada de mensagens
 type Sequence struct {
-	id          uuid.UUID
-	tenantID    string
-	name        string
-	description string
-	status      SequenceStatus
-	steps       []SequenceStep // Steps ordenados
+	id             uuid.UUID
+	version        int // Optimistic locking - prevents lost updates
+	tenantID       string
+	name           string
+	description    string
+	status         SequenceStatus
+	steps          []SequenceStep // Steps ordenados
 
 	// Entry conditions
-	triggerType TriggerType   // manual, tag_added, list_joined, etc
+	triggerType TriggerType            // manual, tag_added, list_joined, etc
 	triggerData map[string]interface{} // Dados específicos do trigger
 
 	// Exit conditions
 	exitOnReply bool // Sai da sequence se contato responder
 
 	// Stats
-	totalEnrolled int
-	activeCount   int
+	totalEnrolled  int
+	activeCount    int
 	completedCount int
-	exitedCount   int
+	exitedCount    int
 
 	createdAt time.Time
 	updatedAt time.Time
 
-	events []DomainEvent
+	events []shared.DomainEvent
 }
 
 type SequenceStatus string
@@ -47,19 +49,12 @@ const (
 type TriggerType string
 
 const (
-	TriggerTypeManual      TriggerType = "manual"       // Entrada manual
-	TriggerTypeTagAdded    TriggerType = "tag_added"    // Quando tag é adicionada
-	TriggerTypeListJoined  TriggerType = "list_joined"  // Quando entra em lista
-	TriggerTypeFormSubmit  TriggerType = "form_submit"  // Quando submete formulário
+	TriggerTypeManual          TriggerType = "manual"           // Entrada manual
+	TriggerTypeTagAdded        TriggerType = "tag_added"        // Quando tag é adicionada
+	TriggerTypeListJoined      TriggerType = "list_joined"      // Quando entra em lista
+	TriggerTypeFormSubmit      TriggerType = "form_submit"      // Quando submete formulário
 	TriggerTypePipelineEntered TriggerType = "pipeline_entered" // Quando entra em pipeline
 )
-
-// DomainEvent interface for domain events
-type DomainEvent interface {
-	EventType() string
-	EventTimestamp() time.Time
-	AggregateID() uuid.UUID
-}
 
 // NewSequence creates a new sequence
 func NewSequence(
@@ -77,26 +72,22 @@ func NewSequence(
 
 	now := time.Now()
 	sequence := &Sequence{
-		id:          uuid.New(),
-		tenantID:    tenantID,
-		name:        name,
-		description: description,
-		status:      SequenceStatusDraft,
-		triggerType: triggerType,
-		triggerData: make(map[string]interface{}),
-		steps:       []SequenceStep{},
-		exitOnReply: true, // Default: sair se responder
-		createdAt:   now,
-		updatedAt:   now,
-		events:      []DomainEvent{},
+		id:             uuid.New(),
+		version:        1, // Start with version 1 for new aggregates
+		tenantID:       tenantID,
+		name:           name,
+		description:    description,
+		status:         SequenceStatusDraft,
+		triggerType:    triggerType,
+		triggerData:    make(map[string]interface{}),
+		steps:          []SequenceStep{},
+		exitOnReply:    true, // Default: sair se responder
+		createdAt:      now,
+		updatedAt:      now,
+		events:         []shared.DomainEvent{},
 	}
 
-	sequence.addEvent(&SequenceCreatedEvent{
-		SequenceID: sequence.id,
-		TenantID:   tenantID,
-		Name:       name,
-		Timestamp:  now,
-	})
+	sequence.addEvent(NewSequenceCreatedEvent(sequence.id, tenantID, name))
 
 	return sequence, nil
 }
@@ -104,6 +95,7 @@ func NewSequence(
 // ReconstructSequence reconstructs a sequence from persistence
 func ReconstructSequence(
 	id uuid.UUID,
+	version int, // Optimistic locking version
 	tenantID string,
 	name string,
 	description string,
@@ -115,8 +107,13 @@ func ReconstructSequence(
 	totalEnrolled, activeCount, completedCount, exitedCount int,
 	createdAt, updatedAt time.Time,
 ) *Sequence {
+	if version == 0 {
+		version = 1 // Default to version 1 (backwards compatibility)
+	}
+
 	return &Sequence{
 		id:             id,
+		version:        version,
 		tenantID:       tenantID,
 		name:           name,
 		description:    description,
@@ -131,7 +128,7 @@ func ReconstructSequence(
 		exitedCount:    exitedCount,
 		createdAt:      createdAt,
 		updatedAt:      updatedAt,
-		events:         []DomainEvent{},
+		events:         []shared.DomainEvent{},
 	}
 }
 
@@ -155,12 +152,7 @@ func (s *Sequence) AddStep(step SequenceStep) error {
 	s.steps = append(s.steps, step)
 	s.updatedAt = time.Now()
 
-	s.addEvent(&SequenceStepAddedEvent{
-		SequenceID: s.id,
-		StepID:     step.ID,
-		Order:      step.Order,
-		Timestamp:  time.Now(),
-	})
+	s.addEvent(NewSequenceStepAddedEvent(s.id, step.ID, step.Order))
 
 	return nil
 }
@@ -212,10 +204,7 @@ func (s *Sequence) Activate() error {
 	s.status = SequenceStatusActive
 	s.updatedAt = time.Now()
 
-	s.addEvent(&SequenceActivatedEvent{
-		SequenceID: s.id,
-		Timestamp:  time.Now(),
-	})
+	s.addEvent(NewSequenceActivatedEvent(s.id))
 
 	return nil
 }
@@ -229,10 +218,7 @@ func (s *Sequence) Pause() error {
 	s.status = SequenceStatusPaused
 	s.updatedAt = time.Now()
 
-	s.addEvent(&SequencePausedEvent{
-		SequenceID: s.id,
-		Timestamp:  time.Now(),
-	})
+	s.addEvent(NewSequencePausedEvent(s.id))
 
 	return nil
 }
@@ -246,10 +232,7 @@ func (s *Sequence) Resume() error {
 	s.status = SequenceStatusActive
 	s.updatedAt = time.Now()
 
-	s.addEvent(&SequenceResumedEvent{
-		SequenceID: s.id,
-		Timestamp:  time.Now(),
-	})
+	s.addEvent(NewSequenceResumedEvent(s.id))
 
 	return nil
 }
@@ -263,10 +246,7 @@ func (s *Sequence) Archive() error {
 	s.status = SequenceStatusArchived
 	s.updatedAt = time.Now()
 
-	s.addEvent(&SequenceArchivedEvent{
-		SequenceID: s.id,
-		Timestamp:  time.Now(),
-	})
+	s.addEvent(NewSequenceArchivedEvent(s.id))
 
 	return nil
 }
@@ -362,31 +342,32 @@ func (s *Sequence) GetNextStep(currentOrder int) (*SequenceStep, error) {
 }
 
 // Getters
-func (s *Sequence) ID() uuid.UUID                      { return s.id }
-func (s *Sequence) TenantID() string                   { return s.tenantID }
-func (s *Sequence) Name() string                       { return s.name }
-func (s *Sequence) Description() string                { return s.description }
-func (s *Sequence) Status() SequenceStatus             { return s.status }
-func (s *Sequence) Steps() []SequenceStep              { return append([]SequenceStep{}, s.steps...) }
-func (s *Sequence) TriggerType() TriggerType           { return s.triggerType }
+func (s *Sequence) ID() uuid.UUID                       { return s.id }
+func (s *Sequence) Version() int                        { return s.version }
+func (s *Sequence) TenantID() string                    { return s.tenantID }
+func (s *Sequence) Name() string                        { return s.name }
+func (s *Sequence) Description() string                 { return s.description }
+func (s *Sequence) Status() SequenceStatus              { return s.status }
+func (s *Sequence) Steps() []SequenceStep               { return append([]SequenceStep{}, s.steps...) }
+func (s *Sequence) TriggerType() TriggerType            { return s.triggerType }
 func (s *Sequence) TriggerData() map[string]interface{} { return s.triggerData }
-func (s *Sequence) ExitOnReply() bool                  { return s.exitOnReply }
-func (s *Sequence) TotalEnrolled() int                 { return s.totalEnrolled }
-func (s *Sequence) ActiveCount() int                   { return s.activeCount }
-func (s *Sequence) CompletedCount() int                { return s.completedCount }
-func (s *Sequence) ExitedCount() int                   { return s.exitedCount }
-func (s *Sequence) CreatedAt() time.Time               { return s.createdAt }
-func (s *Sequence) UpdatedAt() time.Time               { return s.updatedAt }
+func (s *Sequence) ExitOnReply() bool                   { return s.exitOnReply }
+func (s *Sequence) TotalEnrolled() int                  { return s.totalEnrolled }
+func (s *Sequence) ActiveCount() int                    { return s.activeCount }
+func (s *Sequence) CompletedCount() int                 { return s.completedCount }
+func (s *Sequence) ExitedCount() int                    { return s.exitedCount }
+func (s *Sequence) CreatedAt() time.Time                { return s.createdAt }
+func (s *Sequence) UpdatedAt() time.Time                { return s.updatedAt }
 
-func (s *Sequence) DomainEvents() []DomainEvent {
-	return append([]DomainEvent{}, s.events...)
+func (s *Sequence) DomainEvents() []shared.DomainEvent {
+	return append([]shared.DomainEvent{}, s.events...)
 }
 
 func (s *Sequence) ClearEvents() {
-	s.events = []DomainEvent{}
+	s.events = []shared.DomainEvent{}
 }
 
-func (s *Sequence) addEvent(event DomainEvent) {
+func (s *Sequence) addEvent(event shared.DomainEvent) {
 	s.events = append(s.events, event)
 }
 
@@ -399,3 +380,6 @@ type Repository interface {
 	FindByStatus(status SequenceStatus) ([]*Sequence, error)
 	Delete(id uuid.UUID) error
 }
+
+// Compile-time check that Sequence implements AggregateRoot interface
+var _ shared.AggregateRoot = (*Sequence)(nil)

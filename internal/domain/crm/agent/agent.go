@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/caloi/ventros-crm/internal/domain/core/shared"
 )
 
 var (
@@ -42,6 +43,7 @@ const (
 
 type Agent struct {
 	id          uuid.UUID
+	version     int // Optimistic locking - prevents lost updates
 	projectID   uuid.UUID
 	userID      *uuid.UUID
 	tenantID    string
@@ -110,6 +112,7 @@ func NewAgent(
 	now := time.Now()
 	agent := &Agent{
 		id:                uuid.New(),
+		version:           1, // Start with version 1 for new aggregates
 		projectID:         projectID,
 		userID:            userID,
 		tenantID:          tenantID,
@@ -166,6 +169,7 @@ func NewVirtualAgent(
 
 	agent := &Agent{
 		id:                uuid.New(),
+		version:           1, // Start with version 1 for new aggregates
 		projectID:         projectID,
 		userID:            nil, // Virtual agents não têm userID
 		tenantID:          tenantID,
@@ -253,6 +257,7 @@ func (a *Agent) CanReassignSessions() bool {
 
 func ReconstructAgent(
 	id uuid.UUID,
+	version int, // Optimistic locking version
 	projectID uuid.UUID,
 	userID *uuid.UUID,
 	tenantID string,
@@ -273,8 +278,13 @@ func ReconstructAgent(
 	updatedAt time.Time,
 	lastLoginAt *time.Time,
 ) *Agent {
+	if version == 0 {
+		version = 1 // Default to version 1 if not set (backwards compatibility)
+	}
+
 	return &Agent{
 		id:                id,
+		version:           version,
 		projectID:         projectID,
 		userID:            userID,
 		tenantID:          tenantID,
@@ -433,26 +443,27 @@ func (a *Agent) RecordSessionHandled(responseTimeMs int) {
 	a.updatedAt = now
 }
 
-func (a *Agent) ID() uuid.UUID                      { return a.id }
-func (a *Agent) ProjectID() uuid.UUID               { return a.projectID }
-func (a *Agent) UserID() *uuid.UUID                 { return a.userID }
-func (a *Agent) TenantID() string                   { return a.tenantID }
-func (a *Agent) Name() string                       { return a.name }
-func (a *Agent) Email() string                      { return a.email }
-func (a *Agent) Type() AgentType                    { return a.agentType }
-func (a *Agent) Status() AgentStatus                { return a.status }
-func (a *Agent) Role() Role                         { return a.role }
-func (a *Agent) IsActive() bool                     { return a.active }
-func (a *Agent) Config() map[string]interface{}     { return a.config }
-func (a *Agent) Permissions() map[string]bool       { return a.permissions }
-func (a *Agent) Settings() map[string]interface{}   { return a.settings }
-func (a *Agent) SessionsHandled() int               { return a.sessionsHandled }
-func (a *Agent) AverageResponseMs() int             { return a.averageResponseMs }
-func (a *Agent) LastActivityAt() *time.Time         { return a.lastActivityAt }
+func (a *Agent) ID() uuid.UUID      { return a.id }
+func (a *Agent) Version() int       { return a.version }
+func (a *Agent) ProjectID() uuid.UUID                   { return a.projectID }
+func (a *Agent) UserID() *uuid.UUID                     { return a.userID }
+func (a *Agent) TenantID() string                       { return a.tenantID }
+func (a *Agent) Name() string                           { return a.name }
+func (a *Agent) Email() string                          { return a.email }
+func (a *Agent) Type() AgentType                        { return a.agentType }
+func (a *Agent) Status() AgentStatus                    { return a.status }
+func (a *Agent) Role() Role                             { return a.role }
+func (a *Agent) IsActive() bool                         { return a.active }
+func (a *Agent) Config() map[string]interface{}         { return a.config }
+func (a *Agent) Permissions() map[string]bool           { return a.permissions }
+func (a *Agent) Settings() map[string]interface{}       { return a.settings }
+func (a *Agent) SessionsHandled() int                   { return a.sessionsHandled }
+func (a *Agent) AverageResponseMs() int                 { return a.averageResponseMs }
+func (a *Agent) LastActivityAt() *time.Time             { return a.lastActivityAt }
 func (a *Agent) VirtualMetadata() *VirtualAgentMetadata { return a.virtualMetadata }
-func (a *Agent) CreatedAt() time.Time               { return a.createdAt }
-func (a *Agent) UpdatedAt() time.Time               { return a.updatedAt }
-func (a *Agent) LastLoginAt() *time.Time            { return a.lastLoginAt }
+func (a *Agent) CreatedAt() time.Time                   { return a.createdAt }
+func (a *Agent) UpdatedAt() time.Time                   { return a.updatedAt }
+func (a *Agent) LastLoginAt() *time.Time                { return a.lastLoginAt }
 
 func (a *Agent) DomainEvents() []DomainEvent {
 	return a.events
@@ -465,3 +476,6 @@ func (a *Agent) ClearEvents() {
 func (a *Agent) addEvent(event DomainEvent) {
 	a.events = append(a.events, event)
 }
+
+// Compile-time check that Agent implements AggregateRoot interface
+var _ shared.AggregateRoot = (*Agent)(nil)

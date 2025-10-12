@@ -10,6 +10,7 @@ import (
 // ProjectEntity represents a Project entity in the database
 type ProjectEntity struct {
 	ID                    uuid.UUID              `gorm:"type:uuid;primary_key;default:gen_random_uuid()"`
+	Version               int                    `gorm:"default:1;not null"` // Optimistic locking
 	UserID                uuid.UUID              `gorm:"type:uuid;not null;index:idx_projects_user"`
 	BillingAccountID      uuid.UUID              `gorm:"type:uuid;not null;index:idx_projects_billing"`
 	TenantID              string                 `gorm:"uniqueIndex:idx_projects_tenant_unique;not null;index:idx_projects_tenant;index:idx_projects_tenant_active,priority:1"`

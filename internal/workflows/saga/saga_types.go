@@ -98,12 +98,12 @@ type SendMessageInput struct {
 
 // SendMessageState mantém o estado da Saga de envio.
 type SendMessageState struct {
-	SessionID uuid.UUID
-	MessageID uuid.UUID
+	SessionID  uuid.UUID
+	MessageID  uuid.UUID
 	ExternalID *string // ID retornado pelo canal (WAHA)
 
 	SessionCreated bool
-	MessageSent bool
+	MessageSent    bool
 
 	CorrelationID string
 	StartedAt     time.Time

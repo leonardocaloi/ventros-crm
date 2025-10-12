@@ -5,10 +5,12 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/caloi/ventros-crm/internal/domain/core/shared"
 )
 
 type Contact struct {
 	id            uuid.UUID
+	version       int    // Optimistic locking - prevents lost updates
 	projectID     uuid.UUID
 	tenantID      string
 	name          string
@@ -50,6 +52,7 @@ func NewContact(
 	now := time.Now()
 	contact := &Contact{
 		id:        uuid.New(),
+		version:   1, // Start with version 1 for new aggregates
 		projectID: projectID,
 		tenantID:  tenantID,
 		name:      name,
@@ -67,6 +70,7 @@ func NewContact(
 
 func ReconstructContact(
 	id uuid.UUID,
+	version int, // Optimistic locking version
 	projectID uuid.UUID,
 	tenantID string,
 	name string,
@@ -88,9 +92,13 @@ func ReconstructContact(
 	if tags == nil {
 		tags = []string{}
 	}
+	if version == 0 {
+		version = 1 // Default to version 1 if not set (backwards compatibility)
+	}
 
 	return &Contact{
 		id:                      id,
+		version:                 version,
 		projectID:               projectID,
 		tenantID:                tenantID,
 		name:                    name,
@@ -258,7 +266,9 @@ func (c *Contact) IsDeleted() bool {
 	return c.deletedAt != nil
 }
 
-func (c *Contact) ID() uuid.UUID                       { return c.id }
+// Aggregate Root implementation
+func (c *Contact) ID() uuid.UUID      { return c.id }
+func (c *Contact) Version() int       { return c.version }
 func (c *Contact) ProjectID() uuid.UUID                { return c.projectID }
 func (c *Contact) TenantID() string                    { return c.tenantID }
 func (c *Contact) Name() string                        { return c.name }
@@ -288,3 +298,6 @@ func (c *Contact) ClearEvents() {
 func (c *Contact) addEvent(event DomainEvent) {
 	c.events = append(c.events, event)
 }
+
+// Compile-time check that Contact implements AggregateRoot interface
+var _ shared.AggregateRoot = (*Contact)(nil)

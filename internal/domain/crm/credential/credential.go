@@ -5,10 +5,12 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/caloi/ventros-crm/internal/domain/core/shared"
 )
 
 type Credential struct {
 	id             uuid.UUID
+	version        int // Optimistic locking - prevents lost updates
 	tenantID       string
 	projectID      *uuid.UUID
 	credentialType CredentialType
@@ -27,7 +29,7 @@ type Credential struct {
 	createdAt time.Time
 	updatedAt time.Time
 
-	events []DomainEvent
+	events []shared.DomainEvent
 }
 
 func NewCredential(
@@ -58,6 +60,7 @@ func NewCredential(
 	now := time.Now()
 	cred := &Credential{
 		id:             uuid.New(),
+		version:        1, // Start with version 1 for new aggregates
 		tenantID:       tenantID,
 		credentialType: credentialType,
 		name:           name,
@@ -66,22 +69,17 @@ func NewCredential(
 		isActive:       true,
 		createdAt:      now,
 		updatedAt:      now,
-		events:         []DomainEvent{},
+		events:         []shared.DomainEvent{},
 	}
 
-	cred.addEvent(CredentialCreatedEvent{
-		CredentialID:   cred.id,
-		TenantID:       tenantID,
-		CredentialType: credentialType,
-		Name:           name,
-		CreatedAt:      now,
-	})
+	cred.addEvent(NewCredentialCreatedEvent(cred.id, tenantID, credentialType, name))
 
 	return cred, nil
 }
 
 func ReconstructCredential(
 	id uuid.UUID,
+	version int, // Optimistic locking version
 	tenantID string,
 	projectID *uuid.UUID,
 	credentialType CredentialType,
@@ -96,12 +94,16 @@ func ReconstructCredential(
 	createdAt time.Time,
 	updatedAt time.Time,
 ) *Credential {
+	if version == 0 {
+		version = 1 // Default to version 1 (backwards compatibility)
+	}
 	if metadata == nil {
 		metadata = make(map[string]interface{})
 	}
 
 	return &Credential{
 		id:             id,
+		version:        version,
 		tenantID:       tenantID,
 		projectID:      projectID,
 		credentialType: credentialType,
@@ -115,7 +117,7 @@ func ReconstructCredential(
 		lastUsedAt:     lastUsedAt,
 		createdAt:      createdAt,
 		updatedAt:      updatedAt,
-		events:         []DomainEvent{},
+		events:         []shared.DomainEvent{},
 	}
 }
 
@@ -140,11 +142,7 @@ func (c *Credential) SetOAuthToken(
 	c.expiresAt = &expiresAt
 	c.updatedAt = time.Now()
 
-	c.addEvent(OAuthTokenRefreshedEvent{
-		CredentialID: c.id,
-		ExpiresAt:    expiresAt,
-		RefreshedAt:  c.updatedAt,
-	})
+	c.addEvent(NewOAuthTokenRefreshedEvent(c.id, expiresAt))
 
 	return nil
 }
@@ -166,11 +164,7 @@ func (c *Credential) RefreshOAuthToken(
 	c.expiresAt = &expiresAt
 	c.updatedAt = time.Now()
 
-	c.addEvent(OAuthTokenRefreshedEvent{
-		CredentialID: c.id,
-		ExpiresAt:    expiresAt,
-		RefreshedAt:  c.updatedAt,
-	})
+	c.addEvent(NewOAuthTokenRefreshedEvent(c.id, expiresAt))
 
 	return nil
 }
@@ -188,10 +182,7 @@ func (c *Credential) UpdateValue(plainValue string, encryptor Encryptor) error {
 	c.encryptedValue = encryptedValue
 	c.updatedAt = time.Now()
 
-	c.addEvent(CredentialUpdatedEvent{
-		CredentialID: c.id,
-		UpdatedAt:    c.updatedAt,
-	})
+	c.addEvent(NewCredentialUpdatedEvent(c.id))
 
 	return nil
 }
@@ -243,10 +234,7 @@ func (c *Credential) MarkAsUsed() {
 	c.lastUsedAt = &now
 	c.updatedAt = now
 
-	c.addEvent(CredentialUsedEvent{
-		CredentialID: c.id,
-		UsedAt:       now,
-	})
+	c.addEvent(NewCredentialUsedEvent(c.id))
 }
 
 func (c *Credential) Deactivate() {
@@ -254,10 +242,7 @@ func (c *Credential) Deactivate() {
 		c.isActive = false
 		c.updatedAt = time.Now()
 
-		c.addEvent(CredentialDeactivatedEvent{
-			CredentialID:  c.id,
-			DeactivatedAt: c.updatedAt,
-		})
+		c.addEvent(NewCredentialDeactivatedEvent(c.id))
 	}
 }
 
@@ -266,10 +251,7 @@ func (c *Credential) Activate() {
 		c.isActive = true
 		c.updatedAt = time.Now()
 
-		c.addEvent(CredentialActivatedEvent{
-			CredentialID: c.id,
-			ActivatedAt:  c.updatedAt,
-		})
+		c.addEvent(NewCredentialActivatedEvent(c.id))
 	}
 }
 
@@ -284,6 +266,7 @@ func (c *Credential) GetMetadata(key string) (interface{}, bool) {
 }
 
 func (c *Credential) ID() uuid.UUID                  { return c.id }
+func (c *Credential) Version() int                   { return c.version }
 func (c *Credential) TenantID() string               { return c.tenantID }
 func (c *Credential) ProjectID() *uuid.UUID          { return c.projectID }
 func (c *Credential) Type() CredentialType           { return c.credentialType }
@@ -304,14 +287,17 @@ func (c *Credential) Metadata() map[string]interface{} {
 	return copy
 }
 
-func (c *Credential) DomainEvents() []DomainEvent {
-	return append([]DomainEvent{}, c.events...)
+func (c *Credential) DomainEvents() []shared.DomainEvent {
+	return append([]shared.DomainEvent{}, c.events...)
 }
 
 func (c *Credential) ClearEvents() {
-	c.events = []DomainEvent{}
+	c.events = []shared.DomainEvent{}
 }
 
-func (c *Credential) addEvent(event DomainEvent) {
+func (c *Credential) addEvent(event shared.DomainEvent) {
 	c.events = append(c.events, event)
 }
+
+// Compile-time check that Credential implements AggregateRoot interface
+var _ shared.AggregateRoot = (*Credential)(nil)

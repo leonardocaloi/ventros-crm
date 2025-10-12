@@ -15,11 +15,11 @@ import (
 // Activities é o container para todas as activities da Saga.
 // Injeta dependências (repos, event bus, etc) no construtor.
 type Activities struct {
-	contactRepo  domaincontact.Repository
-	sessionRepo  domainsession.Repository
-	messageRepo  domainmessage.Repository
-	txManager    shared.TransactionManager
-	eventBus     EventBus
+	contactRepo     domaincontact.Repository
+	sessionRepo     domainsession.Repository
+	messageRepo     domainmessage.Repository
+	txManager       shared.TransactionManager
+	eventBus        EventBus
 	timeoutResolver SessionTimeoutResolver
 }
 

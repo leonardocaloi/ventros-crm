@@ -7,6 +7,7 @@ import (
 
 	"github.com/caloi/ventros-crm/infrastructure/persistence/entities"
 	"github.com/caloi/ventros-crm/internal/domain/automation/sequence"
+	"github.com/caloi/ventros-crm/internal/domain/core/shared"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
@@ -33,11 +34,39 @@ func (r *GormSequenceRepository) Save(s *sequence.Sequence) error {
 	err = r.db.Where("id = ?", entity.ID).First(&existing).Error
 
 	if err == nil {
-		// Update - use transaction to update sequence and steps
+		// Update - use transaction to update sequence and steps with optimistic locking
 		return r.db.Transaction(func(tx *gorm.DB) error {
-			// Update sequence
-			if err := tx.Model(&existing).Updates(entity).Error; err != nil {
-				return err
+			// Update sequence with version check (optimistic locking)
+			result := tx.Model(&entities.SequenceEntity{}).
+				Where("id = ? AND version = ?", entity.ID, existing.Version).
+				Updates(map[string]interface{}{
+					"version":         existing.Version + 1, // Increment version
+					"tenant_id":       entity.TenantID,
+					"name":            entity.Name,
+					"description":     entity.Description,
+					"status":          entity.Status,
+					"trigger_type":    entity.TriggerType,
+					"trigger_data":    entity.TriggerData,
+					"exit_on_reply":   entity.ExitOnReply,
+					"total_enrolled":  entity.TotalEnrolled,
+					"active_count":    entity.ActiveCount,
+					"completed_count": entity.CompletedCount,
+					"exited_count":    entity.ExitedCount,
+					"updated_at":      entity.UpdatedAt,
+				})
+
+			if result.Error != nil {
+				return result.Error
+			}
+
+			// Check optimistic locking - if 0 rows affected, version mismatch (concurrent update)
+			if result.RowsAffected == 0 {
+				return shared.NewOptimisticLockError(
+					"Sequence",
+					entity.ID.String(),
+					existing.Version,
+					entity.Version,
+				)
 			}
 
 			// Delete existing steps
@@ -169,6 +198,7 @@ func (r *GormSequenceRepository) toEntity(s *sequence.Sequence) (*entities.Seque
 
 	return &entities.SequenceEntity{
 		ID:             s.ID(),
+		Version:        s.Version(),
 		TenantID:       s.TenantID(),
 		Name:           s.Name(),
 		Description:    s.Description(),
@@ -251,6 +281,7 @@ func (r *GormSequenceRepository) toDomain(entity *entities.SequenceEntity, stepE
 	// Reconstruct domain model
 	return sequence.ReconstructSequence(
 		entity.ID,
+		entity.Version,
 		entity.TenantID,
 		entity.Name,
 		entity.Description,

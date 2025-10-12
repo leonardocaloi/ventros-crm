@@ -4,119 +4,97 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/caloi/ventros-crm/internal/domain/core/shared"
 )
 
 // BroadcastCreatedEvent is emitted when a broadcast is created
 type BroadcastCreatedEvent struct {
+	shared.BaseEvent
 	BroadcastID uuid.UUID
 	TenantID    string
 	Name        string
 	ListID      uuid.UUID
-	Timestamp   time.Time
 }
 
-func (e *BroadcastCreatedEvent) EventType() string {
-	return "automation.broadcast.created"
-}
-
-func (e *BroadcastCreatedEvent) EventTimestamp() time.Time {
-	return e.Timestamp
-}
-
-func (e *BroadcastCreatedEvent) AggregateID() uuid.UUID {
-	return e.BroadcastID
+func NewBroadcastCreatedEvent(broadcastID uuid.UUID, tenantID, name string, listID uuid.UUID) BroadcastCreatedEvent {
+	return BroadcastCreatedEvent{
+		BaseEvent:   shared.NewBaseEvent("broadcast.created", time.Now()),
+		BroadcastID: broadcastID,
+		TenantID:    tenantID,
+		Name:        name,
+		ListID:      listID,
+	}
 }
 
 // BroadcastScheduledEvent is emitted when a broadcast is scheduled
 type BroadcastScheduledEvent struct {
+	shared.BaseEvent
 	BroadcastID  uuid.UUID
 	ScheduledFor time.Time
-	Timestamp    time.Time
 }
 
-func (e *BroadcastScheduledEvent) EventType() string {
-	return "automation.broadcast.scheduled"
-}
-
-func (e *BroadcastScheduledEvent) EventTimestamp() time.Time {
-	return e.Timestamp
-}
-
-func (e *BroadcastScheduledEvent) AggregateID() uuid.UUID {
-	return e.BroadcastID
+func NewBroadcastScheduledEvent(broadcastID uuid.UUID, scheduledFor time.Time) BroadcastScheduledEvent {
+	return BroadcastScheduledEvent{
+		BaseEvent:    shared.NewBaseEvent("broadcast.scheduled", time.Now()),
+		BroadcastID:  broadcastID,
+		ScheduledFor: scheduledFor,
+	}
 }
 
 // BroadcastStartedEvent is emitted when a broadcast starts executing
 type BroadcastStartedEvent struct {
+	shared.BaseEvent
 	BroadcastID uuid.UUID
-	Timestamp   time.Time
 }
 
-func (e *BroadcastStartedEvent) EventType() string {
-	return "automation.broadcast.started"
-}
-
-func (e *BroadcastStartedEvent) EventTimestamp() time.Time {
-	return e.Timestamp
-}
-
-func (e *BroadcastStartedEvent) AggregateID() uuid.UUID {
-	return e.BroadcastID
+func NewBroadcastStartedEvent(broadcastID uuid.UUID) BroadcastStartedEvent {
+	return BroadcastStartedEvent{
+		BaseEvent:   shared.NewBaseEvent("broadcast.started", time.Now()),
+		BroadcastID: broadcastID,
+	}
 }
 
 // BroadcastCompletedEvent is emitted when a broadcast completes
 type BroadcastCompletedEvent struct {
+	shared.BaseEvent
 	BroadcastID uuid.UUID
 	TotalSent   int
 	TotalFailed int
-	Timestamp   time.Time
 }
 
-func (e *BroadcastCompletedEvent) EventType() string {
-	return "automation.broadcast.completed"
-}
-
-func (e *BroadcastCompletedEvent) EventTimestamp() time.Time {
-	return e.Timestamp
-}
-
-func (e *BroadcastCompletedEvent) AggregateID() uuid.UUID {
-	return e.BroadcastID
+func NewBroadcastCompletedEvent(broadcastID uuid.UUID, totalSent, totalFailed int) BroadcastCompletedEvent {
+	return BroadcastCompletedEvent{
+		BaseEvent:   shared.NewBaseEvent("broadcast.completed", time.Now()),
+		BroadcastID: broadcastID,
+		TotalSent:   totalSent,
+		TotalFailed: totalFailed,
+	}
 }
 
 // BroadcastCancelledEvent is emitted when a broadcast is cancelled
 type BroadcastCancelledEvent struct {
+	shared.BaseEvent
 	BroadcastID uuid.UUID
-	Timestamp   time.Time
 }
 
-func (e *BroadcastCancelledEvent) EventType() string {
-	return "automation.broadcast.cancelled"
-}
-
-func (e *BroadcastCancelledEvent) EventTimestamp() time.Time {
-	return e.Timestamp
-}
-
-func (e *BroadcastCancelledEvent) AggregateID() uuid.UUID {
-	return e.BroadcastID
+func NewBroadcastCancelledEvent(broadcastID uuid.UUID) BroadcastCancelledEvent {
+	return BroadcastCancelledEvent{
+		BaseEvent:   shared.NewBaseEvent("broadcast.cancelled", time.Now()),
+		BroadcastID: broadcastID,
+	}
 }
 
 // BroadcastFailedEvent is emitted when a broadcast fails
 type BroadcastFailedEvent struct {
+	shared.BaseEvent
 	BroadcastID uuid.UUID
 	Reason      string
-	Timestamp   time.Time
 }
 
-func (e *BroadcastFailedEvent) EventType() string {
-	return "automation.broadcast.failed"
-}
-
-func (e *BroadcastFailedEvent) EventTimestamp() time.Time {
-	return e.Timestamp
-}
-
-func (e *BroadcastFailedEvent) AggregateID() uuid.UUID {
-	return e.BroadcastID
+func NewBroadcastFailedEvent(broadcastID uuid.UUID, reason string) BroadcastFailedEvent {
+	return BroadcastFailedEvent{
+		BaseEvent:   shared.NewBaseEvent("broadcast.failed", time.Now()),
+		BroadcastID: broadcastID,
+		Reason:      reason,
+	}
 }

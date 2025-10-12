@@ -9,6 +9,7 @@ import (
 // CampaignEntity represents a campaign in the database
 type CampaignEntity struct {
 	ID               uuid.UUID  `gorm:"type:uuid;primary_key"`
+	Version          int        `gorm:"default:1;not null"` // Optimistic locking
 	TenantID         string     `gorm:"type:varchar(255);not null;index:idx_campaigns_tenant"`
 	Name             string     `gorm:"type:varchar(255);not null"`
 	Description      string     `gorm:"type:text"`
@@ -34,9 +35,9 @@ type CampaignStepEntity struct {
 	CampaignID uuid.UUID `gorm:"type:uuid;not null;index:idx_campaign_steps_campaign_id"`
 	Order      int       `gorm:"type:int;not null"`
 	Name       string    `gorm:"type:varchar(255);not null"`
-	Type       string    `gorm:"type:varchar(50);not null"`  // broadcast, sequence, delay, condition, wait
-	Config     []byte    `gorm:"type:jsonb;not null"`        // step configuration (broadcast_id, sequence_id, etc.)
-	Conditions []byte    `gorm:"type:jsonb"`                 // execution conditions
+	Type       string    `gorm:"type:varchar(50);not null"` // broadcast, sequence, delay, condition, wait
+	Config     []byte    `gorm:"type:jsonb;not null"`       // step configuration (broadcast_id, sequence_id, etc.)
+	Conditions []byte    `gorm:"type:jsonb"`                // execution conditions
 	CreatedAt  time.Time `gorm:"type:timestamp;not null;default:CURRENT_TIMESTAMP"`
 }
 

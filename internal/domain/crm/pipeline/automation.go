@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/caloi/ventros-crm/internal/domain/core/shared"
 )
 
 type Automation struct {
@@ -22,7 +23,7 @@ type Automation struct {
 	createdAt      time.Time
 	updatedAt      time.Time
 
-	events []DomainEvent
+	events []shared.DomainEvent
 }
 
 type AutomationType string
@@ -393,7 +394,7 @@ func NewAutomation(
 		enabled:        true,
 		createdAt:      now,
 		updatedAt:      now,
-		events:         []DomainEvent{},
+		events:         []shared.DomainEvent{},
 	}
 
 	var eventPipelineID uuid.UUID
@@ -401,14 +402,7 @@ func NewAutomation(
 		eventPipelineID = *pipelineID
 	}
 
-	rule.addEvent(AutomationCreatedEvent{
-		RuleID:     rule.id,
-		PipelineID: eventPipelineID,
-		TenantID:   tenantID,
-		Name:       name,
-		Trigger:    trigger,
-		CreatedAt:  now,
-	})
+	rule.addEvent(NewAutomationCreatedEvent(rule.id, eventPipelineID, tenantID, name, trigger))
 
 	return rule, nil
 }
@@ -439,7 +433,7 @@ func ReconstructAutomation(
 		enabled:        enabled,
 		createdAt:      createdAt,
 		updatedAt:      updatedAt,
-		events:         []DomainEvent{},
+		events:         []shared.DomainEvent{},
 	}
 }
 
@@ -511,10 +505,7 @@ func (r *Automation) Enable() {
 		r.enabled = true
 		r.updatedAt = time.Now()
 
-		r.addEvent(AutomationEnabledEvent{
-			RuleID:    r.id,
-			EnabledAt: r.updatedAt,
-		})
+		r.addEvent(NewAutomationEnabledEvent(r.id))
 	}
 }
 
@@ -523,10 +514,7 @@ func (r *Automation) Disable() {
 		r.enabled = false
 		r.updatedAt = time.Now()
 
-		r.addEvent(AutomationDisabledEvent{
-			RuleID:     r.id,
-			DisabledAt: r.updatedAt,
-		})
+		r.addEvent(NewAutomationDisabledEvent(r.id))
 	}
 }
 
@@ -696,15 +684,15 @@ func (r *Automation) IsEnabled() bool             { return r.enabled }
 func (r *Automation) CreatedAt() time.Time        { return r.createdAt }
 func (r *Automation) UpdatedAt() time.Time        { return r.updatedAt }
 
-func (r *Automation) DomainEvents() []DomainEvent {
-	return append([]DomainEvent{}, r.events...)
+func (r *Automation) DomainEvents() []shared.DomainEvent {
+	return append([]shared.DomainEvent{}, r.events...)
 }
 
 func (r *Automation) ClearEvents() {
-	r.events = []DomainEvent{}
+	r.events = []shared.DomainEvent{}
 }
 
-func (r *Automation) addEvent(event DomainEvent) {
+func (r *Automation) addEvent(event shared.DomainEvent) {
 	r.events = append(r.events, event)
 }
 

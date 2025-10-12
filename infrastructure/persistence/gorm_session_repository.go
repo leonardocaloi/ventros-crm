@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/caloi/ventros-crm/infrastructure/persistence/entities"
+	"github.com/caloi/ventros-crm/internal/domain/core/shared"
 	"github.com/caloi/ventros-crm/internal/domain/crm/session"
 	"github.com/google/uuid"
 	"gorm.io/datatypes"
@@ -23,7 +24,71 @@ func NewGormSessionRepository(db *gorm.DB) session.Repository {
 
 func (r *GormSessionRepository) Save(ctx context.Context, s *session.Session) error {
 	entity := r.domainToEntity(s)
-	return r.db.WithContext(ctx).Save(entity).Error
+
+	// Check if exists
+	var existing entities.SessionEntity
+	err := r.db.WithContext(ctx).Where("id = ?", entity.ID).First(&existing).Error
+
+	if err == nil {
+		// Update with optimistic locking
+		result := r.db.WithContext(ctx).Model(&entities.SessionEntity{}).
+			Where("id = ? AND version = ?", entity.ID, existing.Version).
+			Updates(map[string]interface{}{
+				"version":                    existing.Version + 1, // Increment version
+				"contact_id":                 entity.ContactID,
+				"tenant_id":                  entity.TenantID,
+				"pipeline_id":                entity.PipelineID,
+				"channel_type_id":            entity.ChannelTypeID,
+				"started_at":                 entity.StartedAt,
+				"ended_at":                   entity.EndedAt,
+				"status":                     entity.Status,
+				"end_reason":                 entity.EndReason,
+				"timeout_duration":           entity.TimeoutDuration,
+				"last_activity_at":           entity.LastActivityAt,
+				"message_count":              entity.MessageCount,
+				"messages_from_contact":      entity.MessagesFromContact,
+				"messages_from_agent":        entity.MessagesFromAgent,
+				"duration_seconds":           entity.DurationSeconds,
+				"first_contact_message_at":   entity.FirstContactMessageAt,
+				"first_agent_response_at":    entity.FirstAgentResponseAt,
+				"agent_response_time_seconds": entity.AgentResponseTimeSeconds,
+				"contact_wait_time_seconds":  entity.ContactWaitTimeSeconds,
+				"agent_ids":                  entity.AgentIDs,
+				"agent_transfers":            entity.AgentTransfers,
+				"summary":                    entity.Summary,
+				"sentiment":                  entity.Sentiment,
+				"sentiment_score":            entity.SentimentScore,
+				"topics":                     entity.Topics,
+				"next_steps":                 entity.NextSteps,
+				"key_entities":               entity.KeyEntities,
+				"resolved":                   entity.Resolved,
+				"escalated":                  entity.Escalated,
+				"converted":                  entity.Converted,
+				"outcome_tags":               entity.OutcomeTags,
+				"updated_at":                 entity.UpdatedAt,
+			})
+
+		if result.Error != nil {
+			return result.Error
+		}
+
+		// Check optimistic locking - if 0 rows affected, version mismatch (concurrent update)
+		if result.RowsAffected == 0 {
+			return shared.NewOptimisticLockError(
+				"Session",
+				entity.ID.String(),
+				existing.Version,
+				entity.Version,
+			)
+		}
+
+		return nil
+	} else if errors.Is(err, gorm.ErrRecordNotFound) {
+		// Insert
+		return r.db.WithContext(ctx).Create(entity).Error
+	}
+
+	return err
 }
 
 func (r *GormSessionRepository) FindByID(ctx context.Context, id uuid.UUID) (*session.Session, error) {
@@ -251,6 +316,7 @@ func (r *GormSessionRepository) SearchByText(ctx context.Context, tenantID strin
 func (r *GormSessionRepository) domainToEntity(s *session.Session) *entities.SessionEntity {
 	entity := &entities.SessionEntity{
 		ID:                  s.ID(),
+		Version:             s.Version(),
 		ContactID:           s.ContactID(),
 		TenantID:            s.TenantID(),
 		PipelineID:          s.PipelineID(), // ✅ Pipeline ID
@@ -315,6 +381,7 @@ func (r *GormSessionRepository) entityToDomain(entity *entities.SessionEntity) *
 
 	return session.ReconstructSession(
 		entity.ID,
+		entity.Version,
 		entity.ContactID,
 		entity.TenantID,
 		entity.ChannelTypeID,

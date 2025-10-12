@@ -7,6 +7,7 @@ import (
 
 	"github.com/caloi/ventros-crm/infrastructure/persistence/entities"
 	"github.com/caloi/ventros-crm/internal/domain/automation/broadcast"
+	"github.com/caloi/ventros-crm/internal/domain/core/shared"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
@@ -33,8 +34,42 @@ func (r *GormBroadcastRepository) Save(b *broadcast.Broadcast) error {
 	err = r.db.Where("id = ?", entity.ID).First(&existing).Error
 
 	if err == nil {
-		// Update
-		return r.db.Model(&existing).Updates(entity).Error
+		// Update with optimistic locking
+		result := r.db.Model(&entities.BroadcastEntity{}).
+			Where("id = ? AND version = ?", entity.ID, existing.Version).
+			Updates(map[string]interface{}{
+				"version":           existing.Version + 1, // Increment version
+				"tenant_id":         entity.TenantID,
+				"name":              entity.Name,
+				"list_id":           entity.ListID,
+				"message_template":  entity.MessageTemplate,
+				"status":            entity.Status,
+				"scheduled_for":     entity.ScheduledFor,
+				"started_at":        entity.StartedAt,
+				"completed_at":      entity.CompletedAt,
+				"total_contacts":    entity.TotalContacts,
+				"sent_count":        entity.SentCount,
+				"failed_count":      entity.FailedCount,
+				"pending_count":     entity.PendingCount,
+				"rate_limit":        entity.RateLimit,
+				"updated_at":        entity.UpdatedAt,
+			})
+
+		if result.Error != nil {
+			return result.Error
+		}
+
+		// Check optimistic locking - if 0 rows affected, version mismatch (concurrent update)
+		if result.RowsAffected == 0 {
+			return shared.NewOptimisticLockError(
+				"Broadcast",
+				entity.ID.String(),
+				existing.Version,
+				entity.Version,
+			)
+		}
+
+		return nil
 	} else if errors.Is(err, gorm.ErrRecordNotFound) {
 		// Insert
 		return r.db.Create(entity).Error
@@ -119,6 +154,7 @@ func (r *GormBroadcastRepository) toEntity(b *broadcast.Broadcast) (*entities.Br
 
 	return &entities.BroadcastEntity{
 		ID:              b.ID(),
+		Version:         b.Version(),
 		TenantID:        b.TenantID(),
 		Name:            b.Name(),
 		ListID:          b.ListID(),
@@ -153,6 +189,7 @@ func (r *GormBroadcastRepository) toDomain(entity *entities.BroadcastEntity) (*b
 	// Reconstruct domain model
 	return broadcast.ReconstructBroadcast(
 		entity.ID,
+		entity.Version,
 		entity.TenantID,
 		entity.Name,
 		entity.ListID,

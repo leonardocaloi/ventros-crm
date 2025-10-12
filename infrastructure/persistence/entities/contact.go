@@ -13,6 +13,7 @@ import (
 // ContactEntity representa a entidade Contact no banco de dados
 type ContactEntity struct {
 	ID            uuid.UUID   `gorm:"type:uuid;primary_key;default:gen_random_uuid()"`
+	Version       int         `gorm:"default:1;not null"` // Optimistic locking
 	ProjectID     uuid.UUID   `gorm:"type:uuid;not null;index"`
 	TenantID      string      `gorm:"not null;index:idx_contacts_tenant_deleted,priority:1;index:idx_contacts_tenant_name,priority:1;index:idx_contacts_tenant_created,priority:1"`
 	Name          string      `gorm:"index:idx_contacts_name;index:idx_contacts_tenant_name,priority:2"`

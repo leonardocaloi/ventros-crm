@@ -5,10 +5,12 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/caloi/ventros-crm/internal/domain/core/shared"
 )
 
 type Pipeline struct {
 	id                      uuid.UUID
+	version                 int // Optimistic locking - prevents lost updates
 	projectID               uuid.UUID
 	tenantID                string
 	name                    string
@@ -22,7 +24,7 @@ type Pipeline struct {
 	createdAt               time.Time
 	updatedAt               time.Time
 
-	events []DomainEvent
+	events []shared.DomainEvent
 }
 
 func NewPipeline(projectID uuid.UUID, tenantID, name string) (*Pipeline, error) {
@@ -39,6 +41,7 @@ func NewPipeline(projectID uuid.UUID, tenantID, name string) (*Pipeline, error) 
 	now := time.Now()
 	pipeline := &Pipeline{
 		id:                      uuid.New(),
+		version:                 1, // Start with version 1 for new aggregates
 		projectID:               projectID,
 		tenantID:                tenantID,
 		name:                    name,
@@ -49,22 +52,17 @@ func NewPipeline(projectID uuid.UUID, tenantID, name string) (*Pipeline, error) 
 		statuses:                []*Status{},
 		createdAt:               now,
 		updatedAt:               now,
-		events:                  []DomainEvent{},
+		events:                  []shared.DomainEvent{},
 	}
 
-	pipeline.addEvent(PipelineCreatedEvent{
-		PipelineID: pipeline.id,
-		ProjectID:  projectID,
-		TenantID:   tenantID,
-		Name:       name,
-		CreatedAt:  now,
-	})
+	pipeline.addEvent(NewPipelineCreatedEvent(pipeline.id, projectID, tenantID, name))
 
 	return pipeline, nil
 }
 
 func ReconstructPipeline(
 	id, projectID uuid.UUID,
+	version int, // Optimistic locking version
 	tenantID, name, description, color string,
 	position int,
 	active bool,
@@ -72,8 +70,13 @@ func ReconstructPipeline(
 	leadQualificationConfig *LeadQualificationConfig,
 	createdAt, updatedAt time.Time,
 ) *Pipeline {
+	if version == 0 {
+		version = 1 // Default to version 1 (backwards compatibility)
+	}
+
 	return &Pipeline{
 		id:                      id,
+		version:                 version,
 		projectID:               projectID,
 		tenantID:                tenantID,
 		name:                    name,
@@ -86,7 +89,7 @@ func ReconstructPipeline(
 		statuses:                []*Status{},
 		createdAt:               createdAt,
 		updatedAt:               updatedAt,
-		events:                  []DomainEvent{},
+		events:                  []shared.DomainEvent{},
 	}
 }
 
@@ -99,13 +102,7 @@ func (p *Pipeline) UpdateName(name string) error {
 	p.name = name
 	p.updatedAt = time.Now()
 
-	p.addEvent(PipelineUpdatedEvent{
-		PipelineID: p.id,
-		Field:      "name",
-		OldValue:   oldName,
-		NewValue:   name,
-		UpdatedAt:  p.updatedAt,
-	})
+	p.addEvent(NewPipelineUpdatedEvent(p.id, "name", oldName, name))
 
 	return nil
 }
@@ -115,13 +112,7 @@ func (p *Pipeline) UpdateDescription(description string) {
 	p.description = description
 	p.updatedAt = time.Now()
 
-	p.addEvent(PipelineUpdatedEvent{
-		PipelineID: p.id,
-		Field:      "description",
-		OldValue:   oldDescription,
-		NewValue:   description,
-		UpdatedAt:  p.updatedAt,
-	})
+	p.addEvent(NewPipelineUpdatedEvent(p.id, "description", oldDescription, description))
 }
 
 func (p *Pipeline) UpdateColor(color string) {
@@ -129,13 +120,7 @@ func (p *Pipeline) UpdateColor(color string) {
 	p.color = color
 	p.updatedAt = time.Now()
 
-	p.addEvent(PipelineUpdatedEvent{
-		PipelineID: p.id,
-		Field:      "color",
-		OldValue:   oldColor,
-		NewValue:   color,
-		UpdatedAt:  p.updatedAt,
-	})
+	p.addEvent(NewPipelineUpdatedEvent(p.id, "color", oldColor, color))
 }
 
 func (p *Pipeline) UpdatePosition(position int) {
@@ -143,13 +128,7 @@ func (p *Pipeline) UpdatePosition(position int) {
 	p.position = position
 	p.updatedAt = time.Now()
 
-	p.addEvent(PipelineUpdatedEvent{
-		PipelineID: p.id,
-		Field:      "position",
-		OldValue:   oldPosition,
-		NewValue:   position,
-		UpdatedAt:  p.updatedAt,
-	})
+	p.addEvent(NewPipelineUpdatedEvent(p.id, "position", oldPosition, position))
 }
 
 func (p *Pipeline) Activate() {
@@ -157,10 +136,7 @@ func (p *Pipeline) Activate() {
 		p.active = true
 		p.updatedAt = time.Now()
 
-		p.addEvent(PipelineActivatedEvent{
-			PipelineID:  p.id,
-			ActivatedAt: p.updatedAt,
-		})
+		p.addEvent(NewPipelineActivatedEvent(p.id))
 	}
 }
 
@@ -169,10 +145,7 @@ func (p *Pipeline) Deactivate() {
 		p.active = false
 		p.updatedAt = time.Now()
 
-		p.addEvent(PipelineDeactivatedEvent{
-			PipelineID:    p.id,
-			DeactivatedAt: p.updatedAt,
-		})
+		p.addEvent(NewPipelineDeactivatedEvent(p.id))
 	}
 }
 
@@ -190,12 +163,7 @@ func (p *Pipeline) AddStatus(status *Status) error {
 	p.statuses = append(p.statuses, status)
 	p.updatedAt = time.Now()
 
-	p.addEvent(StatusAddedToPipelineEvent{
-		PipelineID: p.id,
-		StatusID:   status.ID(),
-		StatusName: status.Name(),
-		AddedAt:    p.updatedAt,
-	})
+	p.addEvent(NewStatusAddedToPipelineEvent(p.id, status.ID(), status.Name()))
 
 	return nil
 }
@@ -206,12 +174,7 @@ func (p *Pipeline) RemoveStatus(statusID uuid.UUID) error {
 			p.statuses = append(p.statuses[:i], p.statuses[i+1:]...)
 			p.updatedAt = time.Now()
 
-			p.addEvent(StatusRemovedFromPipelineEvent{
-				PipelineID: p.id,
-				StatusID:   statusID,
-				StatusName: status.Name(),
-				RemovedAt:  p.updatedAt,
-			})
+			p.addEvent(NewStatusRemovedFromPipelineEvent(p.id, statusID, status.Name()))
 
 			return nil
 		}
@@ -239,6 +202,7 @@ func (p *Pipeline) GetStatusByName(name string) *Status {
 }
 
 func (p *Pipeline) ID() uuid.UUID               { return p.id }
+func (p *Pipeline) Version() int                { return p.version }
 func (p *Pipeline) ProjectID() uuid.UUID        { return p.projectID }
 func (p *Pipeline) TenantID() string            { return p.tenantID }
 func (p *Pipeline) Name() string                { return p.name }
@@ -278,10 +242,7 @@ func (p *Pipeline) EnableLeadQualification() {
 	p.leadQualificationConfig.Enable()
 	p.updatedAt = time.Now()
 
-	p.addEvent(LeadQualificationEnabledEvent{
-		PipelineID: p.id,
-		EnabledAt:  p.updatedAt,
-	})
+	p.addEvent(NewLeadQualificationEnabledEvent(p.id))
 }
 
 // DisableLeadQualification desativa qualificação automática
@@ -290,10 +251,7 @@ func (p *Pipeline) DisableLeadQualification() {
 		p.leadQualificationConfig.Disable()
 		p.updatedAt = time.Now()
 
-		p.addEvent(LeadQualificationDisabledEvent{
-			PipelineID: p.id,
-			DisabledAt: p.updatedAt,
-		})
+		p.addEvent(NewLeadQualificationDisabledEvent(p.id))
 	}
 }
 
@@ -302,10 +260,7 @@ func (p *Pipeline) SetLeadQualificationConfig(config *LeadQualificationConfig) {
 	p.leadQualificationConfig = config
 	p.updatedAt = time.Now()
 
-	p.addEvent(LeadQualificationConfigUpdatedEvent{
-		PipelineID: p.id,
-		UpdatedAt:  p.updatedAt,
-	})
+	p.addEvent(NewLeadQualificationConfigUpdatedEvent(p.id))
 }
 
 // HasLeadQualification verifica se está ativado
@@ -313,14 +268,17 @@ func (p *Pipeline) HasLeadQualification() bool {
 	return p.leadQualificationConfig != nil && p.leadQualificationConfig.IsEnabled()
 }
 
-func (p *Pipeline) DomainEvents() []DomainEvent {
-	return append([]DomainEvent{}, p.events...)
+func (p *Pipeline) DomainEvents() []shared.DomainEvent {
+	return append([]shared.DomainEvent{}, p.events...)
 }
 
 func (p *Pipeline) ClearEvents() {
-	p.events = []DomainEvent{}
+	p.events = []shared.DomainEvent{}
 }
 
-func (p *Pipeline) addEvent(event DomainEvent) {
+func (p *Pipeline) addEvent(event shared.DomainEvent) {
 	p.events = append(p.events, event)
 }
+
+// Compile-time check that Pipeline implements AggregateRoot interface
+var _ shared.AggregateRoot = (*Pipeline)(nil)

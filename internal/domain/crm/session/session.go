@@ -5,10 +5,12 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/caloi/ventros-crm/internal/domain/core/shared"
 )
 
 type Session struct {
 	id              uuid.UUID
+	version         int    // Optimistic locking - prevents lost updates
 	contactID       uuid.UUID
 	tenantID        string
 	channelTypeID   *int
@@ -67,6 +69,7 @@ func NewSession(
 	now := time.Now()
 	session := &Session{
 		id:              uuid.New(),
+		version:         1, // Start with version 1 for new aggregates
 		contactID:       contactID,
 		tenantID:        tenantID,
 		channelTypeID:   channelTypeID,
@@ -110,6 +113,7 @@ func NewSessionWithPipeline(
 
 func ReconstructSession(
 	id uuid.UUID,
+	version int, // Optimistic locking version
 	contactID uuid.UUID,
 	tenantID string,
 	channelTypeID *int,
@@ -156,9 +160,13 @@ func ReconstructSession(
 	if keyEntities == nil {
 		keyEntities = make(map[string]interface{})
 	}
+	if version == 0 {
+		version = 1 // Default to version 1 if not set (backwards compatibility)
+	}
 
 	return &Session{
 		id:                       id,
+		version:                  version,
 		contactID:                contactID,
 		tenantID:                 tenantID,
 		channelTypeID:            channelTypeID,
@@ -466,6 +474,7 @@ func (s *Session) ReassignAgentByWorkload(newAgentID uuid.UUID, strategy string,
 }
 
 func (s *Session) ID() uuid.UUID                  { return s.id }
+func (s *Session) Version() int                   { return s.version }
 func (s *Session) ContactID() uuid.UUID           { return s.contactID }
 func (s *Session) TenantID() string               { return s.tenantID }
 func (s *Session) ChannelTypeID() *int            { return s.channelTypeID }
@@ -517,3 +526,6 @@ func (s *Session) ClearEvents() {
 func (s *Session) addEvent(event DomainEvent) {
 	s.events = append(s.events, event)
 }
+
+// Compile-time check that Session implements AggregateRoot interface
+var _ shared.AggregateRoot = (*Session)(nil)

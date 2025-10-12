@@ -11,6 +11,7 @@ import (
 // CredentialEntity representa uma credencial no banco de dados
 type CredentialEntity struct {
 	ID        uuid.UUID  `gorm:"type:uuid;primary_key"`
+	Version   int        `gorm:"default:1;not null"` // Optimistic locking
 	TenantID  string     `gorm:"type:varchar(255);not null;index:idx_credentials_tenant"`
 	ProjectID *uuid.UUID `gorm:"type:uuid;index:idx_credentials_project"`
 

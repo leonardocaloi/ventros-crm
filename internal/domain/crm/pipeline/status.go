@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/caloi/ventros-crm/internal/domain/core/shared"
 )
 
 type StatusType string
@@ -17,6 +18,7 @@ const (
 
 type Status struct {
 	id          uuid.UUID
+	version     int // Optimistic locking - prevents lost updates
 	pipelineID  uuid.UUID
 	name        string
 	description string
@@ -27,7 +29,7 @@ type Status struct {
 	createdAt   time.Time
 	updatedAt   time.Time
 
-	events []DomainEvent
+	events []shared.DomainEvent
 }
 
 func NewStatus(pipelineID uuid.UUID, name string, statusType StatusType) (*Status, error) {
@@ -44,6 +46,7 @@ func NewStatus(pipelineID uuid.UUID, name string, statusType StatusType) (*Statu
 	now := time.Now()
 	status := &Status{
 		id:         uuid.New(),
+		version:    1, // Start with version 1 for new aggregates
 		pipelineID: pipelineID,
 		name:       name,
 		statusType: statusType,
@@ -51,30 +54,30 @@ func NewStatus(pipelineID uuid.UUID, name string, statusType StatusType) (*Statu
 		active:     true,
 		createdAt:  now,
 		updatedAt:  now,
-		events:     []DomainEvent{},
+		events:     []shared.DomainEvent{},
 	}
 
-	status.addEvent(StatusCreatedEvent{
-		StatusID:   status.id,
-		PipelineID: pipelineID,
-		Name:       name,
-		StatusType: statusType,
-		CreatedAt:  now,
-	})
+	status.addEvent(NewStatusCreatedEvent(status.id, pipelineID, name, statusType))
 
 	return status, nil
 }
 
 func ReconstructStatus(
 	id, pipelineID uuid.UUID,
+	version int, // Optimistic locking version
 	name, description, color string,
 	statusType StatusType,
 	position int,
 	active bool,
 	createdAt, updatedAt time.Time,
 ) *Status {
+	if version == 0 {
+		version = 1 // Default to version 1 (backwards compatibility)
+	}
+
 	return &Status{
 		id:          id,
+		version:     version,
 		pipelineID:  pipelineID,
 		name:        name,
 		description: description,
@@ -84,7 +87,7 @@ func ReconstructStatus(
 		active:      active,
 		createdAt:   createdAt,
 		updatedAt:   updatedAt,
-		events:      []DomainEvent{},
+		events:      []shared.DomainEvent{},
 	}
 }
 
@@ -97,13 +100,7 @@ func (s *Status) UpdateName(name string) error {
 	s.name = name
 	s.updatedAt = time.Now()
 
-	s.addEvent(StatusUpdatedEvent{
-		StatusID:  s.id,
-		Field:     "name",
-		OldValue:  oldName,
-		NewValue:  name,
-		UpdatedAt: s.updatedAt,
-	})
+	s.addEvent(NewStatusUpdatedEvent(s.id, "name", oldName, name))
 
 	return nil
 }
@@ -113,13 +110,7 @@ func (s *Status) UpdateDescription(description string) {
 	s.description = description
 	s.updatedAt = time.Now()
 
-	s.addEvent(StatusUpdatedEvent{
-		StatusID:  s.id,
-		Field:     "description",
-		OldValue:  oldDescription,
-		NewValue:  description,
-		UpdatedAt: s.updatedAt,
-	})
+	s.addEvent(NewStatusUpdatedEvent(s.id, "description", oldDescription, description))
 }
 
 func (s *Status) UpdateColor(color string) {
@@ -127,13 +118,7 @@ func (s *Status) UpdateColor(color string) {
 	s.color = color
 	s.updatedAt = time.Now()
 
-	s.addEvent(StatusUpdatedEvent{
-		StatusID:  s.id,
-		Field:     "color",
-		OldValue:  oldColor,
-		NewValue:  color,
-		UpdatedAt: s.updatedAt,
-	})
+	s.addEvent(NewStatusUpdatedEvent(s.id, "color", oldColor, color))
 }
 
 func (s *Status) UpdatePosition(position int) {
@@ -141,13 +126,7 @@ func (s *Status) UpdatePosition(position int) {
 	s.position = position
 	s.updatedAt = time.Now()
 
-	s.addEvent(StatusUpdatedEvent{
-		StatusID:  s.id,
-		Field:     "position",
-		OldValue:  oldPosition,
-		NewValue:  position,
-		UpdatedAt: s.updatedAt,
-	})
+	s.addEvent(NewStatusUpdatedEvent(s.id, "position", oldPosition, position))
 }
 
 func (s *Status) UpdateType(statusType StatusType) error {
@@ -159,13 +138,7 @@ func (s *Status) UpdateType(statusType StatusType) error {
 	s.statusType = statusType
 	s.updatedAt = time.Now()
 
-	s.addEvent(StatusUpdatedEvent{
-		StatusID:  s.id,
-		Field:     "status_type",
-		OldValue:  string(oldType),
-		NewValue:  string(statusType),
-		UpdatedAt: s.updatedAt,
-	})
+	s.addEvent(NewStatusUpdatedEvent(s.id, "status_type", string(oldType), string(statusType)))
 
 	return nil
 }
@@ -175,10 +148,7 @@ func (s *Status) Activate() {
 		s.active = true
 		s.updatedAt = time.Now()
 
-		s.addEvent(StatusActivatedEvent{
-			StatusID:    s.id,
-			ActivatedAt: s.updatedAt,
-		})
+		s.addEvent(NewStatusActivatedEvent(s.id))
 	}
 }
 
@@ -187,10 +157,7 @@ func (s *Status) Deactivate() {
 		s.active = false
 		s.updatedAt = time.Now()
 
-		s.addEvent(StatusDeactivatedEvent{
-			StatusID:      s.id,
-			DeactivatedAt: s.updatedAt,
-		})
+		s.addEvent(NewStatusDeactivatedEvent(s.id))
 	}
 }
 
@@ -207,6 +174,7 @@ func (s *Status) IsClosed() bool {
 }
 
 func (s *Status) ID() uuid.UUID          { return s.id }
+func (s *Status) Version() int           { return s.version }
 func (s *Status) PipelineID() uuid.UUID  { return s.pipelineID }
 func (s *Status) Name() string           { return s.name }
 func (s *Status) Description() string    { return s.description }
@@ -217,14 +185,17 @@ func (s *Status) IsActiveStatus() bool   { return s.active }
 func (s *Status) CreatedAt() time.Time   { return s.createdAt }
 func (s *Status) UpdatedAt() time.Time   { return s.updatedAt }
 
-func (s *Status) DomainEvents() []DomainEvent {
-	return append([]DomainEvent{}, s.events...)
+func (s *Status) DomainEvents() []shared.DomainEvent {
+	return append([]shared.DomainEvent{}, s.events...)
 }
 
 func (s *Status) ClearEvents() {
-	s.events = []DomainEvent{}
+	s.events = []shared.DomainEvent{}
 }
 
-func (s *Status) addEvent(event DomainEvent) {
+func (s *Status) addEvent(event shared.DomainEvent) {
 	s.events = append(s.events, event)
 }
+
+// Compile-time check that Status implements AggregateRoot interface
+var _ shared.AggregateRoot = (*Status)(nil)

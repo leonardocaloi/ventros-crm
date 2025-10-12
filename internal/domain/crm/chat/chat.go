@@ -4,10 +4,12 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/caloi/ventros-crm/internal/domain/core/shared"
 )
 
 type Chat struct {
 	id            uuid.UUID
+	version       int // Optimistic locking - prevents lost updates
 	projectID     uuid.UUID
 	tenantID      string
 	chatType      ChatType
@@ -21,7 +23,7 @@ type Chat struct {
 	createdAt     time.Time
 	updatedAt     time.Time
 
-	events []DomainEvent
+	events []shared.DomainEvent
 }
 
 // NewIndividualChat creates a new individual (1-on-1) chat
@@ -43,6 +45,7 @@ func NewIndividualChat(
 	now := time.Now()
 	chat := &Chat{
 		id:        uuid.New(),
+		version:   1, // Start with version 1 for new aggregates
 		projectID: projectID,
 		tenantID:  tenantID,
 		chatType:  ChatTypeIndividual,
@@ -58,7 +61,7 @@ func NewIndividualChat(
 		metadata:  make(map[string]interface{}),
 		createdAt: now,
 		updatedAt: now,
-		events:    []DomainEvent{},
+		events:    []shared.DomainEvent{},
 	}
 
 	chat.addEvent(NewChatCreatedEvent(chat.id, chat.chatType, chat.projectID))
@@ -90,6 +93,7 @@ func NewGroupChat(
 	now := time.Now()
 	chat := &Chat{
 		id:         uuid.New(),
+		version:    1, // Start with version 1 for new aggregates
 		projectID:  projectID,
 		tenantID:   tenantID,
 		chatType:   ChatTypeGroup,
@@ -107,7 +111,7 @@ func NewGroupChat(
 		metadata:  make(map[string]interface{}),
 		createdAt: now,
 		updatedAt: now,
-		events:    []DomainEvent{},
+		events:    []shared.DomainEvent{},
 	}
 
 	chat.addEvent(NewChatCreatedEvent(chat.id, chat.chatType, chat.projectID))
@@ -134,6 +138,7 @@ func NewChannelChat(
 	now := time.Now()
 	chat := &Chat{
 		id:           uuid.New(),
+		version:      1, // Start with version 1 for new aggregates
 		projectID:    projectID,
 		tenantID:     tenantID,
 		chatType:     ChatTypeChannel,
@@ -143,7 +148,7 @@ func NewChannelChat(
 		metadata:     make(map[string]interface{}),
 		createdAt:    now,
 		updatedAt:    now,
-		events:       []DomainEvent{},
+		events:       []shared.DomainEvent{},
 	}
 
 	chat.addEvent(NewChatCreatedEvent(chat.id, chat.chatType, chat.projectID))
@@ -154,6 +159,7 @@ func NewChannelChat(
 // ReconstructChat reconstructs a chat from persistence (for repository)
 func ReconstructChat(
 	id uuid.UUID,
+	version int, // Optimistic locking version
 	projectID uuid.UUID,
 	tenantID string,
 	chatType ChatType,
@@ -167,12 +173,16 @@ func ReconstructChat(
 	createdAt time.Time,
 	updatedAt time.Time,
 ) *Chat {
+	if version == 0 {
+		version = 1 // Default to version 1 (backwards compatibility)
+	}
 	if metadata == nil {
 		metadata = make(map[string]interface{})
 	}
 
 	return &Chat{
 		id:            id,
+		version:       version,
 		projectID:     projectID,
 		tenantID:      tenantID,
 		chatType:      chatType,
@@ -185,7 +195,7 @@ func ReconstructChat(
 		lastMessageAt: lastMessageAt,
 		createdAt:     createdAt,
 		updatedAt:     updatedAt,
-		events:        []DomainEvent{},
+		events:        []shared.DomainEvent{},
 	}
 }
 
@@ -400,6 +410,7 @@ func (c *Chat) IsGroup() bool {
 
 // Getters
 func (c *Chat) ID() uuid.UUID        { return c.id }
+func (c *Chat) Version() int         { return c.version }
 func (c *Chat) ProjectID() uuid.UUID { return c.projectID }
 func (c *Chat) TenantID() string     { return c.tenantID }
 func (c *Chat) ChatType() ChatType   { return c.chatType }
@@ -428,17 +439,17 @@ func (c *Chat) Metadata() map[string]interface{} {
 }
 
 // DomainEvents returns the domain events
-func (c *Chat) DomainEvents() []DomainEvent {
-	return append([]DomainEvent{}, c.events...)
+func (c *Chat) DomainEvents() []shared.DomainEvent {
+	return append([]shared.DomainEvent{}, c.events...)
 }
 
 // ClearEvents clears the domain events
 func (c *Chat) ClearEvents() {
-	c.events = []DomainEvent{}
+	c.events = []shared.DomainEvent{}
 }
 
 // addEvent adds a domain event
-func (c *Chat) addEvent(event DomainEvent) {
+func (c *Chat) addEvent(event shared.DomainEvent) {
 	c.events = append(c.events, event)
 }
 
@@ -554,3 +565,6 @@ func (c *Chat) ClearLabels() {
 func (c *Chat) GetLabelCount() int {
 	return len(c.GetLabelIDs())
 }
+
+// Compile-time check that Chat implements AggregateRoot interface
+var _ shared.AggregateRoot = (*Chat)(nil)

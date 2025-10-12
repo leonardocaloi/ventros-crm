@@ -11,6 +11,7 @@ import (
 // SessionEntity representa a entidade Session no banco de dados
 type SessionEntity struct {
 	ID              uuid.UUID  `gorm:"type:uuid;primary_key;default:gen_random_uuid()"`
+	Version         int        `gorm:"default:1;not null"` // Optimistic locking
 	ContactID       uuid.UUID  `gorm:"type:uuid;not null;index:idx_sessions_contact;index:idx_sessions_tenant_contact,priority:2"`
 	TenantID        string     `gorm:"not null;index:idx_sessions_tenant;index:idx_sessions_tenant_status,priority:1;index:idx_sessions_tenant_contact,priority:1;index:idx_sessions_tenant_started,priority:1"`
 	ChannelTypeID   *int       `gorm:"index:idx_sessions_channel_type"`

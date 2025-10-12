@@ -10,8 +10,10 @@ import (
 // BillingAccountEntity representa a entidade de conta de faturamento no banco de dados
 type BillingAccountEntity struct {
 	ID               uuid.UUID      `gorm:"type:uuid;primary_key;default:gen_random_uuid()"`
+	Version          int            `gorm:"default:1;not null"` // Optimistic locking
 	UserID           uuid.UUID      `gorm:"type:uuid;not null;index"`
 	Name             string         `gorm:"not null"`
+	StripeCustomerID string         `gorm:"index"`                            // Stripe Customer ID (cus_xxx)
 	PaymentStatus    string         `gorm:"not null;default:'pending';index"` // pending, active, suspended, canceled
 	PaymentMethods   []byte         `gorm:"type:jsonb"`                       // JSON array of payment methods
 	BillingEmail     string         `gorm:"not null"`

@@ -7,6 +7,7 @@ import (
 
 	"github.com/caloi/ventros-crm/infrastructure/persistence/entities"
 	"github.com/caloi/ventros-crm/internal/domain/automation/campaign"
+	"github.com/caloi/ventros-crm/internal/domain/core/shared"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
@@ -21,7 +22,7 @@ func NewGormCampaignRepository(db *gorm.DB) campaign.Repository {
 	return &GormCampaignRepository{db: db}
 }
 
-// Save saves or updates a campaign
+// Save saves or updates a campaign with optimistic locking
 func (r *GormCampaignRepository) Save(c *campaign.Campaign) error {
 	entity, err := r.toEntity(c)
 	if err != nil {
@@ -33,11 +34,38 @@ func (r *GormCampaignRepository) Save(c *campaign.Campaign) error {
 	err = r.db.Where("id = ?", entity.ID).First(&existing).Error
 
 	if err == nil {
-		// Update - use transaction to update campaign and steps
+		// UPDATE with optimistic locking - use transaction
 		return r.db.Transaction(func(tx *gorm.DB) error {
-			// Update campaign
-			if err := tx.Model(&existing).Updates(entity).Error; err != nil {
-				return err
+			// Update campaign with version check (optimistic locking)
+			result := tx.Model(&entities.CampaignEntity{}).
+				Where("id = ? AND version = ?", entity.ID, existing.Version).
+				Updates(map[string]interface{}{
+					"version":           existing.Version + 1, // Increment version
+					"tenant_id":         entity.TenantID,
+					"name":              entity.Name,
+					"description":       entity.Description,
+					"status":            entity.Status,
+					"goal_type":         entity.GoalType,
+					"goal_value":        entity.GoalValue,
+					"contacts_reached":  entity.ContactsReached,
+					"conversions_count": entity.ConversionsCount,
+					"start_date":        entity.StartDate,
+					"end_date":          entity.EndDate,
+					"updated_at":        entity.UpdatedAt,
+				})
+
+			if result.Error != nil {
+				return result.Error
+			}
+
+			// Check optimistic locking - if 0 rows affected, version mismatch (concurrent update)
+			if result.RowsAffected == 0 {
+				return shared.NewOptimisticLockError(
+					"Campaign",
+					entity.ID.String(),
+					existing.Version,
+					entity.Version,
+				)
 			}
 
 			// Delete existing steps
@@ -56,7 +84,7 @@ func (r *GormCampaignRepository) Save(c *campaign.Campaign) error {
 			return nil
 		})
 	} else if errors.Is(err, gorm.ErrRecordNotFound) {
-		// Insert - use transaction to insert campaign and steps
+		// INSERT - use transaction to insert campaign and steps
 		return r.db.Transaction(func(tx *gorm.DB) error {
 			// Create campaign
 			if err := tx.Create(entity).Error; err != nil {
@@ -163,6 +191,7 @@ func (r *GormCampaignRepository) toEntity(c *campaign.Campaign) (*entities.Campa
 
 	return &entities.CampaignEntity{
 		ID:               c.ID(),
+		Version:          c.Version(),
 		TenantID:         c.TenantID(),
 		Name:             c.Name(),
 		Description:      c.Description(),
@@ -234,6 +263,7 @@ func (r *GormCampaignRepository) toDomain(entity *entities.CampaignEntity, stepE
 	// Reconstruct domain model
 	return campaign.ReconstructCampaign(
 		entity.ID,
+		entity.Version,
 		entity.TenantID,
 		entity.Name,
 		entity.Description,

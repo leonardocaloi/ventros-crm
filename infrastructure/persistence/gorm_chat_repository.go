@@ -6,6 +6,7 @@ import (
 	"errors"
 
 	"github.com/caloi/ventros-crm/infrastructure/persistence/entities"
+	"github.com/caloi/ventros-crm/internal/domain/core/shared"
 	"github.com/caloi/ventros-crm/internal/domain/crm/chat"
 	"github.com/google/uuid"
 	"gorm.io/datatypes"
@@ -155,7 +156,52 @@ func (r *GormChatRepository) FindIndividualByContact(ctx context.Context, contac
 // Update updates an existing chat
 func (r *GormChatRepository) Update(ctx context.Context, c *chat.Chat) error {
 	entity := r.domainToEntity(c)
-	return r.db.WithContext(ctx).Save(entity).Error
+
+	// Check if exists
+	var existing entities.ChatEntity
+	err := r.db.WithContext(ctx).Where("id = ?", entity.ID).First(&existing).Error
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			// Insert if not found
+			return r.db.WithContext(ctx).Create(entity).Error
+		}
+		return err
+	}
+
+	// Update with optimistic locking
+	result := r.db.WithContext(ctx).Model(&entities.ChatEntity{}).
+		Where("id = ? AND version = ?", entity.ID, existing.Version).
+		Updates(map[string]interface{}{
+			"version":         existing.Version + 1, // Increment version
+			"project_id":      entity.ProjectID,
+			"tenant_id":       entity.TenantID,
+			"chat_type":       entity.ChatType,
+			"external_id":     entity.ExternalID,
+			"subject":         entity.Subject,
+			"description":     entity.Description,
+			"participants":    entity.Participants,
+			"status":          entity.Status,
+			"metadata":        entity.Metadata,
+			"last_message_at": entity.LastMessageAt,
+			"updated_at":      entity.UpdatedAt,
+		})
+
+	if result.Error != nil {
+		return result.Error
+	}
+
+	// Check optimistic locking - if 0 rows affected, version mismatch (concurrent update)
+	if result.RowsAffected == 0 {
+		return shared.NewOptimisticLockError(
+			"Chat",
+			entity.ID.String(),
+			existing.Version,
+			entity.Version,
+		)
+	}
+
+	return nil
 }
 
 // Delete soft deletes a chat
@@ -190,6 +236,7 @@ func (r *GormChatRepository) SearchBySubject(ctx context.Context, tenantID strin
 func (r *GormChatRepository) domainToEntity(c *chat.Chat) *entities.ChatEntity {
 	entity := &entities.ChatEntity{
 		ID:            c.ID(),
+		Version:       c.Version(),
 		ProjectID:     c.ProjectID(),
 		TenantID:      c.TenantID(),
 		ChatType:      c.ChatType().String(),
@@ -233,6 +280,7 @@ func (r *GormChatRepository) entityToDomain(entity *entities.ChatEntity) (*chat.
 
 	return chat.ReconstructChat(
 		entity.ID,
+		entity.Version,
 		entity.ProjectID,
 		entity.TenantID,
 		chatType,

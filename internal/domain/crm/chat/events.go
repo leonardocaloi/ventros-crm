@@ -7,22 +7,12 @@ import (
 	"github.com/google/uuid"
 )
 
-// DomainEvent represents a domain event (compatible with shared.DomainEvent)
-type DomainEvent interface {
-	EventType() string // Legacy method name
-	shared.DomainEvent // Embed shared.DomainEvent interface
-}
-
 // ChatCreatedEvent is emitted when a new chat is created
 type ChatCreatedEvent struct {
 	shared.BaseEvent
 	ChatID    uuid.UUID
 	ChatType  ChatType
 	ProjectID uuid.UUID
-}
-
-func (e ChatCreatedEvent) EventType() string {
-	return "chat.created"
 }
 
 func NewChatCreatedEvent(chatID uuid.UUID, chatType ChatType, projectID uuid.UUID) ChatCreatedEvent {
@@ -42,10 +32,6 @@ type ParticipantAddedEvent struct {
 	ParticipantType ParticipantType
 }
 
-func (e ParticipantAddedEvent) EventType() string {
-	return "chat.participant_added"
-}
-
 func NewParticipantAddedEvent(chatID, participantID uuid.UUID, participantType ParticipantType) ParticipantAddedEvent {
 	return ParticipantAddedEvent{
 		BaseEvent:       shared.NewBaseEvent("chat.participant_added", time.Now()),
@@ -62,10 +48,6 @@ type ParticipantRemovedEvent struct {
 	ParticipantID uuid.UUID
 }
 
-func (e ParticipantRemovedEvent) EventType() string {
-	return "chat.participant_removed"
-}
-
 func NewParticipantRemovedEvent(chatID, participantID uuid.UUID) ParticipantRemovedEvent {
 	return ParticipantRemovedEvent{
 		BaseEvent:     shared.NewBaseEvent("chat.participant_removed", time.Now()),
@@ -78,10 +60,6 @@ func NewParticipantRemovedEvent(chatID, participantID uuid.UUID) ParticipantRemo
 type ChatArchivedEvent struct {
 	shared.BaseEvent
 	ChatID uuid.UUID
-}
-
-func (e ChatArchivedEvent) EventType() string {
-	return "chat.archived"
 }
 
 func NewChatArchivedEvent(chatID uuid.UUID) ChatArchivedEvent {
@@ -97,10 +75,6 @@ type ChatUnarchivedEvent struct {
 	ChatID uuid.UUID
 }
 
-func (e ChatUnarchivedEvent) EventType() string {
-	return "chat.unarchived"
-}
-
 func NewChatUnarchivedEvent(chatID uuid.UUID) ChatUnarchivedEvent {
 	return ChatUnarchivedEvent{
 		BaseEvent: shared.NewBaseEvent("chat.unarchived", time.Now()),
@@ -112,10 +86,6 @@ func NewChatUnarchivedEvent(chatID uuid.UUID) ChatUnarchivedEvent {
 type ChatClosedEvent struct {
 	shared.BaseEvent
 	ChatID uuid.UUID
-}
-
-func (e ChatClosedEvent) EventType() string {
-	return "chat.closed"
 }
 
 func NewChatClosedEvent(chatID uuid.UUID) ChatClosedEvent {
@@ -130,10 +100,6 @@ type ChatSubjectUpdatedEvent struct {
 	shared.BaseEvent
 	ChatID     uuid.UUID
 	NewSubject string
-}
-
-func (e ChatSubjectUpdatedEvent) EventType() string {
-	return "chat.subject_updated"
 }
 
 func NewChatSubjectUpdatedEvent(chatID uuid.UUID, newSubject string) ChatSubjectUpdatedEvent {
@@ -151,10 +117,6 @@ type ChatDescriptionUpdatedEvent struct {
 	NewDescription string
 }
 
-func (e ChatDescriptionUpdatedEvent) EventType() string {
-	return "chat.description_updated"
-}
-
 func NewChatDescriptionUpdatedEvent(chatID uuid.UUID, newDescription string) ChatDescriptionUpdatedEvent {
 	return ChatDescriptionUpdatedEvent{
 		BaseEvent:      shared.NewBaseEvent("chat.description_updated", time.Now()),
@@ -168,10 +130,6 @@ type ParticipantPromotedEvent struct {
 	shared.BaseEvent
 	ChatID        uuid.UUID
 	ParticipantID uuid.UUID
-}
-
-func (e ParticipantPromotedEvent) EventType() string {
-	return "chat.participant_promoted"
 }
 
 func NewParticipantPromotedEvent(chatID, participantID uuid.UUID) ParticipantPromotedEvent {
@@ -189,10 +147,6 @@ type ParticipantDemotedEvent struct {
 	ParticipantID uuid.UUID
 }
 
-func (e ParticipantDemotedEvent) EventType() string {
-	return "chat.participant_demoted"
-}
-
 func NewParticipantDemotedEvent(chatID, participantID uuid.UUID) ParticipantDemotedEvent {
 	return ParticipantDemotedEvent{
 		BaseEvent:     shared.NewBaseEvent("chat.participant_demoted", time.Now()),
@@ -208,10 +162,6 @@ type ChatLabelAddedEvent struct {
 	LabelID string
 }
 
-func (e ChatLabelAddedEvent) EventType() string {
-	return "chat.label_added"
-}
-
 func NewChatLabelAddedEvent(chatID uuid.UUID, labelID string) ChatLabelAddedEvent {
 	return ChatLabelAddedEvent{
 		BaseEvent: shared.NewBaseEvent("chat.label_added", time.Now()),
@@ -225,10 +175,6 @@ type ChatLabelRemovedEvent struct {
 	shared.BaseEvent
 	ChatID  uuid.UUID
 	LabelID string
-}
-
-func (e ChatLabelRemovedEvent) EventType() string {
-	return "chat.label_removed"
 }
 
 func NewChatLabelRemovedEvent(chatID uuid.UUID, labelID string) ChatLabelRemovedEvent {

@@ -44,18 +44,18 @@ type StepConfig struct {
 	ConditionData map[string]interface{} `json:"condition_data,omitempty"`
 
 	// For wait steps (wait for user action)
-	WaitFor      *string `json:"wait_for,omitempty"`       // reply, click, open
-	WaitTimeout  *int    `json:"wait_timeout,omitempty"`   // timeout in hours
-	TimeoutStep  *int    `json:"timeout_step,omitempty"`   // step to jump to on timeout
+	WaitFor     *string `json:"wait_for,omitempty"`     // reply, click, open
+	WaitTimeout *int    `json:"wait_timeout,omitempty"` // timeout in hours
+	TimeoutStep *int    `json:"timeout_step,omitempty"` // step to jump to on timeout
 }
 
 // StepCondition represents a condition that must be met for the step to execute
 type StepCondition struct {
-	Type      string                 `json:"type"`      // tag_has, field_equals, pipeline_status, etc.
-	Field     string                 `json:"field"`     // field to check
-	Operator  string                 `json:"operator"`  // equals, contains, greater_than, etc.
-	Value     interface{}            `json:"value"`     // value to compare against
-	Metadata  map[string]interface{} `json:"metadata"`  // additional metadata
+	Type     string                 `json:"type"`     // tag_has, field_equals, pipeline_status, etc.
+	Field    string                 `json:"field"`    // field to check
+	Operator string                 `json:"operator"` // equals, contains, greater_than, etc.
+	Value    interface{}            `json:"value"`    // value to compare against
+	Metadata map[string]interface{} `json:"metadata"` // additional metadata
 }
 
 // NewCampaignStep creates a new campaign step

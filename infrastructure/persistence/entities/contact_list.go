@@ -10,6 +10,7 @@ import (
 // ContactListEntity representa a entidade ContactList no banco de dados
 type ContactListEntity struct {
 	ID               uuid.UUID      `gorm:"type:uuid;primary_key;default:gen_random_uuid()"`
+	Version          int            `gorm:"default:1;not null"` // Optimistic locking
 	ProjectID        uuid.UUID      `gorm:"type:uuid;not null;index"`
 	TenantID         string         `gorm:"not null;index"`
 	Name             string         `gorm:"not null"`

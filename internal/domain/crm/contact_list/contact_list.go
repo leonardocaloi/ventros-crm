@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/caloi/ventros-crm/internal/domain/core/shared"
 )
 
 type LogicalOperator string
@@ -20,6 +21,7 @@ func (lo LogicalOperator) IsValid() bool {
 
 type ContactList struct {
 	id               uuid.UUID
+	version          int // Optimistic locking - prevents lost updates
 	projectID        uuid.UUID
 	tenantID         string
 	name             string
@@ -32,7 +34,7 @@ type ContactList struct {
 	createdAt        time.Time
 	updatedAt        time.Time
 	deletedAt        *time.Time
-	events           []DomainEvent
+	events           []shared.DomainEvent
 }
 
 func NewContactList(
@@ -58,6 +60,7 @@ func NewContactList(
 	now := time.Now()
 	list := &ContactList{
 		id:              uuid.New(),
+		version:         1, // Start with version 1 for new aggregates
 		projectID:       projectID,
 		tenantID:        tenantID,
 		name:            name,
@@ -67,23 +70,17 @@ func NewContactList(
 		contactCount:    0,
 		createdAt:       now,
 		updatedAt:       now,
-		events:          []DomainEvent{},
+		events:          []shared.DomainEvent{},
 	}
 
-	list.addEvent(ContactListCreatedEvent{
-		ContactListID: list.id,
-		ProjectID:     projectID,
-		TenantID:      tenantID,
-		Name:          name,
-		IsStatic:      isStatic,
-		CreatedAt:     now,
-	})
+	list.addEvent(NewContactListCreatedEvent(list.id, projectID, tenantID, name, isStatic))
 
 	return list, nil
 }
 
 func ReconstructContactList(
 	id uuid.UUID,
+	version int, // Optimistic locking version
 	projectID uuid.UUID,
 	tenantID string,
 	name string,
@@ -97,12 +94,16 @@ func ReconstructContactList(
 	updatedAt time.Time,
 	deletedAt *time.Time,
 ) *ContactList {
+	if version == 0 {
+		version = 1 // Default to version 1 (backwards compatibility)
+	}
 	if filterRules == nil {
 		filterRules = []*FilterRule{}
 	}
 
 	return &ContactList{
 		id:               id,
+		version:          version,
 		projectID:        projectID,
 		tenantID:         tenantID,
 		name:             name,
@@ -115,7 +116,7 @@ func ReconstructContactList(
 		createdAt:        createdAt,
 		updatedAt:        updatedAt,
 		deletedAt:        deletedAt,
-		events:           []DomainEvent{},
+		events:           []shared.DomainEvent{},
 	}
 }
 
@@ -127,11 +128,7 @@ func (cl *ContactList) UpdateName(name string) error {
 	cl.name = name
 	cl.updatedAt = time.Now()
 
-	cl.addEvent(ContactListUpdatedEvent{
-		ContactListID: cl.id,
-		UpdatedFields: []string{"name"},
-		UpdatedAt:     cl.updatedAt,
-	})
+	cl.addEvent(NewContactListUpdatedEvent(cl.id, []string{"name"}))
 
 	return nil
 }
@@ -140,11 +137,7 @@ func (cl *ContactList) UpdateDescription(description string) {
 	cl.description = &description
 	cl.updatedAt = time.Now()
 
-	cl.addEvent(ContactListUpdatedEvent{
-		ContactListID: cl.id,
-		UpdatedFields: []string{"description"},
-		UpdatedAt:     cl.updatedAt,
-	})
+	cl.addEvent(NewContactListUpdatedEvent(cl.id, []string{"description"}))
 }
 
 func (cl *ContactList) AddFilterRule(rule *FilterRule) error {
@@ -155,12 +148,7 @@ func (cl *ContactList) AddFilterRule(rule *FilterRule) error {
 	cl.filterRules = append(cl.filterRules, rule)
 	cl.updatedAt = time.Now()
 
-	cl.addEvent(ContactListFilterRuleAddedEvent{
-		ContactListID: cl.id,
-		FilterRuleID:  rule.ID(),
-		FilterType:    string(rule.FilterType()),
-		AddedAt:       cl.updatedAt,
-	})
+	cl.addEvent(NewContactListFilterRuleAddedEvent(cl.id, rule.ID(), string(rule.FilterType())))
 
 	return nil
 }
@@ -171,11 +159,7 @@ func (cl *ContactList) RemoveFilterRule(ruleID uuid.UUID) error {
 			cl.filterRules = append(cl.filterRules[:i], cl.filterRules[i+1:]...)
 			cl.updatedAt = time.Now()
 
-			cl.addEvent(ContactListFilterRuleRemovedEvent{
-				ContactListID: cl.id,
-				FilterRuleID:  ruleID,
-				RemovedAt:     cl.updatedAt,
-			})
+			cl.addEvent(NewContactListFilterRuleRemovedEvent(cl.id, ruleID))
 
 			return nil
 		}
@@ -187,10 +171,7 @@ func (cl *ContactList) ClearFilterRules() {
 	cl.filterRules = []*FilterRule{}
 	cl.updatedAt = time.Now()
 
-	cl.addEvent(ContactListFilterRulesClearedEvent{
-		ContactListID: cl.id,
-		ClearedAt:     cl.updatedAt,
-	})
+	cl.addEvent(NewContactListFilterRulesClearedEvent(cl.id))
 }
 
 func (cl *ContactList) UpdateLogicalOperator(operator LogicalOperator) error {
@@ -201,11 +182,7 @@ func (cl *ContactList) UpdateLogicalOperator(operator LogicalOperator) error {
 	cl.logicalOperator = operator
 	cl.updatedAt = time.Now()
 
-	cl.addEvent(ContactListUpdatedEvent{
-		ContactListID: cl.id,
-		UpdatedFields: []string{"logical_operator"},
-		UpdatedAt:     cl.updatedAt,
-	})
+	cl.addEvent(NewContactListUpdatedEvent(cl.id, []string{"logical_operator"}))
 
 	return nil
 }
@@ -216,11 +193,7 @@ func (cl *ContactList) UpdateContactCount(count int) {
 	cl.lastCalculatedAt = &now
 	cl.updatedAt = now
 
-	cl.addEvent(ContactListRecalculatedEvent{
-		ContactListID: cl.id,
-		ContactCount:  count,
-		CalculatedAt:  now,
-	})
+	cl.addEvent(NewContactListRecalculatedEvent(cl.id, count))
 }
 
 func (cl *ContactList) Delete() {
@@ -228,10 +201,7 @@ func (cl *ContactList) Delete() {
 	cl.deletedAt = &now
 	cl.updatedAt = now
 
-	cl.addEvent(ContactListDeletedEvent{
-		ContactListID: cl.id,
-		DeletedAt:     now,
-	})
+	cl.addEvent(NewContactListDeletedEvent(cl.id))
 }
 
 func (cl *ContactList) IsDeleted() bool {
@@ -242,19 +212,20 @@ func (cl *ContactList) HasFilterRules() bool {
 	return len(cl.filterRules) > 0
 }
 
-func (cl *ContactList) addEvent(event DomainEvent) {
+func (cl *ContactList) addEvent(event shared.DomainEvent) {
 	cl.events = append(cl.events, event)
 }
 
-func (cl *ContactList) GetEvents() []DomainEvent {
-	return cl.events
+func (cl *ContactList) DomainEvents() []shared.DomainEvent {
+	return append([]shared.DomainEvent{}, cl.events...)
 }
 
 func (cl *ContactList) ClearEvents() {
-	cl.events = []DomainEvent{}
+	cl.events = []shared.DomainEvent{}
 }
 
 func (cl *ContactList) ID() uuid.UUID                    { return cl.id }
+func (cl *ContactList) Version() int                     { return cl.version }
 func (cl *ContactList) ProjectID() uuid.UUID             { return cl.projectID }
 func (cl *ContactList) TenantID() string                 { return cl.tenantID }
 func (cl *ContactList) Name() string                     { return cl.name }
@@ -267,3 +238,6 @@ func (cl *ContactList) LastCalculatedAt() *time.Time     { return cl.lastCalcula
 func (cl *ContactList) CreatedAt() time.Time             { return cl.createdAt }
 func (cl *ContactList) UpdatedAt() time.Time             { return cl.updatedAt }
 func (cl *ContactList) DeletedAt() *time.Time            { return cl.deletedAt }
+
+// Compile-time check that ContactList implements AggregateRoot interface
+var _ shared.AggregateRoot = (*ContactList)(nil)

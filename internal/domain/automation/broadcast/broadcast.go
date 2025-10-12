@@ -5,11 +5,13 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/caloi/ventros-crm/internal/domain/core/shared"
 )
 
 // Broadcast representa um disparo em massa
 type Broadcast struct {
 	id              uuid.UUID
+	version         int // Optimistic locking - prevents lost updates
 	tenantID        string
 	name            string
 	listID          uuid.UUID       // Lista de contatos alvo
@@ -31,7 +33,7 @@ type Broadcast struct {
 	createdAt time.Time
 	updatedAt time.Time
 
-	events []DomainEvent
+	events []shared.DomainEvent
 }
 
 type BroadcastStatus string
@@ -52,13 +54,6 @@ type MessageTemplate struct {
 	TemplateID *string           `json:"template_id,omitempty"`
 	Variables  map[string]string `json:"variables,omitempty"`
 	MediaURL   *string           `json:"media_url,omitempty"`
-}
-
-// DomainEvent interface for domain events
-type DomainEvent interface {
-	EventType() string
-	EventTimestamp() time.Time
-	AggregateID() uuid.UUID
 }
 
 // NewBroadcast creates a new broadcast
@@ -91,6 +86,7 @@ func NewBroadcast(
 	now := time.Now()
 	broadcast := &Broadcast{
 		id:              uuid.New(),
+		version:         1, // Start with version 1 for new aggregates
 		tenantID:        tenantID,
 		name:            name,
 		listID:          listID,
@@ -99,16 +95,10 @@ func NewBroadcast(
 		rateLimit:       rateLimit,
 		createdAt:       now,
 		updatedAt:       now,
-		events:          []DomainEvent{},
+		events:          []shared.DomainEvent{},
 	}
 
-	broadcast.addEvent(&BroadcastCreatedEvent{
-		BroadcastID: broadcast.id,
-		TenantID:    tenantID,
-		Name:        name,
-		ListID:      listID,
-		Timestamp:   now,
-	})
+	broadcast.addEvent(NewBroadcastCreatedEvent(broadcast.id, tenantID, name, listID))
 
 	return broadcast, nil
 }
@@ -116,6 +106,7 @@ func NewBroadcast(
 // ReconstructBroadcast reconstructs a broadcast from persistence
 func ReconstructBroadcast(
 	id uuid.UUID,
+	version int, // Optimistic locking version
 	tenantID string,
 	name string,
 	listID uuid.UUID,
@@ -128,8 +119,13 @@ func ReconstructBroadcast(
 	rateLimit int,
 	createdAt, updatedAt time.Time,
 ) *Broadcast {
+	if version == 0 {
+		version = 1 // Default to version 1 (backwards compatibility)
+	}
+
 	return &Broadcast{
 		id:              id,
+		version:         version,
 		tenantID:        tenantID,
 		name:            name,
 		listID:          listID,
@@ -145,7 +141,7 @@ func ReconstructBroadcast(
 		rateLimit:       rateLimit,
 		createdAt:       createdAt,
 		updatedAt:       updatedAt,
-		events:          []DomainEvent{},
+		events:          []shared.DomainEvent{},
 	}
 }
 
@@ -162,11 +158,7 @@ func (b *Broadcast) Schedule(scheduledFor time.Time) error {
 	b.status = BroadcastStatusScheduled
 	b.updatedAt = time.Now()
 
-	b.addEvent(&BroadcastScheduledEvent{
-		BroadcastID:  b.id,
-		ScheduledFor: scheduledFor,
-		Timestamp:    time.Now(),
-	})
+	b.addEvent(NewBroadcastScheduledEvent(b.id, scheduledFor))
 
 	return nil
 }
@@ -182,10 +174,7 @@ func (b *Broadcast) Start() error {
 	b.startedAt = &now
 	b.updatedAt = now
 
-	b.addEvent(&BroadcastStartedEvent{
-		BroadcastID: b.id,
-		Timestamp:   now,
-	})
+	b.addEvent(NewBroadcastStartedEvent(b.id))
 
 	return nil
 }
@@ -201,12 +190,7 @@ func (b *Broadcast) Complete() error {
 	b.completedAt = &now
 	b.updatedAt = now
 
-	b.addEvent(&BroadcastCompletedEvent{
-		BroadcastID: b.id,
-		TotalSent:   b.sentCount,
-		TotalFailed: b.failedCount,
-		Timestamp:   now,
-	})
+	b.addEvent(NewBroadcastCompletedEvent(b.id, b.sentCount, b.failedCount))
 
 	return nil
 }
@@ -221,10 +205,7 @@ func (b *Broadcast) Cancel() error {
 	b.status = BroadcastStatusCancelled
 	b.updatedAt = now
 
-	b.addEvent(&BroadcastCancelledEvent{
-		BroadcastID: b.id,
-		Timestamp:   now,
-	})
+	b.addEvent(NewBroadcastCancelledEvent(b.id))
 
 	return nil
 }
@@ -235,11 +216,7 @@ func (b *Broadcast) Fail(reason string) {
 	b.status = BroadcastStatusFailed
 	b.updatedAt = now
 
-	b.addEvent(&BroadcastFailedEvent{
-		BroadcastID: b.id,
-		Reason:      reason,
-		Timestamp:   now,
-	})
+	b.addEvent(NewBroadcastFailedEvent(b.id, reason))
 }
 
 // UpdateTotalContacts updates the total number of contacts
@@ -343,6 +320,7 @@ func (b *Broadcast) IsReadyToStart() bool {
 
 // Getters
 func (b *Broadcast) ID() uuid.UUID                    { return b.id }
+func (b *Broadcast) Version() int                     { return b.version }
 func (b *Broadcast) TenantID() string                 { return b.tenantID }
 func (b *Broadcast) Name() string                     { return b.name }
 func (b *Broadcast) ListID() uuid.UUID                { return b.listID }
@@ -359,15 +337,15 @@ func (b *Broadcast) RateLimit() int                   { return b.rateLimit }
 func (b *Broadcast) CreatedAt() time.Time             { return b.createdAt }
 func (b *Broadcast) UpdatedAt() time.Time             { return b.updatedAt }
 
-func (b *Broadcast) DomainEvents() []DomainEvent {
-	return append([]DomainEvent{}, b.events...)
+func (b *Broadcast) DomainEvents() []shared.DomainEvent {
+	return append([]shared.DomainEvent{}, b.events...)
 }
 
 func (b *Broadcast) ClearEvents() {
-	b.events = []DomainEvent{}
+	b.events = []shared.DomainEvent{}
 }
 
-func (b *Broadcast) addEvent(event DomainEvent) {
+func (b *Broadcast) addEvent(event shared.DomainEvent) {
 	b.events = append(b.events, event)
 }
 
@@ -380,3 +358,6 @@ type Repository interface {
 	FindByStatus(status BroadcastStatus) ([]*Broadcast, error)
 	Delete(id uuid.UUID) error
 }
+
+// Compile-time check that Broadcast implements AggregateRoot interface
+var _ shared.AggregateRoot = (*Broadcast)(nil)

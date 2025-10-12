@@ -27,18 +27,19 @@ func NewCampaignHandler(logger *zap.Logger, db *gorm.DB) *CampaignHandler {
 }
 
 // ListCampaigns lists all campaigns for the authenticated tenant
-// @Summary List campaigns
-// @Description Get a paginated list of campaigns with optional filters
-// @Tags AUTOMATION - Campaigns
-// @Accept json
-// @Produce json
-// @Param status query string false "Filter by status (draft, scheduled, active, paused, completed, archived)"
-// @Param page query int false "Page number (default: 1)"
-// @Param limit query int false "Items per page (default: 20, max: 100)"
-// @Success 200 {object} map[string]interface{} "campaigns: array of campaigns, total: total count, page: current page, limit: items per page"
-// @Failure 400 {object} map[string]interface{} "error: validation error message"
-// @Failure 500 {object} map[string]interface{} "error: internal server error message"
-// @Router /api/v1/automation/campaigns [get]
+//
+//	@Summary		List campaigns
+//	@Description	Get a paginated list of campaigns with optional filters
+//	@Tags			AUTOMATION - Campaigns
+//	@Accept			json
+//	@Produce		json
+//	@Param			status	query		string					false	"Filter by status (draft, scheduled, active, paused, completed, archived)"
+//	@Param			page	query		int						false	"Page number (default: 1)"
+//	@Param			limit	query		int						false	"Items per page (default: 20, max: 100)"
+//	@Success		200		{object}	map[string]interface{}	"campaigns: array of campaigns, total: total count, page: current page, limit: items per page"
+//	@Failure		400		{object}	map[string]interface{}	"error: validation error message"
+//	@Failure		500		{object}	map[string]interface{}	"error: internal server error message"
+//	@Router			/api/v1/automation/campaigns [get]
 func (h *CampaignHandler) ListCampaigns(c *gin.Context) {
 	tenantID := c.GetString("tenant_id")
 
@@ -110,16 +111,17 @@ func (h *CampaignHandler) ListCampaigns(c *gin.Context) {
 }
 
 // CreateCampaign creates a new campaign
-// @Summary Create campaign
-// @Description Create a new marketing campaign
-// @Tags AUTOMATION - Campaigns
-// @Accept json
-// @Produce json
-// @Param campaign body CreateCampaignRequest true "Campaign details"
-// @Success 201 {object} map[string]interface{} "campaign: created campaign object"
-// @Failure 400 {object} map[string]interface{} "error: validation error message"
-// @Failure 500 {object} map[string]interface{} "error: internal server error message"
-// @Router /api/v1/automation/campaigns [post]
+//
+//	@Summary		Create campaign
+//	@Description	Create a new marketing campaign
+//	@Tags			AUTOMATION - Campaigns
+//	@Accept			json
+//	@Produce		json
+//	@Param			campaign	body		CreateCampaignRequest	true	"Campaign details"
+//	@Success		201			{object}	map[string]interface{}	"campaign: created campaign object"
+//	@Failure		400			{object}	map[string]interface{}	"error: validation error message"
+//	@Failure		500			{object}	map[string]interface{}	"error: internal server error message"
+//	@Router			/api/v1/automation/campaigns [post]
 func (h *CampaignHandler) CreateCampaign(c *gin.Context) {
 	tenantID := c.GetString("tenant_id")
 
@@ -204,16 +206,17 @@ func (h *CampaignHandler) CreateCampaign(c *gin.Context) {
 }
 
 // GetCampaign gets a campaign by ID
-// @Summary Get campaign
-// @Description Get a campaign by ID
-// @Tags AUTOMATION - Campaigns
-// @Accept json
-// @Produce json
-// @Param id path string true "Campaign ID"
-// @Success 200 {object} map[string]interface{} "campaign: campaign object"
-// @Failure 404 {object} map[string]interface{} "error: campaign not found"
-// @Failure 500 {object} map[string]interface{} "error: internal server error message"
-// @Router /api/v1/automation/campaigns/{id} [get]
+//
+//	@Summary		Get campaign
+//	@Description	Get a campaign by ID
+//	@Tags			AUTOMATION - Campaigns
+//	@Accept			json
+//	@Produce		json
+//	@Param			id	path		string					true	"Campaign ID"
+//	@Success		200	{object}	map[string]interface{}	"campaign: campaign object"
+//	@Failure		404	{object}	map[string]interface{}	"error: campaign not found"
+//	@Failure		500	{object}	map[string]interface{}	"error: internal server error message"
+//	@Router			/api/v1/automation/campaigns/{id} [get]
 func (h *CampaignHandler) GetCampaign(c *gin.Context) {
 	tenantID := c.GetString("tenant_id")
 	campaignID, err := uuid.Parse(c.Param("id"))
@@ -242,18 +245,19 @@ func (h *CampaignHandler) GetCampaign(c *gin.Context) {
 }
 
 // UpdateCampaign updates a campaign
-// @Summary Update campaign
-// @Description Update a campaign (only allowed in draft status)
-// @Tags AUTOMATION - Campaigns
-// @Accept json
-// @Produce json
-// @Param id path string true "Campaign ID"
-// @Param campaign body UpdateCampaignRequest true "Updated campaign details"
-// @Success 200 {object} map[string]interface{} "campaign: updated campaign object"
-// @Failure 400 {object} map[string]interface{} "error: validation error message"
-// @Failure 404 {object} map[string]interface{} "error: campaign not found"
-// @Failure 500 {object} map[string]interface{} "error: internal server error message"
-// @Router /api/v1/automation/campaigns/{id} [put]
+//
+//	@Summary		Update campaign
+//	@Description	Update a campaign (only allowed in draft status)
+//	@Tags			AUTOMATION - Campaigns
+//	@Accept			json
+//	@Produce		json
+//	@Param			id			path		string					true	"Campaign ID"
+//	@Param			campaign	body		UpdateCampaignRequest	true	"Updated campaign details"
+//	@Success		200			{object}	map[string]interface{}	"campaign: updated campaign object"
+//	@Failure		400			{object}	map[string]interface{}	"error: validation error message"
+//	@Failure		404			{object}	map[string]interface{}	"error: campaign not found"
+//	@Failure		500			{object}	map[string]interface{}	"error: internal server error message"
+//	@Router			/api/v1/automation/campaigns/{id} [put]
 func (h *CampaignHandler) UpdateCampaign(c *gin.Context) {
 	tenantID := c.GetString("tenant_id")
 	campaignID, err := uuid.Parse(c.Param("id"))
@@ -315,17 +319,18 @@ func (h *CampaignHandler) UpdateCampaign(c *gin.Context) {
 }
 
 // ActivateCampaign activates a campaign
-// @Summary Activate campaign
-// @Description Activate a campaign to start execution
-// @Tags AUTOMATION - Campaigns
-// @Accept json
-// @Produce json
-// @Param id path string true "Campaign ID"
-// @Success 200 {object} map[string]interface{} "campaign: activated campaign object"
-// @Failure 400 {object} map[string]interface{} "error: validation error message"
-// @Failure 404 {object} map[string]interface{} "error: campaign not found"
-// @Failure 500 {object} map[string]interface{} "error: internal server error message"
-// @Router /api/v1/automation/campaigns/{id}/activate [post]
+//
+//	@Summary		Activate campaign
+//	@Description	Activate a campaign to start execution
+//	@Tags			AUTOMATION - Campaigns
+//	@Accept			json
+//	@Produce		json
+//	@Param			id	path		string					true	"Campaign ID"
+//	@Success		200	{object}	map[string]interface{}	"campaign: activated campaign object"
+//	@Failure		400	{object}	map[string]interface{}	"error: validation error message"
+//	@Failure		404	{object}	map[string]interface{}	"error: campaign not found"
+//	@Failure		500	{object}	map[string]interface{}	"error: internal server error message"
+//	@Router			/api/v1/automation/campaigns/{id}/activate [post]
 func (h *CampaignHandler) ActivateCampaign(c *gin.Context) {
 	tenantID := c.GetString("tenant_id")
 	campaignID, err := uuid.Parse(c.Param("id"))
@@ -367,18 +372,19 @@ func (h *CampaignHandler) ActivateCampaign(c *gin.Context) {
 }
 
 // ScheduleCampaign schedules a campaign
-// @Summary Schedule campaign
-// @Description Schedule a campaign to start at a specific time
-// @Tags AUTOMATION - Campaigns
-// @Accept json
-// @Produce json
-// @Param id path string true "Campaign ID"
-// @Param schedule body ScheduleCampaignRequest true "Schedule details"
-// @Success 200 {object} map[string]interface{} "campaign: scheduled campaign object"
-// @Failure 400 {object} map[string]interface{} "error: validation error message"
-// @Failure 404 {object} map[string]interface{} "error: campaign not found"
-// @Failure 500 {object} map[string]interface{} "error: internal server error message"
-// @Router /api/v1/automation/campaigns/{id}/schedule [post]
+//
+//	@Summary		Schedule campaign
+//	@Description	Schedule a campaign to start at a specific time
+//	@Tags			AUTOMATION - Campaigns
+//	@Accept			json
+//	@Produce		json
+//	@Param			id			path		string					true	"Campaign ID"
+//	@Param			schedule	body		ScheduleCampaignRequest	true	"Schedule details"
+//	@Success		200			{object}	map[string]interface{}	"campaign: scheduled campaign object"
+//	@Failure		400			{object}	map[string]interface{}	"error: validation error message"
+//	@Failure		404			{object}	map[string]interface{}	"error: campaign not found"
+//	@Failure		500			{object}	map[string]interface{}	"error: internal server error message"
+//	@Router			/api/v1/automation/campaigns/{id}/schedule [post]
 func (h *CampaignHandler) ScheduleCampaign(c *gin.Context) {
 	tenantID := c.GetString("tenant_id")
 	campaignID, err := uuid.Parse(c.Param("id"))
@@ -433,17 +439,18 @@ func (h *CampaignHandler) ScheduleCampaign(c *gin.Context) {
 }
 
 // PauseCampaign pauses a campaign
-// @Summary Pause campaign
-// @Description Pause an active campaign
-// @Tags AUTOMATION - Campaigns
-// @Accept json
-// @Produce json
-// @Param id path string true "Campaign ID"
-// @Success 200 {object} map[string]interface{} "campaign: paused campaign object"
-// @Failure 400 {object} map[string]interface{} "error: validation error message"
-// @Failure 404 {object} map[string]interface{} "error: campaign not found"
-// @Failure 500 {object} map[string]interface{} "error: internal server error message"
-// @Router /api/v1/automation/campaigns/{id}/pause [post]
+//
+//	@Summary		Pause campaign
+//	@Description	Pause an active campaign
+//	@Tags			AUTOMATION - Campaigns
+//	@Accept			json
+//	@Produce		json
+//	@Param			id	path		string					true	"Campaign ID"
+//	@Success		200	{object}	map[string]interface{}	"campaign: paused campaign object"
+//	@Failure		400	{object}	map[string]interface{}	"error: validation error message"
+//	@Failure		404	{object}	map[string]interface{}	"error: campaign not found"
+//	@Failure		500	{object}	map[string]interface{}	"error: internal server error message"
+//	@Router			/api/v1/automation/campaigns/{id}/pause [post]
 func (h *CampaignHandler) PauseCampaign(c *gin.Context) {
 	tenantID := c.GetString("tenant_id")
 	campaignID, err := uuid.Parse(c.Param("id"))
@@ -485,17 +492,18 @@ func (h *CampaignHandler) PauseCampaign(c *gin.Context) {
 }
 
 // ResumeCampaign resumes a paused campaign
-// @Summary Resume campaign
-// @Description Resume a paused campaign
-// @Tags AUTOMATION - Campaigns
-// @Accept json
-// @Produce json
-// @Param id path string true "Campaign ID"
-// @Success 200 {object} map[string]interface{} "campaign: resumed campaign object"
-// @Failure 400 {object} map[string]interface{} "error: validation error message"
-// @Failure 404 {object} map[string]interface{} "error: campaign not found"
-// @Failure 500 {object} map[string]interface{} "error: internal server error message"
-// @Router /api/v1/automation/campaigns/{id}/resume [post]
+//
+//	@Summary		Resume campaign
+//	@Description	Resume a paused campaign
+//	@Tags			AUTOMATION - Campaigns
+//	@Accept			json
+//	@Produce		json
+//	@Param			id	path		string					true	"Campaign ID"
+//	@Success		200	{object}	map[string]interface{}	"campaign: resumed campaign object"
+//	@Failure		400	{object}	map[string]interface{}	"error: validation error message"
+//	@Failure		404	{object}	map[string]interface{}	"error: campaign not found"
+//	@Failure		500	{object}	map[string]interface{}	"error: internal server error message"
+//	@Router			/api/v1/automation/campaigns/{id}/resume [post]
 func (h *CampaignHandler) ResumeCampaign(c *gin.Context) {
 	tenantID := c.GetString("tenant_id")
 	campaignID, err := uuid.Parse(c.Param("id"))
@@ -537,17 +545,18 @@ func (h *CampaignHandler) ResumeCampaign(c *gin.Context) {
 }
 
 // CompleteCampaign marks a campaign as completed
-// @Summary Complete campaign
-// @Description Mark a campaign as completed
-// @Tags AUTOMATION - Campaigns
-// @Accept json
-// @Produce json
-// @Param id path string true "Campaign ID"
-// @Success 200 {object} map[string]interface{} "campaign: completed campaign object"
-// @Failure 400 {object} map[string]interface{} "error: validation error message"
-// @Failure 404 {object} map[string]interface{} "error: campaign not found"
-// @Failure 500 {object} map[string]interface{} "error: internal server error message"
-// @Router /api/v1/automation/campaigns/{id}/complete [post]
+//
+//	@Summary		Complete campaign
+//	@Description	Mark a campaign as completed
+//	@Tags			AUTOMATION - Campaigns
+//	@Accept			json
+//	@Produce		json
+//	@Param			id	path		string					true	"Campaign ID"
+//	@Success		200	{object}	map[string]interface{}	"campaign: completed campaign object"
+//	@Failure		400	{object}	map[string]interface{}	"error: validation error message"
+//	@Failure		404	{object}	map[string]interface{}	"error: campaign not found"
+//	@Failure		500	{object}	map[string]interface{}	"error: internal server error message"
+//	@Router			/api/v1/automation/campaigns/{id}/complete [post]
 func (h *CampaignHandler) CompleteCampaign(c *gin.Context) {
 	tenantID := c.GetString("tenant_id")
 	campaignID, err := uuid.Parse(c.Param("id"))
@@ -589,17 +598,18 @@ func (h *CampaignHandler) CompleteCampaign(c *gin.Context) {
 }
 
 // ArchiveCampaign archives a campaign
-// @Summary Archive campaign
-// @Description Archive a campaign
-// @Tags AUTOMATION - Campaigns
-// @Accept json
-// @Produce json
-// @Param id path string true "Campaign ID"
-// @Success 200 {object} map[string]interface{} "campaign: archived campaign object"
-// @Failure 400 {object} map[string]interface{} "error: validation error message"
-// @Failure 404 {object} map[string]interface{} "error: campaign not found"
-// @Failure 500 {object} map[string]interface{} "error: internal server error message"
-// @Router /api/v1/automation/campaigns/{id}/archive [post]
+//
+//	@Summary		Archive campaign
+//	@Description	Archive a campaign
+//	@Tags			AUTOMATION - Campaigns
+//	@Accept			json
+//	@Produce		json
+//	@Param			id	path		string					true	"Campaign ID"
+//	@Success		200	{object}	map[string]interface{}	"campaign: archived campaign object"
+//	@Failure		400	{object}	map[string]interface{}	"error: validation error message"
+//	@Failure		404	{object}	map[string]interface{}	"error: campaign not found"
+//	@Failure		500	{object}	map[string]interface{}	"error: internal server error message"
+//	@Router			/api/v1/automation/campaigns/{id}/archive [post]
 func (h *CampaignHandler) ArchiveCampaign(c *gin.Context) {
 	tenantID := c.GetString("tenant_id")
 	campaignID, err := uuid.Parse(c.Param("id"))
@@ -641,17 +651,18 @@ func (h *CampaignHandler) ArchiveCampaign(c *gin.Context) {
 }
 
 // DeleteCampaign deletes a campaign
-// @Summary Delete campaign
-// @Description Delete a campaign (only in draft status)
-// @Tags AUTOMATION - Campaigns
-// @Accept json
-// @Produce json
-// @Param id path string true "Campaign ID"
-// @Success 200 {object} map[string]interface{} "message: success message"
-// @Failure 400 {object} map[string]interface{} "error: validation error message"
-// @Failure 404 {object} map[string]interface{} "error: campaign not found"
-// @Failure 500 {object} map[string]interface{} "error: internal server error message"
-// @Router /api/v1/automation/campaigns/{id} [delete]
+//
+//	@Summary		Delete campaign
+//	@Description	Delete a campaign (only in draft status)
+//	@Tags			AUTOMATION - Campaigns
+//	@Accept			json
+//	@Produce		json
+//	@Param			id	path		string					true	"Campaign ID"
+//	@Success		200	{object}	map[string]interface{}	"message: success message"
+//	@Failure		400	{object}	map[string]interface{}	"error: validation error message"
+//	@Failure		404	{object}	map[string]interface{}	"error: campaign not found"
+//	@Failure		500	{object}	map[string]interface{}	"error: internal server error message"
+//	@Router			/api/v1/automation/campaigns/{id} [delete]
 func (h *CampaignHandler) DeleteCampaign(c *gin.Context) {
 	tenantID := c.GetString("tenant_id")
 	campaignID, err := uuid.Parse(c.Param("id"))
@@ -692,16 +703,17 @@ func (h *CampaignHandler) DeleteCampaign(c *gin.Context) {
 }
 
 // GetCampaignStats gets campaign statistics
-// @Summary Get campaign stats
-// @Description Get statistics for a campaign
-// @Tags AUTOMATION - Campaigns
-// @Accept json
-// @Produce json
-// @Param id path string true "Campaign ID"
-// @Success 200 {object} map[string]interface{} "stats: campaign statistics object"
-// @Failure 404 {object} map[string]interface{} "error: campaign not found"
-// @Failure 500 {object} map[string]interface{} "error: internal server error message"
-// @Router /api/v1/automation/campaigns/{id}/stats [get]
+//
+//	@Summary		Get campaign stats
+//	@Description	Get statistics for a campaign
+//	@Tags			AUTOMATION - Campaigns
+//	@Accept			json
+//	@Produce		json
+//	@Param			id	path		string					true	"Campaign ID"
+//	@Success		200	{object}	map[string]interface{}	"stats: campaign statistics object"
+//	@Failure		404	{object}	map[string]interface{}	"error: campaign not found"
+//	@Failure		500	{object}	map[string]interface{}	"error: internal server error message"
+//	@Router			/api/v1/automation/campaigns/{id}/stats [get]
 func (h *CampaignHandler) GetCampaignStats(c *gin.Context) {
 	tenantID := c.GetString("tenant_id")
 	campaignID, err := uuid.Parse(c.Param("id"))
@@ -736,18 +748,19 @@ func (h *CampaignHandler) GetCampaignStats(c *gin.Context) {
 }
 
 // EnrollContact enrolls a contact in a campaign
-// @Summary Enroll contact
-// @Description Enroll a contact in a campaign
-// @Tags AUTOMATION - Campaigns
-// @Accept json
-// @Produce json
-// @Param id path string true "Campaign ID"
-// @Param enrollment body EnrollContactRequest true "Enrollment details"
-// @Success 201 {object} map[string]interface{} "enrollment: created enrollment object"
-// @Failure 400 {object} map[string]interface{} "error: validation error message"
-// @Failure 404 {object} map[string]interface{} "error: campaign not found"
-// @Failure 500 {object} map[string]interface{} "error: internal server error message"
-// @Router /api/v1/automation/campaigns/{id}/enroll [post]
+//
+//	@Summary		Enroll contact
+//	@Description	Enroll a contact in a campaign
+//	@Tags			AUTOMATION - Campaigns
+//	@Accept			json
+//	@Produce		json
+//	@Param			id			path		string					true	"Campaign ID"
+//	@Param			enrollment	body		EnrollContactRequest	true	"Enrollment details"
+//	@Success		201			{object}	map[string]interface{}	"enrollment: created enrollment object"
+//	@Failure		400			{object}	map[string]interface{}	"error: validation error message"
+//	@Failure		404			{object}	map[string]interface{}	"error: campaign not found"
+//	@Failure		500			{object}	map[string]interface{}	"error: internal server error message"
+//	@Router			/api/v1/automation/campaigns/{id}/enroll [post]
 func (h *CampaignHandler) EnrollContact(c *gin.Context) {
 	tenantID := c.GetString("tenant_id")
 	campaignID, err := uuid.Parse(c.Param("id"))
@@ -844,16 +857,17 @@ func (h *CampaignHandler) EnrollContact(c *gin.Context) {
 }
 
 // ListEnrollments lists all enrollments for a campaign
-// @Summary List enrollments
-// @Description Get all enrollments for a campaign
-// @Tags AUTOMATION - Campaigns
-// @Accept json
-// @Produce json
-// @Param id path string true "Campaign ID"
-// @Success 200 {object} map[string]interface{} "enrollments: array of enrollments"
-// @Failure 404 {object} map[string]interface{} "error: campaign not found"
-// @Failure 500 {object} map[string]interface{} "error: internal server error message"
-// @Router /api/v1/automation/campaigns/{id}/enrollments [get]
+//
+//	@Summary		List enrollments
+//	@Description	Get all enrollments for a campaign
+//	@Tags			AUTOMATION - Campaigns
+//	@Accept			json
+//	@Produce		json
+//	@Param			id	path		string					true	"Campaign ID"
+//	@Success		200	{object}	map[string]interface{}	"enrollments: array of enrollments"
+//	@Failure		404	{object}	map[string]interface{}	"error: campaign not found"
+//	@Failure		500	{object}	map[string]interface{}	"error: internal server error message"
+//	@Router			/api/v1/automation/campaigns/{id}/enrollments [get]
 func (h *CampaignHandler) ListEnrollments(c *gin.Context) {
 	tenantID := c.GetString("tenant_id")
 	campaignID, err := uuid.Parse(c.Param("id"))
@@ -949,19 +963,19 @@ func (h *CampaignHandler) enrollmentToResponse(enrollment *campaign.CampaignEnro
 
 // Request/Response types
 type CreateCampaignRequest struct {
-	Name        string                     `json:"name" binding:"required"`
-	Description string                     `json:"description"`
-	GoalType    string                     `json:"goal_type" binding:"required"`
-	GoalValue   int                        `json:"goal_value"`
+	Name        string                      `json:"name" binding:"required"`
+	Description string                      `json:"description"`
+	GoalType    string                      `json:"goal_type" binding:"required"`
+	GoalValue   int                         `json:"goal_value"`
 	Steps       []CreateCampaignStepRequest `json:"steps"`
 }
 
 type CreateCampaignStepRequest struct {
-	Order      int                       `json:"order" binding:"required"`
-	Name       string                    `json:"name" binding:"required"`
-	Type       string                    `json:"type" binding:"required"`
-	Config     StepConfigRequest         `json:"config" binding:"required"`
-	Conditions []StepConditionRequest    `json:"conditions"`
+	Order      int                    `json:"order" binding:"required"`
+	Name       string                 `json:"name" binding:"required"`
+	Type       string                 `json:"type" binding:"required"`
+	Config     StepConfigRequest      `json:"config" binding:"required"`
+	Conditions []StepConditionRequest `json:"conditions"`
 }
 
 type StepConfigRequest struct {

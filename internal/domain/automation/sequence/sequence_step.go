@@ -9,12 +9,12 @@ import (
 // SequenceStep representa um passo na sequência
 type SequenceStep struct {
 	ID              uuid.UUID
-	Order           int                    // Ordem do step (0, 1, 2...)
-	Name            string                 // Nome do step (ex: "Mensagem de boas-vindas")
-	DelayAmount     int                    // Quantidade de tempo para esperar
-	DelayUnit       DelayUnit              // Unidade de tempo (minutes, hours, days)
-	MessageTemplate MessageTemplate        // Template da mensagem
-	Conditions      []StepCondition        // Condições para enviar este step
+	Order           int             // Ordem do step (0, 1, 2...)
+	Name            string          // Nome do step (ex: "Mensagem de boas-vindas")
+	DelayAmount     int             // Quantidade de tempo para esperar
+	DelayUnit       DelayUnit       // Unidade de tempo (minutes, hours, days)
+	MessageTemplate MessageTemplate // Template da mensagem
+	Conditions      []StepCondition // Condições para enviar este step
 	CreatedAt       time.Time
 }
 
@@ -45,10 +45,10 @@ type StepCondition struct {
 type ConditionType string
 
 const (
-	ConditionTypeTag          ConditionType = "tag"           // Tem tag específica
-	ConditionTypeCustomField  ConditionType = "custom_field"  // Campo customizado
+	ConditionTypeTag            ConditionType = "tag"             // Tem tag específica
+	ConditionTypeCustomField    ConditionType = "custom_field"    // Campo customizado
 	ConditionTypePipelineStatus ConditionType = "pipeline_status" // Status no pipeline
-	ConditionTypeLastActivity ConditionType = "last_activity" // Última atividade
+	ConditionTypeLastActivity   ConditionType = "last_activity"   // Última atividade
 )
 
 // GetDelayDuration returns the delay as a time.Duration

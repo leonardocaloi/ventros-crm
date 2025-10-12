@@ -317,7 +317,7 @@ func main() {
 	// Initialize and start saga worker (Temporal)
 	if cfg.UseSagaOrchestration && temporalClient != nil {
 		sagaWorker := worker.New(temporalClient, "message-processing", worker.Options{
-			MaxConcurrentActivityExecutionSize:    10,
+			MaxConcurrentActivityExecutionSize:     10,
 			MaxConcurrentWorkflowTaskExecutionSize: 10,
 		})
 

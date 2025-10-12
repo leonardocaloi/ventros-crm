@@ -2,10 +2,12 @@ package persistence
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/caloi/ventros-crm/infrastructure/persistence/entities"
 	"github.com/caloi/ventros-crm/internal/domain/core/project"
+	"github.com/caloi/ventros-crm/internal/domain/core/shared"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
@@ -24,12 +26,51 @@ func NewGormProjectRepository(db *gorm.DB) *GormProjectRepository {
 func (r *GormProjectRepository) Save(ctx context.Context, proj *project.Project) error {
 	entity := r.domainToEntity(proj)
 
-	// Use GORM's Save method which handles both create and update
-	if err := r.db.WithContext(ctx).Save(entity).Error; err != nil {
-		return fmt.Errorf("failed to save project: %w", err)
+	// Check if exists
+	var existing entities.ProjectEntity
+	err := r.db.WithContext(ctx).Where("id = ?", entity.ID).First(&existing).Error
+
+	if err == nil {
+		// Update with optimistic locking
+		result := r.db.WithContext(ctx).Model(&entities.ProjectEntity{}).
+			Where("id = ? AND version = ?", entity.ID, existing.Version).
+			Updates(map[string]interface{}{
+				"version":                  existing.Version + 1, // Increment version
+				"user_id":                  entity.UserID,
+				"billing_account_id":       entity.BillingAccountID,
+				"tenant_id":                entity.TenantID,
+				"name":                     entity.Name,
+				"description":              entity.Description,
+				"configuration":            entity.Configuration,
+				"active":                   entity.Active,
+				"session_timeout_minutes":  entity.SessionTimeoutMinutes,
+				"updated_at":               entity.UpdatedAt,
+			})
+
+		if result.Error != nil {
+			return fmt.Errorf("failed to update project: %w", result.Error)
+		}
+
+		// Check optimistic locking - if 0 rows affected, version mismatch (concurrent update)
+		if result.RowsAffected == 0 {
+			return shared.NewOptimisticLockError(
+				"Project",
+				entity.ID.String(),
+				existing.Version,
+				entity.Version,
+			)
+		}
+
+		return nil
+	} else if errors.Is(err, gorm.ErrRecordNotFound) {
+		// Insert
+		if err := r.db.WithContext(ctx).Create(entity).Error; err != nil {
+			return fmt.Errorf("failed to create project: %w", err)
+		}
+		return nil
 	}
 
-	return nil
+	return fmt.Errorf("failed to save project: %w", err)
 }
 
 // FindByID finds a project by ID
@@ -131,6 +172,7 @@ func (r *GormProjectRepository) Delete(ctx context.Context, id uuid.UUID) error 
 func (r *GormProjectRepository) domainToEntity(proj *project.Project) *entities.ProjectEntity {
 	return &entities.ProjectEntity{
 		ID:                    proj.ID(),
+		Version:               proj.Version(),
 		UserID:                proj.CustomerID(), // CustomerID maps to UserID in entity
 		BillingAccountID:      proj.BillingAccountID(),
 		TenantID:              proj.TenantID(),
@@ -150,6 +192,7 @@ func (r *GormProjectRepository) entityToDomain(entity *entities.ProjectEntity) (
 	// For now, initialize with default config
 	return project.ReconstructProject(
 		entity.ID,
+		entity.Version,
 		entity.UserID, // UserID maps to CustomerID in domain
 		entity.BillingAccountID,
 		entity.TenantID,

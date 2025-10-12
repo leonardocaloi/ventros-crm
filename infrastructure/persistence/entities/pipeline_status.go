@@ -10,6 +10,7 @@ import (
 // PipelineStatusEntity representa a entidade Status de um Pipeline no banco de dados
 type PipelineStatusEntity struct {
 	ID          uuid.UUID      `gorm:"type:uuid;primary_key;default:gen_random_uuid()"`
+	Version     int            `gorm:"default:1;not null"` // Optimistic locking
 	PipelineID  uuid.UUID      `gorm:"type:uuid;not null;index"`
 	Name        string         `gorm:"not null"`
 	Description string         `gorm:"type:text"`

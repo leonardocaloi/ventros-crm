@@ -2,8 +2,10 @@ package persistence
 
 import (
 	"context"
+	"errors"
 
 	"github.com/caloi/ventros-crm/infrastructure/persistence/entities"
+	"github.com/caloi/ventros-crm/internal/domain/core/shared"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
@@ -54,7 +56,50 @@ func (r *GormBillingRepository) FindActiveByUserID(ctx context.Context, userID u
 
 // Update atualiza uma billing account
 func (r *GormBillingRepository) Update(ctx context.Context, account *entities.BillingAccountEntity) error {
-	return r.db.WithContext(ctx).Save(account).Error
+	// Check if exists
+	var existing entities.BillingAccountEntity
+	err := r.db.WithContext(ctx).Where("id = ?", account.ID).First(&existing).Error
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			// Insert if not found
+			return r.db.WithContext(ctx).Create(account).Error
+		}
+		return err
+	}
+
+	// Update with optimistic locking
+	result := r.db.WithContext(ctx).Model(&entities.BillingAccountEntity{}).
+		Where("id = ? AND version = ?", account.ID, existing.Version).
+		Updates(map[string]interface{}{
+			"version":           existing.Version + 1, // Increment version
+			"user_id":           account.UserID,
+			"name":              account.Name,
+			"stripe_customer_id": account.StripeCustomerID,
+			"payment_status":    account.PaymentStatus,
+			"payment_methods":   account.PaymentMethods,
+			"billing_email":     account.BillingEmail,
+			"suspended":         account.Suspended,
+			"suspended_at":      account.SuspendedAt,
+			"suspension_reason": account.SuspensionReason,
+			"updated_at":        account.UpdatedAt,
+		})
+
+	if result.Error != nil {
+		return result.Error
+	}
+
+	// Check optimistic locking - if 0 rows affected, version mismatch (concurrent update)
+	if result.RowsAffected == 0 {
+		return shared.NewOptimisticLockError(
+			"BillingAccount",
+			account.ID.String(),
+			existing.Version,
+			account.Version,
+		)
+	}
+
+	return nil
 }
 
 // Delete deleta uma billing account (soft delete)

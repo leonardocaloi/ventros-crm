@@ -27,18 +27,19 @@ func NewBroadcastHandler(logger *zap.Logger, db *gorm.DB) *BroadcastHandler {
 }
 
 // ListBroadcasts lists all broadcasts for the authenticated tenant
-// @Summary List broadcasts
-// @Description Get a paginated list of broadcasts with optional filters
-// @Tags AUTOMATION - Broadcasts
-// @Accept json
-// @Produce json
-// @Param status query string false "Filter by status (draft, scheduled, running, completed, failed, cancelled)"
-// @Param page query int false "Page number (default: 1)"
-// @Param limit query int false "Items per page (default: 20, max: 100)"
-// @Success 200 {object} map[string]interface{} "broadcasts: array of broadcasts, total: total count, page: current page, limit: items per page"
-// @Failure 400 {object} map[string]interface{} "error: validation error message"
-// @Failure 500 {object} map[string]interface{} "error: internal server error message"
-// @Router /api/v1/automation/broadcasts [get]
+//
+//	@Summary		List broadcasts
+//	@Description	Get a paginated list of broadcasts with optional filters
+//	@Tags			AUTOMATION - Broadcasts
+//	@Accept			json
+//	@Produce		json
+//	@Param			status	query		string					false	"Filter by status (draft, scheduled, running, completed, failed, cancelled)"
+//	@Param			page	query		int						false	"Page number (default: 1)"
+//	@Param			limit	query		int						false	"Items per page (default: 20, max: 100)"
+//	@Success		200		{object}	map[string]interface{}	"broadcasts: array of broadcasts, total: total count, page: current page, limit: items per page"
+//	@Failure		400		{object}	map[string]interface{}	"error: validation error message"
+//	@Failure		500		{object}	map[string]interface{}	"error: internal server error message"
+//	@Router			/api/v1/automation/broadcasts [get]
 func (h *BroadcastHandler) ListBroadcasts(c *gin.Context) {
 	tenantID := c.GetString("tenant_id")
 
@@ -110,16 +111,17 @@ func (h *BroadcastHandler) ListBroadcasts(c *gin.Context) {
 }
 
 // CreateBroadcast creates a new broadcast
-// @Summary Create broadcast
-// @Description Create a new broadcast for mass messaging
-// @Tags AUTOMATION - Broadcasts
-// @Accept json
-// @Produce json
-// @Param broadcast body CreateBroadcastRequest true "Broadcast details"
-// @Success 201 {object} map[string]interface{} "broadcast: created broadcast object"
-// @Failure 400 {object} map[string]interface{} "error: validation error message"
-// @Failure 500 {object} map[string]interface{} "error: internal server error message"
-// @Router /api/v1/automation/broadcasts [post]
+//
+//	@Summary		Create broadcast
+//	@Description	Create a new broadcast for mass messaging
+//	@Tags			AUTOMATION - Broadcasts
+//	@Accept			json
+//	@Produce		json
+//	@Param			broadcast	body		CreateBroadcastRequest	true	"Broadcast details"
+//	@Success		201			{object}	map[string]interface{}	"broadcast: created broadcast object"
+//	@Failure		400			{object}	map[string]interface{}	"error: validation error message"
+//	@Failure		500			{object}	map[string]interface{}	"error: internal server error message"
+//	@Router			/api/v1/automation/broadcasts [post]
 func (h *BroadcastHandler) CreateBroadcast(c *gin.Context) {
 	tenantID := c.GetString("tenant_id")
 
@@ -183,16 +185,17 @@ func (h *BroadcastHandler) CreateBroadcast(c *gin.Context) {
 }
 
 // GetBroadcast gets a broadcast by ID
-// @Summary Get broadcast
-// @Description Get a broadcast by ID
-// @Tags AUTOMATION - Broadcasts
-// @Accept json
-// @Produce json
-// @Param id path string true "Broadcast ID"
-// @Success 200 {object} map[string]interface{} "broadcast: broadcast object"
-// @Failure 404 {object} map[string]interface{} "error: broadcast not found"
-// @Failure 500 {object} map[string]interface{} "error: internal server error message"
-// @Router /api/v1/automation/broadcasts/{id} [get]
+//
+//	@Summary		Get broadcast
+//	@Description	Get a broadcast by ID
+//	@Tags			AUTOMATION - Broadcasts
+//	@Accept			json
+//	@Produce		json
+//	@Param			id	path		string					true	"Broadcast ID"
+//	@Success		200	{object}	map[string]interface{}	"broadcast: broadcast object"
+//	@Failure		404	{object}	map[string]interface{}	"error: broadcast not found"
+//	@Failure		500	{object}	map[string]interface{}	"error: internal server error message"
+//	@Router			/api/v1/automation/broadcasts/{id} [get]
 func (h *BroadcastHandler) GetBroadcast(c *gin.Context) {
 	tenantID := c.GetString("tenant_id")
 	broadcastID, err := uuid.Parse(c.Param("id"))
@@ -221,18 +224,19 @@ func (h *BroadcastHandler) GetBroadcast(c *gin.Context) {
 }
 
 // UpdateBroadcast updates a broadcast
-// @Summary Update broadcast
-// @Description Update a broadcast (only allowed in draft status)
-// @Tags AUTOMATION - Broadcasts
-// @Accept json
-// @Produce json
-// @Param id path string true "Broadcast ID"
-// @Param broadcast body UpdateBroadcastRequest true "Updated broadcast details"
-// @Success 200 {object} map[string]interface{} "broadcast: updated broadcast object"
-// @Failure 400 {object} map[string]interface{} "error: validation error message"
-// @Failure 404 {object} map[string]interface{} "error: broadcast not found"
-// @Failure 500 {object} map[string]interface{} "error: internal server error message"
-// @Router /api/v1/automation/broadcasts/{id} [put]
+//
+//	@Summary		Update broadcast
+//	@Description	Update a broadcast (only allowed in draft status)
+//	@Tags			AUTOMATION - Broadcasts
+//	@Accept			json
+//	@Produce		json
+//	@Param			id			path		string					true	"Broadcast ID"
+//	@Param			broadcast	body		UpdateBroadcastRequest	true	"Updated broadcast details"
+//	@Success		200			{object}	map[string]interface{}	"broadcast: updated broadcast object"
+//	@Failure		400			{object}	map[string]interface{}	"error: validation error message"
+//	@Failure		404			{object}	map[string]interface{}	"error: broadcast not found"
+//	@Failure		500			{object}	map[string]interface{}	"error: internal server error message"
+//	@Router			/api/v1/automation/broadcasts/{id} [put]
 func (h *BroadcastHandler) UpdateBroadcast(c *gin.Context) {
 	tenantID := c.GetString("tenant_id")
 	broadcastID, err := uuid.Parse(c.Param("id"))
@@ -304,18 +308,19 @@ func (h *BroadcastHandler) UpdateBroadcast(c *gin.Context) {
 }
 
 // ScheduleBroadcast schedules a broadcast for execution
-// @Summary Schedule broadcast
-// @Description Schedule a broadcast for a specific date/time
-// @Tags AUTOMATION - Broadcasts
-// @Accept json
-// @Produce json
-// @Param id path string true "Broadcast ID"
-// @Param schedule body ScheduleBroadcastRequest true "Schedule details"
-// @Success 200 {object} map[string]interface{} "broadcast: scheduled broadcast object"
-// @Failure 400 {object} map[string]interface{} "error: validation error message"
-// @Failure 404 {object} map[string]interface{} "error: broadcast not found"
-// @Failure 500 {object} map[string]interface{} "error: internal server error message"
-// @Router /api/v1/automation/broadcasts/{id}/schedule [post]
+//
+//	@Summary		Schedule broadcast
+//	@Description	Schedule a broadcast for a specific date/time
+//	@Tags			AUTOMATION - Broadcasts
+//	@Accept			json
+//	@Produce		json
+//	@Param			id			path		string						true	"Broadcast ID"
+//	@Param			schedule	body		ScheduleBroadcastRequest	true	"Schedule details"
+//	@Success		200			{object}	map[string]interface{}		"broadcast: scheduled broadcast object"
+//	@Failure		400			{object}	map[string]interface{}		"error: validation error message"
+//	@Failure		404			{object}	map[string]interface{}		"error: broadcast not found"
+//	@Failure		500			{object}	map[string]interface{}		"error: internal server error message"
+//	@Router			/api/v1/automation/broadcasts/{id}/schedule [post]
 func (h *BroadcastHandler) ScheduleBroadcast(c *gin.Context) {
 	tenantID := c.GetString("tenant_id")
 	broadcastID, err := uuid.Parse(c.Param("id"))
@@ -362,17 +367,18 @@ func (h *BroadcastHandler) ScheduleBroadcast(c *gin.Context) {
 }
 
 // ExecuteBroadcast starts executing a broadcast immediately
-// @Summary Execute broadcast
-// @Description Start executing a broadcast immediately
-// @Tags AUTOMATION - Broadcasts
-// @Accept json
-// @Produce json
-// @Param id path string true "Broadcast ID"
-// @Success 200 {object} map[string]interface{} "broadcast: executing broadcast object"
-// @Failure 400 {object} map[string]interface{} "error: validation error message"
-// @Failure 404 {object} map[string]interface{} "error: broadcast not found"
-// @Failure 500 {object} map[string]interface{} "error: internal server error message"
-// @Router /api/v1/automation/broadcasts/{id}/execute [post]
+//
+//	@Summary		Execute broadcast
+//	@Description	Start executing a broadcast immediately
+//	@Tags			AUTOMATION - Broadcasts
+//	@Accept			json
+//	@Produce		json
+//	@Param			id	path		string					true	"Broadcast ID"
+//	@Success		200	{object}	map[string]interface{}	"broadcast: executing broadcast object"
+//	@Failure		400	{object}	map[string]interface{}	"error: validation error message"
+//	@Failure		404	{object}	map[string]interface{}	"error: broadcast not found"
+//	@Failure		500	{object}	map[string]interface{}	"error: internal server error message"
+//	@Router			/api/v1/automation/broadcasts/{id}/execute [post]
 func (h *BroadcastHandler) ExecuteBroadcast(c *gin.Context) {
 	tenantID := c.GetString("tenant_id")
 	broadcastID, err := uuid.Parse(c.Param("id"))
@@ -414,17 +420,18 @@ func (h *BroadcastHandler) ExecuteBroadcast(c *gin.Context) {
 }
 
 // CancelBroadcast cancels a broadcast
-// @Summary Cancel broadcast
-// @Description Cancel a broadcast (if not completed)
-// @Tags AUTOMATION - Broadcasts
-// @Accept json
-// @Produce json
-// @Param id path string true "Broadcast ID"
-// @Success 200 {object} map[string]interface{} "broadcast: cancelled broadcast object"
-// @Failure 400 {object} map[string]interface{} "error: validation error message"
-// @Failure 404 {object} map[string]interface{} "error: broadcast not found"
-// @Failure 500 {object} map[string]interface{} "error: internal server error message"
-// @Router /api/v1/automation/broadcasts/{id}/cancel [post]
+//
+//	@Summary		Cancel broadcast
+//	@Description	Cancel a broadcast (if not completed)
+//	@Tags			AUTOMATION - Broadcasts
+//	@Accept			json
+//	@Produce		json
+//	@Param			id	path		string					true	"Broadcast ID"
+//	@Success		200	{object}	map[string]interface{}	"broadcast: cancelled broadcast object"
+//	@Failure		400	{object}	map[string]interface{}	"error: validation error message"
+//	@Failure		404	{object}	map[string]interface{}	"error: broadcast not found"
+//	@Failure		500	{object}	map[string]interface{}	"error: internal server error message"
+//	@Router			/api/v1/automation/broadcasts/{id}/cancel [post]
 func (h *BroadcastHandler) CancelBroadcast(c *gin.Context) {
 	tenantID := c.GetString("tenant_id")
 	broadcastID, err := uuid.Parse(c.Param("id"))
@@ -466,16 +473,17 @@ func (h *BroadcastHandler) CancelBroadcast(c *gin.Context) {
 }
 
 // GetBroadcastStats gets broadcast statistics
-// @Summary Get broadcast stats
-// @Description Get statistics for a broadcast
-// @Tags AUTOMATION - Broadcasts
-// @Accept json
-// @Produce json
-// @Param id path string true "Broadcast ID"
-// @Success 200 {object} map[string]interface{} "stats: broadcast statistics object"
-// @Failure 404 {object} map[string]interface{} "error: broadcast not found"
-// @Failure 500 {object} map[string]interface{} "error: internal server error message"
-// @Router /api/v1/automation/broadcasts/{id}/stats [get]
+//
+//	@Summary		Get broadcast stats
+//	@Description	Get statistics for a broadcast
+//	@Tags			AUTOMATION - Broadcasts
+//	@Accept			json
+//	@Produce		json
+//	@Param			id	path		string					true	"Broadcast ID"
+//	@Success		200	{object}	map[string]interface{}	"stats: broadcast statistics object"
+//	@Failure		404	{object}	map[string]interface{}	"error: broadcast not found"
+//	@Failure		500	{object}	map[string]interface{}	"error: internal server error message"
+//	@Router			/api/v1/automation/broadcasts/{id}/stats [get]
 func (h *BroadcastHandler) GetBroadcastStats(c *gin.Context) {
 	tenantID := c.GetString("tenant_id")
 	broadcastID, err := uuid.Parse(c.Param("id"))
@@ -511,17 +519,18 @@ func (h *BroadcastHandler) GetBroadcastStats(c *gin.Context) {
 }
 
 // DeleteBroadcast deletes a broadcast
-// @Summary Delete broadcast
-// @Description Delete a broadcast (only in draft or cancelled status)
-// @Tags AUTOMATION - Broadcasts
-// @Accept json
-// @Produce json
-// @Param id path string true "Broadcast ID"
-// @Success 200 {object} map[string]interface{} "message: success message"
-// @Failure 400 {object} map[string]interface{} "error: validation error message"
-// @Failure 404 {object} map[string]interface{} "error: broadcast not found"
-// @Failure 500 {object} map[string]interface{} "error: internal server error message"
-// @Router /api/v1/automation/broadcasts/{id} [delete]
+//
+//	@Summary		Delete broadcast
+//	@Description	Delete a broadcast (only in draft or cancelled status)
+//	@Tags			AUTOMATION - Broadcasts
+//	@Accept			json
+//	@Produce		json
+//	@Param			id	path		string					true	"Broadcast ID"
+//	@Success		200	{object}	map[string]interface{}	"message: success message"
+//	@Failure		400	{object}	map[string]interface{}	"error: validation error message"
+//	@Failure		404	{object}	map[string]interface{}	"error: broadcast not found"
+//	@Failure		500	{object}	map[string]interface{}	"error: internal server error message"
+//	@Router			/api/v1/automation/broadcasts/{id} [delete]
 func (h *BroadcastHandler) DeleteBroadcast(c *gin.Context) {
 	tenantID := c.GetString("tenant_id")
 	broadcastID, err := uuid.Parse(c.Param("id"))
@@ -564,37 +573,37 @@ func (h *BroadcastHandler) DeleteBroadcast(c *gin.Context) {
 // Helper methods
 func (h *BroadcastHandler) broadcastToResponse(bc *broadcast.Broadcast) map[string]interface{} {
 	return map[string]interface{}{
-		"id":              bc.ID(),
-		"tenant_id":       bc.TenantID(),
-		"name":            bc.Name(),
-		"list_id":         bc.ListID(),
+		"id":               bc.ID(),
+		"tenant_id":        bc.TenantID(),
+		"name":             bc.Name(),
+		"list_id":          bc.ListID(),
 		"message_template": bc.MessageTemplate(),
-		"status":          bc.Status(),
-		"scheduled_for":   bc.ScheduledFor(),
-		"started_at":      bc.StartedAt(),
-		"completed_at":    bc.CompletedAt(),
-		"total_contacts":  bc.TotalContacts(),
-		"sent_count":      bc.SentCount(),
-		"failed_count":    bc.FailedCount(),
-		"pending_count":   bc.PendingCount(),
-		"rate_limit":      bc.RateLimit(),
-		"created_at":      bc.CreatedAt(),
-		"updated_at":      bc.UpdatedAt(),
+		"status":           bc.Status(),
+		"scheduled_for":    bc.ScheduledFor(),
+		"started_at":       bc.StartedAt(),
+		"completed_at":     bc.CompletedAt(),
+		"total_contacts":   bc.TotalContacts(),
+		"sent_count":       bc.SentCount(),
+		"failed_count":     bc.FailedCount(),
+		"pending_count":    bc.PendingCount(),
+		"rate_limit":       bc.RateLimit(),
+		"created_at":       bc.CreatedAt(),
+		"updated_at":       bc.UpdatedAt(),
 	}
 }
 
 // Request/Response types
 type CreateBroadcastRequest struct {
-	Name            string                    `json:"name" binding:"required"`
-	ListID          string                    `json:"list_id" binding:"required"`
-	MessageTemplate MessageTemplateRequest    `json:"message_template" binding:"required"`
-	RateLimit       int                       `json:"rate_limit"`
+	Name            string                 `json:"name" binding:"required"`
+	ListID          string                 `json:"list_id" binding:"required"`
+	MessageTemplate MessageTemplateRequest `json:"message_template" binding:"required"`
+	RateLimit       int                    `json:"rate_limit"`
 }
 
 type UpdateBroadcastRequest struct {
-	Name            *string                   `json:"name"`
-	MessageTemplate *MessageTemplateRequest   `json:"message_template"`
-	RateLimit       *int                      `json:"rate_limit"`
+	Name            *string                 `json:"name"`
+	MessageTemplate *MessageTemplateRequest `json:"message_template"`
+	RateLimit       *int                    `json:"rate_limit"`
 }
 
 type MessageTemplateRequest struct {

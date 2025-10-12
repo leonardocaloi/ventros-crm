@@ -31,6 +31,7 @@ const (
 // AgentEntity representa a entidade Agent no banco de dados
 type AgentEntity struct {
 	ID        uuid.UUID   `gorm:"type:uuid;primary_key;default:gen_random_uuid()"`
+	Version   int         `gorm:"default:1;not null"` // Optimistic locking
 	ProjectID uuid.UUID   `gorm:"type:uuid;not null;index:idx_agents_project"`
 	UserID    *uuid.UUID  `gorm:"type:uuid;index:idx_agents_user"` // Null para agentes não-humanos
 	TenantID  string      `gorm:"not null;index:idx_agents_tenant;index:idx_agents_tenant_type,priority:1;index:idx_agents_tenant_active,priority:1;index:idx_agents_tenant_status,priority:1"`

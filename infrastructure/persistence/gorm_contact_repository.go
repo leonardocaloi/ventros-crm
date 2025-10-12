@@ -7,6 +7,7 @@ import (
 
 	"github.com/caloi/ventros-crm/infrastructure/persistence/entities"
 	"github.com/caloi/ventros-crm/internal/application/shared"
+	domainShared "github.com/caloi/ventros-crm/internal/domain/core/shared"
 	"github.com/caloi/ventros-crm/internal/domain/crm/contact"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -24,7 +25,55 @@ func (r *GormContactRepository) Save(ctx context.Context, c *contact.Contact) er
 	entity := r.domainToEntity(c)
 	// Usa a transação do contexto se existir, senão usa a conexão padrão
 	db := r.getDB(ctx)
-	return db.Save(entity).Error
+
+	// Check if exists
+	var existing entities.ContactEntity
+	err := db.Where("id = ?", entity.ID).First(&existing).Error
+
+	if err == nil {
+		// Update with optimistic locking
+		result := db.Model(&entities.ContactEntity{}).
+			Where("id = ? AND version = ?", entity.ID, existing.Version).
+			Updates(map[string]interface{}{
+				"version":                  existing.Version + 1, // Increment version
+				"project_id":               entity.ProjectID,
+				"tenant_id":                entity.TenantID,
+				"name":                     entity.Name,
+				"email":                    entity.Email,
+				"phone":                    entity.Phone,
+				"external_id":              entity.ExternalID,
+				"source_channel":           entity.SourceChannel,
+				"language":                 entity.Language,
+				"timezone":                 entity.Timezone,
+				"tags":                     entity.Tags,
+				"profile_picture_url":      entity.ProfilePictureURL,
+				"profile_picture_fetched_at": entity.ProfilePictureFetchedAt,
+				"first_interaction_at":     entity.FirstInteractionAt,
+				"last_interaction_at":      entity.LastInteractionAt,
+				"updated_at":               entity.UpdatedAt,
+			})
+
+		if result.Error != nil {
+			return result.Error
+		}
+
+		// Check optimistic locking - if 0 rows affected, version mismatch (concurrent update)
+		if result.RowsAffected == 0 {
+			return domainShared.NewOptimisticLockError(
+				"Contact",
+				entity.ID.String(),
+				existing.Version,
+				entity.Version,
+			)
+		}
+
+		return nil
+	} else if errors.Is(err, gorm.ErrRecordNotFound) {
+		// Insert
+		return db.Create(entity).Error
+	}
+
+	return err
 }
 
 // getDB retorna a transação do contexto se existir, senão retorna a conexão padrão.
@@ -120,6 +169,7 @@ func (r *GormContactRepository) FindByEmail(ctx context.Context, projectID uuid.
 func (r *GormContactRepository) domainToEntity(c *contact.Contact) *entities.ContactEntity {
 	entity := &entities.ContactEntity{
 		ID:                 c.ID(),
+		Version:            c.Version(),
 		ProjectID:          c.ProjectID(),
 		TenantID:           c.TenantID(),
 		Name:               c.Name(),
@@ -206,6 +256,7 @@ func (r *GormContactRepository) entityToDomain(entity *entities.ContactEntity) *
 	// Reconstruct domain object
 	c := contact.ReconstructContact(
 		entity.ID,
+		entity.Version,
 		entity.ProjectID,
 		entity.TenantID,
 		entity.Name,
