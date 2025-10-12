@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/caloi/ventros-crm/internal/domain/core/shared"
-	domainchat "github.com/caloi/ventros-crm/internal/domain/crm/chat"
 	domaincontact "github.com/caloi/ventros-crm/internal/domain/crm/contact"
 	domainsession "github.com/caloi/ventros-crm/internal/domain/crm/session"
 )
@@ -63,7 +62,7 @@ func NewChatEventBusAdapter(domainEventBus *DomainEventBus) *ChatEventBusAdapter
 	return &ChatEventBusAdapter{domainEventBus: domainEventBus}
 }
 
-func (a *ChatEventBusAdapter) Publish(ctx context.Context, event domainchat.DomainEvent) error {
+func (a *ChatEventBusAdapter) Publish(ctx context.Context, event shared.DomainEvent) error {
 	// chat.DomainEvent é agora compatível com shared.DomainEvent, então pode passar direto
 	return a.domainEventBus.Publish(ctx, event)
 }

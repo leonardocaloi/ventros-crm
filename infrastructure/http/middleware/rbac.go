@@ -1,144 +1,97 @@
 package middleware
 
 import (
+	"context"
 	"net/http"
 
-	"github.com/caloi/ventros-crm/internal/domain/core/user"
+	"github.com/caloi/ventros-crm/internal/domain/crm/project_member"
 	"github.com/gin-gonic/gin"
-	"go.uber.org/zap"
+	"github.com/google/uuid"
+	"github.com/sirupsen/logrus"
 )
 
-// RBACMiddleware implementa Role-Based Access Control
-type RBACMiddleware struct {
-	logger *zap.Logger
+// ProjectMemberRepository interface para buscar project members
+type ProjectMemberRepository interface {
+	FindByProjectAndAgent(ctx context.Context, projectID uuid.UUID, agentID string) (*project_member.ProjectMember, error)
 }
 
-// NewRBACMiddleware cria um novo middleware RBAC
-func NewRBACMiddleware(logger *zap.Logger) *RBACMiddleware {
+// RBACMiddleware middleware de verificação de permissões RBAC
+type RBACMiddleware struct {
+	repo   ProjectMemberRepository
+	logger *logrus.Logger
+}
+
+// NewRBACMiddleware cria nova instância do middleware RBAC
+func NewRBACMiddleware(repo ProjectMemberRepository, logger *logrus.Logger) *RBACMiddleware {
 	return &RBACMiddleware{
+		repo:   repo,
 		logger: logger,
 	}
 }
 
-// RequirePermission verifica se o usuário tem permissão para acessar um recurso
-func (m *RBACMiddleware) RequirePermission(resource user.ResourceType, operation user.Operation) gin.HandlerFunc {
+// RequireProjectMember verifica se o usuário é membro do projeto
+func (m *RBACMiddleware) RequireProjectMember() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// Obter contexto de autenticação
-		authCtx, exists := GetAuthContext(c)
-		if !exists {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Authentication required"})
-			c.Abort()
-			return
-		}
-
-		// Parse da role do usuário
-		userRole, err := user.ParseRole(authCtx.Role)
+		// Get user context
+		userCtx, err := GetUserContext(c)
 		if err != nil {
-			m.logger.Error("Invalid user role",
-				zap.String("role", authCtx.Role),
-				zap.String("user_id", authCtx.UserID.String()),
-				zap.Error(err))
-			c.JSON(http.StatusForbidden, gin.H{"error": "Invalid user role"})
-			c.Abort()
-			return
-		}
-
-		// Verificar permissão
-		if !userRole.CanAccessResource(resource, operation) {
-			m.logger.Warn("Access denied",
-				zap.String("user_id", authCtx.UserID.String()),
-				zap.String("role", authCtx.Role),
-				zap.String("resource", string(resource)),
-				zap.String("operation", string(operation)))
-
-			c.JSON(http.StatusForbidden, gin.H{
-				"error": "Access denied",
-				"details": map[string]string{
-					"resource":  string(resource),
-					"operation": string(operation),
-					"required":  "Insufficient permissions",
-				},
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
+				"error": "forbidden", "message": "authentication required",
 			})
-			c.Abort()
 			return
 		}
 
-		// Log acesso autorizado
-		m.logger.Debug("Access granted",
-			zap.String("user_id", authCtx.UserID.String()),
-			zap.String("role", authCtx.Role),
-			zap.String("resource", string(resource)),
-			zap.String("operation", string(operation)))
+		// Extract project_id
+		projectIDStr := c.Param("project_id")
+		if projectIDStr == "" {
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+				"error": "bad_request", "message": "project_id required",
+			})
+			return
+		}
 
+		projectID, err := uuid.Parse(projectIDStr)
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+				"error": "bad_request", "message": "invalid project_id",
+			})
+			return
+		}
+
+		// Check membership
+		member, err := m.repo.FindByProjectAndAgent(c.Request.Context(), projectID, userCtx.Subject)
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
+				"error": "forbidden", "message": "access denied",
+			})
+			return
+		}
+
+		c.Set("project_member", member)
+		c.Set("project_id", projectID)
 		c.Next()
 	}
 }
 
-// RequireRole verifica se o usuário tem uma role específica
-func (m *RBACMiddleware) RequireRole(requiredRole user.Role) gin.HandlerFunc {
+// RequirePermission verifica permissão específica
+func (m *RBACMiddleware) RequirePermission(permission project_member.Permission) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		authCtx, exists := GetAuthContext(c)
+		memberInterface, exists := c.Get("project_member")
 		if !exists {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Authentication required"})
-			c.Abort()
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
+				"error": "forbidden", "message": "project membership required",
+			})
 			return
 		}
 
-		userRole, err := user.ParseRole(authCtx.Role)
-		if err != nil || userRole != requiredRole {
-			c.JSON(http.StatusForbidden, gin.H{
-				"error":    "Insufficient role",
-				"required": string(requiredRole),
-				"current":  authCtx.Role,
+		member := memberInterface.(*project_member.ProjectMember)
+		if !member.HasPermission(permission) {
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
+				"error": "forbidden", "message": "insufficient permissions",
 			})
-			c.Abort()
 			return
 		}
 
 		c.Next()
 	}
-}
-
-// RequireAnyRole verifica se o usuário tem pelo menos uma das roles especificadas
-func (m *RBACMiddleware) RequireAnyRole(roles ...user.Role) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		authCtx, exists := GetAuthContext(c)
-		if !exists {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Authentication required"})
-			c.Abort()
-			return
-		}
-
-		userRole, err := user.ParseRole(authCtx.Role)
-		if err != nil {
-			c.JSON(http.StatusForbidden, gin.H{"error": "Invalid user role"})
-			c.Abort()
-			return
-		}
-
-		// Verificar se tem pelo menos uma das roles
-		for _, role := range roles {
-			if userRole == role {
-				c.Next()
-				return
-			}
-		}
-
-		c.JSON(http.StatusForbidden, gin.H{
-			"error":        "Insufficient role",
-			"required_any": roles,
-			"current":      authCtx.Role,
-		})
-		c.Abort()
-	}
-}
-
-// IsAdmin verifica se o usuário é admin
-func (m *RBACMiddleware) IsAdmin() gin.HandlerFunc {
-	return m.RequireRole(user.RoleAdmin)
-}
-
-// CanManage verifica se o usuário pode gerenciar recursos (admin ou manager)
-func (m *RBACMiddleware) CanManage() gin.HandlerFunc {
-	return m.RequireAnyRole(user.RoleAdmin, user.RoleManager)
 }

@@ -5,24 +5,43 @@ import (
 	"net/http"
 	"time"
 
+	campaigncommand "github.com/caloi/ventros-crm/internal/application/commands/campaign"
 	"github.com/caloi/ventros-crm/infrastructure/http/errors"
 	"github.com/caloi/ventros-crm/infrastructure/persistence"
 	"github.com/caloi/ventros-crm/internal/domain/automation/campaign"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/sirupsen/logrus"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
 
 type CampaignHandler struct {
-	logger *zap.Logger
-	db     *gorm.DB
+	logger                  *zap.Logger
+	db                      *gorm.DB
+	createCampaignHandler   *campaigncommand.CreateCampaignHandler
+	updateCampaignHandler   *campaigncommand.UpdateCampaignHandler
+	activateCampaignHandler *campaigncommand.ActivateCampaignHandler
+	pauseCampaignHandler    *campaigncommand.PauseCampaignHandler
+	completeCampaignHandler *campaigncommand.CompleteCampaignHandler
 }
 
 func NewCampaignHandler(logger *zap.Logger, db *gorm.DB) *CampaignHandler {
+	// Convert zap.Logger to logrus.Logger for command handlers
+	logrusLogger := logrus.New()
+	logrusLogger.SetLevel(logrus.InfoLevel)
+
+	// Create repository
+	campaignRepo := persistence.NewGormCampaignRepository(db)
+
 	return &CampaignHandler{
-		logger: logger,
-		db:     db,
+		logger:                  logger,
+		db:                      db,
+		createCampaignHandler:   campaigncommand.NewCreateCampaignHandler(campaignRepo, logrusLogger),
+		updateCampaignHandler:   campaigncommand.NewUpdateCampaignHandler(campaignRepo, logrusLogger),
+		activateCampaignHandler: campaigncommand.NewActivateCampaignHandler(campaignRepo, logrusLogger),
+		pauseCampaignHandler:    campaigncommand.NewPauseCampaignHandler(campaignRepo, logrusLogger),
+		completeCampaignHandler: campaigncommand.NewCompleteCampaignHandler(campaignRepo, logrusLogger),
 	}
 }
 
@@ -131,71 +150,13 @@ func (h *CampaignHandler) CreateCampaign(c *gin.Context) {
 		return
 	}
 
-	// Validate required fields
-	if req.Name == "" {
-		errors.BadRequest(c, "name is required")
-		return
-	}
-	if req.GoalType == "" {
-		errors.BadRequest(c, "goal_type is required")
-		return
-	}
+	// Build command from request
+	cmd := h.buildCreateCampaignCommand(tenantID, req)
 
-	// Create campaign
-	camp, err := campaign.NewCampaign(
-		tenantID,
-		req.Name,
-		req.Description,
-		campaign.GoalType(req.GoalType),
-		req.GoalValue,
-	)
+	// Delegate to command handler
+	camp, err := h.createCampaignHandler.Handle(c.Request.Context(), cmd)
 	if err != nil {
-		errors.BadRequest(c, "Failed to create campaign: "+err.Error())
-		return
-	}
-
-	// Add steps if provided
-	for _, stepReq := range req.Steps {
-		config := campaign.StepConfig{
-			BroadcastID:   stepReq.Config.BroadcastID,
-			SequenceID:    stepReq.Config.SequenceID,
-			DelayAmount:   stepReq.Config.DelayAmount,
-			DelayUnit:     stepReq.Config.DelayUnit,
-			ConditionType: stepReq.Config.ConditionType,
-			ConditionData: stepReq.Config.ConditionData,
-			WaitFor:       stepReq.Config.WaitFor,
-			WaitTimeout:   stepReq.Config.WaitTimeout,
-			TimeoutStep:   stepReq.Config.TimeoutStep,
-		}
-
-		step := campaign.NewCampaignStep(
-			stepReq.Order,
-			stepReq.Name,
-			campaign.StepType(stepReq.Type),
-			config,
-		)
-
-		// Add conditions
-		for _, condReq := range stepReq.Conditions {
-			step.AddCondition(campaign.StepCondition{
-				Type:     condReq.Type,
-				Field:    condReq.Field,
-				Operator: condReq.Operator,
-				Value:    condReq.Value,
-				Metadata: condReq.Metadata,
-			})
-		}
-
-		if err := camp.AddStep(step); err != nil {
-			errors.BadRequest(c, "Failed to add step: "+err.Error())
-			return
-		}
-	}
-
-	// Save to database
-	repo := persistence.NewGormCampaignRepository(h.db)
-	if err := repo.Save(camp); err != nil {
-		h.logger.Error("Failed to save campaign", zap.Error(err))
+		h.logger.Error("Failed to create campaign", zap.Error(err))
 		errors.InternalError(c, "Failed to create campaign", err)
 		return
 	}
@@ -203,6 +164,52 @@ func (h *CampaignHandler) CreateCampaign(c *gin.Context) {
 	c.JSON(http.StatusCreated, gin.H{
 		"campaign": h.campaignToResponse(camp),
 	})
+}
+
+// buildCreateCampaignCommand builds a CreateCampaignCommand from the HTTP request
+func (h *CampaignHandler) buildCreateCampaignCommand(tenantID string, req CreateCampaignRequest) campaigncommand.CreateCampaignCommand {
+	// Convert steps
+	steps := make([]campaigncommand.CreateCampaignStepCommand, len(req.Steps))
+	for i, stepReq := range req.Steps {
+		// Convert conditions
+		conditions := make([]campaigncommand.StepConditionCommand, len(stepReq.Conditions))
+		for j, condReq := range stepReq.Conditions {
+			conditions[j] = campaigncommand.StepConditionCommand{
+				Type:     condReq.Type,
+				Field:    condReq.Field,
+				Operator: condReq.Operator,
+				Value:    condReq.Value,
+				Metadata: condReq.Metadata,
+			}
+		}
+
+		steps[i] = campaigncommand.CreateCampaignStepCommand{
+			Order: stepReq.Order,
+			Name:  stepReq.Name,
+			Type:  stepReq.Type,
+			Config: campaigncommand.StepConfigCommand{
+				BroadcastID:   stepReq.Config.BroadcastID,
+				SequenceID:    stepReq.Config.SequenceID,
+				DelayAmount:   stepReq.Config.DelayAmount,
+				DelayUnit:     stepReq.Config.DelayUnit,
+				ConditionType: stepReq.Config.ConditionType,
+				ConditionData: stepReq.Config.ConditionData,
+				WaitFor:       stepReq.Config.WaitFor,
+				WaitTimeout:   stepReq.Config.WaitTimeout,
+				TimeoutStep:   stepReq.Config.TimeoutStep,
+			},
+			Conditions: conditions,
+		}
+	}
+
+	return campaigncommand.CreateCampaignCommand{
+		TenantID:    tenantID,
+		Name:        req.Name,
+		Description: req.Description,
+		GoalType:    req.GoalType,
+		GoalValue:   req.GoalValue,
+		Steps:       steps,
+	}
 }
 
 // GetCampaign gets a campaign by ID
@@ -272,42 +279,19 @@ func (h *CampaignHandler) UpdateCampaign(c *gin.Context) {
 		return
 	}
 
-	repo := persistence.NewGormCampaignRepository(h.db)
-	camp, err := repo.FindByID(campaignID)
+	// Build command
+	cmd := campaigncommand.UpdateCampaignCommand{
+		CampaignID:  campaignID,
+		TenantID:    tenantID,
+		Name:        req.Name,
+		Description: req.Description,
+		GoalType:    req.GoalType,
+		GoalValue:   req.GoalValue,
+	}
+
+	// Delegate to command handler
+	camp, err := h.updateCampaignHandler.Handle(c.Request.Context(), cmd)
 	if err != nil {
-		errors.NotFound(c, "campaign", campaignID.String())
-		return
-	}
-
-	// Check tenant ownership
-	if camp.TenantID() != tenantID {
-		errors.NotFound(c, "campaign", campaignID.String())
-		return
-	}
-
-	// Update name
-	if req.Name != nil {
-		if err := camp.UpdateName(*req.Name); err != nil {
-			errors.BadRequest(c, err.Error())
-			return
-		}
-	}
-
-	// Update description
-	if req.Description != nil {
-		camp.UpdateDescription(*req.Description)
-	}
-
-	// Update goal
-	if req.GoalType != nil && req.GoalValue != nil {
-		if err := camp.UpdateGoal(campaign.GoalType(*req.GoalType), *req.GoalValue); err != nil {
-			errors.BadRequest(c, err.Error())
-			return
-		}
-	}
-
-	// Save
-	if err := repo.Save(camp); err != nil {
 		h.logger.Error("Failed to update campaign", zap.Error(err))
 		errors.InternalError(c, "Failed to update campaign", err)
 		return
@@ -339,27 +323,15 @@ func (h *CampaignHandler) ActivateCampaign(c *gin.Context) {
 		return
 	}
 
-	repo := persistence.NewGormCampaignRepository(h.db)
-	camp, err := repo.FindByID(campaignID)
+	// Build command
+	cmd := campaigncommand.ActivateCampaignCommand{
+		CampaignID: campaignID,
+		TenantID:   tenantID,
+	}
+
+	// Delegate to command handler
+	camp, err := h.activateCampaignHandler.Handle(c.Request.Context(), cmd)
 	if err != nil {
-		errors.NotFound(c, "campaign", campaignID.String())
-		return
-	}
-
-	// Check tenant ownership
-	if camp.TenantID() != tenantID {
-		errors.NotFound(c, "campaign", campaignID.String())
-		return
-	}
-
-	// Activate
-	if err := camp.Activate(); err != nil {
-		errors.BadRequest(c, err.Error())
-		return
-	}
-
-	// Save
-	if err := repo.Save(camp); err != nil {
 		h.logger.Error("Failed to activate campaign", zap.Error(err))
 		errors.InternalError(c, "Failed to activate campaign", err)
 		return
@@ -459,27 +431,15 @@ func (h *CampaignHandler) PauseCampaign(c *gin.Context) {
 		return
 	}
 
-	repo := persistence.NewGormCampaignRepository(h.db)
-	camp, err := repo.FindByID(campaignID)
+	// Build command
+	cmd := campaigncommand.PauseCampaignCommand{
+		CampaignID: campaignID,
+		TenantID:   tenantID,
+	}
+
+	// Delegate to command handler
+	camp, err := h.pauseCampaignHandler.Handle(c.Request.Context(), cmd)
 	if err != nil {
-		errors.NotFound(c, "campaign", campaignID.String())
-		return
-	}
-
-	// Check tenant ownership
-	if camp.TenantID() != tenantID {
-		errors.NotFound(c, "campaign", campaignID.String())
-		return
-	}
-
-	// Pause
-	if err := camp.Pause(); err != nil {
-		errors.BadRequest(c, err.Error())
-		return
-	}
-
-	// Save
-	if err := repo.Save(camp); err != nil {
 		h.logger.Error("Failed to pause campaign", zap.Error(err))
 		errors.InternalError(c, "Failed to pause campaign", err)
 		return
@@ -565,27 +525,15 @@ func (h *CampaignHandler) CompleteCampaign(c *gin.Context) {
 		return
 	}
 
-	repo := persistence.NewGormCampaignRepository(h.db)
-	camp, err := repo.FindByID(campaignID)
+	// Build command
+	cmd := campaigncommand.CompleteCampaignCommand{
+		CampaignID: campaignID,
+		TenantID:   tenantID,
+	}
+
+	// Delegate to command handler
+	camp, err := h.completeCampaignHandler.Handle(c.Request.Context(), cmd)
 	if err != nil {
-		errors.NotFound(c, "campaign", campaignID.String())
-		return
-	}
-
-	// Check tenant ownership
-	if camp.TenantID() != tenantID {
-		errors.NotFound(c, "campaign", campaignID.String())
-		return
-	}
-
-	// Complete
-	if err := camp.Complete(); err != nil {
-		errors.BadRequest(c, err.Error())
-		return
-	}
-
-	// Save
-	if err := repo.Save(camp); err != nil {
 		h.logger.Error("Failed to complete campaign", zap.Error(err))
 		errors.InternalError(c, "Failed to complete campaign", err)
 		return

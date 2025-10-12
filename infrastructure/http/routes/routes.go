@@ -295,7 +295,7 @@ func SetupRoutesBasic(router *gin.Engine, logger *zap.Logger, healthChecker *hea
 
 // SetupRoutesBasicWithTest configura as rotas básicas com endpoints de teste, auth, channels, projects, pipelines, messages, chats e WebSocket
 // LEGACY: Mantido para compatibilidade
-func SetupRoutesBasicWithTest(router *gin.Engine, logger *zap.Logger, healthChecker *health.HealthChecker, authHandler *handlers.AuthHandler, automationHandler *handlers.AutomationHandler, broadcastHandler *handlers.BroadcastHandler, sequenceHandler *handlers.SequenceHandler, campaignHandler *handlers.CampaignHandler, channelHandler *handlers.ChannelHandler, projectHandler *handlers.ProjectHandler, pipelineHandler *handlers.PipelineHandler, wahaHandler *handlers.WAHAWebhookHandler, webhookHandler *handlers.WebhookSubscriptionHandler, queueHandler *handlers.QueueHandler, sessionHandler *handlers.SessionHandler, contactHandler *handlers.ContactHandler, trackingHandler *handlers.TrackingHandler, messageHandler *handlers.MessageHandler, chatHandler *handlers.ChatHandler, agentHandler *handlers.AgentHandler, noteHandler *handlers.NoteHandler, automationDiscoveryHandler *handlers.AutomationDiscoveryHandler, websocketHandler *handlers.WebSocketMessageHandler, wsRateLimiter *middleware.WebSocketRateLimiter, gormDB *gorm.DB, authMiddleware *middleware.AuthMiddleware, wsAuthMiddleware *middleware.WebSocketAuthMiddleware, rlsMiddleware *middleware.RLSMiddleware, rateLimiter *middleware.RateLimiter) {
+func SetupRoutesBasicWithTest(router *gin.Engine, logger *zap.Logger, healthChecker *health.HealthChecker, authHandler *handlers.AuthHandler, automationHandler *handlers.AutomationHandler, broadcastHandler *handlers.BroadcastHandler, sequenceHandler *handlers.SequenceHandler, campaignHandler *handlers.CampaignHandler, channelHandler *handlers.ChannelHandler, projectHandler *handlers.ProjectHandler, pipelineHandler *handlers.PipelineHandler, wahaHandler *handlers.WAHAWebhookHandler, webhookHandler *handlers.WebhookSubscriptionHandler, queueHandler *handlers.QueueHandler, sessionHandler *handlers.SessionHandler, contactHandler *handlers.ContactHandler, trackingHandler *handlers.TrackingHandler, messageHandler *handlers.MessageHandler, chatHandler *handlers.ChatHandler, agentHandler *handlers.AgentHandler, noteHandler *handlers.NoteHandler, automationDiscoveryHandler *handlers.AutomationDiscoveryHandler, websocketHandler *handlers.WebSocketMessageHandler, wsRateLimiter *middleware.WebSocketRateLimiter, gormDB *gorm.DB, authMiddleware *middleware.AuthMiddleware, wsAuthMiddleware *middleware.WebSocketAuthMiddleware, rlsMiddleware *middleware.RLSMiddleware) {
 	// Add GORM context middleware FIRST (before any other middleware)
 	router.Use(middleware.GORMContextMiddleware(gormDB))
 
@@ -309,13 +309,7 @@ func SetupRoutesBasicWithTest(router *gin.Engine, logger *zap.Logger, healthChec
 	// Moved from /api/v1/crm/auth to /api/v1/auth
 	// Rate limit: 10 requests per minute for auth endpoints (prevent brute force)
 	authRoutes := router.Group("/api/v1/auth")
-	if rateLimiter != nil {
-		authRoutes.Use(rateLimiter.RateLimitMiddleware(middleware.RateLimiterConfig{
-			MaxRequests: 10,
-			Window:      1 * time.Minute,
-			KeyPrefix:   "ratelimit:auth",
-		}))
-	}
+	authRoutes.Use(middleware.AuthRateLimitMiddleware()) // 10 req/min
 	{
 		authRoutes.POST("/register", authHandler.CreateUser)
 		authRoutes.POST("/login", authHandler.Login)
@@ -335,13 +329,7 @@ func SetupRoutesBasicWithTest(router *gin.Engine, logger *zap.Logger, healthChec
 	automation := router.Group("/api/v1/automation")
 	automation.Use(authMiddleware.Authenticate())
 	automation.Use(rlsMiddleware.SetUserContext())
-	if rateLimiter != nil {
-		automation.Use(rateLimiter.RateLimitByUserMiddleware(middleware.RateLimiterConfig{
-			MaxRequests: 1000,
-			Window:      1 * time.Minute,
-			KeyPrefix:   "ratelimit:api:user",
-		}))
-	}
+	automation.Use(middleware.UserBasedRateLimitMiddleware("1000-M")) // 1000 req/min per user
 	{
 		// Discovery endpoints (metadata)
 		automation.GET("/types", automationHandler.GetAutomationTypes)
@@ -411,13 +399,7 @@ func SetupRoutesBasicWithTest(router *gin.Engine, logger *zap.Logger, healthChec
 	channels := router.Group("/api/v1/crm/channels")
 	channels.Use(authMiddleware.Authenticate())
 	channels.Use(rlsMiddleware.SetUserContext())
-	if rateLimiter != nil {
-		channels.Use(rateLimiter.RateLimitByUserMiddleware(middleware.RateLimiterConfig{
-			MaxRequests: 1000,
-			Window:      1 * time.Minute,
-			KeyPrefix:   "ratelimit:api:user",
-		}))
-	}
+	channels.Use(middleware.UserBasedRateLimitMiddleware("1000-M")) // 1000 req/min per user
 	{
 		channels.GET("", channelHandler.ListChannels)
 		channels.POST("", channelHandler.CreateChannel)

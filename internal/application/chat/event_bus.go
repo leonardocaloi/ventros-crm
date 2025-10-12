@@ -3,9 +3,9 @@ package chat
 import (
 	"context"
 
-	domainchat "github.com/caloi/ventros-crm/internal/domain/crm/chat"
+	"github.com/caloi/ventros-crm/internal/domain/core/shared"
 )
 
 type EventBus interface {
-	Publish(ctx context.Context, event domainchat.DomainEvent) error
+	Publish(ctx context.Context, event shared.DomainEvent) error
 }

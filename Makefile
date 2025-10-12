@@ -61,9 +61,12 @@ clean: ## Clean EVERYTHING (API + containers + volumes + files) - DESTRUCTIVE
 
 ##@ 🚀 Local Development
 
-infra: ## Start infrastructure (Postgres, RabbitMQ, Redis, Temporal)
+infra: ## Start infrastructure (Postgres, RabbitMQ, Redis, Temporal, Keycloak)
 	@echo "$(BLUE)Starting Infrastructure...$(RESET)"
 	@$(COMPOSE) --env-file $(ENV_FILE) -f $(COMPOSE_FILE) up -d
+	@echo ""
+	@echo "$(YELLOW)Initializing Keycloak...$(RESET)"
+	@bash .deploy/container/scripts/init-keycloak.sh
 	@echo ""
 	@echo "$(GREEN)✓ Infrastructure ready$(RESET)"
 	@echo ""
@@ -72,8 +75,14 @@ infra: ## Start infrastructure (Postgres, RabbitMQ, Redis, Temporal)
 	@echo "  • RabbitMQ:   localhost:5672 (UI: http://localhost:15672)"
 	@echo "  • Redis:      localhost:6379"
 	@echo "  • Temporal:   localhost:7233 (UI: http://localhost:8088)"
+	@echo "  • Keycloak:   http://localhost:8180 (admin/admin123)"
 	@echo ""
 	@echo "Next: $(GREEN)make api$(RESET)"
+
+infra-clean: ## Stop infrastructure and clean volumes (DESTRUCTIVE)
+	@echo "$(YELLOW)⚠️  Stopping infrastructure and cleaning volumes...$(RESET)"
+	@$(COMPOSE) --env-file $(ENV_FILE) -f $(COMPOSE_FILE) down -v
+	@echo "$(GREEN)✓ Infrastructure stopped and volumes removed$(RESET)"
 
 api: swagger ## Run API locally (requires: make infra)
 	@echo "$(BLUE)Starting API...$(RESET)"

@@ -690,9 +690,6 @@ func main() {
 	// WebSocket rate limiter (max 5 connections per minute per IP)
 	wsRateLimiter := middleware.NewWebSocketRateLimiter(redisClient, logger)
 
-	// Initialize HTTP Rate Limiter (global rate limiting for API endpoints)
-	rateLimiter := middleware.NewRateLimiter(redisClient, logger)
-
 	// Set Gin mode
 	if cfg.Server.Env == "production" {
 		gin.SetMode(gin.ReleaseMode)
@@ -702,7 +699,7 @@ func main() {
 	router := gin.Default()
 
 	// Setup basic routes (health, queue, session, contact, webhooks, auth, automation, broadcasts, sequences, campaigns, channels, projects, pipelines, trackings, automation discovery, messages, chats, agents, notes, WebSocket)
-	routes.SetupRoutesBasicWithTest(router, logger, healthChecker, authHandler, automationHandler, broadcastHandler, sequenceHandler, campaignHandler, channelHandler, projectHandler, pipelineHandler, wahaHandler, webhookHandler, queueHandler, sessionHandler, contactHandler, trackingHandler, messageHandler, chatHandler, agentHandler, noteHandler, automationDiscoveryHandler, websocketHandler, wsRateLimiter, gormDB, authMiddleware, wsAuthMiddleware, rlsMiddleware, rateLimiter)
+	routes.SetupRoutesBasicWithTest(router, logger, healthChecker, authHandler, automationHandler, broadcastHandler, sequenceHandler, campaignHandler, channelHandler, projectHandler, pipelineHandler, wahaHandler, webhookHandler, queueHandler, sessionHandler, contactHandler, trackingHandler, messageHandler, chatHandler, agentHandler, noteHandler, automationDiscoveryHandler, websocketHandler, wsRateLimiter, gormDB, authMiddleware, wsAuthMiddleware, rlsMiddleware)
 
 	// Start server with graceful shutdown
 	srv := &http.Server{

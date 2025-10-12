@@ -1,86 +1,63 @@
 package middleware
 
 import (
-	"context"
 	"fmt"
 	"net/http"
-	"strconv"
-	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/redis/go-redis/v9"
-	"go.uber.org/zap"
+	"github.com/ulule/limiter/v3"
+	mgin "github.com/ulule/limiter/v3/drivers/middleware/gin"
+	"github.com/ulule/limiter/v3/drivers/store/memory"
 )
 
-// RateLimiterConfig configuração do rate limiter
-type RateLimiterConfig struct {
-	// MaxRequests número máximo de requisições permitidas
-	MaxRequests int
-	// Window duração da janela de tempo
-	Window time.Duration
-	// KeyPrefix prefixo da chave no Redis
-	KeyPrefix string
+// RateLimitConfig configurações de rate limiting
+type RateLimitConfig struct {
+	// Requests per period (e.g., "100-M" = 100 requests per minute)
+	Rate string
+
+	// Custom key extractor (default: IP address)
+	KeyExtractor func(*gin.Context) string
 }
 
-// RateLimiter implementa rate limiting baseado em Redis
-type RateLimiter struct {
-	redis  *redis.Client
-	logger *zap.Logger
-}
-
-// NewRateLimiter cria um novo rate limiter
-func NewRateLimiter(redisClient *redis.Client, logger *zap.Logger) *RateLimiter {
-	return &RateLimiter{
-		redis:  redisClient,
-		logger: logger,
+// RateLimitMiddleware cria middleware de rate limiting
+func RateLimitMiddleware(config RateLimitConfig) gin.HandlerFunc {
+	// Parse rate string (format: "requests-period")
+	// Examples: "100-M" (100/min), "10-S" (10/sec), "1000-H" (1000/hour)
+	rate, err := limiter.NewRateFromFormatted(config.Rate)
+	if err != nil {
+		panic(fmt.Sprintf("invalid rate format: %s", config.Rate))
 	}
-}
 
-// RateLimitMiddleware cria um middleware de rate limiting por IP
-func (rl *RateLimiter) RateLimitMiddleware(config RateLimiterConfig) gin.HandlerFunc {
+	// Create in-memory store
+	// Production: Use Redis store for distributed systems
+	store := memory.NewStore()
+
+	// Create limiter instance
+	instance := limiter.New(store, rate)
+
+	// Key extractor: default is IP-based
+	var keyExtractor mgin.KeyGetter
+	if config.KeyExtractor != nil {
+		keyExtractor = func(c *gin.Context) string {
+			return config.KeyExtractor(c)
+		}
+	} else {
+		keyExtractor = mgin.DefaultKeyGetter
+	}
+
+	// Create middleware
+	middleware := mgin.NewMiddleware(instance, mgin.WithKeyGetter(keyExtractor))
+
 	return func(c *gin.Context) {
-		// Se Redis não está disponível, permitir todas as requisições
-		if rl.redis == nil {
-			c.Next()
-			return
-		}
+		middleware(c)
 
-		// Obter IP do cliente
-		clientIP := c.ClientIP()
-		key := fmt.Sprintf("%s:%s", config.KeyPrefix, clientIP)
-
-		// Verificar e incrementar contador
-		allowed, remaining, resetAt, err := rl.checkAndIncrement(key, config.MaxRequests, config.Window)
-		if err != nil {
-			rl.logger.Error("Rate limit check failed",
-				zap.Error(err),
-				zap.String("client_ip", clientIP))
-			// Em caso de erro, permitir a requisição (fail open)
-			c.Next()
-			return
-		}
-
-		// Adicionar headers informativos
-		c.Header("X-RateLimit-Limit", strconv.Itoa(config.MaxRequests))
-		c.Header("X-RateLimit-Remaining", strconv.Itoa(remaining))
-		c.Header("X-RateLimit-Reset", strconv.FormatInt(resetAt.Unix(), 10))
-
-		if !allowed {
-			retryAfter := time.Until(resetAt).Seconds()
-			c.Header("Retry-After", strconv.Itoa(int(retryAfter)))
-
-			rl.logger.Warn("Rate limit exceeded",
-				zap.String("client_ip", clientIP),
-				zap.String("key_prefix", config.KeyPrefix),
-				zap.Int("max_requests", config.MaxRequests))
-
-			c.JSON(http.StatusTooManyRequests, gin.H{
-				"error": "Rate limit exceeded",
-				"message": fmt.Sprintf("Too many requests. Maximum %d requests per %v. Try again in %d seconds.",
-					config.MaxRequests, config.Window, int(retryAfter)),
-				"retry_after": int(retryAfter),
+		// If rate limit exceeded, mgin already set the status
+		// We just need to ensure the response format is consistent
+		if c.Writer.Status() == http.StatusTooManyRequests {
+			c.AbortWithStatusJSON(http.StatusTooManyRequests, gin.H{
+				"error":   "rate_limit_exceeded",
+				"message": "Too many requests. Please try again later.",
 			})
-			c.Abort()
 			return
 		}
 
@@ -88,94 +65,36 @@ func (rl *RateLimiter) RateLimitMiddleware(config RateLimiterConfig) gin.Handler
 	}
 }
 
-// RateLimitByUserMiddleware cria um middleware de rate limiting por usuário autenticado
-func (rl *RateLimiter) RateLimitByUserMiddleware(config RateLimiterConfig) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		// Se Redis não está disponível, permitir todas as requisições
-		if rl.redis == nil {
-			c.Next()
-			return
-		}
-
-		// Obter user_id do contexto (definido pelo auth middleware)
-		userID, exists := c.Get("user_id")
-		if !exists {
-			// Se não autenticado, usar IP
-			rl.RateLimitMiddleware(config)(c)
-			return
-		}
-
-		key := fmt.Sprintf("%s:%v", config.KeyPrefix, userID)
-
-		// Verificar e incrementar contador
-		allowed, remaining, resetAt, err := rl.checkAndIncrement(key, config.MaxRequests, config.Window)
-		if err != nil {
-			rl.logger.Error("Rate limit check failed",
-				zap.Error(err),
-				zap.String("user_id", fmt.Sprint(userID)))
-			// Em caso de erro, permitir a requisição (fail open)
-			c.Next()
-			return
-		}
-
-		// Adicionar headers informativos
-		c.Header("X-RateLimit-Limit", strconv.Itoa(config.MaxRequests))
-		c.Header("X-RateLimit-Remaining", strconv.Itoa(remaining))
-		c.Header("X-RateLimit-Reset", strconv.FormatInt(resetAt.Unix(), 10))
-
-		if !allowed {
-			retryAfter := time.Until(resetAt).Seconds()
-			c.Header("Retry-After", strconv.Itoa(int(retryAfter)))
-
-			rl.logger.Warn("Rate limit exceeded",
-				zap.String("user_id", fmt.Sprint(userID)),
-				zap.String("key_prefix", config.KeyPrefix),
-				zap.Int("max_requests", config.MaxRequests))
-
-			c.JSON(http.StatusTooManyRequests, gin.H{
-				"error": "Rate limit exceeded",
-				"message": fmt.Sprintf("Too many requests. Maximum %d requests per %v. Try again in %d seconds.",
-					config.MaxRequests, config.Window, int(retryAfter)),
-				"retry_after": int(retryAfter),
-			})
-			c.Abort()
-			return
-		}
-
-		c.Next()
-	}
+// GlobalRateLimitMiddleware rate limit global (IP-based)
+// Recommended: 100 requests per minute per IP
+func GlobalRateLimitMiddleware() gin.HandlerFunc {
+	return RateLimitMiddleware(RateLimitConfig{
+		Rate: "100-M", // 100 requests per minute
+	})
 }
 
-// checkAndIncrement verifica e incrementa o contador de rate limiting
-// Retorna: (allowed bool, remaining int, resetAt time.Time, error)
-func (rl *RateLimiter) checkAndIncrement(key string, maxRequests int, window time.Duration) (bool, int, time.Time, error) {
-	ctx := context.Background()
+// AuthRateLimitMiddleware rate limit para endpoints de autenticação
+// Mais restritivo para prevenir brute force
+// Recommended: 10 requests per minute per IP
+func AuthRateLimitMiddleware() gin.HandlerFunc {
+	return RateLimitMiddleware(RateLimitConfig{
+		Rate: "10-M", // 10 requests per minute
+	})
+}
 
-	// Incrementar contador
-	count, err := rl.redis.Incr(ctx, key).Result()
-	if err != nil {
-		return false, 0, time.Time{}, err
-	}
-
-	// Se é a primeira requisição, definir TTL
-	if count == 1 {
-		if err := rl.redis.Expire(ctx, key, window).Err(); err != nil {
-			return false, 0, time.Time{}, err
-		}
-	}
-
-	// Obter TTL para calcular reset time
-	ttl, err := rl.redis.TTL(ctx, key).Result()
-	if err != nil {
-		return false, 0, time.Time{}, err
-	}
-
-	resetAt := time.Now().Add(ttl)
-	remaining := maxRequests - int(count)
-	if remaining < 0 {
-		remaining = 0
-	}
-
-	allowed := count <= int64(maxRequests)
-	return allowed, remaining, resetAt, nil
+// UserBasedRateLimitMiddleware rate limit por usuário autenticado
+// Use após JWT middleware
+func UserBasedRateLimitMiddleware(rate string) gin.HandlerFunc {
+	return RateLimitMiddleware(RateLimitConfig{
+		Rate: rate,
+		KeyExtractor: func(c *gin.Context) string {
+			// Try to get user context
+			userCtx, err := GetUserContext(c)
+			if err != nil {
+				// Fallback to IP if user not authenticated
+				return c.ClientIP()
+			}
+			return fmt.Sprintf("user:%s", userCtx.Subject)
+		},
+	})
 }
