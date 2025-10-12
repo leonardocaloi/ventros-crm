@@ -6,12 +6,14 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/caloi/ventros-crm/internal/domain/core/shared"
 )
 
 var ErrProjectNotFound = errors.New("project not found")
 
 type Project struct {
 	id                    uuid.UUID
+	version               int // Optimistic locking - prevents lost updates
 	customerID            uuid.UUID
 	billingAccountID      uuid.UUID
 	tenantID              string
@@ -24,7 +26,7 @@ type Project struct {
 	createdAt             time.Time
 	updatedAt             time.Time
 
-	events []DomainEvent
+	events []shared.DomainEvent
 }
 
 func NewProject(customerID, billingAccountID uuid.UUID, tenantID, name string) (*Project, error) {
@@ -44,6 +46,7 @@ func NewProject(customerID, billingAccountID uuid.UUID, tenantID, name string) (
 	now := time.Now()
 	project := &Project{
 		id:                    uuid.New(),
+		version:               1, // Start with version 1 for new aggregates
 		customerID:            customerID,
 		billingAccountID:      billingAccountID,
 		tenantID:              tenantID,
@@ -54,7 +57,7 @@ func NewProject(customerID, billingAccountID uuid.UUID, tenantID, name string) (
 		agentAssignment:       NewAgentAssignmentConfig(),
 		createdAt:             now,
 		updatedAt:             now,
-		events:                []DomainEvent{},
+		events:                []shared.DomainEvent{},
 	}
 
 	project.addEvent(NewProjectCreatedEvent(project.id, customerID, billingAccountID, tenantID, name))
@@ -64,6 +67,7 @@ func NewProject(customerID, billingAccountID uuid.UUID, tenantID, name string) (
 
 func ReconstructProject(
 	id uuid.UUID,
+	version int, // Optimistic locking version
 	customerID uuid.UUID,
 	billingAccountID uuid.UUID,
 	tenantID string,
@@ -76,6 +80,9 @@ func ReconstructProject(
 	createdAt time.Time,
 	updatedAt time.Time,
 ) *Project {
+	if version == 0 {
+		version = 1 // Default to version 1 (backwards compatibility)
+	}
 	if configuration == nil {
 		configuration = make(map[string]interface{})
 	}
@@ -90,6 +97,7 @@ func ReconstructProject(
 
 	return &Project{
 		id:                    id,
+		version:               version,
 		customerID:            customerID,
 		billingAccountID:      billingAccountID,
 		tenantID:              tenantID,
@@ -101,7 +109,7 @@ func ReconstructProject(
 		agentAssignment:       agentAssignment,
 		createdAt:             createdAt,
 		updatedAt:             updatedAt,
-		events:                []DomainEvent{},
+		events:                []shared.DomainEvent{},
 	}
 }
 
@@ -289,6 +297,7 @@ func (p *Project) RequiresAtLeastOneAgent() bool {
 }
 
 func (p *Project) ID() uuid.UUID               { return p.id }
+func (p *Project) Version() int                { return p.version }
 func (p *Project) CustomerID() uuid.UUID       { return p.customerID }
 func (p *Project) BillingAccountID() uuid.UUID { return p.billingAccountID }
 func (p *Project) TenantID() string            { return p.tenantID }
@@ -306,14 +315,17 @@ func (p *Project) SessionTimeoutMinutes() int { return p.sessionTimeoutMinutes }
 func (p *Project) CreatedAt() time.Time       { return p.createdAt }
 func (p *Project) UpdatedAt() time.Time       { return p.updatedAt }
 
-func (p *Project) DomainEvents() []DomainEvent {
-	return append([]DomainEvent{}, p.events...)
+func (p *Project) DomainEvents() []shared.DomainEvent {
+	return append([]shared.DomainEvent{}, p.events...)
 }
 
 func (p *Project) ClearEvents() {
-	p.events = []DomainEvent{}
+	p.events = []shared.DomainEvent{}
 }
 
-func (p *Project) addEvent(event DomainEvent) {
+func (p *Project) addEvent(event shared.DomainEvent) {
 	p.events = append(p.events, event)
 }
+
+// Compile-time check that Project implements AggregateRoot interface
+var _ shared.AggregateRoot = (*Project)(nil)

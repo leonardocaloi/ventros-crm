@@ -7,8 +7,6 @@ import (
 	"github.com/google/uuid"
 )
 
-type DomainEvent = shared.DomainEvent
-
 type ProjectCreatedEvent struct {
 	shared.BaseEvent
 	ProjectID        uuid.UUID

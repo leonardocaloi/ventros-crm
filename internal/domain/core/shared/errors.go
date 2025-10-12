@@ -10,15 +10,16 @@ type ErrorType string
 
 const (
 	// Domain/Business Logic Errors
-	ErrorTypeValidation         ErrorType = "VALIDATION_ERROR"
-	ErrorTypeNotFound           ErrorType = "NOT_FOUND"
-	ErrorTypeAlreadyExists      ErrorType = "ALREADY_EXISTS"
-	ErrorTypeConflict           ErrorType = "CONFLICT"
-	ErrorTypeForbidden          ErrorType = "FORBIDDEN"
-	ErrorTypeUnauthorized       ErrorType = "UNAUTHORIZED"
-	ErrorTypeBadRequest         ErrorType = "BAD_REQUEST"
-	ErrorTypePrecondition       ErrorType = "PRECONDITION_FAILED"
-	ErrorTypeInvariantViolation ErrorType = "INVARIANT_VIOLATION"
+	ErrorTypeValidation          ErrorType = "VALIDATION_ERROR"
+	ErrorTypeNotFound            ErrorType = "NOT_FOUND"
+	ErrorTypeAlreadyExists       ErrorType = "ALREADY_EXISTS"
+	ErrorTypeConflict            ErrorType = "CONFLICT"
+	ErrorTypeOptimisticLock      ErrorType = "OPTIMISTIC_LOCK_CONFLICT"
+	ErrorTypeForbidden           ErrorType = "FORBIDDEN"
+	ErrorTypeUnauthorized        ErrorType = "UNAUTHORIZED"
+	ErrorTypeBadRequest          ErrorType = "BAD_REQUEST"
+	ErrorTypePrecondition        ErrorType = "PRECONDITION_FAILED"
+	ErrorTypeInvariantViolation  ErrorType = "INVARIANT_VIOLATION"
 
 	// Infrastructure Errors
 	ErrorTypeDatabase  ErrorType = "DATABASE_ERROR"
@@ -131,6 +132,20 @@ func NewConflictError(message string) *DomainError {
 		Message: message,
 		Code:    "CONFLICT",
 	}
+}
+
+// NewOptimisticLockError creates an optimistic locking conflict error
+func NewOptimisticLockError(resource, resourceID string, expectedVersion, actualVersion int) *DomainError {
+	err := &DomainError{
+		Type:       ErrorTypeOptimisticLock,
+		Message:    fmt.Sprintf("%s was modified by another transaction (version mismatch)", resource),
+		Code:       "OPTIMISTIC_LOCK_CONFLICT",
+		Resource:   resource,
+		ResourceID: resourceID,
+	}
+	return err.
+		WithDetail("expected_version", expectedVersion).
+		WithDetail("actual_version", actualVersion)
 }
 
 // NewForbiddenError creates a forbidden error
@@ -306,6 +321,15 @@ func IsUnauthorizedError(err error) bool {
 	var domainErr *DomainError
 	if errors.As(err, &domainErr) {
 		return domainErr.Type == ErrorTypeUnauthorized
+	}
+	return false
+}
+
+// IsOptimisticLockError checks if error is an optimistic locking conflict error
+func IsOptimisticLockError(err error) bool {
+	var domainErr *DomainError
+	if errors.As(err, &domainErr) {
+		return domainErr.Type == ErrorTypeOptimisticLock
 	}
 	return false
 }
