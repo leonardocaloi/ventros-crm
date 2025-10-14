@@ -3,7 +3,7 @@ package contact_test
 import (
 	"testing"
 
-	"github.com/caloi/ventros-crm/internal/domain/crm/contact"
+	"github.com/ventros/crm/internal/domain/crm/contact"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

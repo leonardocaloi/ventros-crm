@@ -1,0 +1,27 @@
+---
+dependencies:
+  - role: postgres_operator
+    when: ventros_crm_postgres_operator_install | default(false)
+  
+  - role: rabbitmq_operator
+    when: ventros_crm_rabbitmq_operator_install | default(false)
+
+galaxy_info:
+  author: Leonardo Caloi
+  description: Deploy Ventros CRM application with all dependencies
+  company: Ventros
+  license: MIT
+  min_ansible_version: "2.9"
+  
+  platforms:
+    - name: Kubernetes
+      versions:
+        - all
+  
+  galaxy_tags:
+    - kubernetes
+    - crm
+    - golang
+    - temporal
+    - rabbitmq
+    - postgresql

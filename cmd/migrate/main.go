@@ -7,9 +7,9 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/caloi/ventros-crm/infrastructure/config"
-	"github.com/caloi/ventros-crm/infrastructure/database"
 	_ "github.com/lib/pq"
+	"github.com/ventros/crm/infrastructure/config"
+	"github.com/ventros/crm/infrastructure/database"
 	"go.uber.org/zap"
 )
 

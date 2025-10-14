@@ -5,9 +5,9 @@ import (
 	"errors"
 	"time"
 
-	"github.com/caloi/ventros-crm/infrastructure/persistence/entities"
-	"github.com/caloi/ventros-crm/internal/domain/crm/message"
 	"github.com/google/uuid"
+	"github.com/ventros/crm/infrastructure/persistence/entities"
+	"github.com/ventros/crm/internal/domain/crm/message"
 	"gorm.io/gorm"
 )
 
@@ -293,10 +293,12 @@ func (r *GormMessageRepository) domainToEntity(m *message.Message) *entities.Mes
 		Status:           m.Status().String(),
 		Language:         m.Language(),
 		AgentID:          m.AgentID(),
+		Source:           m.Source().String(),
 		Metadata:         m.Metadata(),
 		Mentions:         m.Mentions(),
 		DeliveredAt:      m.DeliveredAt(),
 		ReadAt:           m.ReadAt(),
+		PlayedAt:         m.PlayedAt(),
 		CreatedAt:        m.Timestamp(),
 		UpdatedAt:        time.Now(),
 	}
@@ -308,6 +310,12 @@ func (r *GormMessageRepository) domainToEntity(m *message.Message) *entities.Mes
 func (r *GormMessageRepository) entityToDomain(entity *entities.MessageEntity) *message.Message {
 	contentType, _ := message.ParseContentType(entity.ContentType)
 	status, _ := message.ParseStatus(entity.Status)
+
+	// Parse source with default fallback
+	source := message.Source(entity.Source)
+	if !source.IsValid() {
+		source = message.SourceManual // Default to manual if invalid
+	}
 
 	return message.ReconstructMessage(
 		entity.ID,
@@ -328,9 +336,11 @@ func (r *GormMessageRepository) entityToDomain(entity *entities.MessageEntity) *
 		status,
 		entity.Language,
 		entity.AgentID,
+		source,
 		entity.Metadata,
 		entity.DeliveredAt,
 		entity.ReadAt,
+		entity.PlayedAt,
 		entity.Mentions,
 	)
 }

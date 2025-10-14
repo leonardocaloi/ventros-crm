@@ -3,8 +3,8 @@ package messaging
 import (
 	"context"
 
-	"github.com/caloi/ventros-crm/infrastructure/channels/waha"
 	"github.com/redis/go-redis/v9"
+	"github.com/ventros/crm/infrastructure/channels/waha"
 )
 
 // DebouncerIntegration integra debouncer com sistema existente

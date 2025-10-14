@@ -32,7 +32,7 @@ package myusecase
 import (
     "context"
     "fmt"
-    "github.com/caloi/ventros-crm/internal/domain/saga"
+    "github.com/ventros/crm/internal/domain/saga"
 )
 
 func (uc *MyUseCase) Execute(ctx context.Context, cmd MyCommand) error {
@@ -165,7 +165,7 @@ func setupSagaCoordinator(
 ### Via Código
 
 ```go
-import "github.com/caloi/ventros-crm/internal/domain/saga"
+import "github.com/ventros/crm/internal/domain/saga"
 
 // Criar tracker
 tracker := saga.NewSagaTracker(outboxRepo)

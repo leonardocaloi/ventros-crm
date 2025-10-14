@@ -5,9 +5,9 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/caloi/ventros-crm/infrastructure/persistence/entities"
-	"github.com/caloi/ventros-crm/internal/domain/core/shared"
 	"github.com/google/uuid"
+	"github.com/ventros/crm/infrastructure/persistence/entities"
+	"github.com/ventros/crm/internal/domain/core/shared"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 )

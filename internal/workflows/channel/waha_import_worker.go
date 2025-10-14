@@ -3,11 +3,12 @@ package channel
 import (
 	"context"
 
-	"github.com/caloi/ventros-crm/infrastructure/channels/waha"
-	"github.com/caloi/ventros-crm/internal/domain/crm/channel"
-	"github.com/caloi/ventros-crm/internal/domain/crm/contact"
-	"github.com/caloi/ventros-crm/internal/domain/crm/message"
-	"github.com/caloi/ventros-crm/internal/domain/crm/session"
+	"github.com/ventros/crm/infrastructure/channels/waha"
+	"github.com/ventros/crm/internal/domain/crm/channel"
+	"github.com/ventros/crm/internal/domain/crm/contact"
+	"github.com/ventros/crm/internal/domain/crm/message"
+	"github.com/ventros/crm/internal/domain/crm/session"
+	"go.temporal.io/sdk/activity"
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/worker"
 	"go.uber.org/zap"
@@ -49,10 +50,10 @@ func NewWAHAImportWorker(
 	// Registrar workflow
 	w.RegisterWorkflow(WAHAHistoryImportWorkflow)
 
-	// Registrar activities
-	w.RegisterActivity(activities.FetchWAHAChatsActivity)
-	w.RegisterActivity(activities.ImportChatHistoryActivity)
-	w.RegisterActivity(activities.MarkImportCompletedActivity)
+	// Registrar activities com nomes explícitos (para corresponder aos nomes no workflow)
+	w.RegisterActivityWithOptions(activities.FetchWAHAChatsActivity, activity.RegisterOptions{Name: "FetchWAHAChatsActivity"})
+	w.RegisterActivityWithOptions(activities.ImportChatHistoryActivity, activity.RegisterOptions{Name: "ImportChatHistoryActivity"})
+	w.RegisterActivityWithOptions(activities.MarkImportCompletedActivity, activity.RegisterOptions{Name: "MarkImportCompletedActivity"})
 
 	return &WAHAImportWorker{
 		client:     temporalClient,

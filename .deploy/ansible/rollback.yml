@@ -1,0 +1,198 @@
+---
+- name: Rollback Ventros CRM
+  hosts: localhost
+  connection: local
+  gather_facts: true
+  vars_files:
+    - global_vars.yml
+
+  vars:
+    # Override with AWX extra vars if needed
+    rollback_revision: "{{ rollback_to_revision | default('') }}"
+
+  pre_tasks:
+    - name: Display rollback information
+      debug:
+        msg:
+          - "========================================"
+          - "    VENTROS CRM ROLLBACK"
+          - "========================================"
+          - "⚠️ WARNING: Rolling back deployment"
+          - "Environment: {{ deploy_environment | default('production') }}"
+          - "Namespace: {{ ventros_crm.namespace }}"
+          - "Target Revision: {{ rollback_revision if rollback_revision else 'Previous' }}"
+          - "========================================"
+
+    - name: Get current Helm release
+      kubernetes.core.helm_info:
+        name: ventros-crm
+        namespace: "{{ ventros_crm.namespace }}"
+      register: current_release
+
+    - name: Display current release info
+      debug:
+        msg:
+          - "Current Release Information:"
+          - "  Name: {{ current_release.status.name }}"
+          - "  Version: {{ current_release.status.version }}"
+          - "  Chart: {{ current_release.status.chart }}"
+          - "  App Version: {{ current_release.status.app_version }}"
+          - "  Status: {{ current_release.status.status }}"
+          - "  Last Deployed: {{ current_release.status.last_deployed }}"
+      when: current_release.status is defined
+
+    - name: Get Helm history
+      shell: |
+        helm history ventros-crm -n {{ ventros_crm.namespace }} --output json
+      register: helm_history_raw
+      changed_when: false
+
+    - name: Parse Helm history
+      set_fact:
+        helm_history: "{{ helm_history_raw.stdout | from_json }}"
+
+    - name: Display available revisions
+      debug:
+        msg: |
+          Available revisions:
+          {% for revision in helm_history %}
+          - Revision {{ revision.revision }}: {{ revision.chart }} ({{ revision.status }}) - {{ revision.updated }}
+            App Version: {{ revision.app_version }}
+            Description: {{ revision.description }}
+          {% endfor %}
+
+    - name: Confirm rollback (interactive mode)
+      pause:
+        prompt: |
+          ⚠️ ROLLBACK CONFIRMATION ⚠️
+
+          You are about to rollback Ventros CRM deployment.
+
+          Current: Revision {{ current_release.status.version }} ({{ current_release.status.app_version }})
+          Target: {{ 'Revision ' + rollback_revision if rollback_revision else 'Previous revision' }}
+
+          This action will:
+          - Restart all pods
+          - Revert to previous configuration
+          - May cause brief downtime
+
+          Type 'yes' to proceed with rollback:
+      register: confirm_rollback
+      when:
+        - rollback_confirmation | default(true) | bool
+        - lookup('env', 'AWX_JOB_ID') == ''  # Only prompt if not running in AWX
+
+    - name: Validate confirmation
+      assert:
+        that:
+          - confirm_rollback.user_input | default('yes') | lower == 'yes' or lookup('env', 'AWX_JOB_ID') != ''
+        fail_msg: "Rollback cancelled by user"
+        success_msg: "Rollback confirmed, proceeding..."
+      when: rollback_confirmation | default(true) | bool
+
+  tasks:
+    - name: Perform Helm rollback
+      kubernetes.core.helm:
+        name: ventros-crm
+        namespace: "{{ ventros_crm.namespace }}"
+        state: rollback
+        revision: "{{ rollback_revision if rollback_revision else omit }}"
+        wait: true
+        wait_timeout: 5m
+      register: rollback_result
+
+    - name: Display rollback result
+      debug:
+        msg:
+          - "Rollback executed:"
+          - "  Status: {{ rollback_result.status.status }}"
+          - "  Revision: {{ rollback_result.status.version }}"
+
+  post_tasks:
+    - name: Wait for pods to be ready
+      kubernetes.core.k8s_info:
+        kind: Deployment
+        namespace: "{{ ventros_crm.namespace }}"
+        name: ventros-crm
+        wait: yes
+        wait_timeout: 300
+      register: deployment_after_rollback
+      retries: 30
+      delay: 10
+      until: |
+        deployment_after_rollback.resources | length > 0 and
+        deployment_after_rollback.resources[0].status.readyReplicas | default(0) >= 1
+
+    - name: Get deployment status after rollback
+      kubernetes.core.k8s_info:
+        kind: Deployment
+        namespace: "{{ ventros_crm.namespace }}"
+        name: ventros-crm
+      register: final_deployment
+
+    - name: Display deployment status
+      debug:
+        msg:
+          - "========================================"
+          - "    POST-ROLLBACK STATUS"
+          - "========================================"
+          - "Ready Replicas: {{ final_deployment.resources[0].status.readyReplicas | default(0) }}"
+          - "Available Replicas: {{ final_deployment.resources[0].status.availableReplicas | default(0) }}"
+          - "Desired Replicas: {{ final_deployment.resources[0].spec.replicas }}"
+          - "Image: {{ final_deployment.resources[0].spec.template.spec.containers[0].image }}"
+          - "========================================"
+
+    - name: Get pod status
+      kubernetes.core.k8s_info:
+        kind: Pod
+        namespace: "{{ ventros_crm.namespace }}"
+        label_selectors:
+          - app=ventros-crm
+      register: pods_after_rollback
+
+    - name: Check for failed pods
+      set_fact:
+        failed_pods: "{{ pods_after_rollback.resources | selectattr('status.phase', 'ne', 'Running') | list }}"
+
+    - name: Display failed pods
+      debug:
+        msg: "⚠️ Failed pod: {{ item.metadata.name }} - Phase: {{ item.status.phase }}"
+      loop: "{{ failed_pods }}"
+      when: failed_pods | length > 0
+      loop_control:
+        label: "{{ item.metadata.name }}"
+
+    - name: Verify health endpoint
+      uri:
+        url: "https://{{ ventros_crm.ingress.host }}/health"
+        status_code: 200
+        validate_certs: true
+        timeout: 10
+      retries: 15
+      delay: 5
+      register: health_check
+      when: ventros_crm.ingress.enabled | default(true)
+      ignore_errors: yes
+
+    - name: Rollback summary
+      debug:
+        msg:
+          - "========================================"
+          - "    ROLLBACK COMPLETE"
+          - "========================================"
+          - "{% if health_check.failed | default(false) %}❌ Rollback completed but health check failed{% else %}✅ Rollback successful{% endif %}"
+          - "Previous Version: {{ current_release.status.app_version | default('unknown') }}"
+          - "Current Version: {{ final_deployment.resources[0].spec.template.spec.containers[0].image | regex_search('[^:]+$') }}"
+          - "🌐 URL: https://{{ ventros_crm.ingress.host }}"
+          - "🔍 Health: https://{{ ventros_crm.ingress.host }}/health"
+          - "{% if failed_pods | length > 0 %}⚠️ Warning: {{ failed_pods | length }} pod(s) not running{% endif %}"
+          - "========================================"
+
+    - name: Fail if health check failed
+      fail:
+        msg: |
+          ❌ Rollback completed but application health check failed.
+          Manual intervention required. Check pod logs and events.
+      when:
+        - health_check.failed | default(false)
+        - ventros_crm.ingress.enabled | default(true)

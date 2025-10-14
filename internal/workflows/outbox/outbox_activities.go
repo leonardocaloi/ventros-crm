@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/caloi/ventros-crm/internal/domain/core/outbox"
+	"github.com/ventros/crm/internal/domain/core/outbox"
 	"go.temporal.io/sdk/activity"
 )
 

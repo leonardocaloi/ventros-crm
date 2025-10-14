@@ -38,10 +38,28 @@ type ChannelStatus string
 const (
 	StatusActive       ChannelStatus = "active"
 	StatusInactive     ChannelStatus = "inactive"
+	StatusActivating   ChannelStatus = "activating" // Status intermediário durante ativação assíncrona
 	StatusConnecting   ChannelStatus = "connecting"
 	StatusDisconnected ChannelStatus = "disconnected"
 	StatusError        ChannelStatus = "error"
 )
+
+type HistoryImportStatus string
+
+const (
+	HistoryImportIdle       HistoryImportStatus = "idle"
+	HistoryImportInProgress HistoryImportStatus = "importing"
+	HistoryImportCompleted  HistoryImportStatus = "completed"
+	HistoryImportFailed     HistoryImportStatus = "failed"
+)
+
+type HistoryImportStats struct {
+	Total     int        `json:"total"`
+	Processed int        `json:"processed"`
+	Failed    int        `json:"failed"`
+	StartedAt time.Time  `json:"started_at"`
+	EndedAt   *time.Time `json:"ended_at,omitempty"`
+}
 
 type Channel struct {
 	ID         uuid.UUID
@@ -81,6 +99,17 @@ type Channel struct {
 	LastMessageAt    *time.Time
 	LastErrorAt      *time.Time
 	LastError        string
+
+	// History Import
+	HistoryImportEnabled         bool
+	LastImportDate               *time.Time
+	HistoryImportStatus          HistoryImportStatus
+	HistoryImportStats           *HistoryImportStats
+	HistoryImportCorrelationID   string // ID de correlação para Saga Pattern tracking
+	HistoryImportMessagesCount   int    // Total de mensagens importadas
+	DefaultAgentID               *uuid.UUID
+	HistoryImportMaxDays         *int // NULL = ilimitado, 7 = última semana, 30 = último mês, 90 = últimos 3 meses
+	HistoryImportMaxMessagesChat *int // NULL = ilimitado, ex: 1000 = máximo 1000 mensagens por chat
 
 	CreatedAt time.Time
 	UpdatedAt time.Time
@@ -403,24 +432,36 @@ func (c *Channel) GetWAHAConfig() (*WAHAConfig, error) {
 
 func (c *Channel) Activate() {
 	c.Status = StatusActive
-	now := time.Now()
-	c.UpdatedAt = now
+	c.UpdatedAt = time.Now()
 
-	c.addEvent(ChannelActivatedEvent{
-		ChannelID:   c.ID,
-		ActivatedAt: now,
-	})
+	c.addEvent(NewChannelActivatedEvent(c.ID))
 }
 
 func (c *Channel) Deactivate() {
 	c.Status = StatusInactive
+	c.UpdatedAt = time.Now()
+
+	c.addEvent(NewChannelDeactivatedEvent(c.ID))
+}
+
+// RequestActivation marca o canal como "activating" e publica evento para processamento assíncrono
+// O evento channel.activation.requested será consumido por um worker que executará a validação específica do tipo
+func (c *Channel) RequestActivation() {
+	c.Status = StatusActivating
+	c.UpdatedAt = time.Now()
+
+	c.addEvent(NewChannelActivationRequestedEvent(c.ID, c.Type))
+}
+
+// FailActivation marca a ativação como falhada e publica evento para compensação
+func (c *Channel) FailActivation(reason string) {
+	c.Status = StatusInactive // Volta para inactive
+	c.LastError = reason
 	now := time.Now()
+	c.LastErrorAt = &now
 	c.UpdatedAt = now
 
-	c.addEvent(ChannelDeactivatedEvent{
-		ChannelID:     c.ID,
-		DeactivatedAt: now,
-	})
+	c.addEvent(NewChannelActivationFailedEvent(c.ID, reason))
 }
 
 func (c *Channel) SetConnecting() {
@@ -1093,6 +1134,177 @@ func (c *Channel) HasLabel(labelID string) bool {
 func (c *Channel) GetLabelCount() int {
 	labels := c.GetLabels()
 	return labels.Count()
+}
+
+// History Import Methods
+
+// HistoryImportConfig holds configuration for history import
+type HistoryImportConfig struct {
+	AgentID            uuid.UUID
+	MaxDays            *int // NULL = ilimitado, 7/30/90 = período
+	MaxMessagesPerChat *int // NULL = ilimitado, ex: 1000
+}
+
+// EnableHistoryImport enables history import for this channel
+func (c *Channel) EnableHistoryImport(config HistoryImportConfig) error {
+	if c.Status != StatusActive && c.Status != StatusConnecting {
+		return fmt.Errorf("channel must be active or connecting to enable history import")
+	}
+
+	// Validar limites
+	if config.MaxDays != nil && *config.MaxDays <= 0 {
+		return fmt.Errorf("max_days must be positive")
+	}
+	if config.MaxMessagesPerChat != nil && *config.MaxMessagesPerChat <= 0 {
+		return fmt.Errorf("max_messages_per_chat must be positive")
+	}
+
+	c.HistoryImportEnabled = true
+	c.DefaultAgentID = &config.AgentID
+	c.HistoryImportMaxDays = config.MaxDays
+	c.HistoryImportMaxMessagesChat = config.MaxMessagesPerChat
+	c.HistoryImportStatus = HistoryImportIdle
+	c.UpdatedAt = time.Now()
+
+	c.addEvent(NewChannelHistoryImportEnabled(c.ID, config.AgentID))
+
+	return nil
+}
+
+// DisableHistoryImport disables history import for this channel
+func (c *Channel) DisableHistoryImport() {
+	c.HistoryImportEnabled = false
+	c.UpdatedAt = time.Now()
+}
+
+// RequestHistoryImport solicita importação de histórico e publica evento para processamento assíncrono
+// O evento channel.history_import.requested será consumido por um worker que executará a importação
+// Segue o mesmo padrão de RequestActivation() - Command → Event → Consumer assíncrono
+func (c *Channel) RequestHistoryImport(correlationID, strategy string, timeRangeDays, limit int) {
+	// Atualizar status para "importing" e salvar correlationID
+	c.HistoryImportStatus = HistoryImportInProgress
+	c.HistoryImportCorrelationID = correlationID
+	c.UpdatedAt = time.Now()
+
+	// Publicar evento para processamento assíncrono
+	c.addEvent(NewChannelHistoryImportRequestedEvent(
+		c.ID,
+		c.Type,
+		correlationID,
+		strategy,
+		timeRangeDays,
+		limit,
+	))
+}
+
+// StartHistoryImport starts a history import operation
+func (c *Channel) StartHistoryImport() error {
+	if !c.HistoryImportEnabled {
+		return fmt.Errorf("history import is not enabled for this channel")
+	}
+
+	if c.HistoryImportStatus == HistoryImportInProgress {
+		return fmt.Errorf("history import is already in progress")
+	}
+
+	c.HistoryImportStatus = HistoryImportInProgress
+	c.HistoryImportStats = &HistoryImportStats{
+		StartedAt: time.Now(),
+	}
+	c.UpdatedAt = time.Now()
+
+	c.addEvent(NewChannelHistoryImportStarted(c.ID))
+
+	return nil
+}
+
+// CompleteHistoryImport marks a history import as completed
+func (c *Channel) CompleteHistoryImport(stats HistoryImportStats) {
+	now := time.Now()
+	stats.EndedAt = &now
+
+	c.HistoryImportStatus = HistoryImportCompleted
+	c.HistoryImportStats = &stats
+	c.LastImportDate = &now
+	c.UpdatedAt = time.Now()
+
+	c.addEvent(NewChannelHistoryImportCompleted(c.ID, stats))
+}
+
+// FailHistoryImport marks a history import as failed
+func (c *Channel) FailHistoryImport(reason string) {
+	now := time.Now()
+
+	c.HistoryImportStatus = HistoryImportFailed
+	if c.HistoryImportStats != nil {
+		c.HistoryImportStats.EndedAt = &now
+	}
+	c.UpdatedAt = time.Now()
+
+	c.addEvent(NewChannelHistoryImportFailed(c.ID, reason))
+}
+
+// IsHistoryImportEnabled returns true if history import is enabled
+func (c *Channel) IsHistoryImportEnabled() bool {
+	return c.HistoryImportEnabled
+}
+
+// IsHistoryImportInProgress returns true if history import is in progress
+func (c *Channel) IsHistoryImportInProgress() bool {
+	return c.HistoryImportStatus == HistoryImportInProgress
+}
+
+// CanStartHistoryImport returns true if history import can be started
+func (c *Channel) CanStartHistoryImport() bool {
+	return c.HistoryImportEnabled && c.HistoryImportStatus != HistoryImportInProgress
+}
+
+// GetHistoryImportFromDate returns the date from which to import history
+// Based on MaxDays configuration or last import date
+func (c *Channel) GetHistoryImportFromDate() *time.Time {
+	// Se tem MaxDays configurado, calcular data inicial
+	if c.HistoryImportMaxDays != nil && *c.HistoryImportMaxDays > 0 {
+		fromDate := time.Now().AddDate(0, 0, -*c.HistoryImportMaxDays)
+
+		// Se já teve um import antes, usar a data mais recente
+		if c.LastImportDate != nil && c.LastImportDate.After(fromDate) {
+			return c.LastImportDate
+		}
+
+		return &fromDate
+	}
+
+	// Se não tem limite de dias, usar last_import_date para sync incremental
+	if c.LastImportDate != nil {
+		return c.LastImportDate
+	}
+
+	// NULL = importar tudo desde o início
+	return nil
+}
+
+// GetHistoryImportMaxMessages returns the maximum messages per chat
+func (c *Channel) GetHistoryImportMaxMessages() int {
+	if c.HistoryImportMaxMessagesChat != nil {
+		return *c.HistoryImportMaxMessagesChat
+	}
+	return 0 // 0 = ilimitado
+}
+
+// SetHistoryImportLimits configures the limits for history import
+func (c *Channel) SetHistoryImportLimits(maxDays, maxMessagesPerChat *int) error {
+	if maxDays != nil && *maxDays <= 0 {
+		return fmt.Errorf("max_days must be positive")
+	}
+	if maxMessagesPerChat != nil && *maxMessagesPerChat <= 0 {
+		return fmt.Errorf("max_messages_per_chat must be positive")
+	}
+
+	c.HistoryImportMaxDays = maxDays
+	c.HistoryImportMaxMessagesChat = maxMessagesPerChat
+	c.UpdatedAt = time.Now()
+
+	return nil
 }
 
 type Repository interface {

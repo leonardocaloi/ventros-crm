@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/caloi/ventros-crm/internal/domain/core/shared"
-	"github.com/caloi/ventros-crm/internal/domain/crm/agent"
 	"github.com/google/uuid"
+	"github.com/ventros/crm/internal/domain/core/shared"
+	"github.com/ventros/crm/internal/domain/crm/agent"
 )
 
 // EventBus interface for publishing events

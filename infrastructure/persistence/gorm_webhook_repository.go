@@ -3,8 +3,8 @@ package persistence
 import (
 	"context"
 
-	"github.com/caloi/ventros-crm/infrastructure/persistence/entities"
 	"github.com/google/uuid"
+	"github.com/ventros/crm/infrastructure/persistence/entities"
 	"gorm.io/gorm"
 )
 

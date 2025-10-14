@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/caloi/ventros-crm/internal/domain/core/shared"
+	"github.com/ventros/crm/internal/domain/core/shared"
 )
 
 // SubscriptionStatus representa o status de uma subscription no Stripe

@@ -61,6 +61,7 @@ const (
 	StatusSent      Status = "sent"
 	StatusDelivered Status = "delivered"
 	StatusRead      Status = "read"
+	StatusPlayed    Status = "played" // SOMENTE para mensagens de voz/áudio reproduzidas (ACK 4)
 	StatusFailed    Status = "failed"
 )
 
@@ -79,7 +80,7 @@ func ParseContentType(s string) (ContentType, error) {
 func ParseStatus(s string) (Status, error) {
 	status := Status(s)
 	switch status {
-	case StatusQueued, StatusSent, StatusDelivered, StatusRead, StatusFailed:
+	case StatusQueued, StatusSent, StatusDelivered, StatusRead, StatusPlayed, StatusFailed:
 		return status, nil
 	default:
 		return "", errors.New("invalid status")

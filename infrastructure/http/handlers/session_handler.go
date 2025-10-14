@@ -5,13 +5,14 @@ import (
 	"strconv"
 	"strings"
 
-	apierrors "github.com/caloi/ventros-crm/infrastructure/http/errors"
-	"github.com/caloi/ventros-crm/infrastructure/http/middleware"
-	"github.com/caloi/ventros-crm/internal/application/queries"
-	"github.com/caloi/ventros-crm/internal/domain/core/shared"
-	"github.com/caloi/ventros-crm/internal/domain/crm/session"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	apierrors "github.com/ventros/crm/infrastructure/http/errors"
+	"github.com/ventros/crm/infrastructure/http/middleware"
+	sessioncmd "github.com/ventros/crm/internal/application/commands/session"
+	"github.com/ventros/crm/internal/application/queries"
+	"github.com/ventros/crm/internal/domain/core/shared"
+	"github.com/ventros/crm/internal/domain/crm/session"
 	"go.uber.org/zap"
 )
 
@@ -20,14 +21,16 @@ type SessionHandler struct {
 	sessionRepo                session.Repository
 	listSessionsQueryHandler   *queries.ListSessionsQueryHandler
 	searchSessionsQueryHandler *queries.SearchSessionsQueryHandler
+	closeSessionHandler        *sessioncmd.CloseSessionHandler
 }
 
-func NewSessionHandler(logger *zap.Logger, sessionRepo session.Repository) *SessionHandler {
+func NewSessionHandler(logger *zap.Logger, sessionRepo session.Repository, closeSessionHandler *sessioncmd.CloseSessionHandler) *SessionHandler {
 	return &SessionHandler{
 		logger:                     logger,
 		sessionRepo:                sessionRepo,
 		listSessionsQueryHandler:   queries.NewListSessionsQueryHandler(sessionRepo, logger),
 		searchSessionsQueryHandler: queries.NewSearchSessionsQueryHandler(sessionRepo, logger),
+		closeSessionHandler:        closeSessionHandler,
 	}
 }
 
@@ -222,70 +225,39 @@ type CloseSessionRequest struct {
 //	@Failure		500		{object}	map[string]interface{}	"Internal server error"
 //	@Router			/api/v1/sessions/{id}/close [post]
 func (h *SessionHandler) CloseSession(c *gin.Context) {
+	// Parse session ID from path
 	sessionIDStr := c.Param("id")
 	sessionID, err := uuid.Parse(sessionIDStr)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid session ID"})
+		apierrors.BadRequest(c, "Invalid session ID format")
 		return
 	}
 
+	// Parse request body
 	var req CloseSessionRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		apierrors.BadRequest(c, "Invalid request body: "+err.Error())
 		return
 	}
 
-	// Busca sessão
-	sess, err := h.sessionRepo.FindByID(c.Request.Context(), sessionID)
+	// Build command from request
+	cmd := sessioncmd.CloseSessionCommand{
+		SessionID: sessionID,
+		Reason:    req.Reason,
+		Notes:     req.Notes,
+	}
+
+	// Delegate to command handler
+	sess, err := h.closeSessionHandler.Handle(c.Request.Context(), cmd)
 	if err != nil {
-		h.logger.Error("Failed to get session", zap.Error(err))
-		c.JSON(http.StatusNotFound, gin.H{"error": "Session not found"})
+		apierrors.RespondWithError(c, err)
 		return
 	}
 
-	// Valida se sessão já está encerrada
-	if sess.Status() == session.StatusEnded {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Session is already ended"})
-		return
-	}
-
-	// Encerra sessão baseado no reason
-	switch req.Reason {
-	case "resolved":
-		if err := sess.Resolve(); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-		}
-	case "escalated":
-		if err := sess.Escalate(); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-		}
-	case "transferred", "agent_closed":
-		// Encerra sessão com reason customizado
-		if err := sess.End(session.EndReason(req.Reason)); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-		}
-	default:
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid reason. Must be: resolved, transferred, escalated, or agent_closed"})
-		return
-	}
-
-	// Salva sessão
-	if err := h.sessionRepo.Save(c.Request.Context(), sess); err != nil {
-		h.logger.Error("Failed to update session", zap.Error(err))
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to close session"})
-		return
-	}
-
-	h.logger.Info("Session closed by agent",
-		zap.String("session_id", sessionID.String()),
-		zap.String("reason", req.Reason))
-
+	// Return success response
 	c.JSON(http.StatusOK, gin.H{
 		"message":    "Session closed successfully",
-		"session_id": sessionID,
+		"session_id": sess.ID(),
 		"reason":     req.Reason,
 		"status":     sess.Status(),
 	})

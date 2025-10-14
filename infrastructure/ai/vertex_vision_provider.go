@@ -11,7 +11,7 @@ import (
 	"go.uber.org/zap"
 	"google.golang.org/genai"
 
-	"github.com/caloi/ventros-crm/internal/domain/crm/message_enrichment"
+	"github.com/ventros/crm/internal/domain/crm/message_enrichment"
 )
 
 // VertexVisionProvider implementa Vision usando Vertex AI com Service Account

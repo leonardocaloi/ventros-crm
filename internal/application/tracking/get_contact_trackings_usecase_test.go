@@ -5,7 +5,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/caloi/ventros-crm/internal/domain/crm/tracking"
+	"github.com/ventros/crm/internal/domain/crm/tracking"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap/zaptest"

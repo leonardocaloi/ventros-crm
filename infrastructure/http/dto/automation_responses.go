@@ -3,8 +3,8 @@ package dto
 import (
 	"time"
 
-	"github.com/caloi/ventros-crm/internal/domain/crm/pipeline"
 	"github.com/google/uuid"
+	"github.com/ventros/crm/internal/domain/crm/pipeline"
 )
 
 // AutomationTypeResponse representa um tipo de automação

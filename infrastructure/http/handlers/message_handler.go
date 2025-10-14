@@ -5,14 +5,14 @@ import (
 	"strconv"
 	"time"
 
-	apierrors "github.com/caloi/ventros-crm/infrastructure/http/errors"
-	"github.com/caloi/ventros-crm/infrastructure/http/middleware"
-	"github.com/caloi/ventros-crm/internal/application/commands/message"
-	"github.com/caloi/ventros-crm/internal/application/queries"
-	"github.com/caloi/ventros-crm/internal/domain/core/shared"
-	domainMessage "github.com/caloi/ventros-crm/internal/domain/crm/message"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	apierrors "github.com/ventros/crm/infrastructure/http/errors"
+	"github.com/ventros/crm/infrastructure/http/middleware"
+	"github.com/ventros/crm/internal/application/commands/message"
+	"github.com/ventros/crm/internal/application/queries"
+	"github.com/ventros/crm/internal/domain/core/shared"
+	domainMessage "github.com/ventros/crm/internal/domain/crm/message"
 	"go.uber.org/zap"
 )
 
@@ -162,20 +162,24 @@ func (h *MessageHandler) SendMessage(c *gin.Context) {
 		return
 	}
 
-	tenantID, _ := c.Get("tenant_id")
-	projectID, _ := c.Get("project_id")
-	customerID, _ := c.Get("customer_id")
-	agentID, _ := c.Get("agent_id")
-
-	tenantIDStr, _ := tenantID.(string)
-	projectIDUUID, _ := projectID.(uuid.UUID)
-	customerIDUUID, _ := customerID.(uuid.UUID)
-	var agentIDPtr *uuid.UUID
-	if agentID != nil {
-		if aid, ok := agentID.(uuid.UUID); ok {
-			agentIDPtr = &aid
-		}
+	// Extract auth context
+	authCtx, exists := middleware.GetAuthContext(c)
+	if !exists {
+		h.logger.Error("Auth context not found")
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Authentication required"})
+		return
 	}
+
+	tenantIDStr := authCtx.TenantID
+	projectIDUUID := authCtx.ProjectID
+	customerIDUUID := authCtx.UserID // customer_id is the user_id
+
+	// AgentID - use System Test Agent for E2E tests and manual sends
+	// TODO: In production, this should fetch the user's first active agent
+	agentIDUUID := uuid.MustParse("00000000-0000-0000-0000-000000000010") // System Test Agent
+	h.logger.Info("Using System Test Agent for message send",
+		zap.String("agent_id", agentIDUUID.String()),
+		zap.String("user_id", authCtx.UserID.String()))
 
 	cmd := &message.SendMessageCommand{
 		ContactID:   req.ContactID,
@@ -188,7 +192,7 @@ func (h *MessageHandler) SendMessage(c *gin.Context) {
 		TenantID:    tenantIDStr,
 		ProjectID:   projectIDUUID,
 		CustomerID:  customerIDUUID,
-		AgentID:     agentIDPtr,
+		AgentID:     agentIDUUID,
 	}
 
 	result, err := h.sendMessageHandler.Handle(c.Request.Context(), cmd)

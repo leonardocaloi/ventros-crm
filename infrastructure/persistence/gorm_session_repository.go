@@ -6,10 +6,10 @@ import (
 	"errors"
 	"time"
 
-	"github.com/caloi/ventros-crm/infrastructure/persistence/entities"
-	"github.com/caloi/ventros-crm/internal/domain/core/shared"
-	"github.com/caloi/ventros-crm/internal/domain/crm/session"
 	"github.com/google/uuid"
+	"github.com/ventros/crm/infrastructure/persistence/entities"
+	"github.com/ventros/crm/internal/domain/core/shared"
+	"github.com/ventros/crm/internal/domain/crm/session"
 	"gorm.io/datatypes"
 	"gorm.io/gorm"
 )
@@ -34,38 +34,38 @@ func (r *GormSessionRepository) Save(ctx context.Context, s *session.Session) er
 		result := r.db.WithContext(ctx).Model(&entities.SessionEntity{}).
 			Where("id = ? AND version = ?", entity.ID, existing.Version).
 			Updates(map[string]interface{}{
-				"version":                    existing.Version + 1, // Increment version
-				"contact_id":                 entity.ContactID,
-				"tenant_id":                  entity.TenantID,
-				"pipeline_id":                entity.PipelineID,
-				"channel_type_id":            entity.ChannelTypeID,
-				"started_at":                 entity.StartedAt,
-				"ended_at":                   entity.EndedAt,
-				"status":                     entity.Status,
-				"end_reason":                 entity.EndReason,
-				"timeout_duration":           entity.TimeoutDuration,
-				"last_activity_at":           entity.LastActivityAt,
-				"message_count":              entity.MessageCount,
-				"messages_from_contact":      entity.MessagesFromContact,
-				"messages_from_agent":        entity.MessagesFromAgent,
-				"duration_seconds":           entity.DurationSeconds,
-				"first_contact_message_at":   entity.FirstContactMessageAt,
-				"first_agent_response_at":    entity.FirstAgentResponseAt,
+				"version":                     existing.Version + 1, // Increment version
+				"contact_id":                  entity.ContactID,
+				"tenant_id":                   entity.TenantID,
+				"pipeline_id":                 entity.PipelineID,
+				"channel_type_id":             entity.ChannelTypeID,
+				"started_at":                  entity.StartedAt,
+				"ended_at":                    entity.EndedAt,
+				"status":                      entity.Status,
+				"end_reason":                  entity.EndReason,
+				"timeout_duration":            entity.TimeoutDuration,
+				"last_activity_at":            entity.LastActivityAt,
+				"message_count":               entity.MessageCount,
+				"messages_from_contact":       entity.MessagesFromContact,
+				"messages_from_agent":         entity.MessagesFromAgent,
+				"duration_seconds":            entity.DurationSeconds,
+				"first_contact_message_at":    entity.FirstContactMessageAt,
+				"first_agent_response_at":     entity.FirstAgentResponseAt,
 				"agent_response_time_seconds": entity.AgentResponseTimeSeconds,
-				"contact_wait_time_seconds":  entity.ContactWaitTimeSeconds,
-				"agent_ids":                  entity.AgentIDs,
-				"agent_transfers":            entity.AgentTransfers,
-				"summary":                    entity.Summary,
-				"sentiment":                  entity.Sentiment,
-				"sentiment_score":            entity.SentimentScore,
-				"topics":                     entity.Topics,
-				"next_steps":                 entity.NextSteps,
-				"key_entities":               entity.KeyEntities,
-				"resolved":                   entity.Resolved,
-				"escalated":                  entity.Escalated,
-				"converted":                  entity.Converted,
-				"outcome_tags":               entity.OutcomeTags,
-				"updated_at":                 entity.UpdatedAt,
+				"contact_wait_time_seconds":   entity.ContactWaitTimeSeconds,
+				"agent_ids":                   entity.AgentIDs,
+				"agent_transfers":             entity.AgentTransfers,
+				"summary":                     entity.Summary,
+				"sentiment":                   entity.Sentiment,
+				"sentiment_score":             entity.SentimentScore,
+				"topics":                      entity.Topics,
+				"next_steps":                  entity.NextSteps,
+				"key_entities":                entity.KeyEntities,
+				"resolved":                    entity.Resolved,
+				"escalated":                   entity.Escalated,
+				"converted":                   entity.Converted,
+				"outcome_tags":                entity.OutcomeTags,
+				"updated_at":                  entity.UpdatedAt,
 			})
 
 		if result.Error != nil {

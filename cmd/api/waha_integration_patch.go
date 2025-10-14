@@ -3,12 +3,12 @@ package main
 import (
 	"context"
 
-	"github.com/caloi/ventros-crm/infrastructure/messaging"
-	messageapp "github.com/caloi/ventros-crm/internal/application/message"
-	domainchannel "github.com/caloi/ventros-crm/internal/domain/crm/channel"
-	domainchat "github.com/caloi/ventros-crm/internal/domain/crm/chat"
-	domaincontact "github.com/caloi/ventros-crm/internal/domain/crm/contact"
-	domainmessage "github.com/caloi/ventros-crm/internal/domain/crm/message"
+	"github.com/ventros/crm/infrastructure/messaging"
+	messageapp "github.com/ventros/crm/internal/application/message"
+	domainchannel "github.com/ventros/crm/internal/domain/crm/channel"
+	domainchat "github.com/ventros/crm/internal/domain/crm/chat"
+	domaincontact "github.com/ventros/crm/internal/domain/crm/contact"
+	domainmessage "github.com/ventros/crm/internal/domain/crm/message"
 	"go.uber.org/zap"
 )
 

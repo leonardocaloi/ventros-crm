@@ -3,7 +3,7 @@ package contact
 import (
 	"errors"
 
-	"github.com/caloi/ventros-crm/internal/domain/core/shared"
+	"github.com/ventros/crm/internal/domain/core/shared"
 )
 
 // Legacy errors (kept for backward compatibility)

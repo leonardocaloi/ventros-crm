@@ -12,7 +12,7 @@ definitions:
         example: Invalid email format
         type: string
     type: object
-  github_com_caloi_ventros-crm_infrastructure_health.CheckResult:
+  github_com_ventros_crm_infrastructure_health.CheckResult:
     properties:
       duration_ms:
         example: 15
@@ -25,13 +25,13 @@ definitions:
         type: object
       status:
         allOf:
-        - $ref: '#/definitions/github_com_caloi_ventros-crm_infrastructure_health.Status'
+        - $ref: '#/definitions/github_com_ventros_crm_infrastructure_health.Status'
         example: healthy
       timestamp:
         example: "2024-01-01T00:00:00Z"
         type: string
     type: object
-  github_com_caloi_ventros-crm_infrastructure_health.Status:
+  github_com_ventros_crm_infrastructure_health.Status:
     enum:
     - healthy
     - degraded
@@ -41,7 +41,7 @@ definitions:
     - StatusHealthy
     - StatusDegraded
     - StatusUnhealthy
-  github_com_caloi_ventros-crm_infrastructure_http_dto.ActionParameterDTO:
+  github_com_ventros_crm_infrastructure_http_dto.ActionParameterDTO:
     properties:
       default: {}
       description:
@@ -53,7 +53,7 @@ definitions:
       type:
         type: string
     type: object
-  github_com_caloi_ventros-crm_infrastructure_http_dto.ActionResponse:
+  github_com_ventros_crm_infrastructure_http_dto.ActionResponse:
     properties:
       category:
         type: string
@@ -68,33 +68,33 @@ definitions:
         type: string
       parameters:
         items:
-          $ref: '#/definitions/github_com_caloi_ventros-crm_infrastructure_http_dto.ActionParameterDTO'
+          $ref: '#/definitions/github_com_ventros_crm_infrastructure_http_dto.ActionParameterDTO'
         type: array
     type: object
-  github_com_caloi_ventros-crm_infrastructure_http_dto.AutomationDiscoveryResponse:
+  github_com_ventros_crm_infrastructure_http_dto.AutomationDiscoveryResponse:
     properties:
       actions:
         items:
-          $ref: '#/definitions/github_com_caloi_ventros-crm_infrastructure_http_dto.ActionResponse'
+          $ref: '#/definitions/github_com_ventros_crm_infrastructure_http_dto.ActionResponse'
         type: array
       logic_types:
         items:
-          $ref: '#/definitions/github_com_caloi_ventros-crm_infrastructure_http_dto.LogicOperatorResponse'
+          $ref: '#/definitions/github_com_ventros_crm_infrastructure_http_dto.LogicOperatorResponse'
         type: array
       operators:
         items:
-          $ref: '#/definitions/github_com_caloi_ventros-crm_infrastructure_http_dto.ConditionOperatorResponse'
+          $ref: '#/definitions/github_com_ventros_crm_infrastructure_http_dto.ConditionOperatorResponse'
         type: array
       triggers:
         items:
-          $ref: '#/definitions/github_com_caloi_ventros-crm_infrastructure_http_dto.TriggerResponse'
+          $ref: '#/definitions/github_com_ventros_crm_infrastructure_http_dto.TriggerResponse'
         type: array
       types:
         items:
-          $ref: '#/definitions/github_com_caloi_ventros-crm_infrastructure_http_dto.AutomationTypeResponse'
+          $ref: '#/definitions/github_com_ventros_crm_infrastructure_http_dto.AutomationTypeResponse'
         type: array
     type: object
-  github_com_caloi_ventros-crm_infrastructure_http_dto.AutomationTypeResponse:
+  github_com_ventros_crm_infrastructure_http_dto.AutomationTypeResponse:
     properties:
       code:
         type: string
@@ -109,7 +109,7 @@ definitions:
       name:
         type: string
     type: object
-  github_com_caloi_ventros-crm_infrastructure_http_dto.ConditionOperatorResponse:
+  github_com_ventros_crm_infrastructure_http_dto.ConditionOperatorResponse:
     properties:
       code:
         type: string
@@ -120,7 +120,7 @@ definitions:
       name:
         type: string
     type: object
-  github_com_caloi_ventros-crm_infrastructure_http_dto.LogicOperatorResponse:
+  github_com_ventros_crm_infrastructure_http_dto.LogicOperatorResponse:
     properties:
       code:
         type: string
@@ -129,7 +129,7 @@ definitions:
       name:
         type: string
     type: object
-  github_com_caloi_ventros-crm_infrastructure_http_dto.TriggerParameter:
+  github_com_ventros_crm_infrastructure_http_dto.TriggerParameter:
     properties:
       description:
         type: string
@@ -140,7 +140,7 @@ definitions:
       type:
         type: string
     type: object
-  github_com_caloi_ventros-crm_infrastructure_http_dto.TriggerResponse:
+  github_com_ventros_crm_infrastructure_http_dto.TriggerResponse:
     properties:
       category:
         type: string
@@ -154,10 +154,10 @@ definitions:
         type: string
       parameters:
         items:
-          $ref: '#/definitions/github_com_caloi_ventros-crm_infrastructure_http_dto.TriggerParameter'
+          $ref: '#/definitions/github_com_ventros_crm_infrastructure_http_dto.TriggerParameter'
         type: array
     type: object
-  github_com_caloi_ventros-crm_internal_application_queries.AgentDTO:
+  github_com_ventros_crm_internal_application_queries.AgentDTO:
     properties:
       active:
         type: boolean
@@ -172,7 +172,7 @@ definitions:
       updated_at:
         type: string
     type: object
-  github_com_caloi_ventros-crm_internal_application_queries.AgentSearchResultDTO:
+  github_com_ventros_crm_internal_application_queries.AgentSearchResultDTO:
     properties:
       active:
         type: boolean
@@ -187,11 +187,11 @@ definitions:
       name:
         type: string
     type: object
-  github_com_caloi_ventros-crm_internal_application_queries.ListAgentsResponse:
+  github_com_ventros_crm_internal_application_queries.ListAgentsResponse:
     properties:
       agents:
         items:
-          $ref: '#/definitions/github_com_caloi_ventros-crm_internal_application_queries.AgentDTO'
+          $ref: '#/definitions/github_com_ventros_crm_internal_application_queries.AgentDTO'
         type: array
       limit:
         type: integer
@@ -203,7 +203,7 @@ definitions:
       totalPages:
         type: integer
     type: object
-  github_com_caloi_ventros-crm_internal_application_queries.ListMessageDTO:
+  github_com_ventros_crm_internal_application_queries.ListMessageDTO:
     properties:
       agent_id:
         type: string
@@ -231,13 +231,13 @@ definitions:
       timestamp:
         type: string
     type: object
-  github_com_caloi_ventros-crm_internal_application_queries.ListMessagesResponse:
+  github_com_ventros_crm_internal_application_queries.ListMessagesResponse:
     properties:
       limit:
         type: integer
       messages:
         items:
-          $ref: '#/definitions/github_com_caloi_ventros-crm_internal_application_queries.ListMessageDTO'
+          $ref: '#/definitions/github_com_ventros_crm_internal_application_queries.ListMessageDTO'
         type: array
       page:
         type: integer
@@ -247,13 +247,13 @@ definitions:
       totalPages:
         type: integer
     type: object
-  github_com_caloi_ventros-crm_internal_application_queries.ListNotesResponse:
+  github_com_ventros_crm_internal_application_queries.ListNotesResponse:
     properties:
       limit:
         type: integer
       notes:
         items:
-          $ref: '#/definitions/github_com_caloi_ventros-crm_internal_application_queries.NoteDTO'
+          $ref: '#/definitions/github_com_ventros_crm_internal_application_queries.NoteDTO'
         type: array
       page:
         type: integer
@@ -263,7 +263,7 @@ definitions:
       totalPages:
         type: integer
     type: object
-  github_com_caloi_ventros-crm_internal_application_queries.ListPipelinesResponse:
+  github_com_ventros_crm_internal_application_queries.ListPipelinesResponse:
     properties:
       limit:
         type: integer
@@ -271,7 +271,7 @@ definitions:
         type: integer
       pipelines:
         items:
-          $ref: '#/definitions/github_com_caloi_ventros-crm_internal_application_queries.PipelineDTO'
+          $ref: '#/definitions/github_com_ventros_crm_internal_application_queries.PipelineDTO'
         type: array
       totalCount:
         format: int64
@@ -279,7 +279,7 @@ definitions:
       totalPages:
         type: integer
     type: object
-  github_com_caloi_ventros-crm_internal_application_queries.ListProjectsResponse:
+  github_com_ventros_crm_internal_application_queries.ListProjectsResponse:
     properties:
       limit:
         type: integer
@@ -287,7 +287,7 @@ definitions:
         type: integer
       projects:
         items:
-          $ref: '#/definitions/github_com_caloi_ventros-crm_internal_application_queries.ProjectDTO'
+          $ref: '#/definitions/github_com_ventros_crm_internal_application_queries.ProjectDTO'
         type: array
       totalCount:
         format: int64
@@ -295,7 +295,7 @@ definitions:
       totalPages:
         type: integer
     type: object
-  github_com_caloi_ventros-crm_internal_application_queries.ListSessionsResponse:
+  github_com_ventros_crm_internal_application_queries.ListSessionsResponse:
     properties:
       limit:
         type: integer
@@ -303,7 +303,7 @@ definitions:
         type: integer
       sessions:
         items:
-          $ref: '#/definitions/github_com_caloi_ventros-crm_internal_application_queries.SessionDTO'
+          $ref: '#/definitions/github_com_ventros_crm_internal_application_queries.SessionDTO'
         type: array
       totalCount:
         format: int64
@@ -311,7 +311,7 @@ definitions:
       totalPages:
         type: integer
     type: object
-  github_com_caloi_ventros-crm_internal_application_queries.MessageSearchResultDTO:
+  github_com_ventros_crm_internal_application_queries.MessageSearchResultDTO:
     properties:
       contact_id:
         type: string
@@ -328,7 +328,7 @@ definitions:
       timestamp:
         type: string
     type: object
-  github_com_caloi_ventros-crm_internal_application_queries.NoteDTO:
+  github_com_ventros_crm_internal_application_queries.NoteDTO:
     properties:
       author_id:
         type: string
@@ -361,7 +361,7 @@ definitions:
       visible_to_client:
         type: boolean
     type: object
-  github_com_caloi_ventros-crm_internal_application_queries.NoteSearchResultDTO:
+  github_com_ventros_crm_internal_application_queries.NoteSearchResultDTO:
     properties:
       author_name:
         type: string
@@ -384,7 +384,7 @@ definitions:
       priority:
         type: string
     type: object
-  github_com_caloi_ventros-crm_internal_application_queries.PipelineDTO:
+  github_com_ventros_crm_internal_application_queries.PipelineDTO:
     properties:
       active:
         type: boolean
@@ -407,7 +407,7 @@ definitions:
       updated_at:
         type: string
     type: object
-  github_com_caloi_ventros-crm_internal_application_queries.PipelineSearchResultDTO:
+  github_com_ventros_crm_internal_application_queries.PipelineSearchResultDTO:
     properties:
       active:
         type: boolean
@@ -424,7 +424,7 @@ definitions:
       name:
         type: string
     type: object
-  github_com_caloi_ventros-crm_internal_application_queries.ProjectDTO:
+  github_com_ventros_crm_internal_application_queries.ProjectDTO:
     properties:
       active:
         type: boolean
@@ -448,7 +448,7 @@ definitions:
       updated_at:
         type: string
     type: object
-  github_com_caloi_ventros-crm_internal_application_queries.ProjectSearchResultDTO:
+  github_com_ventros_crm_internal_application_queries.ProjectSearchResultDTO:
     properties:
       active:
         type: boolean
@@ -463,61 +463,61 @@ definitions:
       name:
         type: string
     type: object
-  github_com_caloi_ventros-crm_internal_application_queries.SearchAgentsResponse:
+  github_com_ventros_crm_internal_application_queries.SearchAgentsResponse:
     properties:
       agents:
         items:
-          $ref: '#/definitions/github_com_caloi_ventros-crm_internal_application_queries.AgentSearchResultDTO'
+          $ref: '#/definitions/github_com_ventros_crm_internal_application_queries.AgentSearchResultDTO'
         type: array
       count:
         type: integer
     type: object
-  github_com_caloi_ventros-crm_internal_application_queries.SearchMessagesResponse:
+  github_com_ventros_crm_internal_application_queries.SearchMessagesResponse:
     properties:
       count:
         type: integer
       messages:
         items:
-          $ref: '#/definitions/github_com_caloi_ventros-crm_internal_application_queries.MessageSearchResultDTO'
+          $ref: '#/definitions/github_com_ventros_crm_internal_application_queries.MessageSearchResultDTO'
         type: array
     type: object
-  github_com_caloi_ventros-crm_internal_application_queries.SearchNotesResponse:
+  github_com_ventros_crm_internal_application_queries.SearchNotesResponse:
     properties:
       count:
         type: integer
       notes:
         items:
-          $ref: '#/definitions/github_com_caloi_ventros-crm_internal_application_queries.NoteSearchResultDTO'
+          $ref: '#/definitions/github_com_ventros_crm_internal_application_queries.NoteSearchResultDTO'
         type: array
     type: object
-  github_com_caloi_ventros-crm_internal_application_queries.SearchPipelinesResponse:
+  github_com_ventros_crm_internal_application_queries.SearchPipelinesResponse:
     properties:
       count:
         type: integer
       pipelines:
         items:
-          $ref: '#/definitions/github_com_caloi_ventros-crm_internal_application_queries.PipelineSearchResultDTO'
+          $ref: '#/definitions/github_com_ventros_crm_internal_application_queries.PipelineSearchResultDTO'
         type: array
     type: object
-  github_com_caloi_ventros-crm_internal_application_queries.SearchProjectsResponse:
+  github_com_ventros_crm_internal_application_queries.SearchProjectsResponse:
     properties:
       count:
         type: integer
       projects:
         items:
-          $ref: '#/definitions/github_com_caloi_ventros-crm_internal_application_queries.ProjectSearchResultDTO'
+          $ref: '#/definitions/github_com_ventros_crm_internal_application_queries.ProjectSearchResultDTO'
         type: array
     type: object
-  github_com_caloi_ventros-crm_internal_application_queries.SearchSessionsResponse:
+  github_com_ventros_crm_internal_application_queries.SearchSessionsResponse:
     properties:
       count:
         type: integer
       sessions:
         items:
-          $ref: '#/definitions/github_com_caloi_ventros-crm_internal_application_queries.SessionSearchResultDTO'
+          $ref: '#/definitions/github_com_ventros_crm_internal_application_queries.SessionSearchResultDTO'
         type: array
     type: object
-  github_com_caloi_ventros-crm_internal_application_queries.SessionDTO:
+  github_com_ventros_crm_internal_application_queries.SessionDTO:
     properties:
       contact_id:
         type: string
@@ -558,7 +558,7 @@ definitions:
           type: string
         type: array
     type: object
-  github_com_caloi_ventros-crm_internal_application_queries.SessionSearchResultDTO:
+  github_com_ventros_crm_internal_application_queries.SessionSearchResultDTO:
     properties:
       contact_id:
         type: string
@@ -581,14 +581,14 @@ definitions:
           type: string
         type: array
     type: object
-  github_com_caloi_ventros-crm_internal_application_tracking.DecodeTrackingRequest:
+  github_com_ventros_crm_internal_application_tracking.DecodeTrackingRequest:
     properties:
       message:
         type: string
     required:
     - message
     type: object
-  github_com_caloi_ventros-crm_internal_application_tracking.DecodeTrackingResponse:
+  github_com_ventros_crm_internal_application_tracking.DecodeTrackingResponse:
     properties:
       analysis:
         additionalProperties: true
@@ -608,7 +608,7 @@ definitions:
       success:
         type: boolean
     type: object
-  github_com_caloi_ventros-crm_internal_application_tracking.EncodeTrackingRequest:
+  github_com_ventros_crm_internal_application_tracking.EncodeTrackingRequest:
     properties:
       message:
         type: string
@@ -620,7 +620,7 @@ definitions:
     - message
     - tracking_id
     type: object
-  github_com_caloi_ventros-crm_internal_application_tracking.EncodeTrackingResponse:
+  github_com_ventros_crm_internal_application_tracking.EncodeTrackingResponse:
     properties:
       debug:
         additionalProperties: true
@@ -644,7 +644,7 @@ definitions:
       whatsapp_link:
         type: string
     type: object
-  github_com_caloi_ventros-crm_internal_application_tracking.TrackingDTO:
+  github_com_ventros_crm_internal_application_tracking.TrackingDTO:
     properties:
       ad_id:
         type: string
@@ -688,7 +688,7 @@ definitions:
       utm_term:
         type: string
     type: object
-  github_com_caloi_ventros-crm_internal_domain_crm_pipeline.AutomationAction:
+  github_com_ventros_crm_internal_domain_crm_pipeline.AutomationAction:
     enum:
     - send_message
     - send_template
@@ -724,7 +724,7 @@ definitions:
     - ActionNotifyAgent
     - ActionNotifyCoordinator
     - ActionSendEmail
-  github_com_caloi_ventros-crm_internal_domain_crm_pipeline.RuleAction:
+  github_com_ventros_crm_internal_domain_crm_pipeline.RuleAction:
     properties:
       delay_minutes:
         type: integer
@@ -732,9 +732,9 @@ definitions:
         additionalProperties: true
         type: object
       type:
-        $ref: '#/definitions/github_com_caloi_ventros-crm_internal_domain_crm_pipeline.AutomationAction'
+        $ref: '#/definitions/github_com_ventros_crm_internal_domain_crm_pipeline.AutomationAction'
     type: object
-  github_com_caloi_ventros-crm_internal_domain_crm_pipeline.RuleCondition:
+  github_com_ventros_crm_internal_domain_crm_pipeline.RuleCondition:
     properties:
       field:
         type: string
@@ -742,7 +742,7 @@ definitions:
         type: string
       value: {}
     type: object
-  github_com_caloi_ventros-crm_internal_domain_crm_pipeline.StatusType:
+  github_com_ventros_crm_internal_domain_crm_pipeline.StatusType:
     enum:
     - open
     - active
@@ -870,14 +870,14 @@ definitions:
     properties:
       actions:
         items:
-          $ref: '#/definitions/github_com_caloi_ventros-crm_internal_domain_crm_pipeline.RuleAction'
+          $ref: '#/definitions/github_com_ventros_crm_internal_domain_crm_pipeline.RuleAction'
         type: array
       automation_type:
         example: event
         type: string
       conditions:
         items:
-          $ref: '#/definitions/github_com_caloi_ventros-crm_internal_domain_crm_pipeline.RuleCondition'
+          $ref: '#/definitions/github_com_ventros_crm_internal_domain_crm_pipeline.RuleCondition'
         type: array
       description:
         example: Automatically send welcome message to new contacts
@@ -1150,7 +1150,7 @@ definitions:
         type: integer
       status_type:
         allOf:
-        - $ref: '#/definitions/github_com_caloi_ventros-crm_internal_domain_crm_pipeline.StatusType'
+        - $ref: '#/definitions/github_com_ventros_crm_internal_domain_crm_pipeline.StatusType'
         example: open
     required:
     - name
@@ -1337,7 +1337,7 @@ definitions:
     properties:
       dependencies:
         additionalProperties:
-          $ref: '#/definitions/github_com_caloi_ventros-crm_infrastructure_health.CheckResult'
+          $ref: '#/definitions/github_com_ventros_crm_infrastructure_health.CheckResult'
         type: object
       service:
         example: ventros-crm
@@ -1360,6 +1360,10 @@ definitions:
       strategy:
         example: recent
         type: string
+      time_range_days:
+        description: Dias para filtrar mensagens (0 = usar config do canal)
+        example: 7
+        type: integer
     type: object
   infrastructure_http_handlers.LoginRequest:
     properties:
@@ -1456,6 +1460,8 @@ definitions:
       status:
         example: sent
         type: string
+    type: object
+  infrastructure_http_handlers.SetCustomFieldRequest:
     type: object
   infrastructure_http_handlers.StepConditionRequest:
     properties:
@@ -1583,11 +1589,11 @@ definitions:
     properties:
       actions:
         items:
-          $ref: '#/definitions/github_com_caloi_ventros-crm_internal_domain_crm_pipeline.RuleAction'
+          $ref: '#/definitions/github_com_ventros_crm_internal_domain_crm_pipeline.RuleAction'
         type: array
       conditions:
         items:
-          $ref: '#/definitions/github_com_caloi_ventros-crm_internal_domain_crm_pipeline.RuleCondition'
+          $ref: '#/definitions/github_com_ventros_crm_internal_domain_crm_pipeline.RuleCondition'
         type: array
       description:
         type: string
@@ -1704,6 +1710,24 @@ definitions:
       timeout_seconds:
         type: integer
       url:
+        type: string
+    type: object
+  infrastructure_http_handlers.UploadResponse:
+    properties:
+      content_type:
+        example: image/jpeg
+        type: string
+      filename:
+        example: photo.jpg
+        type: string
+      path:
+        example: media/project-id/images/uuid.jpg
+        type: string
+      size:
+        example: 1048576
+        type: integer
+      url:
+        example: https://storage.googleapis.com/bucket/media/images/uuid.jpg
         type: string
     type: object
 info:
@@ -3153,7 +3177,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/github_com_caloi_ventros-crm_infrastructure_http_dto.ConditionOperatorResponse'
+              $ref: '#/definitions/github_com_ventros_crm_infrastructure_http_dto.ConditionOperatorResponse'
             type: array
       summary: Lista operadores de condição
       tags:
@@ -3168,7 +3192,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/github_com_caloi_ventros-crm_infrastructure_http_dto.AutomationDiscoveryResponse'
+            $ref: '#/definitions/github_com_ventros_crm_infrastructure_http_dto.AutomationDiscoveryResponse'
       summary: Discovery completo de automação
       tags:
       - Automation
@@ -3182,7 +3206,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/github_com_caloi_ventros-crm_infrastructure_http_dto.LogicOperatorResponse'
+              $ref: '#/definitions/github_com_ventros_crm_infrastructure_http_dto.LogicOperatorResponse'
             type: array
       summary: Lista operadores lógicos
       tags:
@@ -3656,11 +3680,11 @@ paths:
             properties:
               custom_triggers:
                 items:
-                  $ref: '#/definitions/github_com_caloi_ventros-crm_infrastructure_http_dto.TriggerResponse'
+                  $ref: '#/definitions/github_com_ventros_crm_infrastructure_http_dto.TriggerResponse'
                 type: array
               system_triggers:
                 items:
-                  $ref: '#/definitions/github_com_caloi_ventros-crm_infrastructure_http_dto.TriggerResponse'
+                  $ref: '#/definitions/github_com_ventros_crm_infrastructure_http_dto.TriggerResponse'
                 type: array
             type: object
       summary: Lista triggers disponíveis
@@ -3682,7 +3706,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/github_com_caloi_ventros-crm_infrastructure_http_dto.TriggerResponse'
+            $ref: '#/definitions/github_com_ventros_crm_infrastructure_http_dto.TriggerResponse'
         "404":
           description: Not Found
           schema:
@@ -3734,7 +3758,7 @@ paths:
               message:
                 type: string
               trigger:
-                $ref: '#/definitions/github_com_caloi_ventros-crm_infrastructure_http_dto.TriggerResponse'
+                $ref: '#/definitions/github_com_ventros_crm_infrastructure_http_dto.TriggerResponse'
             type: object
         "400":
           description: Bad Request
@@ -3992,7 +4016,7 @@ paths:
       - CRM - Channels
   /api/v1/channels/{id}/activate:
     post:
-      description: Activate a communication channel
+      description: Request channel activation (async processing via events)
       parameters:
       - description: Channel ID
         in: path
@@ -4002,13 +4026,13 @@ paths:
       produces:
       - application/json
       responses:
-        "200":
-          description: Channel activated
+        "202":
+          description: Activation requested (processing asynchronously)
           schema:
             additionalProperties: true
             type: object
         "400":
-          description: Invalid channel ID
+          description: Invalid channel ID or already active
           schema:
             additionalProperties: true
             type: object
@@ -4214,6 +4238,48 @@ paths:
       security:
       - ApiKeyAuth: []
       summary: Import WAHA message history
+      tags:
+      - CRM - Channels
+  /api/v1/channels/{id}/import-status:
+    get:
+      description: Get the current status and progress of a WAHA history import
+      parameters:
+      - description: Channel ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Import status
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid channel ID
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Authentication required
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Channel not found or no import running
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Get WAHA import status
       tags:
       - CRM - Channels
   /api/v1/channels/{id}/sessions/{session_id}:
@@ -5023,7 +5089,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/github_com_caloi_ventros-crm_internal_application_tracking.TrackingDTO'
+              $ref: '#/definitions/github_com_ventros_crm_internal_application_tracking.TrackingDTO'
             type: array
         "400":
           description: Bad Request
@@ -5522,7 +5588,7 @@ paths:
         "200":
           description: Successfully retrieved agents with full details
           schema:
-            $ref: '#/definitions/github_com_caloi_ventros-crm_internal_application_queries.ListAgentsResponse'
+            $ref: '#/definitions/github_com_ventros_crm_internal_application_queries.ListAgentsResponse'
         "400":
           description: Bad Request - Invalid UUID or parameter format
           schema:
@@ -5591,7 +5657,7 @@ paths:
         "200":
           description: Found agents with match scores
           schema:
-            $ref: '#/definitions/github_com_caloi_ventros-crm_internal_application_queries.SearchAgentsResponse'
+            $ref: '#/definitions/github_com_ventros_crm_internal_application_queries.SearchAgentsResponse'
         "400":
           description: Bad Request - Empty search query
           schema:
@@ -5820,7 +5886,7 @@ paths:
           description: Successfully retrieved messages with pagination and filter
             metadata
           schema:
-            $ref: '#/definitions/github_com_caloi_ventros-crm_internal_application_queries.ListMessagesResponse'
+            $ref: '#/definitions/github_com_ventros_crm_internal_application_queries.ListMessagesResponse'
         "400":
           description: Bad Request - Invalid UUID format, invalid enum values, or
             limit exceeds 100
@@ -5912,7 +5978,7 @@ paths:
           description: Successfully found matching messages with text excerpts and
             context
           schema:
-            $ref: '#/definitions/github_com_caloi_ventros-crm_internal_application_queries.SearchMessagesResponse'
+            $ref: '#/definitions/github_com_ventros_crm_internal_application_queries.SearchMessagesResponse'
         "400":
           description: Bad Request - Missing or empty search query, or limit exceeds
             100
@@ -6069,7 +6135,7 @@ paths:
         "200":
           description: Successfully retrieved notes with full details
           schema:
-            $ref: '#/definitions/github_com_caloi_ventros-crm_internal_application_queries.ListNotesResponse'
+            $ref: '#/definitions/github_com_ventros_crm_internal_application_queries.ListNotesResponse'
         "400":
           description: Bad Request - Invalid UUID or parameter format
           schema:
@@ -6145,7 +6211,7 @@ paths:
         "200":
           description: Found notes with match scores
           schema:
-            $ref: '#/definitions/github_com_caloi_ventros-crm_internal_application_queries.SearchNotesResponse'
+            $ref: '#/definitions/github_com_ventros_crm_internal_application_queries.SearchNotesResponse'
         "400":
           description: Bad Request - Empty search query
           schema:
@@ -6171,6 +6237,144 @@ paths:
       summary: Search notes by content and author
       tags:
       - CRM - Notes
+  /api/v1/crm/pipelines/{id}/custom-fields:
+    get:
+      description: Retrieve all custom fields for a pipeline
+      parameters:
+      - description: Pipeline ID (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of custom fields
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid pipeline ID
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Pipeline not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get pipeline custom fields
+      tags:
+      - CRM - Pipelines
+    post:
+      consumes:
+      - application/json
+      description: Set or update a custom field value for a pipeline
+      parameters:
+      - description: Pipeline ID (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Custom field data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/infrastructure_http_handlers.SetCustomFieldRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Custom field set successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Pipeline not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Set pipeline custom field
+      tags:
+      - CRM - Pipelines
+  /api/v1/crm/pipelines/{id}/custom-fields/{key}:
+    delete:
+      description: Remove a custom field from a pipeline by key
+      parameters:
+      - description: Pipeline ID (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Custom field key
+        in: path
+        name: key
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Custom field removed successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid parameters
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Pipeline or custom field not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Remove pipeline custom field
+      tags:
+      - CRM - Pipelines
   /api/v1/crm/pipelines/advanced:
     get:
       consumes:
@@ -6249,7 +6453,7 @@ paths:
         "200":
           description: Successfully retrieved pipelines with full configuration details
           schema:
-            $ref: '#/definitions/github_com_caloi_ventros-crm_internal_application_queries.ListPipelinesResponse'
+            $ref: '#/definitions/github_com_ventros_crm_internal_application_queries.ListPipelinesResponse'
         "400":
           description: Bad Request - Invalid UUID or parameter format
           schema:
@@ -6317,7 +6521,7 @@ paths:
         "200":
           description: Found pipelines with match scores
           schema:
-            $ref: '#/definitions/github_com_caloi_ventros-crm_internal_application_queries.SearchPipelinesResponse'
+            $ref: '#/definitions/github_com_ventros_crm_internal_application_queries.SearchPipelinesResponse'
         "400":
           description: Bad Request - Empty search query
           schema:
@@ -6420,7 +6624,7 @@ paths:
         "200":
           description: Successfully retrieved projects with full details
           schema:
-            $ref: '#/definitions/github_com_caloi_ventros-crm_internal_application_queries.ListProjectsResponse'
+            $ref: '#/definitions/github_com_ventros_crm_internal_application_queries.ListProjectsResponse'
         "400":
           description: Bad Request - Invalid UUID or parameter format
           schema:
@@ -6489,7 +6693,7 @@ paths:
         "200":
           description: Found projects with match scores
           schema:
-            $ref: '#/definitions/github_com_caloi_ventros-crm_internal_application_queries.SearchProjectsResponse'
+            $ref: '#/definitions/github_com_ventros_crm_internal_application_queries.SearchProjectsResponse'
         "400":
           description: Bad Request - Empty search query
           schema:
@@ -6644,7 +6848,7 @@ paths:
         "200":
           description: Successfully retrieved sessions with pagination metadata
           schema:
-            $ref: '#/definitions/github_com_caloi_ventros-crm_internal_application_queries.ListSessionsResponse'
+            $ref: '#/definitions/github_com_ventros_crm_internal_application_queries.ListSessionsResponse'
         "400":
           description: Bad Request - Invalid parameters (e.g., invalid UUID format,
             invalid page number, limit exceeds maximum)
@@ -6727,7 +6931,7 @@ paths:
           description: Successfully found matching sessions with relevance scores
             and matched fields
           schema:
-            $ref: '#/definitions/github_com_caloi_ventros-crm_internal_application_queries.SearchSessionsResponse'
+            $ref: '#/definitions/github_com_ventros_crm_internal_application_queries.SearchSessionsResponse'
         "400":
           description: Bad Request - Missing or invalid search query, limit exceeds
             maximum
@@ -6804,6 +7008,50 @@ paths:
       summary: List domain events by type
       tags:
       - domain-events
+  /api/v1/media/upload:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Faz upload de um arquivo de mídia (imagem, vídeo, áudio, documento)
+        para uso em mensagens
+      parameters:
+      - description: Media file to upload (max 64MB)
+        in: formData
+        name: file
+        required: true
+        type: file
+      - description: Project ID
+        in: query
+        name: project_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/infrastructure_http_handlers.UploadResponse'
+        "400":
+          description: Invalid request
+          schema:
+            additionalProperties: true
+            type: object
+        "413":
+          description: File too large
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Upload failed
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Upload media file
+      tags:
+      - media
   /api/v1/messages:
     get:
       description: List messages with optional filters
@@ -7819,7 +8067,7 @@ paths:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/github_com_caloi_ventros-crm_internal_application_tracking.TrackingDTO'
+            $ref: '#/definitions/github_com_ventros_crm_internal_application_tracking.TrackingDTO'
         "400":
           description: Bad Request
           schema:
@@ -7848,7 +8096,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/github_com_caloi_ventros-crm_internal_application_tracking.TrackingDTO'
+            $ref: '#/definitions/github_com_ventros_crm_internal_application_tracking.TrackingDTO'
         "400":
           description: Bad Request
           schema:
@@ -7873,14 +8121,14 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/github_com_caloi_ventros-crm_internal_application_tracking.DecodeTrackingRequest'
+          $ref: '#/definitions/github_com_ventros_crm_internal_application_tracking.DecodeTrackingRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/github_com_caloi_ventros-crm_internal_application_tracking.DecodeTrackingResponse'
+            $ref: '#/definitions/github_com_ventros_crm_internal_application_tracking.DecodeTrackingResponse'
         "400":
           description: Bad Request
           schema:
@@ -7901,14 +8149,14 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/github_com_caloi_ventros-crm_internal_application_tracking.EncodeTrackingRequest'
+          $ref: '#/definitions/github_com_ventros_crm_internal_application_tracking.EncodeTrackingRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/github_com_caloi_ventros-crm_internal_application_tracking.EncodeTrackingResponse'
+            $ref: '#/definitions/github_com_ventros_crm_internal_application_tracking.EncodeTrackingResponse'
         "400":
           description: Bad Request
           schema:
@@ -8276,11 +8524,11 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/github_com_caloi_ventros-crm_infrastructure_health.CheckResult'
+            $ref: '#/definitions/github_com_ventros_crm_infrastructure_health.CheckResult'
         "503":
           description: Service Unavailable
           schema:
-            $ref: '#/definitions/github_com_caloi_ventros-crm_infrastructure_health.CheckResult'
+            $ref: '#/definitions/github_com_ventros_crm_infrastructure_health.CheckResult'
       summary: Database health check
       tags:
       - health
@@ -8295,11 +8543,11 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/github_com_caloi_ventros-crm_infrastructure_health.CheckResult'
+            $ref: '#/definitions/github_com_ventros_crm_infrastructure_health.CheckResult'
         "503":
           description: Service Unavailable
           schema:
-            $ref: '#/definitions/github_com_caloi_ventros-crm_infrastructure_health.CheckResult'
+            $ref: '#/definitions/github_com_ventros_crm_infrastructure_health.CheckResult'
       summary: Database migrations health check
       tags:
       - health
@@ -8314,11 +8562,11 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/github_com_caloi_ventros-crm_infrastructure_health.CheckResult'
+            $ref: '#/definitions/github_com_ventros_crm_infrastructure_health.CheckResult'
         "503":
           description: Service Unavailable
           schema:
-            $ref: '#/definitions/github_com_caloi_ventros-crm_infrastructure_health.CheckResult'
+            $ref: '#/definitions/github_com_ventros_crm_infrastructure_health.CheckResult'
       summary: RabbitMQ health check
       tags:
       - health
@@ -8333,11 +8581,11 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/github_com_caloi_ventros-crm_infrastructure_health.CheckResult'
+            $ref: '#/definitions/github_com_ventros_crm_infrastructure_health.CheckResult'
         "503":
           description: Service Unavailable
           schema:
-            $ref: '#/definitions/github_com_caloi_ventros-crm_infrastructure_health.CheckResult'
+            $ref: '#/definitions/github_com_ventros_crm_infrastructure_health.CheckResult'
       summary: Redis health check
       tags:
       - health
@@ -8352,11 +8600,11 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/github_com_caloi_ventros-crm_infrastructure_health.CheckResult'
+            $ref: '#/definitions/github_com_ventros_crm_infrastructure_health.CheckResult'
         "503":
           description: Service Unavailable
           schema:
-            $ref: '#/definitions/github_com_caloi_ventros-crm_infrastructure_health.CheckResult'
+            $ref: '#/definitions/github_com_ventros_crm_infrastructure_health.CheckResult'
       summary: Temporal health check
       tags:
       - health

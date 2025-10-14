@@ -4,9 +4,9 @@ import (
 	"context"
 	"testing"
 
-	"github.com/caloi/ventros-crm/infrastructure/channels/waha"
-	"github.com/caloi/ventros-crm/infrastructure/persistence"
-	"github.com/caloi/ventros-crm/internal/application/message"
+	"github.com/ventros/crm/infrastructure/channels/waha"
+	"github.com/ventros/crm/infrastructure/persistence"
+	"github.com/ventros/crm/internal/application/message"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

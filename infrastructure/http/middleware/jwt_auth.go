@@ -29,7 +29,7 @@ type AuthClaims struct {
 
 // UserContext representa o contexto do usuário autenticado
 type UserContext struct {
-	Subject           string   // Keycloak user ID (sub claim)
+	Subject           string // Keycloak user ID (sub claim)
 	Email             string
 	Name              string
 	PreferredUsername string
@@ -60,9 +60,9 @@ func JWTAuthMiddleware(config JWTConfig) gin.HandlerFunc {
 
 	// Keyfunc will automatically refresh keys every 5 minutes
 	jwks, err := keyfunc.Get(jwksURL, keyfunc.Options{
-		RefreshInterval:   5 * time.Minute,
-		RefreshRateLimit:  time.Minute,
-		RefreshTimeout:    10 * time.Second,
+		RefreshInterval:  5 * time.Minute,
+		RefreshRateLimit: time.Minute,
+		RefreshTimeout:   10 * time.Second,
 		RefreshErrorHandler: func(err error) {
 			config.Logger.Errorf("JWKS refresh error: %v", err)
 		},

@@ -6,9 +6,9 @@ import (
 	"errors"
 	"time"
 
-	"github.com/caloi/ventros-crm/infrastructure/persistence/entities"
-	"github.com/caloi/ventros-crm/internal/domain/crm/note"
 	"github.com/google/uuid"
+	"github.com/ventros/crm/infrastructure/persistence/entities"
+	"github.com/ventros/crm/internal/domain/crm/note"
 	"gorm.io/gorm"
 )
 

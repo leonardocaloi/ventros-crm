@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/caloi/ventros-crm/internal/domain/crm/pipeline"
-	"github.com/caloi/ventros-crm/internal/domain/crm/session"
 	"github.com/google/uuid"
+	"github.com/ventros/crm/internal/domain/crm/pipeline"
+	"github.com/ventros/crm/internal/domain/crm/session"
 )
 
 // AutomationIntegration integra Follow-up Rules com eventos do sistema

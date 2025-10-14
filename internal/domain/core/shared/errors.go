@@ -10,16 +10,16 @@ type ErrorType string
 
 const (
 	// Domain/Business Logic Errors
-	ErrorTypeValidation          ErrorType = "VALIDATION_ERROR"
-	ErrorTypeNotFound            ErrorType = "NOT_FOUND"
-	ErrorTypeAlreadyExists       ErrorType = "ALREADY_EXISTS"
-	ErrorTypeConflict            ErrorType = "CONFLICT"
-	ErrorTypeOptimisticLock      ErrorType = "OPTIMISTIC_LOCK_CONFLICT"
-	ErrorTypeForbidden           ErrorType = "FORBIDDEN"
-	ErrorTypeUnauthorized        ErrorType = "UNAUTHORIZED"
-	ErrorTypeBadRequest          ErrorType = "BAD_REQUEST"
-	ErrorTypePrecondition        ErrorType = "PRECONDITION_FAILED"
-	ErrorTypeInvariantViolation  ErrorType = "INVARIANT_VIOLATION"
+	ErrorTypeValidation         ErrorType = "VALIDATION_ERROR"
+	ErrorTypeNotFound           ErrorType = "NOT_FOUND"
+	ErrorTypeAlreadyExists      ErrorType = "ALREADY_EXISTS"
+	ErrorTypeConflict           ErrorType = "CONFLICT"
+	ErrorTypeOptimisticLock     ErrorType = "OPTIMISTIC_LOCK_CONFLICT"
+	ErrorTypeForbidden          ErrorType = "FORBIDDEN"
+	ErrorTypeUnauthorized       ErrorType = "UNAUTHORIZED"
+	ErrorTypeBadRequest         ErrorType = "BAD_REQUEST"
+	ErrorTypePrecondition       ErrorType = "PRECONDITION_FAILED"
+	ErrorTypeInvariantViolation ErrorType = "INVARIANT_VIOLATION"
 
 	// Infrastructure Errors
 	ErrorTypeDatabase  ErrorType = "DATABASE_ERROR"

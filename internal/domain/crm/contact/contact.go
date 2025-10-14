@@ -5,12 +5,12 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/caloi/ventros-crm/internal/domain/core/shared"
+	"github.com/ventros/crm/internal/domain/core/shared"
 )
 
 type Contact struct {
 	id            uuid.UUID
-	version       int    // Optimistic locking - prevents lost updates
+	version       int // Optimistic locking - prevents lost updates
 	projectID     uuid.UUID
 	tenantID      string
 	name          string
@@ -267,8 +267,8 @@ func (c *Contact) IsDeleted() bool {
 }
 
 // Aggregate Root implementation
-func (c *Contact) ID() uuid.UUID      { return c.id }
-func (c *Contact) Version() int       { return c.version }
+func (c *Contact) ID() uuid.UUID                       { return c.id }
+func (c *Contact) Version() int                        { return c.version }
 func (c *Contact) ProjectID() uuid.UUID                { return c.projectID }
 func (c *Contact) TenantID() string                    { return c.tenantID }
 func (c *Contact) Name() string                        { return c.name }

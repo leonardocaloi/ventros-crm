@@ -7,10 +7,10 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/caloi/ventros-crm/infrastructure/ai"
-	"github.com/caloi/ventros-crm/internal/domain/crm/contact"
-	"github.com/caloi/ventros-crm/internal/domain/crm/message_enrichment"
-	"github.com/caloi/ventros-crm/internal/domain/crm/pipeline"
+	"github.com/ventros/crm/infrastructure/ai"
+	"github.com/ventros/crm/internal/domain/crm/contact"
+	"github.com/ventros/crm/internal/domain/crm/message_enrichment"
+	"github.com/ventros/crm/internal/domain/crm/pipeline"
 )
 
 // LeadQualificationConsumer processa eventos de ProfilePictureReceived

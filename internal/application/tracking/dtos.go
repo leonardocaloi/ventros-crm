@@ -3,8 +3,8 @@ package tracking
 import (
 	"time"
 
-	"github.com/caloi/ventros-crm/internal/domain/crm/tracking"
 	"github.com/google/uuid"
+	"github.com/ventros/crm/internal/domain/crm/tracking"
 )
 
 // CreateTrackingDTO para criar novo tracking

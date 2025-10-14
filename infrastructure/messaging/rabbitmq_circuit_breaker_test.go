@@ -2,7 +2,6 @@ package messaging
 
 import (
 	"context"
-	"errors"
 	"testing"
 
 	"github.com/sony/gobreaker"
@@ -32,10 +31,6 @@ func (m *mockRabbitMQConnection) DeclareQueueWithDLQ(name string, maxRetries int
 	return m.declareQueueDLQErr
 }
 
-func (m *mockRabbitMQConnection) Consume(ctx context.Context, queue string, handler MessageHandler) error {
-	return nil
-}
-
 func (m *mockRabbitMQConnection) SetupAllQueues() error {
 	return m.setupQueuesErr
 }
@@ -46,7 +41,6 @@ func (m *mockRabbitMQConnection) Close() error {
 
 func TestRabbitMQWithCircuitBreaker_PublishSuccess(t *testing.T) {
 	logger := zap.NewNop()
-	mockConn := &mockRabbitMQConnection{}
 
 	rb := NewRabbitMQWithCircuitBreaker(&RabbitMQConnection{}, logger)
 	rb.conn = (*RabbitMQConnection)(nil) // Replace with mock
@@ -65,7 +59,6 @@ func TestRabbitMQWithCircuitBreaker_PublishSuccess(t *testing.T) {
 
 func TestRabbitMQWithCircuitBreaker_IsHealthy(t *testing.T) {
 	logger := zap.NewNop()
-	mockConn := &mockRabbitMQConnection{}
 
 	rb := NewRabbitMQWithCircuitBreaker((*RabbitMQConnection)(nil), logger)
 
@@ -90,7 +83,6 @@ func TestRabbitMQWithCircuitBreaker_StateTransitions(t *testing.T) {
 
 func TestNewRabbitMQWithCircuitBreaker(t *testing.T) {
 	logger := zap.NewNop()
-	mockConn := &mockRabbitMQConnection{}
 
 	rb := NewRabbitMQWithCircuitBreaker((*RabbitMQConnection)(nil), logger)
 

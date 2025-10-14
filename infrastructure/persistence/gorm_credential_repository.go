@@ -5,10 +5,10 @@ import (
 	"errors"
 	"time"
 
-	"github.com/caloi/ventros-crm/infrastructure/persistence/entities"
-	"github.com/caloi/ventros-crm/internal/domain/core/shared"
-	"github.com/caloi/ventros-crm/internal/domain/crm/credential"
 	"github.com/google/uuid"
+	"github.com/ventros/crm/infrastructure/persistence/entities"
+	"github.com/ventros/crm/internal/domain/core/shared"
+	"github.com/ventros/crm/internal/domain/crm/credential"
 	"gorm.io/gorm"
 )
 
@@ -43,25 +43,25 @@ func (r *GormCredentialRepository) Save(ctx context.Context, cred *credential.Cr
 	result := r.db.WithContext(ctx).Model(&entities.CredentialEntity{}).
 		Where("id = ? AND version = ?", entity.ID, existing.Version).
 		Updates(map[string]interface{}{
-			"version":                     existing.Version + 1, // Increment version
-			"tenant_id":                   entity.TenantID,
-			"project_id":                  entity.ProjectID,
-			"credential_type":             entity.CredentialType,
-			"name":                        entity.Name,
-			"description":                 entity.Description,
-			"encrypted_value_ciphertext":  entity.EncryptedValueCiphertext,
-			"encrypted_value_nonce":       entity.EncryptedValueNonce,
-			"metadata":                    entity.Metadata,
-			"is_active":                   entity.IsActive,
-			"expires_at":                  entity.ExpiresAt,
-			"last_used_at":                entity.LastUsedAt,
-			"oauth_access_token_ciphertext": entity.OAuthAccessTokenCiphertext,
-			"oauth_access_token_nonce":    entity.OAuthAccessTokenNonce,
+			"version":                        existing.Version + 1, // Increment version
+			"tenant_id":                      entity.TenantID,
+			"project_id":                     entity.ProjectID,
+			"credential_type":                entity.CredentialType,
+			"name":                           entity.Name,
+			"description":                    entity.Description,
+			"encrypted_value_ciphertext":     entity.EncryptedValueCiphertext,
+			"encrypted_value_nonce":          entity.EncryptedValueNonce,
+			"metadata":                       entity.Metadata,
+			"is_active":                      entity.IsActive,
+			"expires_at":                     entity.ExpiresAt,
+			"last_used_at":                   entity.LastUsedAt,
+			"oauth_access_token_ciphertext":  entity.OAuthAccessTokenCiphertext,
+			"oauth_access_token_nonce":       entity.OAuthAccessTokenNonce,
 			"oauth_refresh_token_ciphertext": entity.OAuthRefreshTokenCiphertext,
-			"oauth_refresh_token_nonce":   entity.OAuthRefreshTokenNonce,
-			"oauth_token_type":            entity.OAuthTokenType,
-			"oauth_expires_at":            entity.OAuthExpiresAt,
-			"updated_at":                  entity.UpdatedAt,
+			"oauth_refresh_token_nonce":      entity.OAuthRefreshTokenNonce,
+			"oauth_token_type":               entity.OAuthTokenType,
+			"oauth_expires_at":               entity.OAuthExpiresAt,
+			"updated_at":                     entity.UpdatedAt,
 		})
 
 	if result.Error != nil {

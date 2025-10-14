@@ -5,11 +5,13 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/caloi/ventros-crm/internal/domain/core/shared"
+	"github.com/ventros/crm/internal/domain/core/shared"
 )
 
 var (
-	ErrAgentNotFound = errors.New("agent not found")
+	ErrAgentNotFound               = errors.New("agent not found")
+	ErrSystemAgentCannotBeModified = errors.New("system agents cannot be modified")
+	ErrSystemAgentCannotBeDeleted  = errors.New("system agents cannot be deleted")
 )
 
 // Permission constants
@@ -30,6 +32,7 @@ const (
 	AgentTypeBot     AgentType = "bot"
 	AgentTypeChannel AgentType = "channel"
 	AgentTypeVirtual AgentType = "virtual" // Representa pessoas do passado (histórico), não pode enviar mensagens
+	AgentTypeSystem  AgentType = "system"  // Agentes do sistema (broadcast, sequence, trigger, etc)
 )
 
 type AgentStatus string
@@ -103,6 +106,10 @@ func NewAgent(
 	}
 	if agentType == AgentTypeVirtual {
 		return nil, errors.New("use NewVirtualAgent() to create virtual agents")
+	}
+
+	if agentType == AgentTypeSystem {
+		return nil, errors.New("system agents cannot be created manually - use bootstrap migration")
 	}
 
 	if agentType == AgentTypeHuman && (userID == nil || *userID == uuid.Nil) {
@@ -226,6 +233,11 @@ func (a *Agent) IsVirtual() bool {
 	return a.agentType == AgentTypeVirtual
 }
 
+// IsSystem verifica se o agente é do sistema
+func (a *Agent) IsSystem() bool {
+	return a.agentType == AgentTypeSystem
+}
+
 // CanSendMessages verifica se o agente pode enviar mensagens
 // Agentes virtuais NÃO podem enviar mensagens
 func (a *Agent) CanSendMessages() bool {
@@ -309,6 +321,11 @@ func ReconstructAgent(
 }
 
 func (a *Agent) UpdateProfile(name, email string) error {
+	// System agents cannot be modified
+	if a.IsSystem() {
+		return ErrSystemAgentCannotBeModified
+	}
+
 	if name == "" {
 		return errors.New("name cannot be empty")
 	}
@@ -348,6 +365,11 @@ func (a *Agent) Activate() error {
 }
 
 func (a *Agent) Deactivate() error {
+	// System agents cannot be deactivated
+	if a.IsSystem() {
+		return ErrSystemAgentCannotBeModified
+	}
+
 	if !a.active {
 		return errors.New("agent is already inactive")
 	}
@@ -443,8 +465,8 @@ func (a *Agent) RecordSessionHandled(responseTimeMs int) {
 	a.updatedAt = now
 }
 
-func (a *Agent) ID() uuid.UUID      { return a.id }
-func (a *Agent) Version() int       { return a.version }
+func (a *Agent) ID() uuid.UUID                          { return a.id }
+func (a *Agent) Version() int                           { return a.version }
 func (a *Agent) ProjectID() uuid.UUID                   { return a.projectID }
 func (a *Agent) UserID() *uuid.UUID                     { return a.userID }
 func (a *Agent) TenantID() string                       { return a.tenantID }

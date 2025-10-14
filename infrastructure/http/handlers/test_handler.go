@@ -9,10 +9,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/caloi/ventros-crm/infrastructure/persistence/entities"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/lib/pq"
+	"github.com/ventros/crm/infrastructure/persistence/entities"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 )

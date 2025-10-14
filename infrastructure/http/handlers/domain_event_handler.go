@@ -4,9 +4,9 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/caloi/ventros-crm/infrastructure/persistence"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/ventros/crm/infrastructure/persistence"
 	"go.uber.org/zap"
 )
 

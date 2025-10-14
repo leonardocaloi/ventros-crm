@@ -1,0 +1,198 @@
+# ============================================================================
+# VENTROS CRM
+# ============================================================================
+ventros_crm:
+  namespace: "ventros-crm"
+  
+  # Helm configuration
+  helm:
+    repo_name: "ventros"
+    repo_url: "https://leonardocaloi.github.io/ventros-crm/charts/"
+    chart_ref: "ventros/ventros-crm"
+    chart_version: "0.1.0"
+  
+  # Image configuration
+  image:
+    repository: "leonardocaloi/ventros-crm"
+    tag: "0.1.0"
+    pull_policy: "IfNotPresent"
+  
+  # Replicas
+  replicas: 1
+  
+  # Autoscaling
+  autoscaling:
+    enabled: false
+    min_replicas: 1
+    max_replicas: 5
+    target_cpu: 70
+  
+  # Resources - App principal
+  resources:
+    requests:
+      cpu: "10m"
+      memory: "128Mi"
+    limits:
+      cpu: "500m"
+      memory: "512Mi"
+  
+  # Ingress configuration - Otimizado para alta carga
+  ingress:
+    enabled: true
+    class_name: "nginx"
+    host: "api.crm.ventros.cloud"
+    cert_issuer: "letsencrypt-clusterissuer"
+    tls:
+      enabled: true
+      secret_name: "ventros-crm-tls"
+    annotations:
+      # Body size sem limite para uploads
+      proxy_body_size: "0"
+      # Buffers otimizados para muitas mensagens
+      proxy_buffer_size: "128k"
+      proxy_buffers_number: "8"
+      proxy_busy_buffers_size: "256k"
+      # Timeouts para requisições longas
+      proxy_connect_timeout: "300"
+      proxy_send_timeout: "300"
+      proxy_read_timeout: "300"
+      # Desabilitar buffering para streaming
+      proxy_request_buffering: "off"
+      proxy_buffering: "off"
+      # Rate limiting (ajustar conforme necessidade)
+      limit_rps: "1000"
+      limit_connections: "100"
+  
+  # PostgreSQL configuration (Zalando operator)
+  postgresql:
+    enabled: true
+    team_id: "ventros"
+    instances: 1
+    version: "15"
+    storage:
+      size: "20Gi"
+      class: "longhorn"
+    # Sem resources - usa o que estiver disponível
+    resources:
+      requests:
+        cpu: "10m"
+        memory: "128Mi"
+      limits:
+        cpu: "500m"
+        memory: "1Gi"
+  
+  # RabbitMQ configuration
+  rabbitmq:
+    enabled: true
+    replicas: 1
+    storage:
+      size: "10Gi"
+      class: "longhorn"
+    # Sem resources - usa o que estiver disponível
+    resources:
+      requests:
+        cpu: "10m"
+        memory: "128Mi"
+      limits:
+        cpu: "500m"
+        memory: "512Mi"
+    ingress:
+      enabled: true
+      host: "rabbitmq.crm.ventros.cloud"
+      cert_issuer: "letsencrypt-clusterissuer"
+      tls:
+        enabled: true
+        secret_name: "rabbitmq-crm-tls"
+  
+  # Redis configuration
+  redis:
+    enabled: true
+    architecture: "standalone"
+    auth:
+      enabled: true
+      password: "{{ vault_ventros_crm_redis_password | default('CHANGE_ME') }}"
+    storage:
+      size: "2Gi"
+      class: "longhorn"
+    # Sem resources - usa o que estiver disponível
+    resources:
+      requests:
+        cpu: "10m"
+        memory: "64Mi"
+      limits:
+        cpu: "200m"
+        memory: "256Mi"
+  
+  # Temporal configuration
+  temporal:
+    enabled: true
+    server:
+      replicas: 1
+    frontend:
+      replicas: 1
+      resources:
+        requests:
+          cpu: "200m"
+          memory: "256Mi"
+        limits:
+          cpu: "500m"
+          memory: "512Mi"
+    history:
+      replicas: 1
+      resources:
+        requests:
+          cpu: "200m"
+          memory: "256Mi"
+        limits:
+          cpu: "500m"
+          memory: "512Mi"
+    matching:
+      replicas: 1
+      resources:
+        requests:
+          cpu: "200m"
+          memory: "256Mi"
+        limits:
+          cpu: "500m"
+          memory: "512Mi"
+    worker:
+      replicas: 1
+      resources:
+        requests:
+          cpu: "200m"
+          memory: "256Mi"
+        limits:
+          cpu: "500m"
+          memory: "512Mi"
+    web:
+      enabled: true
+      replicas: 1
+      resources:
+        requests:
+          cpu: "200m"
+          memory: "256Mi"
+        limits:
+          cpu: "500m"
+          memory: "512Mi"
+      ingress:
+        enabled: true
+        host: "temporal.crm.ventros.cloud"
+        cert_issuer: "letsencrypt-clusterissuer"
+        tls:
+          enabled: true
+          secret_name: "temporal-crm-tls"
+  
+  # Environment variables
+  env:
+    log_level: "info"
+    gin_mode: "release"
+    environment: "production"
+  
+  # Secrets
+  secrets:
+    jwt_secret: "{{ vault_ventros_crm_jwt_secret | default('CHANGE_ME_IN_PRODUCTION') }}"
+    api_key_secret: "{{ vault_ventros_crm_api_key_secret | default('CHANGE_ME_IN_PRODUCTION') }}"
+  
+  # Node affinity - Desabilitado para distribuir no cluster
+  node_affinity:
+    enabled: false

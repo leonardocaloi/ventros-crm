@@ -3,11 +3,11 @@ package handlers
 import (
 	"net/http"
 
-	"github.com/caloi/ventros-crm/infrastructure/http/middleware"
-	webhookapp "github.com/caloi/ventros-crm/internal/application/webhook"
-	"github.com/caloi/ventros-crm/internal/domain/crm/webhook"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/ventros/crm/infrastructure/http/middleware"
+	webhookapp "github.com/ventros/crm/internal/application/webhook"
+	"github.com/ventros/crm/internal/domain/crm/webhook"
 	"go.uber.org/zap"
 )
 

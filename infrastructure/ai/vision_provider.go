@@ -12,7 +12,7 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/caloi/ventros-crm/internal/domain/crm/message_enrichment"
+	"github.com/ventros/crm/internal/domain/crm/message_enrichment"
 )
 
 // VisionProvider implementa OCR + descrição de imagens usando GPT-4 Vision ou Gemini Vision

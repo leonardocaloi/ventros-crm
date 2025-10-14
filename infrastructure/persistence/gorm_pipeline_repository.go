@@ -4,10 +4,10 @@ import (
 	"context"
 	"errors"
 
-	"github.com/caloi/ventros-crm/infrastructure/persistence/entities"
-	"github.com/caloi/ventros-crm/internal/domain/core/shared"
-	"github.com/caloi/ventros-crm/internal/domain/crm/pipeline"
 	"github.com/google/uuid"
+	"github.com/ventros/crm/infrastructure/persistence/entities"
+	"github.com/ventros/crm/internal/domain/core/shared"
+	"github.com/ventros/crm/internal/domain/crm/pipeline"
 	"gorm.io/gorm"
 )
 
@@ -32,16 +32,16 @@ func (r *GormPipelineRepository) SavePipeline(ctx context.Context, p *pipeline.P
 		result := r.db.WithContext(ctx).Model(&entities.PipelineEntity{}).
 			Where("id = ? AND version = ?", entity.ID, existing.Version).
 			Updates(map[string]interface{}{
-				"version":                  existing.Version + 1, // Increment version
-				"project_id":               entity.ProjectID,
-				"tenant_id":                entity.TenantID,
-				"name":                     entity.Name,
-				"description":              entity.Description,
-				"color":                    entity.Color,
-				"position":                 entity.Position,
-				"active":                   entity.Active,
-				"session_timeout_minutes":  entity.SessionTimeoutMinutes,
-				"updated_at":               entity.UpdatedAt,
+				"version":                 existing.Version + 1, // Increment version
+				"project_id":              entity.ProjectID,
+				"tenant_id":               entity.TenantID,
+				"name":                    entity.Name,
+				"description":             entity.Description,
+				"color":                   entity.Color,
+				"position":                entity.Position,
+				"active":                  entity.Active,
+				"session_timeout_minutes": entity.SessionTimeoutMinutes,
+				"updated_at":              entity.UpdatedAt,
 			})
 
 		if result.Error != nil {
@@ -459,6 +459,150 @@ func (r *GormPipelineRepository) statusEntityToDomain(entity *entities.PipelineS
 		pipeline.StatusType(entity.StatusType),
 		entity.Position,
 		entity.Active,
+		entity.CreatedAt,
+		entity.UpdatedAt,
+	)
+}
+
+// Custom field operations
+func (r *GormPipelineRepository) SaveCustomField(ctx context.Context, cf *pipeline.PipelineCustomField) error {
+	entity := r.customFieldDomainToEntity(cf)
+
+	// Check if exists by pipeline_id + field_key (unique constraint)
+	var existing entities.PipelineCustomFieldEntity
+	err := r.db.WithContext(ctx).
+		Where("pipeline_id = ? AND field_key = ?", entity.PipelineID, entity.FieldKey).
+		First(&existing).Error
+
+	if err == nil {
+		// Update existing
+		entity.ID = existing.ID // Preserve ID
+		entity.CreatedAt = existing.CreatedAt
+		return r.db.WithContext(ctx).
+			Model(&entities.PipelineCustomFieldEntity{}).
+			Where("id = ?", entity.ID).
+			Updates(map[string]interface{}{
+				"field_value": entity.FieldValue,
+				"updated_at":  entity.UpdatedAt,
+			}).Error
+	} else if errors.Is(err, gorm.ErrRecordNotFound) {
+		// Insert
+		return r.db.WithContext(ctx).Create(entity).Error
+	}
+
+	return err
+}
+
+func (r *GormPipelineRepository) FindCustomFieldByID(ctx context.Context, id uuid.UUID) (*pipeline.PipelineCustomField, error) {
+	var entity entities.PipelineCustomFieldEntity
+	err := r.db.WithContext(ctx).Where("id = ?", id).First(&entity).Error
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, pipeline.ErrCustomFieldNotFound
+		}
+		return nil, err
+	}
+
+	return r.customFieldEntityToDomain(&entity)
+}
+
+func (r *GormPipelineRepository) FindCustomFieldByKey(ctx context.Context, pipelineID uuid.UUID, key string) (*pipeline.PipelineCustomField, error) {
+	var entity entities.PipelineCustomFieldEntity
+	err := r.db.WithContext(ctx).
+		Where("pipeline_id = ? AND field_key = ?", pipelineID, key).
+		First(&entity).Error
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, pipeline.ErrCustomFieldNotFound
+		}
+		return nil, err
+	}
+
+	return r.customFieldEntityToDomain(&entity)
+}
+
+func (r *GormPipelineRepository) FindCustomFieldsByPipeline(ctx context.Context, pipelineID uuid.UUID) ([]*pipeline.PipelineCustomField, error) {
+	var entities []entities.PipelineCustomFieldEntity
+	err := r.db.WithContext(ctx).
+		Where("pipeline_id = ?", pipelineID).
+		Order("field_key ASC").
+		Find(&entities).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	fields := make([]*pipeline.PipelineCustomField, 0, len(entities))
+	for _, entity := range entities {
+		field, err := r.customFieldEntityToDomain(&entity)
+		if err != nil {
+			// Skip invalid fields
+			continue
+		}
+		fields = append(fields, field)
+	}
+
+	return fields, nil
+}
+
+func (r *GormPipelineRepository) DeleteCustomField(ctx context.Context, id uuid.UUID) error {
+	result := r.db.WithContext(ctx).Delete(&entities.PipelineCustomFieldEntity{}, "id = ?", id)
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		return pipeline.ErrCustomFieldNotFound
+	}
+	return nil
+}
+
+func (r *GormPipelineRepository) DeleteCustomFieldByKey(ctx context.Context, pipelineID uuid.UUID, key string) error {
+	result := r.db.WithContext(ctx).
+		Where("pipeline_id = ? AND field_key = ?", pipelineID, key).
+		Delete(&entities.PipelineCustomFieldEntity{})
+
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		return pipeline.ErrCustomFieldNotFound
+	}
+	return nil
+}
+
+// Custom field mappers
+func (r *GormPipelineRepository) customFieldDomainToEntity(cf *pipeline.PipelineCustomField) *entities.PipelineCustomFieldEntity {
+	return &entities.PipelineCustomFieldEntity{
+		ID:         cf.ID(),
+		PipelineID: cf.PipelineID(),
+		TenantID:   cf.TenantID(),
+		FieldKey:   cf.FieldKey(),
+		FieldType:  string(cf.FieldType()),
+		FieldValue: cf.FieldValue(),
+		CreatedAt:  cf.CreatedAt(),
+		UpdatedAt:  cf.UpdatedAt(),
+	}
+}
+
+func (r *GormPipelineRepository) customFieldEntityToDomain(entity *entities.PipelineCustomFieldEntity) (*pipeline.PipelineCustomField, error) {
+	// Reconstruct CustomField value object
+	customField, err := shared.NewCustomField(
+		entity.FieldKey,
+		shared.FieldType(entity.FieldType),
+		entity.FieldValue,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	// Reconstruct PipelineCustomField
+	return pipeline.ReconstructPipelineCustomField(
+		entity.ID,
+		entity.PipelineID,
+		entity.TenantID,
+		customField,
 		entity.CreatedAt,
 		entity.UpdatedAt,
 	)

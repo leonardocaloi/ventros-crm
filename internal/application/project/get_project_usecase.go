@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/caloi/ventros-crm/internal/domain/core/project"
 	"github.com/google/uuid"
+	"github.com/ventros/crm/internal/domain/core/project"
 )
 
 // GetProjectUseCase handles project retrieval

@@ -5,12 +5,12 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/caloi/ventros-crm/internal/domain/core/shared"
+	"github.com/ventros/crm/internal/domain/core/shared"
 )
 
 type Session struct {
 	id              uuid.UUID
-	version         int    // Optimistic locking - prevents lost updates
+	version         int // Optimistic locking - prevents lost updates
 	contactID       uuid.UUID
 	tenantID        string
 	channelTypeID   *int
@@ -78,6 +78,49 @@ func NewSession(
 		status:          StatusActive,
 		timeoutDuration: timeoutDuration,
 		lastActivityAt:  now,
+		agentIDs:        []uuid.UUID{},
+		topics:          []string{},
+		nextSteps:       []string{},
+		outcomeTags:     []string{},
+		keyEntities:     make(map[string]interface{}),
+		events:          []DomainEvent{},
+	}
+
+	session.addEvent(NewSessionStartedEvent(session.id, contactID, tenantID, channelTypeID))
+
+	return session, nil
+}
+
+// NewSessionWithTimestamp creates a new session with custom start time (for history import)
+// This is critical for history import to maintain correct chronological order
+func NewSessionWithTimestamp(
+	contactID uuid.UUID,
+	tenantID string,
+	channelTypeID *int,
+	timeoutDuration time.Duration,
+	startTime time.Time,
+) (*Session, error) {
+	if contactID == uuid.Nil {
+		return nil, errors.New("contactID cannot be nil")
+	}
+	if tenantID == "" {
+		return nil, errors.New("tenantID cannot be empty")
+	}
+	if timeoutDuration <= 0 {
+		timeoutDuration = 30 * time.Minute
+	}
+
+	session := &Session{
+		id:              uuid.New(),
+		version:         1,
+		contactID:       contactID,
+		tenantID:        tenantID,
+		channelTypeID:   channelTypeID,
+		pipelineID:      nil,
+		startedAt:       startTime, // Use provided timestamp instead of time.Now()
+		status:          StatusActive,
+		timeoutDuration: timeoutDuration,
+		lastActivityAt:  startTime, // Initialize with start time
 		agentIDs:        []uuid.UUID{},
 		topics:          []string{},
 		nextSteps:       []string{},
@@ -245,7 +288,9 @@ func (s *Session) RecordMessage(fromContact bool, messageTimestamp time.Time) er
 		}
 	}
 
-	s.lastActivityAt = now
+	// Use message timestamp for lastActivityAt (critical for history import!)
+	// This ensures sessions are ordered correctly by actual message time, not import time
+	s.lastActivityAt = messageTimestamp
 
 	s.addEvent(NewMessageRecordedEvent(s.id, fromContact))
 

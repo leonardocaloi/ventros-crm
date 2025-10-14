@@ -6,24 +6,23 @@ import (
 	"sort"
 	"time"
 
-	"github.com/caloi/ventros-crm/infrastructure/channels/waha"
-	"github.com/caloi/ventros-crm/internal/domain/crm/channel"
-	"github.com/caloi/ventros-crm/internal/domain/crm/contact"
-	"github.com/caloi/ventros-crm/internal/domain/crm/message"
-	"github.com/caloi/ventros-crm/internal/domain/crm/session"
 	"github.com/google/uuid"
+	"github.com/ventros/crm/infrastructure/channels/waha"
+	"github.com/ventros/crm/internal/domain/crm/channel"
+	"github.com/ventros/crm/internal/domain/crm/contact"
+	"github.com/ventros/crm/internal/domain/crm/message"
+	"github.com/ventros/crm/internal/domain/crm/session"
 	"go.uber.org/zap"
 )
 
 // WAHAHistoryImportActivities contém todas as activities necessárias para importação
 type WAHAHistoryImportActivities struct {
-	logger         *zap.Logger
-	wahaClient     *waha.WAHAClient
-	channelRepo    channel.Repository
-	contactRepo    contact.Repository
-	sessionRepo    session.Repository
-	messageRepo    message.Repository
-	sessionTimeout time.Duration
+	logger      *zap.Logger
+	wahaClient  *waha.WAHAClient
+	channelRepo channel.Repository
+	contactRepo contact.Repository
+	sessionRepo session.Repository
+	messageRepo message.Repository
 }
 
 // NewWAHAHistoryImportActivities cria novas activities
@@ -36,13 +35,12 @@ func NewWAHAHistoryImportActivities(
 	messageRepo message.Repository,
 ) *WAHAHistoryImportActivities {
 	return &WAHAHistoryImportActivities{
-		logger:         logger,
-		wahaClient:     wahaClient,
-		channelRepo:    channelRepo,
-		contactRepo:    contactRepo,
-		sessionRepo:    sessionRepo,
-		messageRepo:    messageRepo,
-		sessionTimeout: 30 * time.Minute, // Timeout padrão entre mensagens
+		logger:      logger,
+		wahaClient:  wahaClient,
+		channelRepo: channelRepo,
+		contactRepo: contactRepo,
+		sessionRepo: sessionRepo,
+		messageRepo: messageRepo,
 	}
 }
 
@@ -98,19 +96,48 @@ func (a *WAHAHistoryImportActivities) ImportChatHistoryActivity(ctx context.Cont
 		ChatID: input.ChatID,
 	}
 
-	// Buscar mensagens do chat
+	// Buscar mensagens do chat com filtro de data se especificado
+	// limit == 0 significa SEM LIMITE (buscar todas as mensagens disponíveis)
 	limit := input.Limit
-	if limit == 0 {
-		limit = 1000 // Limite padrão
+
+	// ⚠️ IMPORTANTE: TimeRangeDays deve ser > 0 para ativar filtro de tempo
+	// Se TimeRangeDays == 0, busca TODAS as mensagens disponíveis no WAHA
+	var timestampGte int64
+	if input.TimeRangeDays > 0 {
+		cutoffTime := time.Now().AddDate(0, 0, -input.TimeRangeDays)
+		timestampGte = cutoffTime.Unix()
+
+		a.logger.Info("Fetching messages with time filter",
+			zap.String("chat_id", input.ChatID),
+			zap.String("chat_name", input.ChatName),
+			zap.Int("time_range_days", input.TimeRangeDays),
+			zap.Int64("timestamp_gte", timestampGte),
+			zap.String("cutoff_date", cutoffTime.Format(time.RFC3339)))
+	} else {
+		a.logger.Info("Fetching ALL available messages (no time filter)",
+			zap.String("chat_id", input.ChatID),
+			zap.String("chat_name", input.ChatName),
+			zap.Int("limit", limit))
 	}
 
-	messages, err := a.wahaClient.GetChatMessages(ctx, input.SessionID, input.ChatID, limit, false)
+	// Buscar mensagens da API WAHA
+	// timestampGte=0 significa sem filtro de tempo (buscar todas)
+	messages, err := a.wahaClient.GetChatMessagesWithFilter(ctx, input.SessionID, input.ChatID, limit, false, timestampGte, 0)
 	if err != nil {
+		a.logger.Error("Failed to fetch messages from WAHA",
+			zap.String("chat_id", input.ChatID),
+			zap.String("session_id", input.SessionID),
+			zap.Error(err))
 		return nil, fmt.Errorf("failed to fetch messages: %w", err)
 	}
 
+	a.logger.Info("Messages fetched from WAHA successfully",
+		zap.String("chat_id", input.ChatID),
+		zap.Int("messages_count", len(messages)),
+		zap.Int64("timestamp_filter", timestampGte))
+
 	if len(messages) == 0 {
-		a.logger.Debug("Chat has no messages", zap.String("chat_id", input.ChatID))
+		a.logger.Debug("Chat has no messages in time range", zap.String("chat_id", input.ChatID))
 		return result, nil
 	}
 
@@ -143,10 +170,24 @@ func (a *WAHAHistoryImportActivities) ImportChatHistoryActivity(ctx context.Cont
 		result.ContactsCreated = 1
 	}
 
-	// Agrupar mensagens em sessões
-	sessions := a.groupMessagesIntoSessions(messages, cont.ID(), input.TenantID, channelID)
+	// Configurar timeout de sessão (default 30 minutos se não especificado)
+	sessionTimeoutMinutes := input.SessionTimeoutMinutes
+	if sessionTimeoutMinutes == 0 {
+		sessionTimeoutMinutes = 30
+	}
+	sessionTimeout := time.Duration(sessionTimeoutMinutes) * time.Minute
 
-	// Criar sessões e mensagens
+	// Agrupar mensagens em sessões
+	sessions := a.groupMessagesIntoSessions(messages, cont.ID(), projectID, input.TenantID, channelID, sessionTimeout)
+
+	a.logger.Info("Messages grouped into sessions",
+		zap.String("chat_id", input.ChatID),
+		zap.String("chat_name", input.ChatName),
+		zap.Int("sessions_count", len(sessions)),
+		zap.Int("total_messages", len(messages)),
+		zap.Int("session_timeout_minutes", sessionTimeoutMinutes))
+
+	// Criar sessões e mensagens com controle de duplicação
 	for _, sess := range sessions {
 		// Salvar sessão
 		if err := a.sessionRepo.Save(ctx, sess.session); err != nil {
@@ -154,11 +195,29 @@ func (a *WAHAHistoryImportActivities) ImportChatHistoryActivity(ctx context.Cont
 		}
 		result.SessionsCreated++
 
-		// Salvar mensagens da sessão
+		// Salvar mensagens da sessão com controle de duplicação
 		for _, msg := range sess.messages {
+			// Verificar se mensagem já existe (por channel_message_id)
+			// Se já existe, skip (evitar duplicação em re-imports)
+			channelMsgID := msg.ChannelMessageID()
+			if channelMsgID != nil && *channelMsgID != "" {
+				existingMsg, err := a.messageRepo.FindByChannelMessageID(ctx, *channelMsgID)
+				if err == nil && existingMsg != nil {
+					a.logger.Debug("Message already imported, skipping",
+						zap.String("channel_message_id", *channelMsgID),
+						zap.String("chat_id", input.ChatID))
+					continue // Skip duplicata
+				}
+			}
+
 			if err := a.messageRepo.Save(ctx, msg); err != nil {
+				channelMsgIDStr := ""
+				if channelMsgID != nil {
+					channelMsgIDStr = *channelMsgID
+				}
 				a.logger.Warn("Failed to save message",
 					zap.String("message_id", msg.ID().String()),
+					zap.String("channel_message_id", channelMsgIDStr),
 					zap.Error(err))
 				continue
 			}
@@ -247,8 +306,10 @@ type sessionWithMessages struct {
 func (a *WAHAHistoryImportActivities) groupMessagesIntoSessions(
 	wahaMessages []waha.MessagePayload,
 	contactID uuid.UUID,
+	projectID uuid.UUID,
 	tenantID string,
 	channelID uuid.UUID,
+	sessionTimeout time.Duration,
 ) []*sessionWithMessages {
 	if len(wahaMessages) == 0 {
 		return nil
@@ -257,16 +318,42 @@ func (a *WAHAHistoryImportActivities) groupMessagesIntoSessions(
 	sessions := []*sessionWithMessages{}
 	var currentSession *sessionWithMessages
 
-	for _, wahaMsg := range wahaMessages {
+	for msgIndex, wahaMsg := range wahaMessages {
 		msgTime := time.Unix(wahaMsg.Timestamp, 0)
 
 		// Se não tem sessão atual ou passou do timeout, cria nova sessão
-		if currentSession == nil || a.shouldCreateNewSession(currentSession, msgTime) {
-			sess, err := session.NewSession(contactID, tenantID, nil, a.sessionTimeout)
+		if currentSession == nil || a.shouldCreateNewSession(currentSession, msgTime, sessionTimeout) {
+			// Log da nova sessão sendo criada
+			sessionNumber := len(sessions) + 1
+
+			// Se temos sessão anterior, encerrar e logar estatísticas
+			if currentSession != nil {
+				firstMsgTime := currentSession.messages[0].Timestamp()
+				lastMsgTime := currentSession.messages[len(currentSession.messages)-1].Timestamp()
+				sessionDuration := lastMsgTime.Sub(firstMsgTime)
+
+				a.logger.Info("Session completed",
+					zap.Int("session_number", sessionNumber-1),
+					zap.Int("messages_count", len(currentSession.messages)),
+					zap.Time("start_time", firstMsgTime),
+					zap.Time("end_time", lastMsgTime),
+					zap.Duration("duration", sessionDuration),
+					zap.Duration("gap_to_next", msgTime.Sub(lastMsgTime)))
+			}
+
+			// Use msgTime as session start time (critical for history import!)
+			// This ensures sessions are ordered correctly by actual message time
+			sess, err := session.NewSessionWithTimestamp(contactID, tenantID, nil, sessionTimeout, msgTime)
 			if err != nil {
 				a.logger.Error("Failed to create session", zap.Error(err))
 				continue
 			}
+
+			a.logger.Info("New session created",
+				zap.Int("session_number", sessionNumber),
+				zap.Time("start_time", msgTime),
+				zap.Duration("timeout", sessionTimeout),
+				zap.Int("message_index", msgIndex))
 
 			currentSession = &sessionWithMessages{
 				session:  sess,
@@ -290,35 +377,52 @@ func (a *WAHAHistoryImportActivities) groupMessagesIntoSessions(
 			contentType = message.ContentTypeLocation
 		}
 
-		// Criar mensagem
-		// TODO: Get actual projectID and customerID
-		projectID := uuid.Nil
-		customerID := uuid.Nil
+		// Reconstruir mensagem com timestamp original do WAHA (não usar NewMessage!)
+		// customerID será o próprio contactID para mensagens históricas
+		customerID := contactID
+		sessionIDPtr := currentSession.session.ID()
 
-		msg, err := message.NewMessage(
-			contactID,
-			projectID,
-			customerID,
-			contentType,
-			wahaMsg.FromMe,
-		)
-		if err != nil {
-			a.logger.Error("Failed to create message", zap.Error(err))
-			continue
-		}
-
-		// Configurar campos adicionais
-		msg.AssignToSession(currentSession.session.ID())
-		// TODO: Add SetChannelID method to message if needed
-		// msg.SetChannelID(channelID)
+		// Preparar dados opcionais
+		var textPtr *string
 		if wahaMsg.Body != "" {
-			msg.SetText(wahaMsg.Body)
+			textPtr = &wahaMsg.Body
 		}
-		msg.SetChannelMessageID(wahaMsg.ID)
 
+		var mediaURLPtr *string
+		var mediaMimetypePtr *string
 		if wahaMsg.MediaURL != "" {
-			msg.SetMediaContent(wahaMsg.MediaURL, wahaMsg.MimeType)
+			mediaURLPtr = &wahaMsg.MediaURL
+			mediaMimetypePtr = &wahaMsg.MimeType
 		}
+
+		// ✅ CRÍTICO: Usar ReconstructMessage() para preservar timestamp original!
+		// Isso garante que sessões sejam agrupadas corretamente por timeout
+		msg := message.ReconstructMessage(
+			uuid.New(),                  // id
+			msgTime,                     // ✅ timestamp ORIGINAL do WAHA!
+			customerID,                  // customerID
+			projectID,                   // projectID
+			nil,                         // channelTypeID
+			wahaMsg.FromMe,              // fromMe
+			channelID,                   // channelID
+			contactID,                   // contactID
+			&sessionIDPtr,               // sessionID
+			contentType,                 // contentType
+			textPtr,                     // text
+			mediaURLPtr,                 // mediaURL
+			mediaMimetypePtr,            // mediaMimetype
+			&wahaMsg.ID,                 // channelMessageID
+			nil,                         // replyToID
+			message.StatusSent,          // status
+			nil,                         // language
+			nil,                         // agentID
+			message.SourceHistoryImport, // source
+			nil,                         // metadata
+			nil,                         // deliveredAt
+			nil,                         // readAt
+			nil,                         // playedAt
+			nil,                         // mentions
+		)
 
 		// Registrar mensagem na sessão
 		currentSession.session.RecordMessage(!wahaMsg.FromMe, msgTime)
@@ -336,7 +440,7 @@ func (a *WAHAHistoryImportActivities) groupMessagesIntoSessions(
 }
 
 // shouldCreateNewSession verifica se deve criar nova sessão baseado no timeout
-func (a *WAHAHistoryImportActivities) shouldCreateNewSession(current *sessionWithMessages, msgTime time.Time) bool {
+func (a *WAHAHistoryImportActivities) shouldCreateNewSession(current *sessionWithMessages, msgTime time.Time, sessionTimeout time.Duration) bool {
 	if len(current.messages) == 0 {
 		return false
 	}
@@ -346,7 +450,54 @@ func (a *WAHAHistoryImportActivities) shouldCreateNewSession(current *sessionWit
 	lastMsgTime := lastMsg.Timestamp()
 
 	// Se passou do timeout, cria nova sessão
-	return msgTime.Sub(lastMsgTime) > a.sessionTimeout
+	gap := msgTime.Sub(lastMsgTime)
+	return gap > sessionTimeout
+}
+
+// ProcessBufferedWebhooksActivity processa webhooks que foram buffered durante import
+// SAGA Pattern: webhooks recebidos durante import são enfileirados e processados após
+func (a *WAHAHistoryImportActivities) ProcessBufferedWebhooksActivity(ctx context.Context, input ProcessBufferedWebhooksActivityInput) (*ProcessBufferedWebhooksActivityResult, error) {
+	a.logger.Info("Processing buffered webhooks after import",
+		zap.String("channel_id", input.ChannelID))
+
+	result := &ProcessBufferedWebhooksActivityResult{
+		ChannelID:         input.ChannelID,
+		WebhooksProcessed: 0,
+		Errors:            []string{},
+	}
+
+	// Buscar channel
+	channelID, err := uuid.Parse(input.ChannelID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid channel_id: %w", err)
+	}
+
+	ch, err := a.channelRepo.GetByID(channelID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get channel: %w", err)
+	}
+
+	// Mudar status do canal para "completed" (não está mais importando)
+	ch.CompleteHistoryImport(channel.HistoryImportStats{
+		Total:     input.TotalMessagesImported,
+		Processed: input.TotalMessagesImported,
+		Failed:    0,
+		StartedAt: time.Now().Add(-time.Duration(input.ImportDurationSeconds) * time.Second),
+	})
+
+	if err := a.channelRepo.Update(ch); err != nil {
+		return nil, fmt.Errorf("failed to update channel status: %w", err)
+	}
+
+	a.logger.Info("Channel status updated to completed, buffered webhooks will be processed by consumer",
+		zap.String("channel_id", input.ChannelID),
+		zap.Int("total_imported", input.TotalMessagesImported))
+
+	// Nota: Os webhooks buffered serão processados automaticamente pelo consumer RabbitMQ
+	// pois agora ch.IsHistoryImportInProgress() retorna false
+	// O consumer já está configurado para processar a fila webhooks.buffered.{channel_id}
+
+	return result, nil
 }
 
 // extractPhoneNumber extrai número de telefone do chat ID

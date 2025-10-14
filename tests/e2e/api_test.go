@@ -128,7 +128,7 @@ func (s *APITestSuite) Test2_CreateChannel() {
 		"waha_config": channelFixture.WAHAConfig,
 	}
 	
-	endpoint := fmt.Sprintf("/api/v1/channels?project_id=%s", projectID)
+	endpoint := fmt.Sprintf("/api/v1/crm/channels?project_id=%s", projectID)
 	resp, body := s.makeRequest("POST", endpoint, payload, apiKey)
 	assert.Equal(s.T(), http.StatusCreated, resp.StatusCode)
 	
@@ -142,23 +142,61 @@ func (s *APITestSuite) Test2_CreateChannel() {
 	fmt.Printf("✅ Channel created: %s (ID: %s)\n", result["name"], result["id"])
 }
 
-// Test3_ActivateChannel testa ativação de canal
+// Test3_ActivateChannel testa ativação de canal (Event-Driven Architecture)
 func (s *APITestSuite) Test3_ActivateChannel() {
 	apiKey := s.createdIDs["api_key"]
 	channelID := s.createdIDs["channel_id"]
-	
+
 	assert.NotEmpty(s.T(), apiKey, "API key must be set")
 	assert.NotEmpty(s.T(), channelID, "Channel ID must be set from Test2")
-	
-	endpoint := fmt.Sprintf("/api/v1/channels/%s/activate", channelID)
+
+	// Step 1: Request activation (should return 202 Accepted immediately)
+	endpoint := fmt.Sprintf("/api/v1/crm/channels/%s/activate", channelID)
 	resp, body := s.makeRequest("POST", endpoint, nil, apiKey)
-	assert.Equal(s.T(), http.StatusOK, resp.StatusCode)
-	
-	var result map[string]interface{}
-	err := json.Unmarshal(body, &result)
+	assert.Equal(s.T(), http.StatusAccepted, resp.StatusCode, "Should return 202 Accepted for async activation")
+
+	var activationResponse map[string]interface{}
+	err := json.Unmarshal(body, &activationResponse)
 	assert.NoError(s.T(), err)
-	
-	fmt.Printf("✅ Channel activated: %s\n", channelID)
+	assert.Equal(s.T(), "activating", activationResponse["status"], "Status should be 'activating'")
+
+	fmt.Printf("✅ Channel activation requested (async): %s\n", channelID)
+	fmt.Println("   Waiting for async processing...")
+
+	// Step 2: Poll channel status until it becomes 'active' (max 10 seconds)
+	maxRetries := 20
+	pollInterval := 500 * time.Millisecond
+	channelActive := false
+
+	for i := 0; i < maxRetries; i++ {
+		time.Sleep(pollInterval)
+
+		getEndpoint := fmt.Sprintf("/api/v1/crm/channels/%s", channelID)
+		getResp, getBody := s.makeRequest("GET", getEndpoint, nil, apiKey)
+		assert.Equal(s.T(), http.StatusOK, getResp.StatusCode)
+
+		var channel map[string]interface{}
+		err := json.Unmarshal(getBody, &channel)
+		assert.NoError(s.T(), err)
+
+		status := channel["status"].(string)
+		if status == "active" {
+			channelActive = true
+			fmt.Printf("✅ Channel activated successfully via Event-Driven Architecture (took %dms)\n",
+				int((i+1)*int(pollInterval.Milliseconds())))
+			break
+		} else if status == "inactive" {
+			// Activation failed
+			lastError := ""
+			if channel["last_error"] != nil {
+				lastError = channel["last_error"].(string)
+			}
+			s.T().Fatalf("Channel activation failed: %s", lastError)
+		}
+		// Status still "activating", continue polling
+	}
+
+	assert.True(s.T(), channelActive, "Channel should be activated within 10 seconds")
 }
 
 // Test4_CreateContact testa criação de contato
@@ -245,7 +283,7 @@ func (s *APITestSuite) cleanupChannels() {
 	}
 	
 	apiKey := s.createdIDs["api_key"]
-	endpoint := fmt.Sprintf("/api/v1/channels/%s", channelID)
+	endpoint := fmt.Sprintf("/api/v1/crm/channels/%s", channelID)
 	resp, _ := s.makeRequest("DELETE", endpoint, nil, apiKey)
 	
 	if resp.StatusCode == http.StatusOK || resp.StatusCode == http.StatusNoContent {

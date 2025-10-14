@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	ws "github.com/caloi/ventros-crm/infrastructure/websocket"
-	"github.com/caloi/ventros-crm/internal/domain/crm/message"
 	"github.com/google/uuid"
+	ws "github.com/ventros/crm/infrastructure/websocket"
+	"github.com/ventros/crm/internal/domain/crm/message"
 	"go.uber.org/zap"
 )
 

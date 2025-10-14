@@ -12,7 +12,7 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/caloi/ventros-crm/internal/domain/crm/message_enrichment"
+	"github.com/ventros/crm/internal/domain/crm/message_enrichment"
 )
 
 // FFmpegProvider implementa extração de áudio de vídeos usando FFmpeg

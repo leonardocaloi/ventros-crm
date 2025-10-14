@@ -46,6 +46,14 @@ type Repository interface {
 	FindByTenantWithFilters(ctx context.Context, filters PipelineFilters) ([]*Pipeline, int64, error)
 
 	SearchByText(ctx context.Context, tenantID string, searchText string, limit int, offset int) ([]*Pipeline, int64, error)
+
+	// Custom fields
+	SaveCustomField(ctx context.Context, customField *PipelineCustomField) error
+	FindCustomFieldByID(ctx context.Context, id uuid.UUID) (*PipelineCustomField, error)
+	FindCustomFieldByKey(ctx context.Context, pipelineID uuid.UUID, key string) (*PipelineCustomField, error)
+	FindCustomFieldsByPipeline(ctx context.Context, pipelineID uuid.UUID) ([]*PipelineCustomField, error)
+	DeleteCustomField(ctx context.Context, id uuid.UUID) error
+	DeleteCustomFieldByKey(ctx context.Context, pipelineID uuid.UUID, key string) error
 }
 
 type ContactStatusHistory struct {

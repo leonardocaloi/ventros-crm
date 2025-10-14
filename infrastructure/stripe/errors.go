@@ -151,19 +151,23 @@ func RequiresAuthentication(err error) bool {
 }
 
 // IsRateLimitError verifica se é erro de rate limit
+// TODO: Update when stripe-go v81 exposes ErrorTypeRateLimit
 func IsRateLimitError(err error) bool {
 	var stripeErr *StripeError
 	if errors.As(err, &stripeErr) {
-		return stripeErr.Type == string(stripe.ErrorTypeRateLimit)
+		// Check for rate_limit error type string directly
+		return stripeErr.Type == "rate_limit"
 	}
 	return false
 }
 
 // IsAPIConnectionError verifica se é erro de conexão com API
+// TODO: Update when stripe-go v81 exposes ErrorTypeAPIConnection
 func IsAPIConnectionError(err error) bool {
 	var stripeErr *StripeError
 	if errors.As(err, &stripeErr) {
-		return stripeErr.Type == string(stripe.ErrorTypeAPIConnection)
+		// Check for api_connection_error type string directly
+		return stripeErr.Type == "api_connection_error"
 	}
 	return false
 }

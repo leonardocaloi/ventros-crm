@@ -7,9 +7,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/caloi/ventros-crm/infrastructure/persistence/entities"
-	"github.com/caloi/ventros-crm/internal/domain/core/user"
 	"github.com/google/uuid"
+	"github.com/ventros/crm/infrastructure/persistence/entities"
+	"github.com/ventros/crm/internal/domain/core/user"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )

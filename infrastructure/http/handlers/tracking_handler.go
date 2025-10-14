@@ -3,11 +3,11 @@ package handlers
 import (
 	"net/http"
 
-	"github.com/caloi/ventros-crm/infrastructure/http/dto"
-	"github.com/caloi/ventros-crm/internal/application/tracking"
-	domainTracking "github.com/caloi/ventros-crm/internal/domain/crm/tracking"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/ventros/crm/infrastructure/http/dto"
+	"github.com/ventros/crm/internal/application/tracking"
+	domainTracking "github.com/ventros/crm/internal/domain/crm/tracking"
 	"go.uber.org/zap"
 )
 

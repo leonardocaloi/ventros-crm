@@ -4,13 +4,15 @@ import (
 	"net/http"
 	"strconv"
 
-	apierrors "github.com/caloi/ventros-crm/infrastructure/http/errors"
-	"github.com/caloi/ventros-crm/infrastructure/http/middleware"
-	"github.com/caloi/ventros-crm/internal/application/queries"
-	"github.com/caloi/ventros-crm/internal/domain/core/shared"
-	"github.com/caloi/ventros-crm/internal/domain/crm/pipeline"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/sirupsen/logrus"
+	apierrors "github.com/ventros/crm/infrastructure/http/errors"
+	"github.com/ventros/crm/infrastructure/http/middleware"
+	pipelineapp "github.com/ventros/crm/internal/application/pipeline"
+	"github.com/ventros/crm/internal/application/queries"
+	"github.com/ventros/crm/internal/domain/core/shared"
+	"github.com/ventros/crm/internal/domain/crm/pipeline"
 	"go.uber.org/zap"
 )
 
@@ -19,14 +21,16 @@ type PipelineHandler struct {
 	pipelineRepo                pipeline.Repository
 	listPipelinesQueryHandler   *queries.ListPipelinesQueryHandler
 	searchPipelinesQueryHandler *queries.SearchPipelinesQueryHandler
+	logrusLogger                *logrus.Logger
 }
 
-func NewPipelineHandler(logger *zap.Logger, pipelineRepo pipeline.Repository) *PipelineHandler {
+func NewPipelineHandler(logger *zap.Logger, pipelineRepo pipeline.Repository, logrusLogger *logrus.Logger) *PipelineHandler {
 	return &PipelineHandler{
 		logger:                      logger,
 		pipelineRepo:                pipelineRepo,
 		listPipelinesQueryHandler:   queries.NewListPipelinesQueryHandler(pipelineRepo, logger),
 		searchPipelinesQueryHandler: queries.NewSearchPipelinesQueryHandler(pipelineRepo, logger),
+		logrusLogger:                logrusLogger,
 	}
 }
 
@@ -677,4 +681,199 @@ func (h *PipelineHandler) SearchPipelines(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, response)
+}
+
+// SetCustomFieldRequest represents the request to set a custom field
+type SetCustomFieldRequest struct {
+	Key   string      `json:"key" binding:"required" example:"budget"`
+	Type  string      `json:"type" binding:"required" example:"number"`
+	Value interface{} `json:"value" binding:"required" example:"50000"`
+}
+
+// SetCustomField sets or updates a custom field for a pipeline
+//
+//	@Summary		Set pipeline custom field
+//	@Description	Set or update a custom field value for a pipeline
+//	@Tags			CRM - Pipelines
+//	@Accept			json
+//	@Produce		json
+//	@Security		BearerAuth
+//	@Param			id		path		string					true	"Pipeline ID (UUID)"
+//	@Param			request	body		SetCustomFieldRequest	true	"Custom field data"
+//	@Success		200		{object}	map[string]interface{}	"Custom field set successfully"
+//	@Failure		400		{object}	map[string]interface{}	"Invalid request"
+//	@Failure		401		{object}	map[string]interface{}	"Unauthorized"
+//	@Failure		404		{object}	map[string]interface{}	"Pipeline not found"
+//	@Failure		500		{object}	map[string]interface{}	"Internal server error"
+//	@Router			/api/v1/crm/pipelines/{id}/custom-fields [post]
+func (h *PipelineHandler) SetCustomField(c *gin.Context) {
+	authCtx, exists := middleware.GetAuthContext(c)
+	if !exists {
+		apierrors.Unauthorized(c, "Authentication required")
+		return
+	}
+
+	pipelineIDStr := c.Param("id")
+	pipelineID, err := uuid.Parse(pipelineIDStr)
+	if err != nil {
+		apierrors.BadRequest(c, "Invalid pipeline ID format")
+		return
+	}
+
+	var req SetCustomFieldRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		apierrors.BadRequest(c, "Invalid request: "+err.Error())
+		return
+	}
+
+	// Create use case
+	useCase := pipelineapp.NewSetCustomFieldUseCase(h.pipelineRepo, h.logrusLogger)
+
+	// Execute
+	cmd := pipelineapp.SetCustomFieldCommand{
+		PipelineID: pipelineID,
+		TenantID:   authCtx.TenantID,
+		Key:        req.Key,
+		Type:       shared.FieldType(req.Type),
+		Value:      req.Value,
+	}
+
+	customField, err := useCase.Execute(c.Request.Context(), cmd)
+	if err != nil {
+		h.logger.Error("Failed to set custom field", zap.Error(err))
+		apierrors.RespondWithError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Custom field set successfully",
+		"custom_field": gin.H{
+			"id":         customField.ID(),
+			"key":        customField.FieldKey(),
+			"type":       customField.FieldType(),
+			"value":      customField.FieldValue(),
+			"created_at": customField.CreatedAt(),
+			"updated_at": customField.UpdatedAt(),
+		},
+	})
+}
+
+// GetCustomFields retrieves all custom fields for a pipeline
+//
+//	@Summary		Get pipeline custom fields
+//	@Description	Retrieve all custom fields for a pipeline
+//	@Tags			CRM - Pipelines
+//	@Produce		json
+//	@Security		BearerAuth
+//	@Param			id	path		string					true	"Pipeline ID (UUID)"
+//	@Success		200	{object}	map[string]interface{}	"List of custom fields"
+//	@Failure		400	{object}	map[string]interface{}	"Invalid pipeline ID"
+//	@Failure		401	{object}	map[string]interface{}	"Unauthorized"
+//	@Failure		404	{object}	map[string]interface{}	"Pipeline not found"
+//	@Failure		500	{object}	map[string]interface{}	"Internal server error"
+//	@Router			/api/v1/crm/pipelines/{id}/custom-fields [get]
+func (h *PipelineHandler) GetCustomFields(c *gin.Context) {
+	authCtx, exists := middleware.GetAuthContext(c)
+	if !exists {
+		apierrors.Unauthorized(c, "Authentication required")
+		return
+	}
+
+	pipelineIDStr := c.Param("id")
+	pipelineID, err := uuid.Parse(pipelineIDStr)
+	if err != nil {
+		apierrors.BadRequest(c, "Invalid pipeline ID format")
+		return
+	}
+
+	// Create use case
+	useCase := pipelineapp.NewGetCustomFieldsUseCase(h.pipelineRepo, h.logrusLogger)
+
+	// Execute
+	query := pipelineapp.GetCustomFieldsQuery{
+		PipelineID: pipelineID,
+		TenantID:   authCtx.TenantID,
+	}
+
+	fields, err := useCase.Execute(c.Request.Context(), query)
+	if err != nil {
+		h.logger.Error("Failed to get custom fields", zap.Error(err))
+		apierrors.RespondWithError(c, err)
+		return
+	}
+
+	// Convert to response
+	response := make([]map[string]interface{}, len(fields))
+	for i, field := range fields {
+		response[i] = map[string]interface{}{
+			"id":         field.ID(),
+			"key":        field.FieldKey(),
+			"type":       field.FieldType(),
+			"value":      field.FieldValue(),
+			"created_at": field.CreatedAt(),
+			"updated_at": field.UpdatedAt(),
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"custom_fields": response,
+		"total":         len(response),
+	})
+}
+
+// RemoveCustomField removes a custom field from a pipeline
+//
+//	@Summary		Remove pipeline custom field
+//	@Description	Remove a custom field from a pipeline by key
+//	@Tags			CRM - Pipelines
+//	@Produce		json
+//	@Security		BearerAuth
+//	@Param			id	path		string					true	"Pipeline ID (UUID)"
+//	@Param			key	path		string					true	"Custom field key"
+//	@Success		200	{object}	map[string]interface{}	"Custom field removed successfully"
+//	@Failure		400	{object}	map[string]interface{}	"Invalid parameters"
+//	@Failure		401	{object}	map[string]interface{}	"Unauthorized"
+//	@Failure		404	{object}	map[string]interface{}	"Pipeline or custom field not found"
+//	@Failure		500	{object}	map[string]interface{}	"Internal server error"
+//	@Router			/api/v1/crm/pipelines/{id}/custom-fields/{key} [delete]
+func (h *PipelineHandler) RemoveCustomField(c *gin.Context) {
+	authCtx, exists := middleware.GetAuthContext(c)
+	if !exists {
+		apierrors.Unauthorized(c, "Authentication required")
+		return
+	}
+
+	pipelineIDStr := c.Param("id")
+	pipelineID, err := uuid.Parse(pipelineIDStr)
+	if err != nil {
+		apierrors.BadRequest(c, "Invalid pipeline ID format")
+		return
+	}
+
+	key := c.Param("key")
+	if key == "" {
+		apierrors.BadRequest(c, "Custom field key is required")
+		return
+	}
+
+	// Create use case
+	useCase := pipelineapp.NewRemoveCustomFieldUseCase(h.pipelineRepo, h.logrusLogger)
+
+	// Execute
+	cmd := pipelineapp.RemoveCustomFieldCommand{
+		PipelineID: pipelineID,
+		TenantID:   authCtx.TenantID,
+		Key:        key,
+	}
+
+	if err := useCase.Execute(c.Request.Context(), cmd); err != nil {
+		h.logger.Error("Failed to remove custom field", zap.Error(err))
+		apierrors.RespondWithError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Custom field removed successfully",
+		"key":     key,
+	})
 }

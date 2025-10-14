@@ -4,8 +4,8 @@ import (
 	"context"
 	"errors"
 
-	"github.com/caloi/ventros-crm/internal/domain/crm/contact_list"
 	"github.com/google/uuid"
+	"github.com/ventros/crm/internal/domain/crm/contact_list"
 )
 
 type UpdateContactListRequest struct {

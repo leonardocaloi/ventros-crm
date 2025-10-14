@@ -1,0 +1,198 @@
+---
+# Variables for Ventros CRM role
+
+# Kubernetes configuration
+k8s:
+  namespace: "{{ ventros_crm.namespace | default('ventros-crm') }}"
+
+# Helm configuration
+helm:
+  repo:
+    name: "{{ ventros_crm.helm.repo_name | default('ventros') }}"
+    url: "{{ ventros_crm.helm.repo_url | default('https://leonardocaloi.github.io/ventros-crm/charts/') }}"
+  chart:
+    ref: "{{ ventros_crm.helm.chart_ref | default('ventros/ventros-crm') }}"
+    version: "{{ ventros_crm.helm.chart_version | default('0.1.0') }}"
+
+# Image configuration
+image:
+  repository: "{{ ventros_crm.image.repository | default('leonardocaloi/ventros-crm') }}"
+  tag: "{{ ventros_crm.image.tag | default('0.1.0') }}"
+  pullPolicy: "{{ ventros_crm.image.pull_policy | default('IfNotPresent') }}"
+
+# Ingress configuration
+ingress:
+  enabled: "{{ ventros_crm.ingress.enabled | default(true) }}"
+  className: "{{ ventros_crm.ingress.class_name | default('nginx') }}"
+  host: "{{ ventros_crm.ingress.host | default('api.crm.ventros.cloud') }}"
+  tls:
+    enabled: "{{ ventros_crm.ingress.tls.enabled | default(true) }}"
+    secretName: "{{ ventros_crm.ingress.tls.secret_name | default('ventros-crm-tls') }}"
+  annotations:
+    certIssuer: "{{ ventros_crm.ingress.cert_issuer | default('letsencrypt-clusterissuer') }}"
+    proxy_body_size: "{{ ventros_crm.ingress.annotations.proxy_body_size | default('0') }}"
+    proxy_buffer_size: "{{ ventros_crm.ingress.annotations.proxy_buffer_size | default('128k') }}"
+    proxy_buffers_number: "{{ ventros_crm.ingress.annotations.proxy_buffers_number | default('8') }}"
+    proxy_busy_buffers_size: "{{ ventros_crm.ingress.annotations.proxy_busy_buffers_size | default('256k') }}"
+    proxy_connect_timeout: "{{ ventros_crm.ingress.annotations.proxy_connect_timeout | default('300') }}"
+    proxy_send_timeout: "{{ ventros_crm.ingress.annotations.proxy_send_timeout | default('300') }}"
+    proxy_read_timeout: "{{ ventros_crm.ingress.annotations.proxy_read_timeout | default('300') }}"
+    proxy_request_buffering: "{{ ventros_crm.ingress.annotations.proxy_request_buffering | default('off') }}"
+    proxy_buffering: "{{ ventros_crm.ingress.annotations.proxy_buffering | default('off') }}"
+    limit_rps: "{{ ventros_crm.ingress.annotations.limit_rps | default('1000') }}"
+    limit_connections: "{{ ventros_crm.ingress.annotations.limit_connections | default('100') }}"
+
+# Resources
+resources:
+  requests:
+    cpu: "{{ ventros_crm.resources.requests.cpu | default('250m') }}"
+    memory: "{{ ventros_crm.resources.requests.memory | default('256Mi') }}"
+  limits:
+    cpu: "{{ ventros_crm.resources.limits.cpu | default('500m') }}"
+    memory: "{{ ventros_crm.resources.limits.memory | default('512Mi') }}"
+
+# Replicas
+replicas: "{{ ventros_crm.replicas | default(1) }}"
+
+# Autoscaling
+autoscaling:
+  enabled: "{{ ventros_crm.autoscaling.enabled | default(false) }}"
+  minReplicas: "{{ ventros_crm.autoscaling.min_replicas | default(1) }}"
+  maxReplicas: "{{ ventros_crm.autoscaling.max_replicas | default(5) }}"
+  targetCPU: "{{ ventros_crm.autoscaling.target_cpu | default(80) }}"
+
+# PostgreSQL configuration (Zalando operator)
+postgresql:
+  enabled: "{{ ventros_crm.postgresql.enabled | default(true) }}"
+  installOperator: false  # Use existing operator
+  teamId: "{{ ventros_crm.postgresql.team_id | default('ventros') }}"
+  instances: "{{ ventros_crm.postgresql.instances | default(1) }}"
+  version: "{{ ventros_crm.postgresql.version | default('15') }}"
+  storage:
+    size: "{{ ventros_crm.postgresql.storage.size | default('10Gi') }}"
+    storageClass: "{{ ventros_crm.postgresql.storage.class | default('longhorn') }}"
+  resources:
+    requests:
+      cpu: "{{ ventros_crm.postgresql.resources.requests.cpu | default('200m') }}"
+      memory: "{{ ventros_crm.postgresql.resources.requests.memory | default('512Mi') }}"
+    limits:
+      cpu: "{{ ventros_crm.postgresql.resources.limits.cpu | default('1000m') }}"
+      memory: "{{ ventros_crm.postgresql.resources.limits.memory | default('1Gi') }}"
+
+# RabbitMQ configuration
+rabbitmq:
+  enabled: "{{ ventros_crm.rabbitmq.enabled | default(true) }}"
+  installOperator: false  # Use existing operator
+  replicas: "{{ ventros_crm.rabbitmq.replicas | default(1) }}"
+  storage:
+    size: "{{ ventros_crm.rabbitmq.storage.size | default('5Gi') }}"
+    storageClass: "{{ ventros_crm.rabbitmq.storage.class | default('longhorn') }}"
+  resources:
+    requests:
+      cpu: "{{ ventros_crm.rabbitmq.resources.requests.cpu | default('200m') }}"
+      memory: "{{ ventros_crm.rabbitmq.resources.requests.memory | default('512Mi') }}"
+    limits:
+      cpu: "{{ ventros_crm.rabbitmq.resources.limits.cpu | default('500m') }}"
+      memory: "{{ ventros_crm.rabbitmq.resources.limits.memory | default('1Gi') }}"
+  ingress:
+    enabled: "{{ ventros_crm.rabbitmq.ingress.enabled | default(true) }}"
+    host: "{{ ventros_crm.rabbitmq.ingress.host | default('rabbitmq.crm.ventros.cloud') }}"
+    certIssuer: "{{ ventros_crm.rabbitmq.ingress.cert_issuer | default('letsencrypt-clusterissuer') }}"
+    tls:
+      enabled: "{{ ventros_crm.rabbitmq.ingress.tls.enabled | default(true) }}"
+      secretName: "{{ ventros_crm.rabbitmq.ingress.tls.secret_name | default('rabbitmq-crm-tls') }}"
+
+# Redis configuration
+redis:
+  enabled: "{{ ventros_crm.redis.enabled | default(true) }}"
+  architecture: "{{ ventros_crm.redis.architecture | default('standalone') }}"
+  auth:
+    enabled: "{{ ventros_crm.redis.auth.enabled | default(true) }}"
+    password: "{{ ventros_crm.redis.auth.password | default('CHANGE_ME') }}"
+  storage:
+    size: "{{ ventros_crm.redis.storage.size | default('1Gi') }}"
+    storageClass: "{{ ventros_crm.redis.storage.class | default('longhorn') }}"
+  resources:
+    requests:
+      cpu: "{{ ventros_crm.redis.resources.requests.cpu | default('100m') }}"
+      memory: "{{ ventros_crm.redis.resources.requests.memory | default('128Mi') }}"
+    limits:
+      cpu: "{{ ventros_crm.redis.resources.limits.cpu | default('250m') }}"
+      memory: "{{ ventros_crm.redis.resources.limits.memory | default('256Mi') }}"
+
+# Temporal configuration
+temporal:
+  enabled: "{{ ventros_crm.temporal.enabled | default(true) }}"
+  postgresql:
+    enabled: false  # Use existing PostgreSQL cluster
+  server:
+    replicaCount: "{{ ventros_crm.temporal.server.replicas | default(1) }}"
+  frontend:
+    replicaCount: "{{ ventros_crm.temporal.frontend.replicas | default(1) }}"
+    resources:
+      requests:
+        cpu: "{{ ventros_crm.temporal.frontend.resources.requests.cpu | default('200m') }}"
+        memory: "{{ ventros_crm.temporal.frontend.resources.requests.memory | default('256Mi') }}"
+      limits:
+        cpu: "{{ ventros_crm.temporal.frontend.resources.limits.cpu | default('500m') }}"
+        memory: "{{ ventros_crm.temporal.frontend.resources.limits.memory | default('512Mi') }}"
+  history:
+    replicaCount: "{{ ventros_crm.temporal.history.replicas | default(1) }}"
+    resources:
+      requests:
+        cpu: "{{ ventros_crm.temporal.history.resources.requests.cpu | default('200m') }}"
+        memory: "{{ ventros_crm.temporal.history.resources.requests.memory | default('256Mi') }}"
+      limits:
+        cpu: "{{ ventros_crm.temporal.history.resources.limits.cpu | default('500m') }}"
+        memory: "{{ ventros_crm.temporal.history.resources.limits.memory | default('512Mi') }}"
+  matching:
+    replicaCount: "{{ ventros_crm.temporal.matching.replicas | default(1) }}"
+    resources:
+      requests:
+        cpu: "{{ ventros_crm.temporal.matching.resources.requests.cpu | default('200m') }}"
+        memory: "{{ ventros_crm.temporal.matching.resources.requests.memory | default('256Mi') }}"
+      limits:
+        cpu: "{{ ventros_crm.temporal.matching.resources.limits.cpu | default('500m') }}"
+        memory: "{{ ventros_crm.temporal.matching.resources.limits.memory | default('512Mi') }}"
+  worker:
+    replicaCount: "{{ ventros_crm.temporal.worker.replicas | default(1) }}"
+    resources:
+      requests:
+        cpu: "{{ ventros_crm.temporal.worker.resources.requests.cpu | default('200m') }}"
+        memory: "{{ ventros_crm.temporal.worker.resources.requests.memory | default('256Mi') }}"
+      limits:
+        cpu: "{{ ventros_crm.temporal.worker.resources.limits.cpu | default('500m') }}"
+        memory: "{{ ventros_crm.temporal.worker.resources.limits.memory | default('512Mi') }}"
+  web:
+    enabled: "{{ ventros_crm.temporal.web.enabled | default(true) }}"
+    replicaCount: "{{ ventros_crm.temporal.web.replicas | default(1) }}"
+    resources:
+      requests:
+        cpu: "{{ ventros_crm.temporal.web.resources.requests.cpu | default('100m') }}"
+        memory: "{{ ventros_crm.temporal.web.resources.requests.memory | default('128Mi') }}"
+      limits:
+        cpu: "{{ ventros_crm.temporal.web.resources.limits.cpu | default('200m') }}"
+        memory: "{{ ventros_crm.temporal.web.resources.limits.memory | default('256Mi') }}"
+    ingress:
+      enabled: "{{ ventros_crm.temporal.web.ingress.enabled | default(true) }}"
+      host: "{{ ventros_crm.temporal.web.ingress.host | default('temporal.crm.ventros.cloud') }}"
+      certIssuer: "{{ ventros_crm.temporal.web.ingress.cert_issuer | default('letsencrypt-clusterissuer') }}"
+      tls:
+        enabled: "{{ ventros_crm.temporal.web.ingress.tls.enabled | default(true) }}"
+        secretName: "{{ ventros_crm.temporal.web.ingress.tls.secret_name | default('temporal-crm-tls') }}"
+
+# Environment variables
+env:
+  LOG_LEVEL: "{{ ventros_crm.env.log_level | default('info') }}"
+  GIN_MODE: "{{ ventros_crm.env.gin_mode | default('release') }}"
+  ENVIRONMENT: "{{ ventros_crm.env.environment | default('production') }}"
+
+# Secrets
+secrets:
+  jwtSecret: "{{ ventros_crm.secrets.jwt_secret | default('CHANGE_ME_IN_PRODUCTION') }}"
+  apiKeySecret: "{{ ventros_crm.secrets.api_key_secret | default('CHANGE_ME_IN_PRODUCTION') }}"
+
+# Node affinity
+nodeAffinity:
+  enabled: "{{ ventros_crm.node_affinity.enabled | default(true) }}"
+  nodeType: "{{ ventros_crm.node_affinity.node_type | default('worker') }}"

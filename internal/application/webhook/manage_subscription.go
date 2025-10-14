@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/caloi/ventros-crm/internal/domain/crm/webhook"
 	"github.com/google/uuid"
+	"github.com/ventros/crm/internal/domain/crm/webhook"
 	"go.uber.org/zap"
 )
 

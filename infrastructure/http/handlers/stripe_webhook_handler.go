@@ -7,10 +7,10 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/caloi/ventros-crm/internal/domain/core/billing"
 	"github.com/gin-gonic/gin"
 	"github.com/stripe/stripe-go/v81"
 	"github.com/stripe/stripe-go/v81/webhook"
+	"github.com/ventros/crm/internal/domain/core/billing"
 	"go.uber.org/zap"
 )
 

@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/caloi/ventros-crm/internal/domain/core/outbox"
+	"github.com/ventros/crm/internal/domain/core/outbox"
 )
 
 // CompensationExecutor executa compensações para Sagas falhadas.

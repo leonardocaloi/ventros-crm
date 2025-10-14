@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/caloi/ventros-crm/internal/domain/core/shared"
-	"github.com/caloi/ventros-crm/internal/domain/crm/session"
+	"github.com/ventros/crm/internal/domain/core/shared"
+	"github.com/ventros/crm/internal/domain/crm/session"
 	"go.uber.org/zap"
 )
 

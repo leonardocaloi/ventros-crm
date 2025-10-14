@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/caloi/ventros-crm/internal/domain/core/shared"
 	"github.com/gin-gonic/gin"
+	"github.com/ventros/crm/internal/domain/core/shared"
 )
 
 // APIError represents a standardized API error response

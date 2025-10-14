@@ -12,7 +12,7 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 
-	"github.com/caloi/ventros-crm/infrastructure/persistence/entities"
+	"github.com/ventros/crm/infrastructure/persistence/entities"
 	gormpostgres "gorm.io/driver/postgres"
 )
 

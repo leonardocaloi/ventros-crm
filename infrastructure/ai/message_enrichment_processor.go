@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/caloi/ventros-crm/internal/domain/crm/channel"
-	"github.com/caloi/ventros-crm/internal/domain/crm/message"
 	"github.com/google/uuid"
+	"github.com/ventros/crm/internal/domain/crm/channel"
+	"github.com/ventros/crm/internal/domain/crm/message"
 	"go.uber.org/zap"
 )
 

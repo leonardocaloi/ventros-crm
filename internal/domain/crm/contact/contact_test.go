@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	domain "github.com/caloi/ventros-crm/internal/domain/core"
+	domain "github.com/ventros/crm/internal/domain/core"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

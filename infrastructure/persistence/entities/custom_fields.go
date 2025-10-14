@@ -46,3 +46,23 @@ type SessionCustomFieldEntity struct {
 func (SessionCustomFieldEntity) TableName() string {
 	return "session_custom_fields"
 }
+
+// PipelineCustomFieldEntity representa campos customizados de pipelines
+type PipelineCustomFieldEntity struct {
+	ID         uuid.UUID      `gorm:"type:uuid;primary_key;default:gen_random_uuid()"`
+	PipelineID uuid.UUID      `gorm:"type:uuid;not null;index"`
+	TenantID   string         `gorm:"not null;index"`
+	FieldKey   string         `gorm:"not null;index"`
+	FieldType  string         `gorm:"not null"`
+	FieldValue interface{}    `gorm:"type:jsonb"`
+	CreatedAt  time.Time      `gorm:"autoCreateTime"`
+	UpdatedAt  time.Time      `gorm:"autoUpdateTime"`
+	DeletedAt  gorm.DeletedAt `gorm:"index"`
+
+	// Relacionamentos
+	Pipeline PipelineEntity `gorm:"foreignKey:PipelineID"`
+}
+
+func (PipelineCustomFieldEntity) TableName() string {
+	return "pipeline_custom_fields"
+}

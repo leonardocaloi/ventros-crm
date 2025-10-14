@@ -31,7 +31,7 @@ Ventros CRM is an enterprise-grade customer relationship management system for m
 ### Prerequisites
 
 ```bash
-go 1.23+
+go 1.25.1+
 docker or podman
 make
 ```
@@ -39,7 +39,7 @@ make
 ### 1. Clone & Configure
 
 ```bash
-git clone https://github.com/caloi/ventros-crm.git
+git clone https://github.com/ventros/crm.git
 cd ventros-crm
 cp .env.example .env
 ```
@@ -99,10 +99,33 @@ make k8s              # Deploy to Kubernetes
 
 ---
 
+## 🚀 CI/CD Pipeline
+
+**Automated Build & Deploy**: `git push → GitHub Actions → AWX → Kubernetes`
+
+**Workflow**:
+1. **Push to `main`** → Automatic build, test, and deploy to **Staging**
+2. **Create tag `v*`** → Manual deploy to **Production** (with approval)
+
+**GitHub Actions**:
+- ✅ Run tests (unit + integration)
+- ✅ Build Docker image
+- ✅ Publish Helm chart
+- ✅ Trigger AWX deployment
+
+**AWX**:
+- ✅ Deploy to Kubernetes via Helm
+- ✅ Health checks
+- ✅ Rollback on failure
+
+**See**: [.deploy/CI-CD-BUILD-PLAN.md](.deploy/CI-CD-BUILD-PLAN.md) for complete strategy
+
+---
+
 ## 🏗️ Architecture
 
 **Tech Stack**:
-- Go 1.23+, Gin, GORM
+- Go 1.25.1+, Gin, GORM
 - PostgreSQL 15+ (RLS)
 - RabbitMQ 3.12+ (Outbox Pattern)
 - Redis 7.0+
@@ -110,23 +133,55 @@ make k8s              # Deploy to Kubernetes
 
 **Design**:
 - Domain-Driven Design (DDD)
-- Clean Architecture
-- Event-Driven (119 events)
-- CQRS
-- Circuit Breaker
+- Hexagonal Architecture
+- Event-Driven (104+ events)
+- CQRS (Command Handler Pattern)
+- Outbox Pattern
 - Multi-tenancy
 
-**Rating**: 9.2/10 ([ARCHITECTURE.md](ARCHITECTURE.md))
+**Architecture Quality**: 8.2/10 (See [AI_REPORT.md](AI_REPORT.md))
+
+**Recent Achievements** (2025-10-12):
+- ✅ **Optimistic Locking**: Implemented across 8 main aggregates
+- ✅ **Handler Refactoring**: 100% complete (24/24 handlers, 80+ commands)
+- ✅ **Command Pattern**: CQRS separation in 100% of code
+- ✅ **Code Reduction**: ~1,200 lines removed from handlers (~10.8%)
 
 ---
 
 ## 📊 Metrics
 
-- **Test Coverage**: 82%
-- **Domain Events**: 119
+- **Test Coverage**: 82% (61 unit + 2 integration + 5 E2E)
+- **Domain Events**: 104+
+- **Domain Aggregates**: 23
 - **API Endpoints**: 50+
 - **Event Latency**: <100ms
 - **Uptime**: 99.9%
+
+---
+
+## 🧪 Testing
+
+We follow the **Test Pyramid** strategy (Mike Cohn, 2009):
+
+```
+                /\
+               /E2E\      ← 5 tests (10%)
+              /----\
+             /Integ.\    ← 2 tests (20%) ⚠️ needs expansion
+            /--------\
+           /   Unit   \  ← 61 tests (70%)
+          /____________\
+```
+
+**Run tests**:
+```bash
+make test-unit         # Fast (~2 min) - No dependencies
+make test-integration  # Medium (~10 min) - Requires: make infra
+make test-e2e          # Slow (~10 min) - Requires: make infra + make api
+```
+
+See [guides/TESTING.md](guides/TESTING.md) for complete strategy & guidelines.
 
 ---
 
@@ -134,10 +189,17 @@ make k8s              # Deploy to Kubernetes
 
 | Document | Description |
 |----------|-------------|
-| [ARCHITECTURE.md](ARCHITECTURE.md) | System design and patterns |
-| [DEV_GUIDE.md](DEV_GUIDE.md) | Developer onboarding |
-| [DOCS.md](DOCS.md) | Complete technical reference |
-| [CHANGELOG.md](CHANGELOG.md) | Version history |
+| [DEV_GUIDE.md](DEV_GUIDE.md) | **⭐ Complete developer guide** (START HERE!) |
+| [PROMPT_TEMPLATE.md](PROMPT_TEMPLATE.md) | **⭐ Template for requesting features** (USE THIS!) |
+| [.deploy/CI-CD-BUILD-PLAN.md](.deploy/CI-CD-BUILD-PLAN.md) | **⭐ CI/CD build & deployment strategy** (GitHub Actions + AWX) |
+| [AI_REPORT.md](AI_REPORT.md) | Complete architectural audit (8.2/10) |
+| [P0.md](P0.md) | Handler refactoring project (100% complete) |
+| [TODO.md](TODO.md) | Roadmap and priorities |
+| [MAKEFILE.md](MAKEFILE.md) | Development commands reference |
+| [guides/MAKEFILE.md](guides/MAKEFILE.md) | Complete Makefile guide |
+| [guides/ACTORS.md](guides/ACTORS.md) | System actors & capabilities |
+| [guides/TESTING.md](guides/TESTING.md) | Testing strategy & guidelines |
+| [guides/domain_mapping/](guides/domain_mapping/) | 23 Domain aggregates (DDD) |
 
 **API Docs**: [http://localhost:8080/swagger/index.html](http://localhost:8080/swagger/index.html)
 
@@ -162,11 +224,11 @@ curl -H "X-Dev-User-ID: {uuid}" http://localhost:8080/api/v1/auth/profile
 
 ## 🤝 Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for:
-- Development workflow
-- Testing requirements
-- Code style
-- Pull request process
+Before contributing:
+- Read [guides/MAKEFILE.md](guides/MAKEFILE.md) for development commands
+- Read [guides/domain_mapping/](guides/domain_mapping/) for domain model
+- Run `make test-unit` before committing
+- Run `make fmt` to format code
 
 ---
 
@@ -178,9 +240,9 @@ MIT License - see [LICENSE](LICENSE)
 
 ## 📞 Support
 
-- **Issues**: [GitHub Issues](https://github.com/caloi/ventros-crm/issues)
-- **Docs**: [DOCS.md](DOCS.md)
-- **Email**: support@ventros.com
+- **Issues**: [GitHub Issues](https://github.com/ventros/crm/issues)
+- **Docs**: [guides/](guides/)
+- **Email**: dev@ventros.ai
 
 ---
 

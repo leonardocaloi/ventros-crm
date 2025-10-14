@@ -3,8 +3,8 @@ package billing
 import (
 	"time"
 
-	"github.com/caloi/ventros-crm/internal/domain/core/shared"
 	"github.com/google/uuid"
+	"github.com/ventros/crm/internal/domain/core/shared"
 )
 
 // Type alias for backwards compatibility with invoice, subscription, usage_meter

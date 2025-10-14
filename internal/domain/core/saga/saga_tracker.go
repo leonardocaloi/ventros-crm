@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/caloi/ventros-crm/internal/domain/core/outbox"
+	"github.com/ventros/crm/internal/domain/core/outbox"
 )
 
 // SagaTracker provides utilities for tracking and monitoring Saga executions via Outbox.

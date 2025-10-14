@@ -1,0 +1,220 @@
+package main
+
+import (
+	"bytes"
+	"encoding/json"
+	"fmt"
+	"io"
+	"log"
+	"net/http"
+	"os"
+	"os/exec"
+	"time"
+)
+
+const (
+	baseURL       = "http://localhost:8080"
+	wahaBaseURL   = "https://waha.ventros.cloud"
+	wahaToken     = "4bffec302d5f4312b8b73700da3ff3cb"
+	wahaSessionID = "guilherme-batilani-suporte"
+	maxDays       = 180 // 180 dias de histórico
+)
+
+type User struct {
+	ID     string `json:"id"`
+	APIKey string `json:"api_key"`
+}
+
+type Channel struct {
+	ID                   string                 `json:"id"`
+	Name                 string                 `json:"name"`
+	Type                 string                 `json:"type"`
+	ExternalID           string                 `json:"external_id"`
+	Config               map[string]interface{} `json:"config"`
+	HistoryImportEnabled bool                   `json:"history_import_enabled"`
+	HistoryImportMaxDays int                    `json:"history_import_max_days"`
+}
+
+type ImportResponse struct {
+	WorkflowID string `json:"workflow_id"`
+	RunID      string `json:"run_id"`
+	Strategy   string `json:"strategy"`
+}
+
+type ImportStatus struct {
+	WorkflowID       string `json:"workflow_id"`
+	Status           string `json:"status"`
+	ChatsProcessed   int    `json:"chats_processed"`
+	MessagesImported int    `json:"messages_imported"`
+	SessionsCreated  int    `json:"sessions_created"`
+	ContactsCreated  int    `json:"contacts_created"`
+}
+
+func main() {
+	log.Println("🚀 Teste de Importação de Histórico WAHA - 180 Dias")
+	log.Println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+
+	// 1. Criar usuário
+	log.Println("\n1️⃣ Criando usuário...")
+	user := createUser()
+	log.Printf("   ✓ Usuário criado: %s", user.ID)
+	log.Printf("   ✓ API Key: %s", user.APIKey)
+
+	// 2. Criar canal com histórico habilitado (180 dias)
+	log.Println("\n2️⃣ Criando canal WAHA com histórico de 180 dias...")
+	channel := createChannel(user.APIKey)
+	log.Printf("   ✓ Canal criado: %s", channel.ID)
+	log.Printf("   ✓ Session: %s", wahaSessionID)
+	log.Printf("   ✓ Histórico habilitado: %t", channel.HistoryImportEnabled)
+	log.Printf("   ✓ Máximo de dias: %d", channel.HistoryImportMaxDays)
+
+	// 3. Iniciar importação
+	log.Println("\n3️⃣ Iniciando importação de histórico...")
+	importResp := startImport(user.APIKey, channel.ID)
+	log.Printf("   ✓ Workflow iniciado: %s", importResp.WorkflowID)
+	log.Printf("   ✓ Run ID: %s", importResp.RunID)
+	log.Printf("   ✓ Strategy: %s", importResp.Strategy)
+
+	// 4. Monitorar progresso
+	log.Println("\n4️⃣ Monitorando progresso da importação...")
+	log.Println("   (aguardando até 5 minutos ou conclusão...)")
+
+	maxAttempts := 60 // 5 minutos (5 segundos por tentativa)
+	for i := 1; i <= maxAttempts; i++ {
+		time.Sleep(5 * time.Second)
+
+		status := getImportStatus(user.APIKey, channel.ID)
+
+		log.Printf("   [%d/%d] Status: %s | Chats: %d | Mensagens: %d | Sessões: %d | Contatos: %d",
+			i, maxAttempts,
+			status.Status,
+			status.ChatsProcessed,
+			status.MessagesImported,
+			status.SessionsCreated,
+			status.ContactsCreated,
+		)
+
+		if status.Status == "Completed" || status.Status == "Failed" {
+			log.Println("\n✅ Importação finalizada!")
+			log.Println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+			log.Printf("Status Final: %s", status.Status)
+			log.Printf("Chats Processados: %d", status.ChatsProcessed)
+			log.Printf("Mensagens Importadas: %d", status.MessagesImported)
+			log.Printf("Sessões Criadas: %d", status.SessionsCreated)
+			log.Printf("Contatos Criados: %d", status.ContactsCreated)
+
+			if status.Status == "Completed" {
+				if status.MessagesImported > 0 {
+					log.Println("\n✅ SUCESSO! Mensagens foram importadas!")
+					log.Printf("   🎯 A filtragem nativa da API WAHA está funcionando corretamente!")
+					log.Printf("   🎯 %d mensagens encontradas nos últimos %d dias", status.MessagesImported, maxDays)
+					os.Exit(0)
+				} else {
+					log.Println("\n⚠️  Nenhuma mensagem foi importada")
+					log.Println("   Isso indica que não há mensagens nos últimos 180 dias nesta sessão")
+					log.Println("   A implementação está correta, mas a sessão WAHA não tem mensagens recentes")
+					os.Exit(0)
+				}
+			} else if status.Status == "Failed" {
+				log.Println("\n❌ TESTE FALHOU! A importação falhou.")
+				os.Exit(1)
+			}
+			break
+		}
+	}
+
+	log.Println("\n⚠️  Timeout atingido (5 minutos)")
+	log.Println("   A importação ainda está em andamento...")
+}
+
+func createUser() User {
+	timestamp := time.Now().Unix()
+	payload := map[string]string{
+		"name":     fmt.Sprintf("Test User %d", timestamp),
+		"email":    fmt.Sprintf("test-%d@ventros.com", timestamp),
+		"password": "test123456",
+	}
+
+	resp := makeRequest("POST", "/api/v1/auth/register", "", payload)
+
+	var user User
+	json.Unmarshal(resp, &user)
+	return user
+}
+
+func createChannel(apiKey string) Channel {
+	payload := map[string]interface{}{
+		"name": "Test WAHA History Import 180d",
+		"type": "waha",
+		"waha_config": map[string]string{
+			"base_url":   wahaBaseURL,
+			"token":      wahaToken,
+			"session_id": wahaSessionID,
+		},
+	}
+
+	resp := makeRequest("POST", "/api/v1/crm/channels", apiKey, payload)
+
+	var channel Channel
+	json.Unmarshal(resp, &channel)
+
+	// Atualiza canal para habilitar history import via psql
+	cmd := fmt.Sprintf(`PGPASSWORD=ventros123 psql -h localhost -U ventros -d ventros_crm -c "UPDATE channels SET history_import_enabled=true, history_import_max_days=%d WHERE id='%s'"`, maxDays, channel.ID)
+	exec.Command("bash", "-c", cmd).Run()
+
+	return channel
+}
+
+func startImport(apiKey, channelID string) ImportResponse {
+	payload := map[string]interface{}{
+		"strategy":        "time_range",
+		"time_range_days": maxDays,
+	}
+
+	resp := makeRequest("POST", fmt.Sprintf("/api/v1/crm/channels/%s/import-history", channelID), apiKey, payload)
+
+	var importResp ImportResponse
+	json.Unmarshal(resp, &importResp)
+	return importResp
+}
+
+func getImportStatus(apiKey, channelID string) ImportStatus {
+	resp := makeRequest("GET", fmt.Sprintf("/api/v1/crm/channels/%s/import-status", channelID), apiKey, nil)
+
+	var status ImportStatus
+	json.Unmarshal(resp, &status)
+	return status
+}
+
+func makeRequest(method, path, apiKey string, payload interface{}) []byte {
+	var body io.Reader
+	if payload != nil {
+		jsonData, _ := json.Marshal(payload)
+		body = bytes.NewBuffer(jsonData)
+	}
+
+	req, err := http.NewRequest(method, baseURL+path, body)
+	if err != nil {
+		log.Fatalf("Erro ao criar request: %v", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	if apiKey != "" {
+		req.Header.Set("Authorization", "Bearer "+apiKey)
+	}
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Fatalf("Erro ao fazer request: %v", err)
+	}
+	defer resp.Body.Close()
+
+	respBody, _ := io.ReadAll(resp.Body)
+
+	if resp.StatusCode >= 400 {
+		log.Printf("⚠️  Erro na API (%d): %s", resp.StatusCode, string(respBody))
+	}
+
+	return respBody
+}

@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/caloi/ventros-crm/internal/domain/automation/campaign"
 	"github.com/sirupsen/logrus"
+	"github.com/ventros/crm/internal/domain/automation/campaign"
 )
 
 // CreateCampaignHandler handler para o comando CreateCampaign

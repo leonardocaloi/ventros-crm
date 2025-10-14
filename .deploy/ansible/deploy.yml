@@ -1,0 +1,120 @@
+---
+- name: Deploy Ventros CRM
+  hosts: localhost
+  connection: local
+  gather_facts: true
+  vars_files:
+    - global_vars.yml
+
+  pre_tasks:
+    - name: Display deployment information
+      debug:
+        msg:
+          - "========================================"
+          - "    VENTROS CRM DEPLOYMENT"
+          - "========================================"
+          - "Environment: {{ deploy_environment | default('unknown') }}"
+          - "Namespace: {{ ventros_crm.namespace }}"
+          - "Docker Image: {{ ventros_crm.image.repository }}:{{ image_tag | default(ventros_crm.image.tag) }}"
+          - "Helm Chart: {{ ventros_crm.helm.chart_ref }} v{{ chart_version | default(ventros_crm.helm.chart_version) }}"
+          - "Replicas: {{ replicas | default(ventros_crm.replicas) }}"
+          - "Ingress Host: {{ ventros_crm.ingress.host }}"
+          - "Git Commit: {{ git_commit | default('unknown') }}"
+          - "Build Number: {{ build_number | default('unknown') }}"
+          - "Deployed By: {{ deployed_by | default('unknown') }}"
+          - "========================================"
+
+    - name: Validate required variables
+      assert:
+        that:
+          - ventros_crm.namespace is defined
+          - ventros_crm.helm.chart_ref is defined
+          - ventros_crm.image.repository is defined
+        fail_msg: "Required variables are missing. Check global_vars.yml"
+        success_msg: "All required variables are present"
+
+  roles:
+    - ventros_crm
+
+  post_tasks:
+    - name: Wait for deployment to be ready
+      kubernetes.core.k8s_info:
+        kind: Deployment
+        namespace: "{{ ventros_crm.namespace }}"
+        name: ventros-crm
+        wait: yes
+        wait_timeout: 300
+      register: deployment_info
+      retries: 30
+      delay: 10
+      until: |
+        deployment_info.resources | length > 0 and
+        deployment_info.resources[0].status.readyReplicas | default(0) >= (replicas | default(ventros_crm.replicas) | int)
+
+    - name: Get deployment status
+      kubernetes.core.k8s_info:
+        kind: Deployment
+        namespace: "{{ ventros_crm.namespace }}"
+        name: ventros-crm
+      register: final_deployment
+
+    - name: Display deployment status
+      debug:
+        msg:
+          - "========================================"
+          - "    DEPLOYMENT STATUS"
+          - "========================================"
+          - "Ready Replicas: {{ final_deployment.resources[0].status.readyReplicas | default(0) }}"
+          - "Available Replicas: {{ final_deployment.resources[0].status.availableReplicas | default(0) }}"
+          - "Desired Replicas: {{ final_deployment.resources[0].spec.replicas }}"
+          - "Image: {{ final_deployment.resources[0].spec.template.spec.containers[0].image }}"
+          - "========================================"
+
+    - name: Get pods status
+      kubernetes.core.k8s_info:
+        kind: Pod
+        namespace: "{{ ventros_crm.namespace }}"
+        label_selectors:
+          - app=ventros-crm
+      register: pods
+
+    - name: Display pods information
+      debug:
+        msg: "Pod {{ item.metadata.name }}: {{ item.status.phase }} ({{ item.status.conditions | selectattr('type', 'equalto', 'Ready') | map(attribute='status') | first | default('Unknown') }})"
+      loop: "{{ pods.resources }}"
+      loop_control:
+        label: "{{ item.metadata.name }}"
+
+    - name: Verify health endpoint (if ingress enabled)
+      uri:
+        url: "https://{{ ventros_crm.ingress.host }}/health"
+        status_code: 200
+        validate_certs: true
+        timeout: 10
+      retries: 10
+      delay: 5
+      register: health_check
+      when: ventros_crm.ingress.enabled | default(true)
+      ignore_errors: yes
+
+    - name: Display health check result
+      debug:
+        msg: |
+          {% if health_check.failed | default(false) %}
+          ⚠️ Health check failed or skipped. Manual verification required.
+          {% else %}
+          ✅ Health check passed! Application is responding.
+          {% endif %}
+
+    - name: Deployment summary
+      debug:
+        msg:
+          - "========================================"
+          - "    DEPLOYMENT COMPLETE"
+          - "========================================"
+          - "✅ Deployment successful!"
+          - "📦 Version: {{ image_tag | default(ventros_crm.image.tag) }}"
+          - "🌐 URL: https://{{ ventros_crm.ingress.host }}"
+          - "🔍 Health: https://{{ ventros_crm.ingress.host }}/health"
+          - "📊 Swagger: https://{{ ventros_crm.ingress.host }}/swagger/index.html"
+          - "========================================"

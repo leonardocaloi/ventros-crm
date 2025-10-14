@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/caloi/ventros-crm/infrastructure/persistence/entities"
-	"github.com/caloi/ventros-crm/internal/application/shared"
-	"github.com/caloi/ventros-crm/internal/domain/core/outbox"
 	"github.com/google/uuid"
+	"github.com/ventros/crm/infrastructure/persistence/entities"
+	"github.com/ventros/crm/internal/application/shared"
+	"github.com/ventros/crm/internal/domain/core/outbox"
 	"gorm.io/gorm"
 )
 
@@ -69,6 +69,26 @@ func (r *GormOutboxRepository) getDB(ctx context.Context) *gorm.DB {
 	}
 	// Se não houver transação, usa conexão padrão
 	return r.db.WithContext(ctx)
+}
+
+// GetByID retorna um evento específico por ID.
+func (r *GormOutboxRepository) GetByID(ctx context.Context, id uuid.UUID) (*outbox.OutboxEvent, error) {
+	var entity entities.OutboxEventEntity
+
+	err := r.db.WithContext(ctx).
+		Where("id = ?", id).
+		First(&entity).Error
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to get event by ID: %w", err)
+	}
+
+	events := r.entitiesToDomain([]entities.OutboxEventEntity{entity})
+	if len(events) == 0 {
+		return nil, fmt.Errorf("failed to convert event entity to domain")
+	}
+
+	return events[0], nil
 }
 
 // GetPendingEvents retorna eventos aguardando processamento.

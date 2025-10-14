@@ -8,7 +8,7 @@ import (
 	"errors"
 	"io"
 
-	"github.com/caloi/ventros-crm/internal/domain/crm/credential"
+	"github.com/ventros/crm/internal/domain/crm/credential"
 )
 
 // AESEncryptor implementa criptografia AES-256-GCM

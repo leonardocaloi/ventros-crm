@@ -5,8 +5,8 @@ import (
 	"errors"
 	"fmt"
 
-	domainchat "github.com/caloi/ventros-crm/internal/domain/crm/chat"
 	"github.com/google/uuid"
+	domainchat "github.com/ventros/crm/internal/domain/crm/chat"
 )
 
 // CreateChatUseCase handles chat creation

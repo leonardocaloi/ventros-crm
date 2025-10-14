@@ -3,8 +3,8 @@ package handlers
 import (
 	"net/http"
 
-	"github.com/caloi/ventros-crm/infrastructure/messaging"
 	"github.com/gin-gonic/gin"
+	"github.com/ventros/crm/infrastructure/messaging"
 	"go.uber.org/zap"
 )
 

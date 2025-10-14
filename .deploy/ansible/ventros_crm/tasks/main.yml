@@ -1,0 +1,43 @@
+---
+- name: Configurar variáveis
+  include_vars:
+    file: vars/main.yml
+
+- name: Create Namespace
+  kubernetes.core.k8s:
+    name: "{{ k8s.namespace }}"
+    kind: Namespace
+    state: present
+
+- name: Add Helm repository for Ventros CRM
+  kubernetes.core.helm_repository:
+    name: "{{ helm.repo.name }}"
+    repo_url: "{{ helm.repo.url }}"
+    
+- name: Criar Secret para credenciais do GCP no Kubernetes
+  kubernetes.core.k8s:
+    namespace: "{{ k8s.namespace }}"
+    definition:
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: gcp-credentials
+      type: Opaque
+      data:
+        credentials.json: "{{ lookup('file', '/home/caloi/ventros-ops/credentials/credentials-pg.json') | b64encode }}"
+    state: present
+  when: postgresql.enabled
+
+- name: Install Ventros CRM via Helm
+  kubernetes.core.helm:
+    name: ventros-crm
+    namespace: "{{ k8s.namespace }}"
+    chart_ref: "{{ helm.chart.ref }}"
+    chart_version: "{{ helm.chart.version }}"
+    state: present
+    wait: false
+    timeout: 15m
+    skip_crds: true
+    disable_hook: false
+    atomic: false
+    values: "{{ lookup('template', 'templates/values.yml.j2') | from_yaml }}"

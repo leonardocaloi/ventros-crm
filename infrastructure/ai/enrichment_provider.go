@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/caloi/ventros-crm/internal/domain/crm/message_enrichment"
+	"github.com/ventros/crm/internal/domain/crm/message_enrichment"
 )
 
 // EnrichmentResult representa o resultado do processamento de enriquecimento

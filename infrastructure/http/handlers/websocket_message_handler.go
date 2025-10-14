@@ -3,10 +3,10 @@ package handlers
 import (
 	"net/http"
 
-	"github.com/caloi/ventros-crm/infrastructure/http/middleware"
-	ws "github.com/caloi/ventros-crm/infrastructure/websocket"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
+	"github.com/ventros/crm/infrastructure/http/middleware"
+	ws "github.com/ventros/crm/infrastructure/websocket"
 	"go.uber.org/zap"
 )
 

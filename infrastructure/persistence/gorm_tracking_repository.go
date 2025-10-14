@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/caloi/ventros-crm/infrastructure/persistence/entities"
-	"github.com/caloi/ventros-crm/internal/domain/crm/tracking"
 	"github.com/google/uuid"
+	"github.com/ventros/crm/infrastructure/persistence/entities"
+	"github.com/ventros/crm/internal/domain/crm/tracking"
 	"gorm.io/gorm"
 )
 

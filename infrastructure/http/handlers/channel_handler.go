@@ -4,26 +4,37 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/caloi/ventros-crm/infrastructure/http/middleware"
-	channelapp "github.com/caloi/ventros-crm/internal/application/channel"
-	channelworkflow "github.com/caloi/ventros-crm/internal/workflows/channel"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/ventros/crm/infrastructure/http/middleware"
+	channelapp "github.com/ventros/crm/internal/application/channel"
+	channelcmd "github.com/ventros/crm/internal/application/commands/channel"
+	channelworkflow "github.com/ventros/crm/internal/workflows/channel"
 	"go.temporal.io/sdk/client"
 	"go.uber.org/zap"
 )
 
 type ChannelHandler struct {
-	logger         *zap.Logger
-	channelService *channelapp.ChannelService
-	temporalClient interface{}
+	logger                 *zap.Logger
+	channelService         *channelapp.ChannelService
+	activateChannelHandler *channelcmd.ActivateChannelHandler
+	importHistoryHandler   *channelcmd.ImportHistoryHandler
+	temporalClient         interface{}
 }
 
-func NewChannelHandler(logger *zap.Logger, channelService *channelapp.ChannelService, temporalClient interface{}) *ChannelHandler {
+func NewChannelHandler(
+	logger *zap.Logger,
+	channelService *channelapp.ChannelService,
+	activateChannelHandler *channelcmd.ActivateChannelHandler,
+	importHistoryHandler *channelcmd.ImportHistoryHandler,
+	temporalClient interface{},
+) *ChannelHandler {
 	return &ChannelHandler{
-		logger:         logger,
-		channelService: channelService,
-		temporalClient: temporalClient,
+		logger:                 logger,
+		channelService:         channelService,
+		activateChannelHandler: activateChannelHandler,
+		importHistoryHandler:   importHistoryHandler,
+		temporalClient:         temporalClient,
 	}
 }
 
@@ -185,16 +196,16 @@ func (h *ChannelHandler) GetChannel(c *gin.Context) {
 	})
 }
 
-// ActivateChannel activates a channel
+// ActivateChannel activates a channel asynchronously
 //
 //	@Summary		Activate channel
-//	@Description	Activate a communication channel
+//	@Description	Request channel activation (async processing via events)
 //	@Tags			CRM - Channels
 //	@Produce		json
 //	@Security		ApiKeyAuth
 //	@Param			id	path		string					true	"Channel ID"
-//	@Success		200	{object}	map[string]interface{}	"Channel activated"
-//	@Failure		400	{object}	map[string]interface{}	"Invalid channel ID"
+//	@Success		202	{object}	map[string]interface{}	"Activation requested (processing asynchronously)"
+//	@Failure		400	{object}	map[string]interface{}	"Invalid channel ID or already active"
 //	@Failure		401	{object}	map[string]interface{}	"Authentication required"
 //	@Failure		404	{object}	map[string]interface{}	"Channel not found"
 //	@Failure		500	{object}	map[string]interface{}	"Internal server error"
@@ -212,6 +223,7 @@ func (h *ChannelHandler) ActivateChannel(c *gin.Context) {
 		return
 	}
 
+	// Verify channel exists and user owns it
 	channel, err := h.channelService.GetChannel(c.Request.Context(), channelID)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Channel not found"})
@@ -223,14 +235,37 @@ func (h *ChannelHandler) ActivateChannel(c *gin.Context) {
 		return
 	}
 
-	if err := h.channelService.ActivateChannel(c.Request.Context(), channelID); err != nil {
-		h.logger.Error("Failed to activate channel", zap.Error(err))
+	// Execute command (async activation via events)
+	cmd := channelcmd.ActivateChannelCommand{
+		ChannelID: channelID,
+		TenantID:  authCtx.TenantID,
+	}
+
+	if err := h.activateChannelHandler.Handle(c.Request.Context(), cmd); err != nil {
+		h.logger.Error("Failed to request channel activation",
+			zap.Error(err),
+			zap.String("channel_id", channelID.String()))
+
+		// Handle specific errors
+		if err == channelcmd.ErrChannelAlreadyActive {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Channel is already active"})
+			return
+		}
+		if err == channelcmd.ErrChannelAlreadyActivating {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Channel activation is already in progress"})
+			return
+		}
+
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to activate channel"})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"message": "Channel activated successfully",
+	// Return 202 Accepted - activation is async
+	c.JSON(http.StatusAccepted, gin.H{
+		"message":    "Channel activation requested",
+		"channel_id": channelID,
+		"status":     "activating",
+		"note":       "Activation is processing asynchronously. Poll /channels/{id} to check status.",
 	})
 }
 
@@ -662,8 +697,9 @@ func (h *ChannelHandler) ActivateWAHAChannel(c *gin.Context) {
 
 // ImportWAHAHistoryRequest represents the request to import history.
 type ImportWAHAHistoryRequest struct {
-	Strategy string `json:"strategy" example:"recent"`
-	Limit    int    `json:"limit" example:"100"`
+	Strategy      string `json:"strategy" example:"recent"`
+	Limit         int    `json:"limit" example:"100"`
+	TimeRangeDays int    `json:"time_range_days" example:"7"` // Dias para filtrar mensagens (0 = usar config do canal)
 }
 
 // ImportWAHAHistory imports message history from a WAHA channel
@@ -695,6 +731,7 @@ func (h *ChannelHandler) ImportWAHAHistory(c *gin.Context) {
 		return
 	}
 
+	// Verify channel exists and user owns it
 	channel, err := h.channelService.GetChannel(c.Request.Context(), channelID)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Channel not found"})
@@ -706,37 +743,113 @@ func (h *ChannelHandler) ImportWAHAHistory(c *gin.Context) {
 		return
 	}
 
-	if channel.Type != "waha" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Channel is not WAHA type"})
-		return
-	}
-
+	// Parse request body
 	var req ImportWAHAHistoryRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
+		// Se JSON parsing falhar, usar valores padrão
 		req.Strategy = "recent"
-		req.Limit = 100
+		// ❌ NÃO definir req.Limit = 100
+		// deixar limit == 0 (SEM LIMITE)
 	}
 
 	if req.Strategy == "" {
 		req.Strategy = "recent"
 	}
-	if req.Limit == 0 {
-		req.Limit = 100
+	// limit == 0 significa SEM LIMITE (buscar todas as mensagens disponíveis)
+
+	// Determinar TimeRangeDays: priorizar request, depois config do canal
+	timeRangeDays := req.TimeRangeDays
+	if timeRangeDays == 0 && channel.HistoryImportMaxDays != nil && *channel.HistoryImportMaxDays > 0 {
+		timeRangeDays = *channel.HistoryImportMaxDays
 	}
 
-	sessionID := channel.ExternalID
-	if sessionID == "" {
-		if sessionIDVal, exists := channel.Config["session_id"]; exists {
-			var ok bool
-			sessionID, ok = sessionIDVal.(string)
-			if !ok {
-				c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid WAHA session_id in configuration"})
-				return
-			}
-		} else {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "WAHA session_id not configured"})
+	// Create command (follows ActivateChannel pattern)
+	cmd := channelcmd.ImportHistoryCommand{
+		ChannelID:     channelID,
+		TenantID:      authCtx.TenantID,
+		Strategy:      req.Strategy,
+		TimeRangeDays: timeRangeDays,
+		Limit:         req.Limit,
+		UserID:        authCtx.UserID,
+	}
+
+	// Execute command (async processing via events)
+	correlationID, err := h.importHistoryHandler.Handle(c.Request.Context(), cmd)
+	if err != nil {
+		h.logger.Error("Failed to request history import",
+			zap.Error(err),
+			zap.String("channel_id", channelID.String()))
+
+		// Handle specific errors
+		if err == channelcmd.ErrChannelNotFound {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Channel not found"})
 			return
 		}
+		if err == channelcmd.ErrRepositorySaveFailed {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save import request"})
+			return
+		}
+
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	h.logger.Info("History import requested successfully (async processing)",
+		zap.String("channel_id", channelID.String()),
+		zap.String("correlation_id", correlationID),
+		zap.String("strategy", req.Strategy),
+		zap.Int("time_range_days", timeRangeDays),
+		zap.Int("limit", req.Limit))
+
+	// Return 202 Accepted - import is async
+	c.JSON(http.StatusAccepted, gin.H{
+		"message":         "History import requested",
+		"channel_id":      channelID,
+		"correlation_id":  correlationID,
+		"strategy":        req.Strategy,
+		"limit":           req.Limit,
+		"time_range_days": timeRangeDays,
+		"status":          "processing",
+		"note":            "Import is processing asynchronously. Poll /channels/{id} or /channels/{id}/import-status to check progress.",
+	})
+}
+
+// GetWAHAImportStatus gets the status of a WAHA history import workflow
+//
+//	@Summary		Get WAHA import status
+//	@Description	Get the current status and progress of a WAHA history import
+//	@Tags			CRM - Channels
+//	@Produce		json
+//	@Security		ApiKeyAuth
+//	@Param			id	path		string					true	"Channel ID"
+//	@Success		200	{object}	map[string]interface{}	"Import status"
+//	@Failure		400	{object}	map[string]interface{}	"Invalid channel ID"
+//	@Failure		401	{object}	map[string]interface{}	"Authentication required"
+//	@Failure		404	{object}	map[string]interface{}	"Channel not found or no import running"
+//	@Failure		500	{object}	map[string]interface{}	"Internal server error"
+//	@Router			/api/v1/channels/{id}/import-status [get]
+func (h *ChannelHandler) GetWAHAImportStatus(c *gin.Context) {
+	authCtx, exists := middleware.GetAuthContext(c)
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Authentication required"})
+		return
+	}
+
+	channelID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid channel ID"})
+		return
+	}
+
+	channel, err := h.channelService.GetChannel(c.Request.Context(), channelID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Channel not found"})
+		return
+	}
+
+	if channel.UserID != authCtx.UserID {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Access denied"})
+		return
 	}
 
 	if h.temporalClient == nil {
@@ -752,51 +865,63 @@ func (h *ChannelHandler) ImportWAHAHistory(c *gin.Context) {
 		return
 	}
 
-	workflowInput := channelworkflow.WAHAHistoryImportWorkflowInput{
-		ChannelID: channelID.String(),
-		SessionID: sessionID,
-		Strategy:  req.Strategy,
-		Limit:     req.Limit,
-		ProjectID: authCtx.ProjectID.String(),
-		TenantID:  authCtx.TenantID,
-		UserID:    authCtx.UserID.String(),
-	}
-
 	workflowID := fmt.Sprintf("waha-import-%s", channelID.String())
-	workflowOptions := client.StartWorkflowOptions{
-		ID:        workflowID,
-		TaskQueue: "waha-imports",
-	}
 
-	we, err := temporalClient.ExecuteWorkflow(
-		c.Request.Context(),
-		workflowOptions,
-		channelworkflow.WAHAHistoryImportWorkflow,
-		workflowInput,
-	)
+	// Try to describe the workflow
+	descResp, err := temporalClient.DescribeWorkflowExecution(c.Request.Context(), workflowID, "")
 	if err != nil {
-		h.logger.Error("Failed to start WAHA history import workflow",
-			zap.Error(err),
-			zap.String("channel_id", channelID.String()))
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to start history import: " + err.Error()})
+		// No workflow found - check channel for historical import data
+		response := gin.H{
+			"channel_id":  channelID,
+			"workflow_id": workflowID,
+			"status":      "no_import_running",
+		}
+
+		// Add channel's last import info if available
+		if channel.LastImportDate != nil {
+			response["last_import_date"] = channel.LastImportDate
+			response["history_import_status"] = channel.HistoryImportStatus
+			response["history_import_stats"] = channel.HistoryImportStats
+		}
+
+		c.JSON(http.StatusOK, response)
 		return
 	}
 
-	h.logger.Info("WAHA history import workflow started",
-		zap.String("channel_id", channelID.String()),
-		zap.String("workflow_id", we.GetID()),
-		zap.String("run_id", we.GetRunID()),
-		zap.String("strategy", req.Strategy),
-		zap.Int("limit", req.Limit))
+	// Get workflow execution info
+	workflowInfo := descResp.WorkflowExecutionInfo
+	workflowStatus := workflowInfo.Status.String()
 
-	c.JSON(http.StatusAccepted, gin.H{
-		"message":     "History import started",
+	response := gin.H{
 		"channel_id":  channelID,
-		"workflow_id": we.GetID(),
-		"run_id":      we.GetRunID(),
-		"strategy":    req.Strategy,
-		"limit":       req.Limit,
-		"status":      "processing",
-		"note":        "Import is running in the background via Temporal workflow. Query workflow for progress.",
-	})
+		"workflow_id": workflowID,
+		"run_id":      workflowInfo.Execution.RunId,
+		"status":      workflowStatus,
+		"start_time":  workflowInfo.StartTime,
+	}
+
+	// Add close time if workflow is completed
+	if workflowInfo.CloseTime != nil {
+		response["close_time"] = workflowInfo.CloseTime
+	}
+
+	// Query workflow for current progress
+	queryResp, err := temporalClient.QueryWorkflow(c.Request.Context(), workflowID, "", "import-status")
+	if err == nil {
+		var result *channelworkflow.WAHAHistoryImportWorkflowResult
+		if err := queryResp.Get(&result); err == nil && result != nil {
+			response["progress"] = gin.H{
+				"chats_processed":   result.ChatsProcessed,
+				"messages_imported": result.MessagesImported,
+				"sessions_created":  result.SessionsCreated,
+				"contacts_created":  result.ContactsCreated,
+				"errors":            result.Errors,
+				"started_at":        result.StartedAt,
+				"completed_at":      result.CompletedAt,
+				"import_status":     result.Status,
+			}
+		}
+	}
+
+	c.JSON(http.StatusOK, response)
 }

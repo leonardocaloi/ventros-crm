@@ -4,24 +4,43 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/caloi/ventros-crm/infrastructure/http/errors"
-	"github.com/caloi/ventros-crm/infrastructure/persistence"
-	"github.com/caloi/ventros-crm/internal/domain/automation/sequence"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/ventros/crm/infrastructure/http/errors"
+	"github.com/ventros/crm/infrastructure/persistence"
+	sequencecmd "github.com/ventros/crm/internal/application/commands/sequence"
+	"github.com/ventros/crm/internal/domain/automation/sequence"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
 
 type SequenceHandler struct {
-	logger *zap.Logger
-	db     *gorm.DB
+	logger                      *zap.Logger
+	db                          *gorm.DB
+	createSequenceHandler       *sequencecmd.CreateSequenceHandler
+	updateSequenceHandler       *sequencecmd.UpdateSequenceHandler
+	changeSequenceStatusHandler *sequencecmd.ChangeSequenceStatusHandler
+	deleteSequenceHandler       *sequencecmd.DeleteSequenceHandler
+	enrollContactHandler        *sequencecmd.EnrollContactHandler
 }
 
-func NewSequenceHandler(logger *zap.Logger, db *gorm.DB) *SequenceHandler {
+func NewSequenceHandler(
+	logger *zap.Logger,
+	db *gorm.DB,
+	createSequenceHandler *sequencecmd.CreateSequenceHandler,
+	updateSequenceHandler *sequencecmd.UpdateSequenceHandler,
+	changeSequenceStatusHandler *sequencecmd.ChangeSequenceStatusHandler,
+	deleteSequenceHandler *sequencecmd.DeleteSequenceHandler,
+	enrollContactHandler *sequencecmd.EnrollContactHandler,
+) *SequenceHandler {
 	return &SequenceHandler{
-		logger: logger,
-		db:     db,
+		logger:                      logger,
+		db:                          db,
+		createSequenceHandler:       createSequenceHandler,
+		updateSequenceHandler:       updateSequenceHandler,
+		changeSequenceStatusHandler: changeSequenceStatusHandler,
+		deleteSequenceHandler:       deleteSequenceHandler,
+		enrollContactHandler:        enrollContactHandler,
 	}
 }
 
@@ -124,63 +143,55 @@ func (h *SequenceHandler) ListSequences(c *gin.Context) {
 func (h *SequenceHandler) CreateSequence(c *gin.Context) {
 	tenantID := c.GetString("tenant_id")
 
+	// Parse request
 	var req CreateSequenceRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		errors.BadRequest(c, "Invalid request body: "+err.Error())
 		return
 	}
 
-	// Validate required fields
-	if req.Name == "" {
-		errors.BadRequest(c, "name is required")
-		return
-	}
-	if req.TriggerType == "" {
-		errors.BadRequest(c, "trigger_type is required")
-		return
+	// Convert steps from HTTP request to command input
+	steps := make([]sequencecmd.SequenceStepInput, len(req.Steps))
+	for i, stepReq := range req.Steps {
+		// Convert *string to string for optional fields
+		var templateID string
+		if stepReq.MessageTemplate.TemplateID != nil {
+			templateID = *stepReq.MessageTemplate.TemplateID
+		}
+
+		var mediaURL string
+		if stepReq.MessageTemplate.MediaURL != nil {
+			mediaURL = *stepReq.MessageTemplate.MediaURL
+		}
+
+		steps[i] = sequencecmd.SequenceStepInput{
+			Order:       stepReq.Order,
+			Name:        stepReq.Name,
+			DelayAmount: stepReq.DelayAmount,
+			DelayUnit:   stepReq.DelayUnit,
+			MessageTemplate: sequencecmd.MessageTemplateInput{
+				Type:       stepReq.MessageTemplate.Type,
+				Content:    stepReq.MessageTemplate.Content,
+				TemplateID: templateID,
+				Variables:  stepReq.MessageTemplate.Variables,
+				MediaURL:   mediaURL,
+			},
+		}
 	}
 
-	// Create sequence
-	seq, err := sequence.NewSequence(
-		tenantID,
-		req.Name,
-		req.Description,
-		sequence.TriggerType(req.TriggerType),
-	)
+	// Build command from request
+	cmd := sequencecmd.CreateSequenceCommand{
+		TenantID:    tenantID,
+		Name:        req.Name,
+		Description: req.Description,
+		TriggerType: req.TriggerType,
+		Steps:       steps,
+	}
+
+	// Delegate to command handler
+	seq, err := h.createSequenceHandler.Handle(c.Request.Context(), cmd)
 	if err != nil {
-		errors.BadRequest(c, "Failed to create sequence: "+err.Error())
-		return
-	}
-
-	// Add steps if provided
-	for _, stepReq := range req.Steps {
-		template := sequence.MessageTemplate{
-			Type:       stepReq.MessageTemplate.Type,
-			Content:    stepReq.MessageTemplate.Content,
-			TemplateID: stepReq.MessageTemplate.TemplateID,
-			Variables:  stepReq.MessageTemplate.Variables,
-			MediaURL:   stepReq.MessageTemplate.MediaURL,
-		}
-
-		step := sequence.NewSequenceStep(
-			stepReq.Order,
-			stepReq.Name,
-			stepReq.DelayAmount,
-			sequence.DelayUnit(stepReq.DelayUnit),
-			template,
-		)
-
-		if err := seq.AddStep(step); err != nil {
-			errors.BadRequest(c, "Failed to add step: "+err.Error())
-			return
-		}
-	}
-
-	// Save to database
-	repo := persistence.NewGormSequenceRepository(h.db)
-	if err := repo.Save(seq); err != nil {
-		h.logger.Error("Failed to save sequence", zap.Error(err))
-		errors.InternalError(c, "Failed to create sequence", err)
+		errors.RespondWithError(c, err)
 		return
 	}
 
@@ -250,47 +261,26 @@ func (h *SequenceHandler) UpdateSequence(c *gin.Context) {
 		return
 	}
 
+	// Parse request
 	var req UpdateSequenceRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		errors.BadRequest(c, "Invalid request body: "+err.Error())
 		return
 	}
 
-	repo := persistence.NewGormSequenceRepository(h.db)
-	seq, err := repo.FindByID(sequenceID)
+	// Build command from request
+	cmd := sequencecmd.UpdateSequenceCommand{
+		SequenceID:  sequenceID,
+		TenantID:    tenantID,
+		Name:        req.Name,
+		Description: req.Description,
+		ExitOnReply: req.ExitOnReply,
+	}
+
+	// Delegate to command handler
+	seq, err := h.updateSequenceHandler.Handle(c.Request.Context(), cmd)
 	if err != nil {
-		errors.NotFound(c, "sequence", sequenceID.String())
-		return
-	}
-
-	// Check tenant ownership
-	if seq.TenantID() != tenantID {
-		errors.NotFound(c, "sequence", sequenceID.String())
-		return
-	}
-
-	// Update name
-	if req.Name != nil {
-		if err := seq.UpdateName(*req.Name); err != nil {
-			errors.BadRequest(c, err.Error())
-			return
-		}
-	}
-
-	// Update description
-	if req.Description != nil {
-		seq.UpdateDescription(*req.Description)
-	}
-
-	// Update exit_on_reply
-	if req.ExitOnReply != nil {
-		seq.UpdateExitOnReply(*req.ExitOnReply)
-	}
-
-	// Save
-	if err := repo.Save(seq); err != nil {
-		h.logger.Error("Failed to update sequence", zap.Error(err))
-		errors.InternalError(c, "Failed to update sequence", err)
+		errors.RespondWithError(c, err)
 		return
 	}
 
@@ -320,29 +310,17 @@ func (h *SequenceHandler) ActivateSequence(c *gin.Context) {
 		return
 	}
 
-	repo := persistence.NewGormSequenceRepository(h.db)
-	seq, err := repo.FindByID(sequenceID)
+	// Build command
+	cmd := sequencecmd.ChangeSequenceStatusCommand{
+		SequenceID: sequenceID,
+		TenantID:   tenantID,
+		Action:     sequencecmd.StatusActionActivate,
+	}
+
+	// Delegate to command handler
+	seq, err := h.changeSequenceStatusHandler.Handle(c.Request.Context(), cmd)
 	if err != nil {
-		errors.NotFound(c, "sequence", sequenceID.String())
-		return
-	}
-
-	// Check tenant ownership
-	if seq.TenantID() != tenantID {
-		errors.NotFound(c, "sequence", sequenceID.String())
-		return
-	}
-
-	// Activate
-	if err := seq.Activate(); err != nil {
-		errors.BadRequest(c, err.Error())
-		return
-	}
-
-	// Save
-	if err := repo.Save(seq); err != nil {
-		h.logger.Error("Failed to activate sequence", zap.Error(err))
-		errors.InternalError(c, "Failed to activate sequence", err)
+		errors.RespondWithError(c, err)
 		return
 	}
 
@@ -373,29 +351,17 @@ func (h *SequenceHandler) PauseSequence(c *gin.Context) {
 		return
 	}
 
-	repo := persistence.NewGormSequenceRepository(h.db)
-	seq, err := repo.FindByID(sequenceID)
+	// Build command
+	cmd := sequencecmd.ChangeSequenceStatusCommand{
+		SequenceID: sequenceID,
+		TenantID:   tenantID,
+		Action:     sequencecmd.StatusActionPause,
+	}
+
+	// Delegate to command handler
+	seq, err := h.changeSequenceStatusHandler.Handle(c.Request.Context(), cmd)
 	if err != nil {
-		errors.NotFound(c, "sequence", sequenceID.String())
-		return
-	}
-
-	// Check tenant ownership
-	if seq.TenantID() != tenantID {
-		errors.NotFound(c, "sequence", sequenceID.String())
-		return
-	}
-
-	// Pause
-	if err := seq.Pause(); err != nil {
-		errors.BadRequest(c, err.Error())
-		return
-	}
-
-	// Save
-	if err := repo.Save(seq); err != nil {
-		h.logger.Error("Failed to pause sequence", zap.Error(err))
-		errors.InternalError(c, "Failed to pause sequence", err)
+		errors.RespondWithError(c, err)
 		return
 	}
 
@@ -426,29 +392,17 @@ func (h *SequenceHandler) ResumeSequence(c *gin.Context) {
 		return
 	}
 
-	repo := persistence.NewGormSequenceRepository(h.db)
-	seq, err := repo.FindByID(sequenceID)
+	// Build command
+	cmd := sequencecmd.ChangeSequenceStatusCommand{
+		SequenceID: sequenceID,
+		TenantID:   tenantID,
+		Action:     sequencecmd.StatusActionResume,
+	}
+
+	// Delegate to command handler
+	seq, err := h.changeSequenceStatusHandler.Handle(c.Request.Context(), cmd)
 	if err != nil {
-		errors.NotFound(c, "sequence", sequenceID.String())
-		return
-	}
-
-	// Check tenant ownership
-	if seq.TenantID() != tenantID {
-		errors.NotFound(c, "sequence", sequenceID.String())
-		return
-	}
-
-	// Resume
-	if err := seq.Resume(); err != nil {
-		errors.BadRequest(c, err.Error())
-		return
-	}
-
-	// Save
-	if err := repo.Save(seq); err != nil {
-		h.logger.Error("Failed to resume sequence", zap.Error(err))
-		errors.InternalError(c, "Failed to resume sequence", err)
+		errors.RespondWithError(c, err)
 		return
 	}
 
@@ -479,29 +433,17 @@ func (h *SequenceHandler) ArchiveSequence(c *gin.Context) {
 		return
 	}
 
-	repo := persistence.NewGormSequenceRepository(h.db)
-	seq, err := repo.FindByID(sequenceID)
+	// Build command
+	cmd := sequencecmd.ChangeSequenceStatusCommand{
+		SequenceID: sequenceID,
+		TenantID:   tenantID,
+		Action:     sequencecmd.StatusActionArchive,
+	}
+
+	// Delegate to command handler
+	seq, err := h.changeSequenceStatusHandler.Handle(c.Request.Context(), cmd)
 	if err != nil {
-		errors.NotFound(c, "sequence", sequenceID.String())
-		return
-	}
-
-	// Check tenant ownership
-	if seq.TenantID() != tenantID {
-		errors.NotFound(c, "sequence", sequenceID.String())
-		return
-	}
-
-	// Archive
-	if err := seq.Archive(); err != nil {
-		errors.BadRequest(c, err.Error())
-		return
-	}
-
-	// Save
-	if err := repo.Save(seq); err != nil {
-		h.logger.Error("Failed to archive sequence", zap.Error(err))
-		errors.InternalError(c, "Failed to archive sequence", err)
+		errors.RespondWithError(c, err)
 		return
 	}
 
@@ -532,29 +474,15 @@ func (h *SequenceHandler) DeleteSequence(c *gin.Context) {
 		return
 	}
 
-	repo := persistence.NewGormSequenceRepository(h.db)
-	seq, err := repo.FindByID(sequenceID)
-	if err != nil {
-		errors.NotFound(c, "sequence", sequenceID.String())
-		return
+	// Build command
+	cmd := sequencecmd.DeleteSequenceCommand{
+		SequenceID: sequenceID,
+		TenantID:   tenantID,
 	}
 
-	// Check tenant ownership
-	if seq.TenantID() != tenantID {
-		errors.NotFound(c, "sequence", sequenceID.String())
-		return
-	}
-
-	// Only allow deletion of draft sequences
-	if seq.Status() != sequence.SequenceStatusDraft {
-		errors.BadRequest(c, "Can only delete sequences in draft status")
-		return
-	}
-
-	// Delete
-	if err := repo.Delete(sequenceID); err != nil {
-		h.logger.Error("Failed to delete sequence", zap.Error(err))
-		errors.InternalError(c, "Failed to delete sequence", err)
+	// Delegate to command handler
+	if err := h.deleteSequenceHandler.Handle(c.Request.Context(), cmd); err != nil {
+		errors.RespondWithError(c, err)
 		return
 	}
 
@@ -631,14 +559,10 @@ func (h *SequenceHandler) EnrollContact(c *gin.Context) {
 		return
 	}
 
+	// Parse request
 	var req EnrollContactRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		errors.BadRequest(c, "Invalid request body: "+err.Error())
-		return
-	}
-
-	if req.ContactID == "" {
-		errors.BadRequest(c, "contact_id is required")
 		return
 	}
 
@@ -648,68 +572,18 @@ func (h *SequenceHandler) EnrollContact(c *gin.Context) {
 		return
 	}
 
-	// Check if sequence exists
-	seqRepo := persistence.NewGormSequenceRepository(h.db)
-	seq, err := seqRepo.FindByID(sequenceID)
+	// Build command
+	cmd := sequencecmd.EnrollContactCommand{
+		SequenceID: sequenceID,
+		ContactID:  contactID,
+		TenantID:   tenantID,
+	}
+
+	// Delegate to command handler
+	enrollment, err := h.enrollContactHandler.Handle(c.Request.Context(), cmd)
 	if err != nil {
-		errors.NotFound(c, "sequence", sequenceID.String())
+		errors.RespondWithError(c, err)
 		return
-	}
-
-	// Check tenant ownership
-	if seq.TenantID() != tenantID {
-		errors.NotFound(c, "sequence", sequenceID.String())
-		return
-	}
-
-	// Check if sequence is active
-	if seq.Status() != sequence.SequenceStatusActive {
-		errors.BadRequest(c, "Sequence must be active to enroll contacts")
-		return
-	}
-
-	// Check if already enrolled
-	enrollmentRepo := persistence.NewGormSequenceEnrollmentRepository(h.db)
-	existing, err := enrollmentRepo.FindActiveBySequenceAndContact(sequenceID, contactID)
-	if err != nil {
-		h.logger.Error("Failed to check existing enrollment", zap.Error(err))
-		errors.InternalError(c, "Failed to check enrollment", err)
-		return
-	}
-	if existing != nil {
-		errors.BadRequest(c, "Contact is already enrolled in this sequence")
-		return
-	}
-
-	// Get first step delay
-	firstStep, err := seq.GetStepByOrder(0)
-	if err != nil || firstStep == nil {
-		errors.BadRequest(c, "Sequence has no steps")
-		return
-	}
-
-	// Create enrollment
-	enrollment, err := sequence.NewSequenceEnrollment(
-		sequenceID,
-		contactID,
-		firstStep.GetDelayDuration(),
-	)
-	if err != nil {
-		errors.BadRequest(c, "Failed to create enrollment: "+err.Error())
-		return
-	}
-
-	// Save enrollment
-	if err := enrollmentRepo.Save(enrollment); err != nil {
-		h.logger.Error("Failed to save enrollment", zap.Error(err))
-		errors.InternalError(c, "Failed to enroll contact", err)
-		return
-	}
-
-	// Update sequence stats
-	seq.IncrementEnrolled()
-	if err := seqRepo.Save(seq); err != nil {
-		h.logger.Error("Failed to update sequence stats", zap.Error(err))
 	}
 
 	c.JSON(http.StatusCreated, gin.H{

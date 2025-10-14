@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/caloi/ventros-crm/internal/application/shared"
-	domaincontact "github.com/caloi/ventros-crm/internal/domain/crm/contact"
-	domainmessage "github.com/caloi/ventros-crm/internal/domain/crm/message"
-	domainsession "github.com/caloi/ventros-crm/internal/domain/crm/session"
 	"github.com/google/uuid"
+	"github.com/ventros/crm/internal/application/shared"
+	domaincontact "github.com/ventros/crm/internal/domain/crm/contact"
+	domainmessage "github.com/ventros/crm/internal/domain/crm/message"
+	domainsession "github.com/ventros/crm/internal/domain/crm/session"
 )
 
 // Activities é o container para todas as activities da Saga.

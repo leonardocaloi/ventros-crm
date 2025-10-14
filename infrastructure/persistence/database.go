@@ -273,3 +273,54 @@ func SetupRLS(db *gorm.DB) error {
 
 	return nil
 }
+
+// SetupOutboxNotifyTrigger ensures the PostgreSQL NOTIFY trigger exists for push-based event processing
+// This trigger is critical for the Outbox Pattern - it sends NOTIFY when new events are inserted
+func SetupOutboxNotifyTrigger(db *gorm.DB) error {
+	log.Println("🔔 Setting up Outbox NOTIFY trigger (push-based event processing)...")
+
+	// 1. Create the NOTIFY function
+	createFunction := `
+		CREATE OR REPLACE FUNCTION notify_outbox_event()
+		RETURNS TRIGGER AS $$
+		BEGIN
+			-- Send notification with event_id as payload
+			-- PostgresNotifyOutboxProcessor will receive this < 100ms
+			PERFORM pg_notify('outbox_events', NEW.id::text);
+			RETURN NEW;
+		END;
+		$$ LANGUAGE plpgsql;
+	`
+
+	if err := db.Exec(createFunction).Error; err != nil {
+		log.Printf("⚠️  Warning: Failed to create notify_outbox_event function: %v", err)
+		return fmt.Errorf("failed to create notify function: %w", err)
+	}
+
+	// 2. Drop existing trigger if it exists (idempotent)
+	dropTrigger := `DROP TRIGGER IF EXISTS trigger_notify_outbox_event ON outbox_events;`
+	if err := db.Exec(dropTrigger).Error; err != nil {
+		log.Printf("⚠️  Warning: Failed to drop existing trigger: %v", err)
+	}
+
+	// 3. Create the trigger
+	createTrigger := `
+		CREATE TRIGGER trigger_notify_outbox_event
+			AFTER INSERT ON outbox_events
+			FOR EACH ROW
+			WHEN (NEW.status = 'pending')
+			EXECUTE FUNCTION notify_outbox_event();
+	`
+
+	if err := db.Exec(createTrigger).Error; err != nil {
+		log.Printf("❌ Failed to create trigger_notify_outbox_event: %v", err)
+		return fmt.Errorf("failed to create notify trigger: %w", err)
+	}
+
+	log.Println("✅ Outbox NOTIFY trigger configured successfully!")
+	log.Println("   📡 Push-based event processing enabled (< 100ms latency)")
+	log.Println("   🚫 NO POLLING - events are pushed via PostgreSQL NOTIFY")
+	log.Println("   ⚡ Trigger fires AFTER INSERT for pending events")
+
+	return nil
+}

@@ -5,11 +5,11 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/caloi/ventros-crm/infrastructure/http/errors"
-	"github.com/caloi/ventros-crm/infrastructure/persistence"
-	"github.com/caloi/ventros-crm/internal/domain/automation/broadcast"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/ventros/crm/infrastructure/http/errors"
+	"github.com/ventros/crm/infrastructure/persistence"
+	"github.com/ventros/crm/internal/domain/automation/broadcast"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 )

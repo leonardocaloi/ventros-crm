@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -64,7 +65,7 @@ func (s *MessageSendTestSuite) setupTestData() {
 		"waha_config": channelFixture.WAHAConfig,
 	}
 
-	endpoint := fmt.Sprintf("/api/v1/channels?project_id=%s", projectID)
+	endpoint := fmt.Sprintf("/api/v1/crm/channels?project_id=%s", projectID)
 	resp, body = s.makeRequest("POST", endpoint, channelPayload, apiKey)
 	assert.Equal(s.T(), http.StatusCreated, resp.StatusCode)
 
@@ -72,10 +73,41 @@ func (s *MessageSendTestSuite) setupTestData() {
 	assert.NoError(s.T(), err)
 	s.createdIDs["channel_id"] = result["id"].(string)
 
-	// Activate channel
-	activateEndpoint := fmt.Sprintf("/api/v1/channels/%s/activate", s.createdIDs["channel_id"])
-	resp, _ = s.makeRequest("POST", activateEndpoint, nil, apiKey)
-	assert.Equal(s.T(), http.StatusOK, resp.StatusCode)
+	// Activate channel (async with 202 Accepted)
+	activateEndpoint := fmt.Sprintf("/api/v1/crm/channels/%s/activate", s.createdIDs["channel_id"])
+	resp, body = s.makeRequest("POST", activateEndpoint, nil, apiKey)
+	assert.Equal(s.T(), http.StatusAccepted, resp.StatusCode, "Should return 202 Accepted for async activation")
+
+	// Poll for channel activation (max 10 seconds)
+	maxRetries := 20
+	pollInterval := 500 * time.Millisecond
+	channelActive := false
+
+	for i := 0; i < maxRetries; i++ {
+		time.Sleep(pollInterval)
+
+		getEndpoint := fmt.Sprintf("/api/v1/crm/channels/%s", s.createdIDs["channel_id"])
+		getResp, getBody := s.makeRequest("GET", getEndpoint, nil, apiKey)
+		assert.Equal(s.T(), http.StatusOK, getResp.StatusCode)
+
+		var channel map[string]interface{}
+		err = json.Unmarshal(getBody, &channel)
+		assert.NoError(s.T(), err)
+
+		status := channel["status"].(string)
+		if status == "active" {
+			channelActive = true
+			break
+		} else if status == "inactive" {
+			lastError := ""
+			if channel["last_error"] != nil {
+				lastError = channel["last_error"].(string)
+			}
+			s.T().Fatalf("Channel activation failed: %s", lastError)
+		}
+	}
+
+	assert.True(s.T(), channelActive, "Channel should be activated within 10 seconds")
 
 	fmt.Printf("✅ Test channel created and activated: %s\n", channelFixture.Name)
 
@@ -276,7 +308,8 @@ func (s *MessageSendTestSuite) TestSendImageMessage() {
 	contactID := s.createdIDs["contact_id"]
 	channelID := s.createdIDs["channel_id"]
 
-	mediaURL := "https://example.com/test-image.jpg"
+	// Real image URL from WAHA GitHub examples
+	mediaURL := "https://github.com/devlikeapro/waha/raw/core/examples/dev.likeapro.jpg"
 	payload := map[string]interface{}{
 		"contact_id":   contactID,
 		"channel_id":   channelID,
@@ -298,6 +331,176 @@ func (s *MessageSendTestSuite) TestSendImageMessage() {
 	} else if resp.StatusCode == http.StatusInternalServerError {
 		assert.Equal(s.T(), "failed", result["status"])
 		fmt.Printf("⚠️  Image message send failed as expected (WAHA not implemented): %v\n", result["error"])
+	}
+}
+
+// TestSendVideoMessage tests sending a video message
+func (s *MessageSendTestSuite) TestSendVideoMessage() {
+	apiKey := s.createdIDs["api_key"]
+	contactID := s.createdIDs["contact_id"]
+	channelID := s.createdIDs["channel_id"]
+
+	mediaURL := "https://example.com/test-video.mp4"
+	caption := "Test video message"
+	payload := map[string]interface{}{
+		"contact_id":   contactID,
+		"channel_id":   channelID,
+		"content_type": "video",
+		"media_url":    &mediaURL,
+		"text":         &caption,
+	}
+
+	resp, body := s.makeRequest("POST", "/api/v1/messages/send", payload, apiKey)
+
+	var result map[string]interface{}
+	err := json.Unmarshal(body, &result)
+	assert.NoError(s.T(), err)
+
+	if resp.StatusCode == http.StatusOK {
+		assert.NotEmpty(s.T(), result["message_id"])
+		assert.Equal(s.T(), "sent", result["status"])
+		fmt.Printf("✅ Video message sent successfully: %v\n", result["message_id"])
+	} else if resp.StatusCode == http.StatusInternalServerError {
+		assert.Equal(s.T(), "failed", result["status"])
+		fmt.Printf("⚠️  Video message send failed: %v\n", result["error"])
+	}
+}
+
+// TestSendAudioMessage tests sending an audio message
+func (s *MessageSendTestSuite) TestSendAudioMessage() {
+	apiKey := s.createdIDs["api_key"]
+	contactID := s.createdIDs["contact_id"]
+	channelID := s.createdIDs["channel_id"]
+
+	mediaURL := "https://example.com/test-audio.mp3"
+	payload := map[string]interface{}{
+		"contact_id":   contactID,
+		"channel_id":   channelID,
+		"content_type": "audio",
+		"media_url":    &mediaURL,
+	}
+
+	resp, body := s.makeRequest("POST", "/api/v1/messages/send", payload, apiKey)
+
+	var result map[string]interface{}
+	err := json.Unmarshal(body, &result)
+	assert.NoError(s.T(), err)
+
+	if resp.StatusCode == http.StatusOK {
+		assert.NotEmpty(s.T(), result["message_id"])
+		assert.Equal(s.T(), "sent", result["status"])
+		fmt.Printf("✅ Audio message sent successfully: %v\n", result["message_id"])
+	} else if resp.StatusCode == http.StatusInternalServerError {
+		assert.Equal(s.T(), "failed", result["status"])
+		fmt.Printf("⚠️  Audio message send failed: %v\n", result["error"])
+	}
+}
+
+// TestSendDocumentMessage tests sending a document message
+func (s *MessageSendTestSuite) TestSendDocumentMessage() {
+	apiKey := s.createdIDs["api_key"]
+	contactID := s.createdIDs["contact_id"]
+	channelID := s.createdIDs["channel_id"]
+
+	mediaURL := "https://example.com/test-document.pdf"
+	caption := "Test document"
+	payload := map[string]interface{}{
+		"contact_id":   contactID,
+		"channel_id":   channelID,
+		"content_type": "document",
+		"media_url":    &mediaURL,
+		"text":         &caption,
+		"metadata": map[string]interface{}{
+			"filename": "test-document.pdf",
+		},
+	}
+
+	resp, body := s.makeRequest("POST", "/api/v1/messages/send", payload, apiKey)
+
+	var result map[string]interface{}
+	err := json.Unmarshal(body, &result)
+	assert.NoError(s.T(), err)
+
+	if resp.StatusCode == http.StatusOK {
+		assert.NotEmpty(s.T(), result["message_id"])
+		assert.Equal(s.T(), "sent", result["status"])
+		fmt.Printf("✅ Document message sent successfully: %v\n", result["message_id"])
+	} else if resp.StatusCode == http.StatusInternalServerError {
+		assert.Equal(s.T(), "failed", result["status"])
+		fmt.Printf("⚠️  Document message send failed: %v\n", result["error"])
+	}
+}
+
+// TestSendLocationMessage tests sending a location message
+func (s *MessageSendTestSuite) TestSendLocationMessage() {
+	apiKey := s.createdIDs["api_key"]
+	contactID := s.createdIDs["contact_id"]
+	channelID := s.createdIDs["channel_id"]
+
+	title := "Test Location"
+	payload := map[string]interface{}{
+		"contact_id":   contactID,
+		"channel_id":   channelID,
+		"content_type": "location",
+		"text":         &title,
+		"metadata": map[string]interface{}{
+			"latitude":  -23.5505199,
+			"longitude": -46.6333094,
+		},
+	}
+
+	resp, body := s.makeRequest("POST", "/api/v1/messages/send", payload, apiKey)
+
+	var result map[string]interface{}
+	err := json.Unmarshal(body, &result)
+	assert.NoError(s.T(), err)
+
+	if resp.StatusCode == http.StatusOK {
+		assert.NotEmpty(s.T(), result["message_id"])
+		assert.Equal(s.T(), "sent", result["status"])
+		fmt.Printf("✅ Location message sent successfully: %v\n", result["message_id"])
+	} else if resp.StatusCode == http.StatusInternalServerError {
+		assert.Equal(s.T(), "failed", result["status"])
+		fmt.Printf("⚠️  Location message send failed: %v\n", result["error"])
+	}
+}
+
+// TestSendContactMessage tests sending a contact message
+func (s *MessageSendTestSuite) TestSendContactMessage() {
+	apiKey := s.createdIDs["api_key"]
+	contactID := s.createdIDs["contact_id"]
+	channelID := s.createdIDs["channel_id"]
+
+	// vCard format for contact sharing
+	vcard := `BEGIN:VCARD
+VERSION:3.0
+FN:John Doe
+TEL;TYPE=CELL:+55 11 99999-9999
+EMAIL:john@example.com
+END:VCARD`
+
+	payload := map[string]interface{}{
+		"contact_id":   contactID,
+		"channel_id":   channelID,
+		"content_type": "contact",
+		"metadata": map[string]interface{}{
+			"vcard": vcard,
+		},
+	}
+
+	resp, body := s.makeRequest("POST", "/api/v1/messages/send", payload, apiKey)
+
+	var result map[string]interface{}
+	err := json.Unmarshal(body, &result)
+	assert.NoError(s.T(), err)
+
+	if resp.StatusCode == http.StatusOK {
+		assert.NotEmpty(s.T(), result["message_id"])
+		assert.Equal(s.T(), "sent", result["status"])
+		fmt.Printf("✅ Contact message sent successfully: %v\n", result["message_id"])
+	} else if resp.StatusCode == http.StatusInternalServerError {
+		assert.Equal(s.T(), "failed", result["status"])
+		fmt.Printf("⚠️  Contact message send failed: %v\n", result["error"])
 	}
 }
 

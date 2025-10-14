@@ -3,8 +3,8 @@ package persistence
 import (
 	"context"
 
-	"github.com/caloi/ventros-crm/internal/domain/crm/session"
 	"github.com/google/uuid"
+	"github.com/ventros/crm/internal/domain/crm/session"
 )
 
 // SessionRepositoryAdapter adapta o session.Repository do domínio

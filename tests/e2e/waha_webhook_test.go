@@ -65,7 +65,7 @@ func (s *WAHAWebhookTestSuite) TearDownSuite() {
 	fmt.Println("\n🧹 Cleaning up test data...")
 	
 	if s.channelID != "" && s.apiKey != "" {
-		endpoint := fmt.Sprintf("/api/v1/channels/%s", s.channelID)
+		endpoint := fmt.Sprintf("/api/v1/crm/channels/%s", s.channelID)
 		resp, _ := s.makeRequest("DELETE", endpoint, nil, s.apiKey)
 		if resp.StatusCode == http.StatusOK || resp.StatusCode == http.StatusNoContent {
 			fmt.Printf("  ✓ Deleted channel: %s\n", s.channelID)
@@ -134,7 +134,7 @@ func (s *WAHAWebhookTestSuite) createWAHAChannel() {
 		},
 	}
 	
-	endpoint := fmt.Sprintf("/api/v1/channels?project_id=%s", s.projectID)
+	endpoint := fmt.Sprintf("/api/v1/crm/channels?project_id=%s", s.projectID)
 	resp, body := s.makeRequest("POST", endpoint, payload, s.apiKey)
 	assert.Equal(s.T(), http.StatusCreated, resp.StatusCode, "Failed to create channel")
 	
@@ -145,7 +145,7 @@ func (s *WAHAWebhookTestSuite) createWAHAChannel() {
 	s.channelID = result["id"].(string)
 	
 	// Busca canal para pegar webhook_url
-	endpoint = fmt.Sprintf("/api/v1/channels/%s", s.channelID)
+	endpoint = fmt.Sprintf("/api/v1/crm/channels/%s", s.channelID)
 	resp, body = s.makeRequest("GET", endpoint, nil, s.apiKey)
 	assert.Equal(s.T(), http.StatusOK, resp.StatusCode)
 	
@@ -161,12 +161,48 @@ func (s *WAHAWebhookTestSuite) createWAHAChannel() {
 	fmt.Printf("   • Webhook URL: %s\n", s.webhookURL)
 }
 
-// activateChannel ativa o canal
+// activateChannel ativa o canal (async with polling)
 func (s *WAHAWebhookTestSuite) activateChannel() {
-	endpoint := fmt.Sprintf("/api/v1/channels/%s/activate", s.channelID)
-	resp, _ := s.makeRequest("POST", endpoint, nil, s.apiKey)
-	assert.Equal(s.T(), http.StatusOK, resp.StatusCode, "Failed to activate channel")
-	
+	endpoint := fmt.Sprintf("/api/v1/crm/channels/%s/activate", s.channelID)
+	resp, body := s.makeRequest("POST", endpoint, nil, s.apiKey)
+	assert.Equal(s.T(), http.StatusAccepted, resp.StatusCode, "Should return 202 Accepted for async activation")
+
+	var activationResponse map[string]interface{}
+	err := json.Unmarshal(body, &activationResponse)
+	assert.NoError(s.T(), err)
+	assert.Equal(s.T(), "activating", activationResponse["status"], "Status should be 'activating'")
+
+	// Poll for channel activation (max 10 seconds)
+	maxRetries := 20
+	pollInterval := 500 * time.Millisecond
+	channelActive := false
+
+	for i := 0; i < maxRetries; i++ {
+		time.Sleep(pollInterval)
+
+		getEndpoint := fmt.Sprintf("/api/v1/crm/channels/%s", s.channelID)
+		getResp, getBody := s.makeRequest("GET", getEndpoint, nil, s.apiKey)
+		assert.Equal(s.T(), http.StatusOK, getResp.StatusCode)
+
+		var channel map[string]interface{}
+		err := json.Unmarshal(getBody, &channel)
+		assert.NoError(s.T(), err)
+
+		status := channel["status"].(string)
+		if status == "active" {
+			channelActive = true
+			break
+		} else if status == "inactive" {
+			lastError := ""
+			if channel["last_error"] != nil {
+				lastError = channel["last_error"].(string)
+			}
+			s.T().Fatalf("Channel activation failed: %s", lastError)
+		}
+	}
+
+	assert.True(s.T(), channelActive, "Channel should be activated within 10 seconds")
+
 	fmt.Printf("3️⃣ Channel activated: %s\n", s.channelID)
 }
 
@@ -334,7 +370,7 @@ func (s *WAHAWebhookTestSuite) sendWebhookEvent(event map[string]interface{}) {
 
 // verifyChannelStats verifica estatísticas do canal
 func (s *WAHAWebhookTestSuite) verifyChannelStats(expectedMessages int) {
-	endpoint := fmt.Sprintf("/api/v1/channels/%s", s.channelID)
+	endpoint := fmt.Sprintf("/api/v1/crm/channels/%s", s.channelID)
 	resp, body := s.makeRequest("GET", endpoint, nil, s.apiKey)
 	assert.Equal(s.T(), http.StatusOK, resp.StatusCode)
 	

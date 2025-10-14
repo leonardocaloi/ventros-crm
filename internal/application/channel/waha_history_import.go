@@ -6,12 +6,12 @@ import (
 	"sort"
 	"time"
 
-	"github.com/caloi/ventros-crm/infrastructure/channels/waha"
-	"github.com/caloi/ventros-crm/internal/domain/crm/channel"
-	"github.com/caloi/ventros-crm/internal/domain/crm/contact"
-	"github.com/caloi/ventros-crm/internal/domain/crm/message"
-	"github.com/caloi/ventros-crm/internal/domain/crm/session"
 	"github.com/google/uuid"
+	"github.com/ventros/crm/infrastructure/channels/waha"
+	"github.com/ventros/crm/internal/domain/crm/channel"
+	"github.com/ventros/crm/internal/domain/crm/contact"
+	"github.com/ventros/crm/internal/domain/crm/message"
+	"github.com/ventros/crm/internal/domain/crm/session"
 	"go.uber.org/zap"
 )
 

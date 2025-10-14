@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/caloi/ventros-crm/internal/domain/crm/pipeline"
 	"github.com/google/uuid"
+	"github.com/ventros/crm/internal/domain/crm/pipeline"
 )
 
 // DefaultActionExecutor implementação padrão do ActionExecutor

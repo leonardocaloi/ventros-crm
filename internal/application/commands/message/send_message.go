@@ -5,11 +5,11 @@ import (
 	"errors"
 	"time"
 
-	"github.com/caloi/ventros-crm/internal/application/message"
-	"github.com/caloi/ventros-crm/internal/domain/crm/contact"
-	domainMessage "github.com/caloi/ventros-crm/internal/domain/crm/message"
-	"github.com/caloi/ventros-crm/internal/domain/crm/session"
 	"github.com/google/uuid"
+	"github.com/ventros/crm/internal/application/message"
+	"github.com/ventros/crm/internal/domain/crm/contact"
+	domainMessage "github.com/ventros/crm/internal/domain/crm/message"
+	"github.com/ventros/crm/internal/domain/crm/session"
 )
 
 // SendMessageCommand representa o comando para enviar uma mensagem
@@ -25,10 +25,10 @@ type SendMessageCommand struct {
 	ScheduledAt *time.Time                `json:"scheduled_at,omitempty"`
 
 	// Contexto de autenticação
-	TenantID   string     `json:"-"` // Preenchido pelo middleware
-	ProjectID  uuid.UUID  `json:"-"` // Preenchido pelo middleware
-	CustomerID uuid.UUID  `json:"-"` // Preenchido pelo middleware
-	AgentID    *uuid.UUID `json:"-"` // Opcional, preenchido pelo middleware se for um agente
+	TenantID   string    `json:"-"` // Preenchido pelo middleware
+	ProjectID  uuid.UUID `json:"-"` // Preenchido pelo middleware
+	CustomerID uuid.UUID `json:"-"` // Preenchido pelo middleware
+	AgentID    uuid.UUID `json:"-"` // OBRIGATÓRIO: Preenchido pelo middleware (agente autenticado)
 }
 
 // SendMessageResult representa o resultado do envio
@@ -70,6 +70,9 @@ func (cmd *SendMessageCommand) Validate() error {
 	}
 	if cmd.CustomerID == uuid.Nil {
 		return errors.New("customer_id is required")
+	}
+	if cmd.AgentID == uuid.Nil {
+		return errors.New("agent_id is required - must be authenticated agent")
 	}
 
 	return nil
@@ -305,6 +308,7 @@ func (h *SendMessageHandler) convertToOutboundMessage(
 		ContactID:   cmd.ContactID,
 		SessionID:   sessionID,
 		AgentID:     cmd.AgentID,
+		Source:      domainMessage.SourceManual, // Mensagem manual enviada por agente autenticado
 		Type:        msgType,
 		Content:     content,
 		MediaURL:    cmd.MediaURL,

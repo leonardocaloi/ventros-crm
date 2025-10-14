@@ -1,15 +1,78 @@
-# 🧪 Testes E2E - Ventros CRM
+# 🧪 Testing - Ventros CRM
 
-Este diretório contém os testes End-to-End (E2E) da aplicação, seguindo as melhores práticas da indústria.
+Este diretório contém todos os testes da aplicação, seguindo a **Test Pyramid** (Mike Cohn, 2009).
 
-## 📋 Estrutura
+## 📋 Estrutura de Testes
 
 ```
 tests/
-├── e2e/
-│   ├── api_test.go      # Testes E2E em Go (testify/suite)
-│   └── fixtures.go      # Dados de entrada dos testes
-└── README.md            # Esta documentação
+├── integration/                           # Layer 2: Integration Tests
+│   ├── waha_message_sender_test.go        # WAHA adapter tests
+│   └── websocket_integration_test.go      # WebSocket tests
+│
+└── e2e/                                   # Layer 3: E2E Tests
+    ├── api_test.go                        # General API tests
+    ├── waha_webhook_test.go               # WAHA webhook flow
+    ├── scheduled_automation_test.go       # Automation worker
+    ├── scheduled_automation_webhook_test.go
+    ├── message_send_test.go
+    ├── fixtures.go                        # Test fixtures
+    └── README.md                          # E2E documentation
+
+Note: Unit tests (Layer 1) are located in internal/**/*_test.go
+```
+
+## 🎯 Test Layers
+
+### Layer 1: Unit Tests (70% - Base)
+**Location**: `internal/**/*_test.go`
+- **Count**: 61 test files
+- **Speed**: Fast (~2 minutes)
+- **Dependencies**: None (uses mocks)
+
+**Examples**:
+- `internal/domain/crm/contact/contact_test.go` - Domain logic
+- `internal/application/contact/create_contact_test.go` - Use cases
+- `infrastructure/crypto/aes_encryptor_test.go` - Utilities
+
+**Run**:
+```bash
+make test-unit
+```
+
+### Layer 2: Integration Tests (20% - Middle)
+**Location**: `tests/integration/`
+- **Count**: 2 test files ⚠️ NEEDS EXPANSION
+- **Speed**: Medium (~10 minutes)
+- **Dependencies**: PostgreSQL, RabbitMQ, Redis, Temporal (via testcontainers)
+
+**Current tests**:
+- Repository operations with real database
+- Message queue workflows
+- WebSocket connections
+
+**Run**:
+```bash
+make infra              # Start infrastructure first
+make test-integration
+```
+
+### Layer 3: E2E Tests (10% - Top)
+**Location**: `tests/e2e/`
+- **Count**: 5 test files
+- **Speed**: Slow (~10 minutes)
+- **Dependencies**: Full running system (API + Infrastructure)
+
+**Current tests**:
+- WAHA webhook processing (8 message types)
+- Scheduled automation workers
+- Complete user workflows
+
+**Run**:
+```bash
+make infra              # Terminal 1
+make api                # Terminal 2
+make test-e2e           # Terminal 3
 ```
 
 ## 🚀 Como Executar

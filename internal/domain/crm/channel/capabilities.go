@@ -1,7 +1,7 @@
 package channel
 
 import (
-	"github.com/caloi/ventros-crm/internal/domain/core/shared"
+	"github.com/ventros/crm/internal/domain/core/shared"
 )
 
 // ChannelCapabilities defines what features a channel type supports

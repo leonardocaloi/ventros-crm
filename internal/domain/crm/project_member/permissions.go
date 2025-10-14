@@ -5,25 +5,25 @@ type Permission string
 
 const (
 	// Session & Messages
-	PermissionViewSessions    Permission = "sessions.view"
-	PermissionManageSessions  Permission = "sessions.manage"
-	PermissionSendMessages    Permission = "messages.send"
-	PermissionViewMessages    Permission = "messages.view"
+	PermissionViewSessions   Permission = "sessions.view"
+	PermissionManageSessions Permission = "sessions.manage"
+	PermissionSendMessages   Permission = "messages.send"
+	PermissionViewMessages   Permission = "messages.view"
 
 	// Contacts
-	PermissionViewContacts    Permission = "contacts.view"
-	PermissionManageContacts  Permission = "contacts.manage"
-	PermissionExportContacts  Permission = "contacts.export"
+	PermissionViewContacts   Permission = "contacts.view"
+	PermissionManageContacts Permission = "contacts.manage"
+	PermissionExportContacts Permission = "contacts.export"
 
 	// Pipelines
 	PermissionViewPipelines   Permission = "pipelines.view"
 	PermissionManagePipelines Permission = "pipelines.manage"
 
 	// Campaigns & Sequences
-	PermissionViewCampaigns    Permission = "campaigns.view"
-	PermissionManageCampaigns  Permission = "campaigns.manage"
-	PermissionViewSequences    Permission = "sequences.view"
-	PermissionManageSequences  Permission = "sequences.manage"
+	PermissionViewCampaigns   Permission = "campaigns.view"
+	PermissionManageCampaigns Permission = "campaigns.manage"
+	PermissionViewSequences   Permission = "sequences.view"
+	PermissionManageSequences Permission = "sequences.manage"
 
 	// Analytics
 	PermissionViewAnalytics   Permission = "analytics.view"
@@ -181,29 +181,29 @@ func AllPermissions() []Permission {
 // PermissionDescription retorna descrição legível de uma permissão
 func PermissionDescription(p Permission) string {
 	descriptions := map[Permission]string{
-		PermissionViewSessions:     "View chat sessions",
-		PermissionManageSessions:   "Manage chat sessions (assign, close, transfer)",
-		PermissionSendMessages:     "Send messages to contacts",
-		PermissionViewMessages:     "View message history",
-		PermissionViewContacts:     "View contacts",
-		PermissionManageContacts:   "Create, edit, and delete contacts",
-		PermissionExportContacts:   "Export contact lists",
-		PermissionViewPipelines:    "View pipelines and deals",
-		PermissionManagePipelines:  "Create and manage pipelines",
-		PermissionViewCampaigns:    "View campaigns",
-		PermissionManageCampaigns:  "Create and manage campaigns",
-		PermissionViewSequences:    "View sequences",
-		PermissionManageSequences:  "Create and manage sequences",
-		PermissionViewAnalytics:    "View analytics and reports",
-		PermissionExportAnalytics:  "Export analytics data",
-		PermissionViewMembers:      "View project members",
-		PermissionManageMembers:    "Invite, remove, and manage member roles",
-		PermissionViewChannels:     "View communication channels",
-		PermissionManageChannels:   "Create and configure channels",
-		PermissionViewBilling:      "View billing information",
-		PermissionManageBilling:    "Manage billing and subscriptions",
-		PermissionViewSettings:     "View project settings",
-		PermissionManageSettings:   "Modify project settings",
+		PermissionViewSessions:    "View chat sessions",
+		PermissionManageSessions:  "Manage chat sessions (assign, close, transfer)",
+		PermissionSendMessages:    "Send messages to contacts",
+		PermissionViewMessages:    "View message history",
+		PermissionViewContacts:    "View contacts",
+		PermissionManageContacts:  "Create, edit, and delete contacts",
+		PermissionExportContacts:  "Export contact lists",
+		PermissionViewPipelines:   "View pipelines and deals",
+		PermissionManagePipelines: "Create and manage pipelines",
+		PermissionViewCampaigns:   "View campaigns",
+		PermissionManageCampaigns: "Create and manage campaigns",
+		PermissionViewSequences:   "View sequences",
+		PermissionManageSequences: "Create and manage sequences",
+		PermissionViewAnalytics:   "View analytics and reports",
+		PermissionExportAnalytics: "Export analytics data",
+		PermissionViewMembers:     "View project members",
+		PermissionManageMembers:   "Invite, remove, and manage member roles",
+		PermissionViewChannels:    "View communication channels",
+		PermissionManageChannels:  "Create and configure channels",
+		PermissionViewBilling:     "View billing information",
+		PermissionManageBilling:   "Manage billing and subscriptions",
+		PermissionViewSettings:    "View project settings",
+		PermissionManageSettings:  "Modify project settings",
 	}
 
 	if desc, exists := descriptions[p]; exists {

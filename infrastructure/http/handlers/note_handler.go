@@ -4,13 +4,13 @@ import (
 	"net/http"
 	"strconv"
 
-	apierrors "github.com/caloi/ventros-crm/infrastructure/http/errors"
-	"github.com/caloi/ventros-crm/infrastructure/http/middleware"
-	"github.com/caloi/ventros-crm/internal/application/queries"
-	"github.com/caloi/ventros-crm/internal/domain/core/shared"
-	"github.com/caloi/ventros-crm/internal/domain/crm/note"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	apierrors "github.com/ventros/crm/infrastructure/http/errors"
+	"github.com/ventros/crm/infrastructure/http/middleware"
+	"github.com/ventros/crm/internal/application/queries"
+	"github.com/ventros/crm/internal/domain/core/shared"
+	"github.com/ventros/crm/internal/domain/crm/note"
 	"go.uber.org/zap"
 )
 

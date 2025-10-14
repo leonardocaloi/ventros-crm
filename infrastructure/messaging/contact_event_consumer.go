@@ -6,13 +6,13 @@ import (
 	"fmt"
 	"time"
 
-	contacteventapp "github.com/caloi/ventros-crm/internal/application/contact_event"
-	"github.com/caloi/ventros-crm/internal/domain/crm/contact"
-	"github.com/caloi/ventros-crm/internal/domain/crm/contact_event"
-	"github.com/caloi/ventros-crm/internal/domain/crm/pipeline"
-	"github.com/caloi/ventros-crm/internal/domain/crm/session"
 	"github.com/google/uuid"
 	amqp "github.com/rabbitmq/amqp091-go"
+	contacteventapp "github.com/ventros/crm/internal/application/contact_event"
+	"github.com/ventros/crm/internal/domain/crm/contact"
+	"github.com/ventros/crm/internal/domain/crm/contact_event"
+	"github.com/ventros/crm/internal/domain/crm/pipeline"
+	"github.com/ventros/crm/internal/domain/crm/session"
 	"go.uber.org/zap"
 )
 

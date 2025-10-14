@@ -1,0 +1,282 @@
+---
+# Ventros CRM Helm Values
+# Generated from Ansible template
+
+# Application Image
+image:
+  repository: {{ image.repository }}
+  tag: {{ image.tag }}
+  pullPolicy: {{ image.pullPolicy }}
+
+# Replicas
+replicaCount: {{ replicas }}
+
+# Resources
+resources:
+  requests:
+    cpu: {{ resources.requests.cpu }}
+    memory: {{ resources.requests.memory }}
+  limits:
+    cpu: {{ resources.limits.cpu }}
+    memory: {{ resources.limits.memory }}
+
+# Autoscaling
+autoscaling:
+  enabled: {{ autoscaling.enabled }}
+  minReplicas: {{ autoscaling.minReplicas }}
+  maxReplicas: {{ autoscaling.maxReplicas }}
+  targetCPUUtilizationPercentage: {{ autoscaling.targetCPU }}
+
+# Ingress - Otimizado para alta carga
+ingress:
+  enabled: {{ ingress.enabled }}
+  className: {{ ingress.className }}
+  annotations:
+    cert-manager.io/cluster-issuer: {{ ingress.annotations.certIssuer }}
+    # Body size sem limite para uploads
+    nginx.ingress.kubernetes.io/proxy-body-size: "{{ ingress.annotations.proxy_body_size }}"
+    # Buffers otimizados para muitas mensagens
+    nginx.ingress.kubernetes.io/proxy-buffer-size: "{{ ingress.annotations.proxy_buffer_size }}"
+    nginx.ingress.kubernetes.io/proxy-buffers-number: "{{ ingress.annotations.proxy_buffers_number }}"
+    nginx.ingress.kubernetes.io/proxy-busy-buffers-size: "{{ ingress.annotations.proxy_busy_buffers_size }}"
+    # Timeouts para requisições longas
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "{{ ingress.annotations.proxy_connect_timeout }}"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "{{ ingress.annotations.proxy_send_timeout }}"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "{{ ingress.annotations.proxy_read_timeout }}"
+    # Desabilitar buffering para streaming
+    nginx.ingress.kubernetes.io/proxy-request-buffering: "{{ ingress.annotations.proxy_request_buffering }}"
+    nginx.ingress.kubernetes.io/proxy-buffering: "{{ ingress.annotations.proxy_buffering }}"
+    # Rate limiting
+    nginx.ingress.kubernetes.io/limit-rps: "{{ ingress.annotations.limit_rps }}"
+    nginx.ingress.kubernetes.io/limit-connections: "{{ ingress.annotations.limit_connections }}"
+  hosts:
+    - host: {{ ingress.host }}
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: {{ ingress.tls.secretName }}
+      hosts:
+        - {{ ingress.host }}
+
+# PostgreSQL - Zalando operator
+postgresOperator:
+  enabled: {{ postgresql.enabled }}
+  installOperator: {{ postgresql.installOperator | lower }}
+  cluster:
+    teamId: {{ postgresql.teamId }}
+    numberOfInstances: {{ postgresql.instances }}
+    volumeSize: {{ postgresql.storage.size }}
+    version: "{{ postgresql.version }}"
+    database: ventros_crm
+    username: {{ postgresql.teamId }}
+    resources:
+      requests:
+        cpu: {{ postgresql.resources.requests.cpu }}
+        memory: {{ postgresql.resources.requests.memory }}
+      limits:
+        cpu: {{ postgresql.resources.limits.cpu }}
+        memory: {{ postgresql.resources.limits.memory }}
+
+# RabbitMQ - Use existing operator
+rabbitmq:
+  installOperator: {{ rabbitmq.installOperator | lower }}
+  enabled: {{ rabbitmq.enabled }}
+  replicaCount: {{ rabbitmq.replicas }}
+  persistence:
+    size: {{ rabbitmq.storage.size }}
+    storageClassName: {{ rabbitmq.storage.storageClass }}
+  resources:
+    requests:
+      cpu: {{ rabbitmq.resources.requests.cpu }}
+      memory: {{ rabbitmq.resources.requests.memory }}
+    limits:
+      cpu: {{ rabbitmq.resources.limits.cpu }}
+      memory: {{ rabbitmq.resources.limits.memory }}
+  ingress:
+    enabled: {{ rabbitmq.ingress.enabled }}
+    className: "nginx"
+    annotations:
+      cert-manager.io/cluster-issuer: "{{ rabbitmq.ingress.certIssuer }}"
+    host: "{{ rabbitmq.ingress.host }}"
+    tls:
+      enabled: {{ rabbitmq.ingress.tls.enabled }}
+      secretName: "{{ rabbitmq.ingress.tls.secretName }}"
+
+# Redis
+redis:
+  enabled: {{ redis.enabled }}
+  architecture: {{ redis.architecture }}
+  auth:
+    enabled: {{ redis.auth.enabled | lower }}
+{% if redis.auth.enabled %}
+    password: {{ redis.auth.password }}
+{% endif %}
+  master:
+    persistence:
+      enabled: true
+      size: {{ redis.storage.size }}
+      storageClass: {{ redis.storage.storageClass }}
+    resources:
+      requests:
+        cpu: {{ redis.resources.requests.cpu }}
+        memory: {{ redis.resources.requests.memory }}
+      limits:
+        cpu: {{ redis.resources.limits.cpu }}
+        memory: {{ redis.resources.limits.memory }}
+
+# Temporal
+temporal:
+  enabled: {{ temporal.enabled }}
+  
+  # Use existing PostgreSQL for Temporal databases
+  postgresql:
+    enabled: {{ temporal.postgresql.enabled | lower }}
+  
+  server:
+    replicaCount: {{ temporal.server.replicaCount }}
+    
+    config:
+      persistence:
+        default:
+          driver: "sql"
+          sql:
+            driver: "postgres12"
+            host: ventros-crm-postgres
+            port: 5432
+            database: temporal
+            user: {{ postgresql.teamId }}
+            existingSecret: {{ postgresql.teamId }}.ventros-crm-postgres.credentials.postgresql.acid.zalan.do
+            secretName: {{ postgresql.teamId }}.ventros-crm-postgres.credentials.postgresql.acid.zalan.do
+            secretKey: password
+            maxConns: 20
+            maxIdleConns: 20
+            maxConnLifetime: 1h
+        
+        visibility:
+          driver: "sql"
+          sql:
+            driver: "postgres12"
+            host: ventros-crm-postgres
+            port: 5432
+            database: temporal_visibility
+            user: {{ postgresql.teamId }}
+            existingSecret: {{ postgresql.teamId }}.ventros-crm-postgres.credentials.postgresql.acid.zalan.do
+            secretName: {{ postgresql.teamId }}.ventros-crm-postgres.credentials.postgresql.acid.zalan.do
+            secretKey: password
+            maxConns: 20
+            maxIdleConns: 20
+            maxConnLifetime: 1h
+  
+  frontend:
+    replicaCount: {{ temporal.frontend.replicaCount }}
+    resources:
+      requests:
+        cpu: {{ temporal.frontend.resources.requests.cpu }}
+        memory: {{ temporal.frontend.resources.requests.memory }}
+      limits:
+        cpu: {{ temporal.frontend.resources.limits.cpu }}
+        memory: {{ temporal.frontend.resources.limits.memory }}
+  
+  history:
+    replicaCount: {{ temporal.history.replicaCount }}
+    resources:
+      requests:
+        cpu: {{ temporal.history.resources.requests.cpu }}
+        memory: {{ temporal.history.resources.requests.memory }}
+      limits:
+        cpu: {{ temporal.history.resources.limits.cpu }}
+        memory: {{ temporal.history.resources.limits.memory }}
+  
+  matching:
+    replicaCount: {{ temporal.matching.replicaCount }}
+    resources:
+      requests:
+        cpu: {{ temporal.matching.resources.requests.cpu }}
+        memory: {{ temporal.matching.resources.requests.memory }}
+      limits:
+        cpu: {{ temporal.matching.resources.limits.cpu }}
+        memory: {{ temporal.matching.resources.limits.memory }}
+  
+  worker:
+    replicaCount: {{ temporal.worker.replicaCount }}
+    resources:
+      requests:
+        cpu: {{ temporal.worker.resources.requests.cpu }}
+        memory: {{ temporal.worker.resources.requests.memory }}
+      limits:
+        cpu: {{ temporal.worker.resources.limits.cpu }}
+        memory: {{ temporal.worker.resources.limits.memory }}
+  
+  web:
+    enabled: {{ temporal.web.enabled }}
+    replicaCount: {{ temporal.web.replicaCount }}
+    resources:
+      requests:
+        cpu: {{ temporal.web.resources.requests.cpu }}
+        memory: {{ temporal.web.resources.requests.memory }}
+      limits:
+        cpu: {{ temporal.web.resources.limits.cpu }}
+        memory: {{ temporal.web.resources.limits.memory }}
+    ingress:
+      enabled: {{ temporal.web.ingress.enabled }}
+      className: "nginx"
+      annotations:
+        cert-manager.io/cluster-issuer: "{{ temporal.web.ingress.certIssuer }}"
+      hosts:
+        - "{{ temporal.web.ingress.host }}"
+      tls:
+        - secretName: "{{ temporal.web.ingress.tls.secretName }}"
+          hosts:
+            - "{{ temporal.web.ingress.host }}"
+
+# Environment Variables
+env:
+  LOG_LEVEL: {{ env.LOG_LEVEL }}
+  GIN_MODE: {{ env.GIN_MODE }}
+  ENVIRONMENT: {{ env.ENVIRONMENT }}
+
+# Secrets
+secrets:
+  jwtSecret: {{ secrets.jwtSecret }}
+  apiKeySecret: {{ secrets.apiKeySecret }}
+
+# Service Account
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+# Pod Security Context
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  fsGroup: 1000
+
+# Security Context
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: false
+
+{% if nodeAffinity.enabled %}
+# Node Affinity
+affinity:
+  nodeAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        preference:
+          matchExpressions:
+            - key: node-type
+              operator: In
+              values:
+                - {{ nodeAffinity.nodeType }}
+{% endif %}
+
+# Tolerations
+tolerations: []
+
+# Node Selector
+nodeSelector: {}

@@ -652,6 +652,10 @@ func (r *RabbitMQConnection) SetupAllQueues() error {
 
 		// Note events
 		"domain.events.note.added",
+
+		// Channel events (Event-Driven + Strategy Pattern)
+		"domain.events.channel.activation.requested",
+		"domain.events.channel.history_import.requested",
 	}
 
 	for _, queue := range domainEventQueues {

@@ -3,9 +3,9 @@ package messaging
 import (
 	"context"
 
-	"github.com/caloi/ventros-crm/internal/domain/core/shared"
-	domaincontact "github.com/caloi/ventros-crm/internal/domain/crm/contact"
-	domainsession "github.com/caloi/ventros-crm/internal/domain/crm/session"
+	"github.com/ventros/crm/internal/domain/core/shared"
+	domaincontact "github.com/ventros/crm/internal/domain/crm/contact"
+	domainsession "github.com/ventros/crm/internal/domain/crm/session"
 )
 
 // ContactEventBusAdapter adapta DomainEventBus para contact.EventBus

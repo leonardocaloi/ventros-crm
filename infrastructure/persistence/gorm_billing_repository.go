@@ -4,9 +4,9 @@ import (
 	"context"
 	"errors"
 
-	"github.com/caloi/ventros-crm/infrastructure/persistence/entities"
-	"github.com/caloi/ventros-crm/internal/domain/core/shared"
 	"github.com/google/uuid"
+	"github.com/ventros/crm/infrastructure/persistence/entities"
+	"github.com/ventros/crm/internal/domain/core/shared"
 	"gorm.io/gorm"
 )
 
@@ -72,17 +72,17 @@ func (r *GormBillingRepository) Update(ctx context.Context, account *entities.Bi
 	result := r.db.WithContext(ctx).Model(&entities.BillingAccountEntity{}).
 		Where("id = ? AND version = ?", account.ID, existing.Version).
 		Updates(map[string]interface{}{
-			"version":           existing.Version + 1, // Increment version
-			"user_id":           account.UserID,
-			"name":              account.Name,
+			"version":            existing.Version + 1, // Increment version
+			"user_id":            account.UserID,
+			"name":               account.Name,
 			"stripe_customer_id": account.StripeCustomerID,
-			"payment_status":    account.PaymentStatus,
-			"payment_methods":   account.PaymentMethods,
-			"billing_email":     account.BillingEmail,
-			"suspended":         account.Suspended,
-			"suspended_at":      account.SuspendedAt,
-			"suspension_reason": account.SuspensionReason,
-			"updated_at":        account.UpdatedAt,
+			"payment_status":     account.PaymentStatus,
+			"payment_methods":    account.PaymentMethods,
+			"billing_email":      account.BillingEmail,
+			"suspended":          account.Suspended,
+			"suspended_at":       account.SuspendedAt,
+			"suspension_reason":  account.SuspensionReason,
+			"updated_at":         account.UpdatedAt,
 		})
 
 	if result.Error != nil {

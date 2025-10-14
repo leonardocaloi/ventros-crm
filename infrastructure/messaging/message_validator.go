@@ -6,7 +6,7 @@ import (
 	"regexp"
 	"strings"
 
-	messageports "github.com/caloi/ventros-crm/internal/application/message"
+	messageports "github.com/ventros/crm/internal/application/message"
 )
 
 // MessageValidator implementa validação de mensagens

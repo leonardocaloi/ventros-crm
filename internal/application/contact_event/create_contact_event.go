@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/caloi/ventros-crm/internal/domain/crm/contact_event"
 	"github.com/google/uuid"
+	"github.com/ventros/crm/internal/domain/crm/contact_event"
 )
 
 // CreateContactEventCommand representa o comando para criar um evento de contato

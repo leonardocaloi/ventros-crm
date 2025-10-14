@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/caloi/ventros-crm/infrastructure/resilience"
 	"github.com/sony/gobreaker"
+	"github.com/ventros/crm/infrastructure/resilience"
 	"go.uber.org/zap"
 )
 

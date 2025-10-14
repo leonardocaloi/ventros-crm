@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"sync"
 
-	messageports "github.com/caloi/ventros-crm/internal/application/message"
 	"github.com/google/uuid"
+	messageports "github.com/ventros/crm/internal/application/message"
 )
 
 // MessageSenderFactory implementa a factory para criação de message senders

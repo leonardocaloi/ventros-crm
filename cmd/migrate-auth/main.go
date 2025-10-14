@@ -5,8 +5,8 @@ import (
 	"log"
 	"os"
 
-	"github.com/caloi/ventros-crm/infrastructure/persistence/entities"
 	"github.com/google/uuid"
+	"github.com/ventros/crm/infrastructure/persistence/entities"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"

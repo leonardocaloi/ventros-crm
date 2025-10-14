@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/caloi/ventros-crm/internal/domain/crm/note"
-	"github.com/caloi/ventros-crm/internal/domain/crm/pipeline"
 	"github.com/google/uuid"
+	"github.com/ventros/crm/internal/domain/crm/note"
+	"github.com/ventros/crm/internal/domain/crm/pipeline"
 )
 
 // CreateNoteExecutor implements the create note action.

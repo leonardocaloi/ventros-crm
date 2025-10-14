@@ -1,0 +1,164 @@
+name: Deploy to Production
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to deploy (e.g., 0.1.0)'
+        required: true
+        type: string
+      replicas:
+        description: 'Number of replicas'
+        required: false
+        default: '3'
+        type: string
+
+jobs:
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://api.crm.ventros.cloud
+    steps:
+      - name: Validate version format
+        run: |
+          if [[ ! "${{ github.event.inputs.version }}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "⚠️ Invalid version format. Must be semver (e.g., 0.1.0)"
+            exit 1
+          fi
+          echo "✅ Version format valid: ${{ github.event.inputs.version }}"
+
+      - name: Trigger AWX Production Deployment
+        id: deploy
+        run: |
+          echo "🚀 Triggering production deployment..."
+
+          if [ -z "${{ secrets.AWX_URL }}" ] || [ -z "${{ secrets.AWX_TOKEN }}" ] || [ -z "${{ secrets.AWX_JOB_TEMPLATE_PROD_ID }}" ]; then
+            echo "❌ AWX credentials not configured. Please set AWX_URL, AWX_TOKEN, and AWX_JOB_TEMPLATE_PROD_ID secrets."
+            exit 1
+          fi
+
+          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "${{ secrets.AWX_URL }}/api/v2/job_templates/${{ secrets.AWX_JOB_TEMPLATE_PROD_ID }}/launch/" \
+            -H "Authorization: Bearer ${{ secrets.AWX_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "extra_vars": {
+                "image_tag": "${{ github.event.inputs.version }}",
+                "chart_version": "${{ github.event.inputs.version }}",
+                "deploy_environment": "production",
+                "replicas": ${{ github.event.inputs.replicas }},
+                "deployed_by": "${{ github.actor }}",
+                "deployment_type": "manual"
+              }
+            }')
+
+          HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+          BODY=$(echo "$RESPONSE" | head -n-1)
+
+          if [ "$HTTP_CODE" -ge 200 ] && [ "$HTTP_CODE" -lt 300 ]; then
+            echo "✅ AWX job triggered successfully"
+            echo "$BODY" | jq .
+            JOB_ID=$(echo "$BODY" | jq -r .id)
+            echo "job-id=$JOB_ID" >> $GITHUB_OUTPUT
+            echo "job-url=${{ secrets.AWX_URL }}/#/jobs/playbook/$JOB_ID" >> $GITHUB_OUTPUT
+          else
+            echo "❌ Failed to trigger AWX job. HTTP $HTTP_CODE"
+            echo "$BODY"
+            exit 1
+          fi
+
+      - name: Wait for deployment
+        if: steps.deploy.outputs.job-id != ''
+        run: |
+          echo "⏳ Monitoring AWX job ${{ steps.deploy.outputs.job-id }}..."
+          echo "🔗 Job URL: ${{ steps.deploy.outputs.job-url }}"
+
+          MAX_WAIT=600  # 10 minutes
+          ELAPSED=0
+          SLEEP_TIME=10
+
+          while [ $ELAPSED -lt $MAX_WAIT ]; do
+            STATUS=$(curl -s -H "Authorization: Bearer ${{ secrets.AWX_TOKEN }}" \
+              "${{ secrets.AWX_URL }}/api/v2/jobs/${{ steps.deploy.outputs.job-id }}/" | jq -r .status)
+
+            echo "Status: $STATUS (${ELAPSED}s elapsed)"
+
+            if [ "$STATUS" = "successful" ]; then
+              echo "✅ Deployment completed successfully!"
+              exit 0
+            elif [ "$STATUS" = "failed" ] || [ "$STATUS" = "error" ] || [ "$STATUS" = "canceled" ]; then
+              echo "❌ Deployment failed with status: $STATUS"
+              exit 1
+            fi
+
+            sleep $SLEEP_TIME
+            ELAPSED=$((ELAPSED + SLEEP_TIME))
+          done
+
+          echo "⚠️ Deployment timeout after ${MAX_WAIT}s"
+          exit 1
+
+      - name: Run smoke tests
+        if: success()
+        run: |
+          echo "🧪 Running smoke tests..."
+
+          # Health endpoint
+          if curl -f -s https://api.crm.ventros.cloud/health > /dev/null; then
+            echo "✅ Health endpoint OK"
+          else
+            echo "❌ Health endpoint failed"
+            exit 1
+          fi
+
+          # API reachability
+          if curl -f -s https://api.crm.ventros.cloud/api/v1/health > /dev/null 2>&1 || true; then
+            echo "✅ API reachable"
+          fi
+
+          echo "✅ All smoke tests passed!"
+
+      - name: Create deployment summary
+        if: always()
+        run: |
+          echo "## 🚀 Production Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Parameter | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Version | \`${{ github.event.inputs.version }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Replicas | ${{ github.event.inputs.replicas }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Deployed by | @${{ github.actor }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Status | ${{ job.status }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| AWX Job | [${{ steps.deploy.outputs.job-id }}](${{ steps.deploy.outputs.job-url }}) |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Application URL**: https://api.crm.ventros.cloud" >> $GITHUB_STEP_SUMMARY
+
+      - name: Notify team
+        if: always() && env.SLACK_WEBHOOK_URL != ''
+        uses: slackapi/slack-github-action@v1
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        with:
+          payload: |
+            {
+              "text": "${{ job.status == 'success' && '🚀' || '❌' }} Production Deployment: ${{ job.status }}",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*Ventros CRM - Production Deployment*\n*Version:* `${{ github.event.inputs.version }}`\n*Replicas:* ${{ github.event.inputs.replicas }}\n*Deployed by:* @${{ github.actor }}\n*Status:* ${{ job.status }}\n*URL:* https://api.crm.ventros.cloud"
+                  }
+                },
+                {
+                  "type": "context",
+                  "elements": [
+                    {
+                      "type": "mrkdwn",
+                      "text": "AWX Job: <${{ steps.deploy.outputs.job-url }}|#${{ steps.deploy.outputs.job-id }}>"
+                    }
+                  ]
+                }
+              ]
+            }

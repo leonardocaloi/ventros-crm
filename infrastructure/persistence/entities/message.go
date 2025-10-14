@@ -33,10 +33,12 @@ type MessageEntity struct {
 	Status      string                 `gorm:"default:'sent';index:idx_messages_status"`
 	Language    *string                `gorm:""`
 	AgentID     *uuid.UUID             `gorm:"type:uuid;index:idx_messages_agent"`
+	Source      string                 `gorm:"type:varchar(20);default:'manual';not null;index:idx_messages_source;index:idx_messages_agent_source"` // Origem: manual, broadcast, sequence, etc
 	Metadata    map[string]interface{} `gorm:"type:jsonb;index:idx_messages_metadata,type:gin"`
 	Mentions    pq.StringArray         `gorm:"type:text[]"` // IDs externos mencionados (formato WAHA: "phone@c.us")
 	DeliveredAt *time.Time             `gorm:"index:idx_messages_delivered_at"`
 	ReadAt      *time.Time             `gorm:"index:idx_messages_read_at"`
+	PlayedAt    *time.Time             `gorm:"index:idx_messages_played_at"` // Timestamp quando mídia foi reproduzida/visualizada
 
 	CreatedAt time.Time      `gorm:"autoCreateTime;index:idx_messages_created"`
 	UpdatedAt time.Time      `gorm:"autoUpdateTime;index:idx_messages_updated"`

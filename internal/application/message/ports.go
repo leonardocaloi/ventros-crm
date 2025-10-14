@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	domainMessage "github.com/ventros/crm/internal/domain/crm/message"
 )
 
 // MessageType define os tipos de mensagem suportados
@@ -37,7 +38,8 @@ type OutboundMessage struct {
 	ChannelID    uuid.UUID              `json:"channel_id"`
 	ContactID    uuid.UUID              `json:"contact_id"`
 	SessionID    *uuid.UUID             `json:"session_id,omitempty"`
-	AgentID      *uuid.UUID             `json:"agent_id,omitempty"`
+	AgentID      uuid.UUID              `json:"agent_id"` // OBRIGATÓRIO: ID do agente (humano ou sistema)
+	Source       domainMessage.Source   `json:"source"`   // OBRIGATÓRIO: Origem da mensagem (manual, broadcast, etc)
 	Type         MessageType            `json:"type"`
 	Content      string                 `json:"content"`
 	MediaURL     *string                `json:"media_url,omitempty"`

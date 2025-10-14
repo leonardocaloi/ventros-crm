@@ -249,8 +249,8 @@ make container-down
 ```bash
 make test
 # Running tests...
-# ok  	github.com/caloi/ventros-crm/internal/domain/contact	0.123s
-# ok  	github.com/caloi/ventros-crm/internal/domain/message	0.089s
+# ok  	github.com/ventros/crm/internal/domain/contact	0.123s
+# ok  	github.com/ventros/crm/internal/domain/message	0.089s
 ```
 
 ---
@@ -546,5 +546,5 @@ When adding new make targets:
 
 ---
 
-**Last Updated**: 2025-10-11
+**Last Updated**: 2025-10-12
 **Version**: 2.0 (Simplified)

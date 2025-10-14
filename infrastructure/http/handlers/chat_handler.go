@@ -3,11 +3,11 @@ package handlers
 import (
 	"net/http"
 
-	apierrors "github.com/caloi/ventros-crm/infrastructure/http/errors"
-	"github.com/caloi/ventros-crm/infrastructure/http/middleware"
-	chatapp "github.com/caloi/ventros-crm/internal/application/chat"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	apierrors "github.com/ventros/crm/infrastructure/http/errors"
+	"github.com/ventros/crm/infrastructure/http/middleware"
+	chatapp "github.com/ventros/crm/internal/application/chat"
 	"go.uber.org/zap"
 )
 

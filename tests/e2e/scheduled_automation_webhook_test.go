@@ -118,7 +118,7 @@ func (s *ScheduledAutomationWebhookTestSuite) TearDownSuite() {
 
 	// Deleta canal se existir
 	if s.channelID != "" && s.apiKey != "" {
-		endpoint := fmt.Sprintf("/api/v1/channels/%s", s.channelID)
+		endpoint := fmt.Sprintf("/api/v1/crm/channels/%s", s.channelID)
 		s.makeRequest("DELETE", endpoint, nil, s.apiKey)
 		fmt.Printf("  ✓ Deleted channel: %s\n", s.channelID)
 	}
@@ -217,7 +217,7 @@ func (s *ScheduledAutomationWebhookTestSuite) createWAHAChannel() {
 		},
 	}
 
-	endpoint := fmt.Sprintf("/api/v1/channels?project_id=%s", s.projectID)
+	endpoint := fmt.Sprintf("/api/v1/crm/channels?project_id=%s", s.projectID)
 	resp, body := s.makeRequest("POST", endpoint, payload, s.apiKey)
 	assert.Equal(s.T(), http.StatusCreated, resp.StatusCode, "Failed to create channel")
 

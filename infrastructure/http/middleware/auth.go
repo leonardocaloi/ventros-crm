@@ -4,9 +4,9 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/caloi/ventros-crm/internal/application/user"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/ventros/crm/internal/application/user"
 	"go.uber.org/zap"
 )
 

@@ -6,9 +6,9 @@ import (
 	"os"
 	"time"
 
-	"github.com/caloi/ventros-crm/infrastructure/channels/waha"
-	"github.com/caloi/ventros-crm/internal/domain/crm/channel"
 	"github.com/google/uuid"
+	"github.com/ventros/crm/infrastructure/channels/waha"
+	"github.com/ventros/crm/internal/domain/crm/channel"
 	"go.uber.org/zap"
 )
 
@@ -89,6 +89,14 @@ type ChannelResponse struct {
 	LastMessageAt    *string `json:"last_message_at,omitempty"`
 	LastErrorAt      *string `json:"last_error_at,omitempty"`
 	LastError        string  `json:"last_error,omitempty"`
+
+	// History Import
+	HistoryImportEnabled         bool                   `json:"history_import_enabled"`
+	HistoryImportMaxDays         *int                   `json:"history_import_max_days,omitempty"`
+	HistoryImportMaxMessagesChat *int                   `json:"history_import_max_messages_chat,omitempty"`
+	LastImportDate               *string                `json:"last_import_date,omitempty"`
+	HistoryImportStatus          string                 `json:"history_import_status,omitempty"`
+	HistoryImportStats           map[string]interface{} `json:"history_import_stats,omitempty"`
 
 	CreatedAt string `json:"created_at"`
 	UpdatedAt string `json:"updated_at"`
@@ -348,6 +356,29 @@ func (s *ChannelService) toResponse(ch *channel.Channel) *ChannelResponse {
 	if ch.LastErrorAt != nil {
 		lastErr := ch.LastErrorAt.Format("2006-01-02T15:04:05Z07:00")
 		response.LastErrorAt = &lastErr
+	}
+
+	// History Import
+	response.HistoryImportEnabled = ch.HistoryImportEnabled
+	response.HistoryImportMaxDays = ch.HistoryImportMaxDays
+	response.HistoryImportMaxMessagesChat = ch.HistoryImportMaxMessagesChat
+	response.HistoryImportStatus = string(ch.HistoryImportStatus)
+
+	if ch.LastImportDate != nil {
+		lastImport := ch.LastImportDate.Format("2006-01-02T15:04:05Z07:00")
+		response.LastImportDate = &lastImport
+	}
+
+	if ch.HistoryImportStats != nil {
+		response.HistoryImportStats = map[string]interface{}{
+			"total":      ch.HistoryImportStats.Total,
+			"processed":  ch.HistoryImportStats.Processed,
+			"failed":     ch.HistoryImportStats.Failed,
+			"started_at": ch.HistoryImportStats.StartedAt,
+		}
+		if ch.HistoryImportStats.EndedAt != nil {
+			response.HistoryImportStats["ended_at"] = ch.HistoryImportStats.EndedAt
+		}
 	}
 
 	return response

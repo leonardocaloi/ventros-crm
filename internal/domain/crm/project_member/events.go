@@ -3,8 +3,8 @@ package project_member
 import (
 	"time"
 
-	"github.com/caloi/ventros-crm/internal/domain/core/shared"
 	"github.com/google/uuid"
+	"github.com/ventros/crm/internal/domain/core/shared"
 )
 
 // ProjectMemberInvitedEvent é disparado quando um novo membro é convidado

@@ -3,8 +3,8 @@ package webhook
 import (
 	"time"
 
-	"github.com/caloi/ventros-crm/internal/domain/crm/webhook"
 	"github.com/google/uuid"
+	"github.com/ventros/crm/internal/domain/crm/webhook"
 )
 
 // CreateWebhookDTO representa os dados para criar um webhook

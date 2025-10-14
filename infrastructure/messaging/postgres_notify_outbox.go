@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/caloi/ventros-crm/internal/domain/core/outbox"
+	"github.com/google/uuid"
 	"github.com/lib/pq"
+	"github.com/ventros/crm/internal/domain/core/outbox"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
@@ -116,22 +117,38 @@ func (p *PostgresNotifyOutboxProcessor) listenForNotifications(ctx context.Conte
 }
 
 // processNotification processa um evento notificado
-func (p *PostgresNotifyOutboxProcessor) processNotification(ctx context.Context, eventID string) {
-	// Buscar evento específico (query rápida com WHERE id = ?)
-	var event *outbox.OutboxEvent
-	if err := p.db.WithContext(ctx).
-		Where("id = ? AND status = ?", eventID, outbox.StatusPending).
-		First(&event).Error; err != nil {
-		p.logger.Error("Failed to fetch notified event",
-			zap.String("event_id", eventID),
+func (p *PostgresNotifyOutboxProcessor) processNotification(ctx context.Context, eventIDStr string) {
+	// Parse UUID from string
+	eventID, err := uuid.Parse(eventIDStr)
+	if err != nil {
+		p.logger.Error("Invalid event ID format",
+			zap.String("event_id_str", eventIDStr),
 			zap.Error(err))
+		return
+	}
+
+	// Use outboxRepo to fetch the event - this handles entity conversion correctly
+	event, err := p.outboxRepo.GetByID(ctx, eventID)
+	if err != nil {
+		// Event might have been already processed by startup scan
+		p.logger.Debug("Event not found or already processed",
+			zap.String("event_id", eventIDStr),
+			zap.Error(err))
+		return
+	}
+
+	// Only process if still pending
+	if event.Status != outbox.StatusPending {
+		p.logger.Debug("Event is not pending, skipping",
+			zap.String("event_id", eventIDStr),
+			zap.String("status", string(event.Status)))
 		return
 	}
 
 	// Processar evento
 	if err := p.processEvent(ctx, event); err != nil {
 		p.logger.Error("Failed to process event",
-			zap.String("event_id", eventID),
+			zap.String("event_id", eventIDStr),
 			zap.Error(err))
 	}
 }

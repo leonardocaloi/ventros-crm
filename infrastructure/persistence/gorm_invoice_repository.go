@@ -5,9 +5,9 @@ import (
 	"errors"
 	"time"
 
-	"github.com/caloi/ventros-crm/infrastructure/persistence/entities"
-	"github.com/caloi/ventros-crm/internal/domain/core/shared"
 	"github.com/google/uuid"
+	"github.com/ventros/crm/infrastructure/persistence/entities"
+	"github.com/ventros/crm/internal/domain/core/shared"
 	"gorm.io/gorm"
 )
 
@@ -110,22 +110,22 @@ func (r *GormInvoiceRepository) Update(ctx context.Context, invoice *entities.In
 	result := r.db.WithContext(ctx).Model(&entities.InvoiceEntity{}).
 		Where("id = ? AND version = ?", invoice.ID, existing.Version).
 		Updates(map[string]interface{}{
-			"version":                 existing.Version + 1, // Increment version
-			"billing_account_id":      invoice.BillingAccountID,
-			"stripe_invoice_id":       invoice.StripeInvoiceID,
-			"subscription_id":         invoice.SubscriptionID,
-			"stripe_subscription_id":  invoice.StripeSubscriptionID,
-			"amount_due":              invoice.AmountDue,
-			"amount_paid":             invoice.AmountPaid,
-			"amount_remaining":        invoice.AmountRemaining,
-			"currency":                invoice.Currency,
-			"status":                  invoice.Status,
-			"hosted_invoice_url":      invoice.HostedInvoiceURL,
-			"invoice_pdf":             invoice.InvoicePDF,
-			"due_date":                invoice.DueDate,
-			"paid_at":                 invoice.PaidAt,
-			"metadata":                invoice.Metadata,
-			"updated_at":              invoice.UpdatedAt,
+			"version":                existing.Version + 1, // Increment version
+			"billing_account_id":     invoice.BillingAccountID,
+			"stripe_invoice_id":      invoice.StripeInvoiceID,
+			"subscription_id":        invoice.SubscriptionID,
+			"stripe_subscription_id": invoice.StripeSubscriptionID,
+			"amount_due":             invoice.AmountDue,
+			"amount_paid":            invoice.AmountPaid,
+			"amount_remaining":       invoice.AmountRemaining,
+			"currency":               invoice.Currency,
+			"status":                 invoice.Status,
+			"hosted_invoice_url":     invoice.HostedInvoiceURL,
+			"invoice_pdf":            invoice.InvoicePDF,
+			"due_date":               invoice.DueDate,
+			"paid_at":                invoice.PaidAt,
+			"metadata":               invoice.Metadata,
+			"updated_at":             invoice.UpdatedAt,
 		})
 
 	if result.Error != nil {

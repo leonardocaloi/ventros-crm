@@ -4,9 +4,9 @@ import (
 	"context"
 	"errors"
 
-	"github.com/caloi/ventros-crm/infrastructure/persistence/entities"
-	"github.com/caloi/ventros-crm/internal/domain/core/shared"
 	"github.com/google/uuid"
+	"github.com/ventros/crm/infrastructure/persistence/entities"
+	"github.com/ventros/crm/internal/domain/core/shared"
 	"gorm.io/gorm"
 )
 
@@ -94,20 +94,20 @@ func (r *GormSubscriptionRepository) Update(ctx context.Context, subscription *e
 	result := r.db.WithContext(ctx).Model(&entities.SubscriptionEntity{}).
 		Where("id = ? AND version = ?", subscription.ID, existing.Version).
 		Updates(map[string]interface{}{
-			"version":                 existing.Version + 1, // Increment version
-			"billing_account_id":      subscription.BillingAccountID,
-			"stripe_subscription_id":  subscription.StripeSubscriptionID,
-			"stripe_price_id":         subscription.StripePriceID,
-			"status":                  subscription.Status,
-			"current_period_start":    subscription.CurrentPeriodStart,
-			"current_period_end":      subscription.CurrentPeriodEnd,
-			"trial_start":             subscription.TrialStart,
-			"trial_end":               subscription.TrialEnd,
-			"cancel_at":               subscription.CancelAt,
-			"canceled_at":             subscription.CanceledAt,
-			"cancel_at_period_end":    subscription.CancelAtPeriodEnd,
-			"metadata":                subscription.Metadata,
-			"updated_at":              subscription.UpdatedAt,
+			"version":                existing.Version + 1, // Increment version
+			"billing_account_id":     subscription.BillingAccountID,
+			"stripe_subscription_id": subscription.StripeSubscriptionID,
+			"stripe_price_id":        subscription.StripePriceID,
+			"status":                 subscription.Status,
+			"current_period_start":   subscription.CurrentPeriodStart,
+			"current_period_end":     subscription.CurrentPeriodEnd,
+			"trial_start":            subscription.TrialStart,
+			"trial_end":              subscription.TrialEnd,
+			"cancel_at":              subscription.CancelAt,
+			"canceled_at":            subscription.CanceledAt,
+			"cancel_at_period_end":   subscription.CancelAtPeriodEnd,
+			"metadata":               subscription.Metadata,
+			"updated_at":             subscription.UpdatedAt,
 		})
 
 	if result.Error != nil {

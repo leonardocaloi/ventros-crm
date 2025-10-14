@@ -1956,7 +1956,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/github_com_caloi_ventros-crm_infrastructure_http_dto.ConditionOperatorResponse"
+                                "$ref": "#/definitions/github_com_ventros_crm_infrastructure_http_dto.ConditionOperatorResponse"
                             }
                         }
                     }
@@ -1977,7 +1977,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_caloi_ventros-crm_infrastructure_http_dto.AutomationDiscoveryResponse"
+                            "$ref": "#/definitions/github_com_ventros_crm_infrastructure_http_dto.AutomationDiscoveryResponse"
                         }
                     }
                 }
@@ -1999,7 +1999,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/github_com_caloi_ventros-crm_infrastructure_http_dto.LogicOperatorResponse"
+                                "$ref": "#/definitions/github_com_ventros_crm_infrastructure_http_dto.LogicOperatorResponse"
                             }
                         }
                     }
@@ -2692,13 +2692,13 @@ const docTemplate = `{
                                 "custom_triggers": {
                                     "type": "array",
                                     "items": {
-                                        "$ref": "#/definitions/github_com_caloi_ventros-crm_infrastructure_http_dto.TriggerResponse"
+                                        "$ref": "#/definitions/github_com_ventros_crm_infrastructure_http_dto.TriggerResponse"
                                     }
                                 },
                                 "system_triggers": {
                                     "type": "array",
                                     "items": {
-                                        "$ref": "#/definitions/github_com_caloi_ventros-crm_infrastructure_http_dto.TriggerResponse"
+                                        "$ref": "#/definitions/github_com_ventros_crm_infrastructure_http_dto.TriggerResponse"
                                     }
                                 }
                             }
@@ -2769,7 +2769,7 @@ const docTemplate = `{
                                     "type": "string"
                                 },
                                 "trigger": {
-                                    "$ref": "#/definitions/github_com_caloi_ventros-crm_infrastructure_http_dto.TriggerResponse"
+                                    "$ref": "#/definitions/github_com_ventros_crm_infrastructure_http_dto.TriggerResponse"
                                 }
                             }
                         }
@@ -2853,7 +2853,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_caloi_ventros-crm_infrastructure_http_dto.TriggerResponse"
+                            "$ref": "#/definitions/github_com_ventros_crm_infrastructure_http_dto.TriggerResponse"
                         }
                     },
                     "404": {
@@ -3378,7 +3378,7 @@ const docTemplate = `{
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "Activate a communication channel",
+                "description": "Request channel activation (async processing via events)",
                 "produces": [
                     "application/json"
                 ],
@@ -3396,15 +3396,15 @@ const docTemplate = `{
                     }
                 ],
                 "responses": {
-                    "200": {
-                        "description": "Channel activated",
+                    "202": {
+                        "description": "Activation requested (processing asynchronously)",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
                         }
                     },
                     "400": {
-                        "description": "Invalid channel ID",
+                        "description": "Invalid channel ID or already active",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -3696,6 +3696,69 @@ const docTemplate = `{
                     },
                     "404": {
                         "description": "Channel not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/channels/{id}/import-status": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Get the current status and progress of a WAHA history import",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "CRM - Channels"
+                ],
+                "summary": "Get WAHA import status",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Channel ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Import status",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid channel ID",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Authentication required",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Channel not found or no import running",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -5110,7 +5173,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/github_com_caloi_ventros-crm_internal_application_tracking.TrackingDTO"
+                                "$ref": "#/definitions/github_com_ventros_crm_internal_application_tracking.TrackingDTO"
                             }
                         }
                     },
@@ -5525,7 +5588,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Successfully retrieved agents with full details",
                         "schema": {
-                            "$ref": "#/definitions/github_com_caloi_ventros-crm_internal_application_queries.ListAgentsResponse"
+                            "$ref": "#/definitions/github_com_ventros_crm_internal_application_queries.ListAgentsResponse"
                         }
                     },
                     "400": {
@@ -5602,7 +5665,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Found agents with match scores",
                         "schema": {
-                            "$ref": "#/definitions/github_com_caloi_ventros-crm_internal_application_queries.SearchAgentsResponse"
+                            "$ref": "#/definitions/github_com_ventros_crm_internal_application_queries.SearchAgentsResponse"
                         }
                     },
                     "400": {
@@ -5935,7 +5998,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Successfully retrieved messages with pagination and filter metadata",
                         "schema": {
-                            "$ref": "#/definitions/github_com_caloi_ventros-crm_internal_application_queries.ListMessagesResponse"
+                            "$ref": "#/definitions/github_com_ventros_crm_internal_application_queries.ListMessagesResponse"
                         }
                     },
                     "400": {
@@ -6012,7 +6075,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Successfully found matching messages with text excerpts and context",
                         "schema": {
-                            "$ref": "#/definitions/github_com_caloi_ventros-crm_internal_application_queries.SearchMessagesResponse"
+                            "$ref": "#/definitions/github_com_ventros_crm_internal_application_queries.SearchMessagesResponse"
                         }
                     },
                     "400": {
@@ -6184,7 +6247,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Successfully retrieved notes with full details",
                         "schema": {
-                            "$ref": "#/definitions/github_com_caloi_ventros-crm_internal_application_queries.ListNotesResponse"
+                            "$ref": "#/definitions/github_com_ventros_crm_internal_application_queries.ListNotesResponse"
                         }
                     },
                     "400": {
@@ -6261,7 +6324,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Found notes with match scores",
                         "schema": {
-                            "$ref": "#/definitions/github_com_caloi_ventros-crm_internal_application_queries.SearchNotesResponse"
+                            "$ref": "#/definitions/github_com_ventros_crm_internal_application_queries.SearchNotesResponse"
                         }
                     },
                     "400": {
@@ -6384,7 +6447,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Successfully retrieved pipelines with full configuration details",
                         "schema": {
-                            "$ref": "#/definitions/github_com_caloi_ventros-crm_internal_application_queries.ListPipelinesResponse"
+                            "$ref": "#/definitions/github_com_ventros_crm_internal_application_queries.ListPipelinesResponse"
                         }
                     },
                     "400": {
@@ -6461,7 +6524,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Found pipelines with match scores",
                         "schema": {
-                            "$ref": "#/definitions/github_com_caloi_ventros-crm_internal_application_queries.SearchPipelinesResponse"
+                            "$ref": "#/definitions/github_com_ventros_crm_internal_application_queries.SearchPipelinesResponse"
                         }
                     },
                     "400": {
@@ -6487,6 +6550,212 @@ const docTemplate = `{
                     },
                     "500": {
                         "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/crm/pipelines/{id}/custom-fields": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve all custom fields for a pipeline",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "CRM - Pipelines"
+                ],
+                "summary": "Get pipeline custom fields",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Pipeline ID (UUID)",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of custom fields",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid pipeline ID",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Pipeline not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Set or update a custom field value for a pipeline",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "CRM - Pipelines"
+                ],
+                "summary": "Set pipeline custom field",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Pipeline ID (UUID)",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Custom field data",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/infrastructure_http_handlers.SetCustomFieldRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Custom field set successfully",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Pipeline not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/crm/pipelines/{id}/custom-fields/{key}": {
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Remove a custom field from a pipeline by key",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "CRM - Pipelines"
+                ],
+                "summary": "Remove pipeline custom field",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Pipeline ID (UUID)",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Custom field key",
+                        "name": "key",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Custom field removed successfully",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid parameters",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Pipeline or custom field not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -6575,7 +6844,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Successfully retrieved projects with full details",
                         "schema": {
-                            "$ref": "#/definitions/github_com_caloi_ventros-crm_internal_application_queries.ListProjectsResponse"
+                            "$ref": "#/definitions/github_com_ventros_crm_internal_application_queries.ListProjectsResponse"
                         }
                     },
                     "400": {
@@ -6652,7 +6921,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Found projects with match scores",
                         "schema": {
-                            "$ref": "#/definitions/github_com_caloi_ventros-crm_internal_application_queries.SearchProjectsResponse"
+                            "$ref": "#/definitions/github_com_ventros_crm_internal_application_queries.SearchProjectsResponse"
                         }
                     },
                     "400": {
@@ -6840,7 +7109,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Successfully retrieved sessions with pagination metadata",
                         "schema": {
-                            "$ref": "#/definitions/github_com_caloi_ventros-crm_internal_application_queries.ListSessionsResponse"
+                            "$ref": "#/definitions/github_com_ventros_crm_internal_application_queries.ListSessionsResponse"
                         }
                     },
                     "400": {
@@ -6917,7 +7186,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Successfully found matching sessions with relevance scores and matched fields",
                         "schema": {
-                            "$ref": "#/definitions/github_com_caloi_ventros-crm_internal_application_queries.SearchSessionsResponse"
+                            "$ref": "#/definitions/github_com_ventros_crm_internal_application_queries.SearchSessionsResponse"
                         }
                     },
                     "400": {
@@ -7015,6 +7284,71 @@ const docTemplate = `{
                 "responses": {
                     "200": {
                         "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/media/upload": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Faz upload de um arquivo de mídia (imagem, vídeo, áudio, documento) para uso em mensagens",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "media"
+                ],
+                "summary": "Upload media file",
+                "parameters": [
+                    {
+                        "type": "file",
+                        "description": "Media file to upload (max 64MB)",
+                        "name": "file",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Project ID",
+                        "name": "project_id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/infrastructure_http_handlers.UploadResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "413": {
+                        "description": "File too large",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Upload failed",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -8522,7 +8856,7 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/github_com_caloi_ventros-crm_internal_application_tracking.TrackingDTO"
+                            "$ref": "#/definitions/github_com_ventros_crm_internal_application_tracking.TrackingDTO"
                         }
                     },
                     "400": {
@@ -8565,7 +8899,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_caloi_ventros-crm_internal_application_tracking.DecodeTrackingRequest"
+                            "$ref": "#/definitions/github_com_ventros_crm_internal_application_tracking.DecodeTrackingRequest"
                         }
                     }
                 ],
@@ -8573,7 +8907,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_caloi_ventros-crm_internal_application_tracking.DecodeTrackingResponse"
+                            "$ref": "#/definitions/github_com_ventros_crm_internal_application_tracking.DecodeTrackingResponse"
                         }
                     },
                     "400": {
@@ -8610,7 +8944,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_caloi_ventros-crm_internal_application_tracking.EncodeTrackingRequest"
+                            "$ref": "#/definitions/github_com_ventros_crm_internal_application_tracking.EncodeTrackingRequest"
                         }
                     }
                 ],
@@ -8618,7 +8952,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_caloi_ventros-crm_internal_application_tracking.EncodeTrackingResponse"
+                            "$ref": "#/definitions/github_com_ventros_crm_internal_application_tracking.EncodeTrackingResponse"
                         }
                     },
                     "400": {
@@ -8689,7 +9023,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_caloi_ventros-crm_internal_application_tracking.TrackingDTO"
+                            "$ref": "#/definitions/github_com_ventros_crm_internal_application_tracking.TrackingDTO"
                         }
                     },
                     "400": {
@@ -9211,13 +9545,13 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_caloi_ventros-crm_infrastructure_health.CheckResult"
+                            "$ref": "#/definitions/github_com_ventros_crm_infrastructure_health.CheckResult"
                         }
                     },
                     "503": {
                         "description": "Service Unavailable",
                         "schema": {
-                            "$ref": "#/definitions/github_com_caloi_ventros-crm_infrastructure_health.CheckResult"
+                            "$ref": "#/definitions/github_com_ventros_crm_infrastructure_health.CheckResult"
                         }
                     }
                 }
@@ -9240,13 +9574,13 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_caloi_ventros-crm_infrastructure_health.CheckResult"
+                            "$ref": "#/definitions/github_com_ventros_crm_infrastructure_health.CheckResult"
                         }
                     },
                     "503": {
                         "description": "Service Unavailable",
                         "schema": {
-                            "$ref": "#/definitions/github_com_caloi_ventros-crm_infrastructure_health.CheckResult"
+                            "$ref": "#/definitions/github_com_ventros_crm_infrastructure_health.CheckResult"
                         }
                     }
                 }
@@ -9269,13 +9603,13 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_caloi_ventros-crm_infrastructure_health.CheckResult"
+                            "$ref": "#/definitions/github_com_ventros_crm_infrastructure_health.CheckResult"
                         }
                     },
                     "503": {
                         "description": "Service Unavailable",
                         "schema": {
-                            "$ref": "#/definitions/github_com_caloi_ventros-crm_infrastructure_health.CheckResult"
+                            "$ref": "#/definitions/github_com_ventros_crm_infrastructure_health.CheckResult"
                         }
                     }
                 }
@@ -9298,13 +9632,13 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_caloi_ventros-crm_infrastructure_health.CheckResult"
+                            "$ref": "#/definitions/github_com_ventros_crm_infrastructure_health.CheckResult"
                         }
                     },
                     "503": {
                         "description": "Service Unavailable",
                         "schema": {
-                            "$ref": "#/definitions/github_com_caloi_ventros-crm_infrastructure_health.CheckResult"
+                            "$ref": "#/definitions/github_com_ventros_crm_infrastructure_health.CheckResult"
                         }
                     }
                 }
@@ -9327,13 +9661,13 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_caloi_ventros-crm_infrastructure_health.CheckResult"
+                            "$ref": "#/definitions/github_com_ventros_crm_infrastructure_health.CheckResult"
                         }
                     },
                     "503": {
                         "description": "Service Unavailable",
                         "schema": {
-                            "$ref": "#/definitions/github_com_caloi_ventros-crm_infrastructure_health.CheckResult"
+                            "$ref": "#/definitions/github_com_ventros_crm_infrastructure_health.CheckResult"
                         }
                     }
                 }
@@ -9524,7 +9858,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_caloi_ventros-crm_infrastructure_health.CheckResult": {
+        "github_com_ventros_crm_infrastructure_health.CheckResult": {
             "type": "object",
             "properties": {
                 "duration_ms": {
@@ -9542,7 +9876,7 @@ const docTemplate = `{
                 "status": {
                     "allOf": [
                         {
-                            "$ref": "#/definitions/github_com_caloi_ventros-crm_infrastructure_health.Status"
+                            "$ref": "#/definitions/github_com_ventros_crm_infrastructure_health.Status"
                         }
                     ],
                     "example": "healthy"
@@ -9553,7 +9887,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_caloi_ventros-crm_infrastructure_health.Status": {
+        "github_com_ventros_crm_infrastructure_health.Status": {
             "type": "string",
             "enum": [
                 "healthy",
@@ -9566,7 +9900,7 @@ const docTemplate = `{
                 "StatusUnhealthy"
             ]
         },
-        "github_com_caloi_ventros-crm_infrastructure_http_dto.ActionParameterDTO": {
+        "github_com_ventros_crm_infrastructure_http_dto.ActionParameterDTO": {
             "type": "object",
             "properties": {
                 "default": {},
@@ -9584,7 +9918,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_caloi_ventros-crm_infrastructure_http_dto.ActionResponse": {
+        "github_com_ventros_crm_infrastructure_http_dto.ActionResponse": {
             "type": "object",
             "properties": {
                 "category": {
@@ -9606,47 +9940,47 @@ const docTemplate = `{
                 "parameters": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/github_com_caloi_ventros-crm_infrastructure_http_dto.ActionParameterDTO"
+                        "$ref": "#/definitions/github_com_ventros_crm_infrastructure_http_dto.ActionParameterDTO"
                     }
                 }
             }
         },
-        "github_com_caloi_ventros-crm_infrastructure_http_dto.AutomationDiscoveryResponse": {
+        "github_com_ventros_crm_infrastructure_http_dto.AutomationDiscoveryResponse": {
             "type": "object",
             "properties": {
                 "actions": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/github_com_caloi_ventros-crm_infrastructure_http_dto.ActionResponse"
+                        "$ref": "#/definitions/github_com_ventros_crm_infrastructure_http_dto.ActionResponse"
                     }
                 },
                 "logic_types": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/github_com_caloi_ventros-crm_infrastructure_http_dto.LogicOperatorResponse"
+                        "$ref": "#/definitions/github_com_ventros_crm_infrastructure_http_dto.LogicOperatorResponse"
                     }
                 },
                 "operators": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/github_com_caloi_ventros-crm_infrastructure_http_dto.ConditionOperatorResponse"
+                        "$ref": "#/definitions/github_com_ventros_crm_infrastructure_http_dto.ConditionOperatorResponse"
                     }
                 },
                 "triggers": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/github_com_caloi_ventros-crm_infrastructure_http_dto.TriggerResponse"
+                        "$ref": "#/definitions/github_com_ventros_crm_infrastructure_http_dto.TriggerResponse"
                     }
                 },
                 "types": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/github_com_caloi_ventros-crm_infrastructure_http_dto.AutomationTypeResponse"
+                        "$ref": "#/definitions/github_com_ventros_crm_infrastructure_http_dto.AutomationTypeResponse"
                     }
                 }
             }
         },
-        "github_com_caloi_ventros-crm_infrastructure_http_dto.AutomationTypeResponse": {
+        "github_com_ventros_crm_infrastructure_http_dto.AutomationTypeResponse": {
             "type": "object",
             "properties": {
                 "code": {
@@ -9669,7 +10003,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_caloi_ventros-crm_infrastructure_http_dto.ConditionOperatorResponse": {
+        "github_com_ventros_crm_infrastructure_http_dto.ConditionOperatorResponse": {
             "type": "object",
             "properties": {
                 "code": {
@@ -9686,7 +10020,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_caloi_ventros-crm_infrastructure_http_dto.LogicOperatorResponse": {
+        "github_com_ventros_crm_infrastructure_http_dto.LogicOperatorResponse": {
             "type": "object",
             "properties": {
                 "code": {
@@ -9700,7 +10034,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_caloi_ventros-crm_infrastructure_http_dto.TriggerParameter": {
+        "github_com_ventros_crm_infrastructure_http_dto.TriggerParameter": {
             "type": "object",
             "properties": {
                 "description": {
@@ -9717,7 +10051,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_caloi_ventros-crm_infrastructure_http_dto.TriggerResponse": {
+        "github_com_ventros_crm_infrastructure_http_dto.TriggerResponse": {
             "type": "object",
             "properties": {
                 "category": {
@@ -9738,12 +10072,12 @@ const docTemplate = `{
                 "parameters": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/github_com_caloi_ventros-crm_infrastructure_http_dto.TriggerParameter"
+                        "$ref": "#/definitions/github_com_ventros_crm_infrastructure_http_dto.TriggerParameter"
                     }
                 }
             }
         },
-        "github_com_caloi_ventros-crm_internal_application_queries.AgentDTO": {
+        "github_com_ventros_crm_internal_application_queries.AgentDTO": {
             "type": "object",
             "properties": {
                 "active": {
@@ -9766,7 +10100,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_caloi_ventros-crm_internal_application_queries.AgentSearchResultDTO": {
+        "github_com_ventros_crm_internal_application_queries.AgentSearchResultDTO": {
             "type": "object",
             "properties": {
                 "active": {
@@ -9789,13 +10123,13 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_caloi_ventros-crm_internal_application_queries.ListAgentsResponse": {
+        "github_com_ventros_crm_internal_application_queries.ListAgentsResponse": {
             "type": "object",
             "properties": {
                 "agents": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/github_com_caloi_ventros-crm_internal_application_queries.AgentDTO"
+                        "$ref": "#/definitions/github_com_ventros_crm_internal_application_queries.AgentDTO"
                     }
                 },
                 "limit": {
@@ -9813,7 +10147,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_caloi_ventros-crm_internal_application_queries.ListMessageDTO": {
+        "github_com_ventros_crm_internal_application_queries.ListMessageDTO": {
             "type": "object",
             "properties": {
                 "agent_id": {
@@ -9855,7 +10189,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_caloi_ventros-crm_internal_application_queries.ListMessagesResponse": {
+        "github_com_ventros_crm_internal_application_queries.ListMessagesResponse": {
             "type": "object",
             "properties": {
                 "limit": {
@@ -9864,7 +10198,7 @@ const docTemplate = `{
                 "messages": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/github_com_caloi_ventros-crm_internal_application_queries.ListMessageDTO"
+                        "$ref": "#/definitions/github_com_ventros_crm_internal_application_queries.ListMessageDTO"
                     }
                 },
                 "page": {
@@ -9879,7 +10213,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_caloi_ventros-crm_internal_application_queries.ListNotesResponse": {
+        "github_com_ventros_crm_internal_application_queries.ListNotesResponse": {
             "type": "object",
             "properties": {
                 "limit": {
@@ -9888,7 +10222,7 @@ const docTemplate = `{
                 "notes": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/github_com_caloi_ventros-crm_internal_application_queries.NoteDTO"
+                        "$ref": "#/definitions/github_com_ventros_crm_internal_application_queries.NoteDTO"
                     }
                 },
                 "page": {
@@ -9903,7 +10237,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_caloi_ventros-crm_internal_application_queries.ListPipelinesResponse": {
+        "github_com_ventros_crm_internal_application_queries.ListPipelinesResponse": {
             "type": "object",
             "properties": {
                 "limit": {
@@ -9915,7 +10249,7 @@ const docTemplate = `{
                 "pipelines": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/github_com_caloi_ventros-crm_internal_application_queries.PipelineDTO"
+                        "$ref": "#/definitions/github_com_ventros_crm_internal_application_queries.PipelineDTO"
                     }
                 },
                 "totalCount": {
@@ -9927,7 +10261,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_caloi_ventros-crm_internal_application_queries.ListProjectsResponse": {
+        "github_com_ventros_crm_internal_application_queries.ListProjectsResponse": {
             "type": "object",
             "properties": {
                 "limit": {
@@ -9939,7 +10273,7 @@ const docTemplate = `{
                 "projects": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/github_com_caloi_ventros-crm_internal_application_queries.ProjectDTO"
+                        "$ref": "#/definitions/github_com_ventros_crm_internal_application_queries.ProjectDTO"
                     }
                 },
                 "totalCount": {
@@ -9951,7 +10285,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_caloi_ventros-crm_internal_application_queries.ListSessionsResponse": {
+        "github_com_ventros_crm_internal_application_queries.ListSessionsResponse": {
             "type": "object",
             "properties": {
                 "limit": {
@@ -9963,7 +10297,7 @@ const docTemplate = `{
                 "sessions": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/github_com_caloi_ventros-crm_internal_application_queries.SessionDTO"
+                        "$ref": "#/definitions/github_com_ventros_crm_internal_application_queries.SessionDTO"
                     }
                 },
                 "totalCount": {
@@ -9975,7 +10309,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_caloi_ventros-crm_internal_application_queries.MessageSearchResultDTO": {
+        "github_com_ventros_crm_internal_application_queries.MessageSearchResultDTO": {
             "type": "object",
             "properties": {
                 "contact_id": {
@@ -10001,7 +10335,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_caloi_ventros-crm_internal_application_queries.NoteDTO": {
+        "github_com_ventros_crm_internal_application_queries.NoteDTO": {
             "type": "object",
             "properties": {
                 "author_id": {
@@ -10051,7 +10385,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_caloi_ventros-crm_internal_application_queries.NoteSearchResultDTO": {
+        "github_com_ventros_crm_internal_application_queries.NoteSearchResultDTO": {
             "type": "object",
             "properties": {
                 "author_name": {
@@ -10086,7 +10420,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_caloi_ventros-crm_internal_application_queries.PipelineDTO": {
+        "github_com_ventros_crm_internal_application_queries.PipelineDTO": {
             "type": "object",
             "properties": {
                 "active": {
@@ -10121,7 +10455,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_caloi_ventros-crm_internal_application_queries.PipelineSearchResultDTO": {
+        "github_com_ventros_crm_internal_application_queries.PipelineSearchResultDTO": {
             "type": "object",
             "properties": {
                 "active": {
@@ -10147,7 +10481,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_caloi_ventros-crm_internal_application_queries.ProjectDTO": {
+        "github_com_ventros_crm_internal_application_queries.ProjectDTO": {
             "type": "object",
             "properties": {
                 "active": {
@@ -10183,7 +10517,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_caloi_ventros-crm_internal_application_queries.ProjectSearchResultDTO": {
+        "github_com_ventros_crm_internal_application_queries.ProjectSearchResultDTO": {
             "type": "object",
             "properties": {
                 "active": {
@@ -10206,13 +10540,13 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_caloi_ventros-crm_internal_application_queries.SearchAgentsResponse": {
+        "github_com_ventros_crm_internal_application_queries.SearchAgentsResponse": {
             "type": "object",
             "properties": {
                 "agents": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/github_com_caloi_ventros-crm_internal_application_queries.AgentSearchResultDTO"
+                        "$ref": "#/definitions/github_com_ventros_crm_internal_application_queries.AgentSearchResultDTO"
                     }
                 },
                 "count": {
@@ -10220,7 +10554,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_caloi_ventros-crm_internal_application_queries.SearchMessagesResponse": {
+        "github_com_ventros_crm_internal_application_queries.SearchMessagesResponse": {
             "type": "object",
             "properties": {
                 "count": {
@@ -10229,12 +10563,12 @@ const docTemplate = `{
                 "messages": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/github_com_caloi_ventros-crm_internal_application_queries.MessageSearchResultDTO"
+                        "$ref": "#/definitions/github_com_ventros_crm_internal_application_queries.MessageSearchResultDTO"
                     }
                 }
             }
         },
-        "github_com_caloi_ventros-crm_internal_application_queries.SearchNotesResponse": {
+        "github_com_ventros_crm_internal_application_queries.SearchNotesResponse": {
             "type": "object",
             "properties": {
                 "count": {
@@ -10243,12 +10577,12 @@ const docTemplate = `{
                 "notes": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/github_com_caloi_ventros-crm_internal_application_queries.NoteSearchResultDTO"
+                        "$ref": "#/definitions/github_com_ventros_crm_internal_application_queries.NoteSearchResultDTO"
                     }
                 }
             }
         },
-        "github_com_caloi_ventros-crm_internal_application_queries.SearchPipelinesResponse": {
+        "github_com_ventros_crm_internal_application_queries.SearchPipelinesResponse": {
             "type": "object",
             "properties": {
                 "count": {
@@ -10257,12 +10591,12 @@ const docTemplate = `{
                 "pipelines": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/github_com_caloi_ventros-crm_internal_application_queries.PipelineSearchResultDTO"
+                        "$ref": "#/definitions/github_com_ventros_crm_internal_application_queries.PipelineSearchResultDTO"
                     }
                 }
             }
         },
-        "github_com_caloi_ventros-crm_internal_application_queries.SearchProjectsResponse": {
+        "github_com_ventros_crm_internal_application_queries.SearchProjectsResponse": {
             "type": "object",
             "properties": {
                 "count": {
@@ -10271,12 +10605,12 @@ const docTemplate = `{
                 "projects": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/github_com_caloi_ventros-crm_internal_application_queries.ProjectSearchResultDTO"
+                        "$ref": "#/definitions/github_com_ventros_crm_internal_application_queries.ProjectSearchResultDTO"
                     }
                 }
             }
         },
-        "github_com_caloi_ventros-crm_internal_application_queries.SearchSessionsResponse": {
+        "github_com_ventros_crm_internal_application_queries.SearchSessionsResponse": {
             "type": "object",
             "properties": {
                 "count": {
@@ -10285,12 +10619,12 @@ const docTemplate = `{
                 "sessions": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/github_com_caloi_ventros-crm_internal_application_queries.SessionSearchResultDTO"
+                        "$ref": "#/definitions/github_com_ventros_crm_internal_application_queries.SessionSearchResultDTO"
                     }
                 }
             }
         },
-        "github_com_caloi_ventros-crm_internal_application_queries.SessionDTO": {
+        "github_com_ventros_crm_internal_application_queries.SessionDTO": {
             "type": "object",
             "properties": {
                 "contact_id": {
@@ -10352,7 +10686,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_caloi_ventros-crm_internal_application_queries.SessionSearchResultDTO": {
+        "github_com_ventros_crm_internal_application_queries.SessionSearchResultDTO": {
             "type": "object",
             "properties": {
                 "contact_id": {
@@ -10387,7 +10721,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_caloi_ventros-crm_internal_application_tracking.DecodeTrackingRequest": {
+        "github_com_ventros_crm_internal_application_tracking.DecodeTrackingRequest": {
             "type": "object",
             "required": [
                 "message"
@@ -10398,7 +10732,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_caloi_ventros-crm_internal_application_tracking.DecodeTrackingResponse": {
+        "github_com_ventros_crm_internal_application_tracking.DecodeTrackingResponse": {
             "type": "object",
             "properties": {
                 "analysis": {
@@ -10428,7 +10762,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_caloi_ventros-crm_internal_application_tracking.EncodeTrackingRequest": {
+        "github_com_ventros_crm_internal_application_tracking.EncodeTrackingRequest": {
             "type": "object",
             "required": [
                 "message",
@@ -10446,7 +10780,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_caloi_ventros-crm_internal_application_tracking.EncodeTrackingResponse": {
+        "github_com_ventros_crm_internal_application_tracking.EncodeTrackingResponse": {
             "type": "object",
             "properties": {
                 "debug": {
@@ -10482,7 +10816,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_caloi_ventros-crm_internal_application_tracking.TrackingDTO": {
+        "github_com_ventros_crm_internal_application_tracking.TrackingDTO": {
             "type": "object",
             "properties": {
                 "ad_id": {
@@ -10548,7 +10882,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_caloi_ventros-crm_internal_domain_crm_pipeline.AutomationAction": {
+        "github_com_ventros_crm_internal_domain_crm_pipeline.AutomationAction": {
             "type": "string",
             "enum": [
                 "send_message",
@@ -10587,7 +10921,7 @@ const docTemplate = `{
                 "ActionSendEmail"
             ]
         },
-        "github_com_caloi_ventros-crm_internal_domain_crm_pipeline.RuleAction": {
+        "github_com_ventros_crm_internal_domain_crm_pipeline.RuleAction": {
             "type": "object",
             "properties": {
                 "delay_minutes": {
@@ -10598,11 +10932,11 @@ const docTemplate = `{
                     "additionalProperties": true
                 },
                 "type": {
-                    "$ref": "#/definitions/github_com_caloi_ventros-crm_internal_domain_crm_pipeline.AutomationAction"
+                    "$ref": "#/definitions/github_com_ventros_crm_internal_domain_crm_pipeline.AutomationAction"
                 }
             }
         },
-        "github_com_caloi_ventros-crm_internal_domain_crm_pipeline.RuleCondition": {
+        "github_com_ventros_crm_internal_domain_crm_pipeline.RuleCondition": {
             "type": "object",
             "properties": {
                 "field": {
@@ -10614,7 +10948,7 @@ const docTemplate = `{
                 "value": {}
             }
         },
-        "github_com_caloi_ventros-crm_internal_domain_crm_pipeline.StatusType": {
+        "github_com_ventros_crm_internal_domain_crm_pipeline.StatusType": {
             "type": "string",
             "enum": [
                 "open",
@@ -10802,7 +11136,7 @@ const docTemplate = `{
                 "actions": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/github_com_caloi_ventros-crm_internal_domain_crm_pipeline.RuleAction"
+                        "$ref": "#/definitions/github_com_ventros_crm_internal_domain_crm_pipeline.RuleAction"
                     }
                 },
                 "automation_type": {
@@ -10812,7 +11146,7 @@ const docTemplate = `{
                 "conditions": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/github_com_caloi_ventros-crm_internal_domain_crm_pipeline.RuleCondition"
+                        "$ref": "#/definitions/github_com_ventros_crm_internal_domain_crm_pipeline.RuleCondition"
                     }
                 },
                 "description": {
@@ -11198,7 +11532,7 @@ const docTemplate = `{
                 "status_type": {
                     "allOf": [
                         {
-                            "$ref": "#/definitions/github_com_caloi_ventros-crm_internal_domain_crm_pipeline.StatusType"
+                            "$ref": "#/definitions/github_com_ventros_crm_internal_domain_crm_pipeline.StatusType"
                         }
                     ],
                     "example": "open"
@@ -11461,7 +11795,7 @@ const docTemplate = `{
                 "dependencies": {
                     "type": "object",
                     "additionalProperties": {
-                        "$ref": "#/definitions/github_com_caloi_ventros-crm_infrastructure_health.CheckResult"
+                        "$ref": "#/definitions/github_com_ventros_crm_infrastructure_health.CheckResult"
                     }
                 },
                 "service": {
@@ -11492,6 +11826,11 @@ const docTemplate = `{
                 "strategy": {
                     "type": "string",
                     "example": "recent"
+                },
+                "time_range_days": {
+                    "description": "Dias para filtrar mensagens (0 = usar config do canal)",
+                    "type": "integer",
+                    "example": 7
                 }
             }
         },
@@ -11634,6 +11973,9 @@ const docTemplate = `{
                     "example": "sent"
                 }
             }
+        },
+        "infrastructure_http_handlers.SetCustomFieldRequest": {
+            "type": "object"
         },
         "infrastructure_http_handlers.StepConditionRequest": {
             "type": "object",
@@ -11823,13 +12165,13 @@ const docTemplate = `{
                 "actions": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/github_com_caloi_ventros-crm_internal_domain_crm_pipeline.RuleAction"
+                        "$ref": "#/definitions/github_com_ventros_crm_internal_domain_crm_pipeline.RuleAction"
                     }
                 },
                 "conditions": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/github_com_caloi_ventros-crm_internal_domain_crm_pipeline.RuleCondition"
+                        "$ref": "#/definitions/github_com_ventros_crm_internal_domain_crm_pipeline.RuleCondition"
                     }
                 },
                 "description": {
@@ -12008,6 +12350,31 @@ const docTemplate = `{
                 },
                 "url": {
                     "type": "string"
+                }
+            }
+        },
+        "infrastructure_http_handlers.UploadResponse": {
+            "type": "object",
+            "properties": {
+                "content_type": {
+                    "type": "string",
+                    "example": "image/jpeg"
+                },
+                "filename": {
+                    "type": "string",
+                    "example": "photo.jpg"
+                },
+                "path": {
+                    "type": "string",
+                    "example": "media/project-id/images/uuid.jpg"
+                },
+                "size": {
+                    "type": "integer",
+                    "example": 1048576
+                },
+                "url": {
+                    "type": "string",
+                    "example": "https://storage.googleapis.com/bucket/media/images/uuid.jpg"
                 }
             }
         }

@@ -5,18 +5,18 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/caloi/ventros-crm/internal/domain/core/shared"
+	"github.com/ventros/crm/internal/domain/core/shared"
 )
 
 // Sequence representa uma sequência automatizada de mensagens
 type Sequence struct {
-	id             uuid.UUID
-	version        int // Optimistic locking - prevents lost updates
-	tenantID       string
-	name           string
-	description    string
-	status         SequenceStatus
-	steps          []SequenceStep // Steps ordenados
+	id          uuid.UUID
+	version     int // Optimistic locking - prevents lost updates
+	tenantID    string
+	name        string
+	description string
+	status      SequenceStatus
+	steps       []SequenceStep // Steps ordenados
 
 	// Entry conditions
 	triggerType TriggerType            // manual, tag_added, list_joined, etc
@@ -72,19 +72,19 @@ func NewSequence(
 
 	now := time.Now()
 	sequence := &Sequence{
-		id:             uuid.New(),
-		version:        1, // Start with version 1 for new aggregates
-		tenantID:       tenantID,
-		name:           name,
-		description:    description,
-		status:         SequenceStatusDraft,
-		triggerType:    triggerType,
-		triggerData:    make(map[string]interface{}),
-		steps:          []SequenceStep{},
-		exitOnReply:    true, // Default: sair se responder
-		createdAt:      now,
-		updatedAt:      now,
-		events:         []shared.DomainEvent{},
+		id:          uuid.New(),
+		version:     1, // Start with version 1 for new aggregates
+		tenantID:    tenantID,
+		name:        name,
+		description: description,
+		status:      SequenceStatusDraft,
+		triggerType: triggerType,
+		triggerData: make(map[string]interface{}),
+		steps:       []SequenceStep{},
+		exitOnReply: true, // Default: sair se responder
+		createdAt:   now,
+		updatedAt:   now,
+		events:      []shared.DomainEvent{},
 	}
 
 	sequence.addEvent(NewSequenceCreatedEvent(sequence.id, tenantID, name))

@@ -4,10 +4,10 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/caloi/ventros-crm/infrastructure/channels/waha"
-	"github.com/caloi/ventros-crm/infrastructure/messaging"
-	"github.com/caloi/ventros-crm/internal/domain/crm/channel"
 	"github.com/gin-gonic/gin"
+	"github.com/ventros/crm/infrastructure/channels/waha"
+	"github.com/ventros/crm/infrastructure/messaging"
+	"github.com/ventros/crm/internal/domain/crm/channel"
 	"go.uber.org/zap"
 )
 
@@ -104,13 +104,29 @@ func (h *WAHAWebhookHandler) ReceiveWebhook(c *gin.Context) {
 		zap.String("channel_id", ch.ID.String()),
 		zap.String("session", rawEvent.Session),
 		zap.String("content_type", rawEvent.GetContentType()),
-		zap.Int("body_size", rawEvent.GetBodySize()))
+		zap.Int("body_size", rawEvent.GetBodySize()),
+		zap.Bool("import_in_progress", ch.IsHistoryImportInProgress()))
 
-	// 8. Enfileirar evento raw (NUNCA falha)
-	if err := h.rawEventBus.PublishRawEvent(c.Request.Context(), rawEvent); err != nil {
+	// 8. Enfileirar evento raw (SAGA Pattern: buffer durante import)
+	// Se canal está importando histórico, enfileira em fila especial de buffer
+	// para processar após import completar (evita duplicação)
+	var queueErr error
+	if ch.IsHistoryImportInProgress() {
+		// Buffer: fila especial processada após import
+		queueErr = h.rawEventBus.PublishRawEventBuffered(c.Request.Context(), ch.ID.String(), rawEvent)
+		h.logger.Info("Webhook buffered during history import",
+			zap.String("event_id", rawEvent.ID),
+			zap.String("channel_id", ch.ID.String()),
+			zap.String("buffer_queue", "webhooks.buffered."+ch.ID.String()))
+	} else {
+		// Processamento normal imediato
+		queueErr = h.rawEventBus.PublishRawEvent(c.Request.Context(), rawEvent)
+	}
+
+	if queueErr != nil {
 		// Log mas não falha - o evento pode ter sido perdido mas o webhook não quebra
 		h.logger.Error("Failed to enqueue raw event",
-			zap.Error(err),
+			zap.Error(queueErr),
 			zap.String("event_id", rawEvent.ID))
 
 		// Ainda assim responde sucesso para não quebrar o WAHA

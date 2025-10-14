@@ -5,9 +5,9 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/caloi/ventros-crm/internal/application/shared"
-	"github.com/caloi/ventros-crm/internal/domain/crm/contact"
 	"github.com/google/uuid"
+	"github.com/ventros/crm/internal/application/shared"
+	"github.com/ventros/crm/internal/domain/crm/contact"
 )
 
 // CreateContactCommand contém os dados para criar um contato.

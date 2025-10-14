@@ -5,10 +5,10 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/caloi/ventros-crm/infrastructure/persistence/entities"
-	"github.com/caloi/ventros-crm/internal/domain/core/project"
-	"github.com/caloi/ventros-crm/internal/domain/core/shared"
 	"github.com/google/uuid"
+	"github.com/ventros/crm/infrastructure/persistence/entities"
+	"github.com/ventros/crm/internal/domain/core/project"
+	"github.com/ventros/crm/internal/domain/core/shared"
 	"gorm.io/gorm"
 )
 
@@ -35,16 +35,16 @@ func (r *GormProjectRepository) Save(ctx context.Context, proj *project.Project)
 		result := r.db.WithContext(ctx).Model(&entities.ProjectEntity{}).
 			Where("id = ? AND version = ?", entity.ID, existing.Version).
 			Updates(map[string]interface{}{
-				"version":                  existing.Version + 1, // Increment version
-				"user_id":                  entity.UserID,
-				"billing_account_id":       entity.BillingAccountID,
-				"tenant_id":                entity.TenantID,
-				"name":                     entity.Name,
-				"description":              entity.Description,
-				"configuration":            entity.Configuration,
-				"active":                   entity.Active,
-				"session_timeout_minutes":  entity.SessionTimeoutMinutes,
-				"updated_at":               entity.UpdatedAt,
+				"version":                 existing.Version + 1, // Increment version
+				"user_id":                 entity.UserID,
+				"billing_account_id":      entity.BillingAccountID,
+				"tenant_id":               entity.TenantID,
+				"name":                    entity.Name,
+				"description":             entity.Description,
+				"configuration":           entity.Configuration,
+				"active":                  entity.Active,
+				"session_timeout_minutes": entity.SessionTimeoutMinutes,
+				"updated_at":              entity.UpdatedAt,
 			})
 
 		if result.Error != nil {

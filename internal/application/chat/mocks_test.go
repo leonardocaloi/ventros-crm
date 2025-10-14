@@ -3,7 +3,7 @@ package chat
 import (
 	"context"
 
-	domainchat "github.com/caloi/ventros-crm/internal/domain/crm/chat"
+	domainchat "github.com/ventros/crm/internal/domain/crm/chat"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/mock"
 )

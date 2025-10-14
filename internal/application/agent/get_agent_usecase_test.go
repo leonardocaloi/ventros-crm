@@ -5,7 +5,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/caloi/ventros-crm/internal/domain/crm/agent"
+	"github.com/ventros/crm/internal/domain/crm/agent"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 )
@@ -38,6 +38,7 @@ func TestGetAgentUseCase_Execute_Success(t *testing.T) {
 	// Create a mock agent
 	foundAgent := agent.ReconstructAgent(
 		agentID,
+		1, // version
 		projectID,
 		&userID,
 		tenantID,
@@ -154,6 +155,7 @@ func TestGetAgentUseCase_Execute_InactiveAgent(t *testing.T) {
 	// Create an inactive agent
 	foundAgent := agent.ReconstructAgent(
 		agentID,
+		1, // version
 		projectID,
 		&userID,
 		tenantID,
@@ -209,6 +211,7 @@ func TestGetAgentUseCase_Execute_AIAgent(t *testing.T) {
 	// Create an AI agent
 	foundAgent := agent.ReconstructAgent(
 		agentID,
+		1, // version
 		projectID,
 		nil, // AI agents don't have userID
 		tenantID,
@@ -276,6 +279,7 @@ func TestListAgentsUseCase_Execute_Success(t *testing.T) {
 	userID1 := uuid.New()
 	agent1 := agent.ReconstructAgent(
 		uuid.New(),
+		1, // version
 		projectID,
 		&userID1,
 		tenantID,
@@ -300,6 +304,7 @@ func TestListAgentsUseCase_Execute_Success(t *testing.T) {
 	userID2 := uuid.New()
 	agent2 := agent.ReconstructAgent(
 		uuid.New(),
+		1, // version
 		projectID,
 		&userID2,
 		tenantID,
@@ -360,6 +365,7 @@ func TestListAgentsUseCase_Execute_ActiveOnly(t *testing.T) {
 	userID1 := uuid.New()
 	agent1 := agent.ReconstructAgent(
 		uuid.New(),
+		1, // version
 		projectID,
 		&userID1,
 		tenantID,
@@ -540,6 +546,7 @@ func TestListAgentsUseCase_Execute_WithPagination(t *testing.T) {
 	userID1 := uuid.New()
 	agent1 := agent.ReconstructAgent(
 		uuid.New(),
+		1, // version
 		projectID,
 		&userID1,
 		tenantID,
@@ -598,6 +605,7 @@ func TestListAgentsUseCase_Execute_MixedAgentTypes(t *testing.T) {
 	userID := uuid.New()
 	humanAgent := agent.ReconstructAgent(
 		uuid.New(),
+		1, // version
 		projectID,
 		&userID,
 		tenantID,
@@ -621,6 +629,7 @@ func TestListAgentsUseCase_Execute_MixedAgentTypes(t *testing.T) {
 
 	aiAgent := agent.ReconstructAgent(
 		uuid.New(),
+		1, // version
 		projectID,
 		nil,
 		tenantID,
@@ -644,6 +653,7 @@ func TestListAgentsUseCase_Execute_MixedAgentTypes(t *testing.T) {
 
 	botAgent := agent.ReconstructAgent(
 		uuid.New(),
+		1, // version
 		projectID,
 		nil,
 		tenantID,

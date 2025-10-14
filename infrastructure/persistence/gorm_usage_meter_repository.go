@@ -5,9 +5,9 @@ import (
 	"errors"
 	"time"
 
-	"github.com/caloi/ventros-crm/infrastructure/persistence/entities"
-	"github.com/caloi/ventros-crm/internal/domain/core/shared"
 	"github.com/google/uuid"
+	"github.com/ventros/crm/infrastructure/persistence/entities"
+	"github.com/ventros/crm/internal/domain/core/shared"
 	"gorm.io/gorm"
 )
 
@@ -116,18 +116,18 @@ func (r *GormUsageMeterRepository) Update(ctx context.Context, meter *entities.U
 	result := r.db.WithContext(ctx).Model(&entities.UsageMeterEntity{}).
 		Where("id = ? AND version = ?", meter.ID, existing.Version).
 		Updates(map[string]interface{}{
-			"version":             existing.Version + 1, // Increment version
-			"billing_account_id":  meter.BillingAccountID,
-			"stripe_customer_id":  meter.StripeCustomerID,
-			"stripe_meter_id":     meter.StripeMeterID,
-			"metric_name":         meter.MetricName,
-			"event_name":          meter.EventName,
-			"quantity":            meter.Quantity,
-			"period_start":        meter.PeriodStart,
-			"period_end":          meter.PeriodEnd,
-			"last_reported_at":    meter.LastReportedAt,
-			"metadata":            meter.Metadata,
-			"updated_at":          meter.UpdatedAt,
+			"version":            existing.Version + 1, // Increment version
+			"billing_account_id": meter.BillingAccountID,
+			"stripe_customer_id": meter.StripeCustomerID,
+			"stripe_meter_id":    meter.StripeMeterID,
+			"metric_name":        meter.MetricName,
+			"event_name":         meter.EventName,
+			"quantity":           meter.Quantity,
+			"period_start":       meter.PeriodStart,
+			"period_end":         meter.PeriodEnd,
+			"last_reported_at":   meter.LastReportedAt,
+			"metadata":           meter.Metadata,
+			"updated_at":         meter.UpdatedAt,
 		})
 
 	if result.Error != nil {

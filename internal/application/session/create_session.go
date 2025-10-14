@@ -5,9 +5,9 @@ import (
 	"errors"
 	"time"
 
-	"github.com/caloi/ventros-crm/internal/application/shared"
-	"github.com/caloi/ventros-crm/internal/domain/crm/session"
 	"github.com/google/uuid"
+	"github.com/ventros/crm/internal/application/shared"
+	"github.com/ventros/crm/internal/domain/crm/session"
 )
 
 // CreateSessionCommand contém os dados para criar uma sessão.

@@ -3,7 +3,7 @@ package waha
 import (
 	"errors"
 
-	"github.com/caloi/ventros-crm/internal/domain/crm/message"
+	"github.com/ventros/crm/internal/domain/crm/message"
 )
 
 // WhatsAppAck representa o valor de ACK (acknowledgment) do WhatsApp/WAHA.
@@ -38,7 +38,7 @@ const (
 	// AckRead indica que a mensagem foi lida pelo destinatário (✓✓ azul)
 	AckRead WhatsAppAck = 3
 
-	// AckPlayed indica que a mensagem de mídia foi reproduzida/visualizada
+	// AckPlayed indica que a mensagem de voz/áudio foi reproduzida (SOMENTE voice messages)
 	AckPlayed WhatsAppAck = 4
 )
 
@@ -91,7 +91,7 @@ func (a WhatsAppAck) String() string {
 // - SERVER (1)   → message.StatusSent
 // - DEVICE (2)   → message.StatusDelivered
 // - READ (3)     → message.StatusRead
-// - PLAYED (4)   → message.StatusRead
+// - PLAYED (4)   → message.StatusPlayed (voz/áudio reproduzido - SOMENTE voice)
 func (a WhatsAppAck) ToMessageStatus() (message.Status, error) {
 	switch a {
 	case AckError:
@@ -105,7 +105,7 @@ func (a WhatsAppAck) ToMessageStatus() (message.Status, error) {
 	case AckRead:
 		return message.StatusRead, nil
 	case AckPlayed:
-		return message.StatusRead, nil // Played também é considerado "lido"
+		return message.StatusPlayed, nil // Voz/áudio reproduzido (SOMENTE voice)
 	default:
 		return "", ErrInvalidAck
 	}
@@ -147,7 +147,7 @@ func (a WhatsAppAck) IsRead() bool {
 	return a >= AckRead
 }
 
-// IsPlayed verifica se a mensagem de mídia foi reproduzida.
+// IsPlayed verifica se a mensagem de voz/áudio foi reproduzida (SOMENTE voice).
 func (a WhatsAppAck) IsPlayed() bool {
 	return a == AckPlayed
 }

@@ -507,8 +507,8 @@ fmt.Printf("Response: %d - %s\n", resp.StatusCode, string(body))
 ### O que é testado
 
 - ✅ Criação de usuário via `/api/v1/auth/register`
-- ✅ Criação de canal via `/api/v1/channels`
-- ✅ Ativação de canal via `/api/v1/channels/:id/activate`
+- ✅ Criação de canal via `/api/v1/crm/channels`
+- ✅ Ativação de canal via `/api/v1/crm/channels/:id/activate`
 - ✅ Webhook WAHA via `/api/v1/webhooks/waha/{session}`
 - ✅ Processamento de 8 tipos de mensagem
 - ✅ Estatísticas do canal

@@ -27,7 +27,7 @@ func NewWAHAClient(baseURL, token string, logger *zap.Logger) *WAHAClient {
 		baseURL: baseURL,
 		token:   token,
 		httpClient: &http.Client{
-			Timeout: 30 * time.Second,
+			Timeout: 5 * time.Minute, // 5 minutos para permitir envio de vídeos grandes
 		},
 		logger: logger,
 	}
@@ -324,8 +324,13 @@ type SendLocationRequest struct {
 
 // SendContactRequest representa uma requisição para enviar contato
 type SendContactRequest struct {
-	ChatID string `json:"chatId"`
-	VCard  string `json:"vcard"`
+	ChatID   string           `json:"chatId"`
+	Contacts []ContactPayload `json:"contacts"` // WAHA espera array de contacts
+}
+
+// ContactPayload representa um contato individual
+type ContactPayload struct {
+	VCard string `json:"vcard"`
 }
 
 // SendMessage envia uma mensagem de texto (legacy method - mantido para compatibilidade)
@@ -470,9 +475,9 @@ func (c *WAHAClient) SendContact(ctx context.Context, sessionID string, req Send
 	url := fmt.Sprintf("%s/api/sendContactVcard", c.baseURL)
 
 	payload := map[string]interface{}{
-		"chatId":  req.ChatID,
-		"vcard":   req.VCard,
-		"session": sessionID,
+		"chatId":   req.ChatID,
+		"contacts": req.Contacts, // Array de contacts como WAHA espera
+		"session":  sessionID,
 	}
 
 	return c.makeRequest(ctx, url, payload)
@@ -643,8 +648,23 @@ func (c *WAHAClient) GetChatsOverview(ctx context.Context, sessionID string, lim
 
 // GetChatMessages retorna mensagens de um chat específico
 func (c *WAHAClient) GetChatMessages(ctx context.Context, sessionID, chatID string, limit int, downloadMedia bool) ([]MessagePayload, error) {
+	return c.GetChatMessagesWithFilter(ctx, sessionID, chatID, limit, downloadMedia, 0, 0)
+}
+
+// GetChatMessagesWithFilter busca mensagens com filtro de timestamp
+// timestampGte: mensagens >= este timestamp Unix (0 = sem filtro)
+// timestampLte: mensagens <= este timestamp Unix (0 = sem filtro)
+func (c *WAHAClient) GetChatMessagesWithFilter(ctx context.Context, sessionID, chatID string, limit int, downloadMedia bool, timestampGte, timestampLte int64) ([]MessagePayload, error) {
 	url := fmt.Sprintf("%s/api/%s/chats/%s/messages?limit=%d&downloadMedia=%t",
 		c.baseURL, sessionID, chatID, limit, downloadMedia)
+
+	// Adicionar filtros de timestamp se especificados
+	if timestampGte > 0 {
+		url += fmt.Sprintf("&filter.timestamp.gte=%d", timestampGte)
+	}
+	if timestampLte > 0 {
+		url += fmt.Sprintf("&filter.timestamp.lte=%d", timestampLte)
+	}
 
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {

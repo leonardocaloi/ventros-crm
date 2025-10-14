@@ -3,7 +3,7 @@ package contact
 import (
 	"context"
 
-	domaincontact "github.com/caloi/ventros-crm/internal/domain/crm/contact"
+	domaincontact "github.com/ventros/crm/internal/domain/crm/contact"
 )
 
 // EventBus é a interface para publicar eventos de domínio.

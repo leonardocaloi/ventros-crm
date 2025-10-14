@@ -3,8 +3,8 @@ package message
 import (
 	"time"
 
-	"github.com/caloi/ventros-crm/internal/domain/core/shared"
 	"github.com/google/uuid"
+	"github.com/ventros/crm/internal/domain/core/shared"
 )
 
 type DomainEvent = shared.DomainEvent
@@ -52,6 +52,20 @@ func NewMessageReadEvent(messageID uuid.UUID) MessageReadEvent {
 		BaseEvent: shared.NewBaseEvent("message.read", time.Now()),
 		MessageID: messageID,
 		ReadAt:    time.Now(),
+	}
+}
+
+type MessagePlayedEvent struct {
+	shared.BaseEvent
+	MessageID uuid.UUID
+	PlayedAt  time.Time
+}
+
+func NewMessagePlayedEvent(messageID uuid.UUID) MessagePlayedEvent {
+	return MessagePlayedEvent{
+		BaseEvent: shared.NewBaseEvent("message.played", time.Now()),
+		MessageID: messageID,
+		PlayedAt:  time.Now(),
 	}
 }
 

@@ -3,12 +3,12 @@ package routes
 import (
 	"time"
 
-	"github.com/caloi/ventros-crm/infrastructure/health"
-	"github.com/caloi/ventros-crm/infrastructure/http/handlers"
-	"github.com/caloi/ventros-crm/infrastructure/http/middleware"
 	"github.com/gin-gonic/gin"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
+	"github.com/ventros/crm/infrastructure/health"
+	"github.com/ventros/crm/infrastructure/http/handlers"
+	"github.com/ventros/crm/infrastructure/http/middleware"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
@@ -416,6 +416,7 @@ func SetupRoutesBasicWithTest(router *gin.Engine, logger *zap.Logger, healthChec
 		// WAHA-specific endpoints
 		channels.POST("/:id/activate-waha", channelHandler.ActivateWAHAChannel)
 		channels.POST("/:id/import-history", channelHandler.ImportWAHAHistory)
+		channels.GET("/:id/import-status", channelHandler.GetWAHAImportStatus)
 
 		// Nested session routes under channel (using :id for channel)
 		channels.GET("/:id/sessions", sessionHandler.ListSessions)

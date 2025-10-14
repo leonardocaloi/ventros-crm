@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/caloi/ventros-crm/infrastructure/channels/waha"
+	"github.com/ventros/crm/infrastructure/channels/waha"
 	"go.uber.org/zap"
 )
 
@@ -22,6 +22,38 @@ func NewWAHARawEventBus(conn *RabbitMQConnection, logger *zap.Logger) *WAHARawEv
 		conn:   conn,
 		logger: logger,
 	}
+}
+
+// PublishRawEventBuffered publica um evento raw na fila de buffer durante import
+// SAGA Pattern: eventos recebidos durante import histórico são buffered
+// para processar após import completar (evita duplicação)
+func (bus *WAHARawEventBus) PublishRawEventBuffered(ctx context.Context, channelID string, rawEvent waha.WAHARawEvent) error {
+	// Serializa o evento
+	payload, err := json.Marshal(rawEvent)
+	if err != nil {
+		bus.logger.Error("Failed to marshal buffered event",
+			zap.Error(err),
+			zap.String("event_id", rawEvent.ID),
+			zap.String("channel_id", channelID))
+		return err
+	}
+
+	// Publica na fila de buffer específica do canal
+	queueName := fmt.Sprintf("webhooks.buffered.%s", channelID)
+	if err := bus.conn.Publish(ctx, queueName, payload); err != nil {
+		bus.logger.Error("Failed to publish to buffer queue",
+			zap.Error(err),
+			zap.String("queue", queueName),
+			zap.String("event_id", rawEvent.ID))
+		return err
+	}
+
+	bus.logger.Debug("Event buffered during import",
+		zap.String("event_id", rawEvent.ID),
+		zap.String("channel_id", channelID),
+		zap.String("queue", queueName))
+
+	return nil
 }
 
 // PublishRawEvent publica um evento raw na fila de entrada

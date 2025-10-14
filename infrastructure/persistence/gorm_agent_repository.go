@@ -5,10 +5,10 @@ import (
 	"errors"
 	"time"
 
-	"github.com/caloi/ventros-crm/infrastructure/persistence/entities"
-	"github.com/caloi/ventros-crm/internal/domain/core/shared"
-	"github.com/caloi/ventros-crm/internal/domain/crm/agent"
 	"github.com/google/uuid"
+	"github.com/ventros/crm/infrastructure/persistence/entities"
+	"github.com/ventros/crm/internal/domain/core/shared"
+	"github.com/ventros/crm/internal/domain/crm/agent"
 	"gorm.io/gorm"
 )
 
@@ -24,6 +24,11 @@ func NewGormAgentRepository(db *gorm.DB) agent.Repository {
 
 // Save salva um agente (create ou update)
 func (r *GormAgentRepository) Save(ctx context.Context, a *agent.Agent) error {
+	// Prevent modification of system agents
+	if a.IsSystem() {
+		return agent.ErrSystemAgentCannotBeModified
+	}
+
 	entity := r.domainToEntity(a)
 
 	// Verifica se já existe
@@ -43,21 +48,21 @@ func (r *GormAgentRepository) Save(ctx context.Context, a *agent.Agent) error {
 	result := r.db.WithContext(ctx).Model(&entities.AgentEntity{}).
 		Where("id = ? AND version = ?", entity.ID, existing.Version).
 		Updates(map[string]interface{}{
-			"version":            existing.Version + 1, // Increment version
-			"project_id":         entity.ProjectID,
-			"user_id":            entity.UserID,
-			"tenant_id":          entity.TenantID,
-			"name":               entity.Name,
-			"email":              entity.Email,
-			"type":               entity.Type,
-			"status":             entity.Status,
-			"active":             entity.Active,
-			"config":             entity.Config,
-			"sessions_handled":   entity.SessionsHandled,
+			"version":             existing.Version + 1, // Increment version
+			"project_id":          entity.ProjectID,
+			"user_id":             entity.UserID,
+			"tenant_id":           entity.TenantID,
+			"name":                entity.Name,
+			"email":               entity.Email,
+			"type":                entity.Type,
+			"status":              entity.Status,
+			"active":              entity.Active,
+			"config":              entity.Config,
+			"sessions_handled":    entity.SessionsHandled,
 			"average_response_ms": entity.AverageResponseMs,
-			"last_activity_at":   entity.LastActivityAt,
-			"virtual_metadata":   entity.VirtualMetadata,
-			"updated_at":         entity.UpdatedAt,
+			"last_activity_at":    entity.LastActivityAt,
+			"virtual_metadata":    entity.VirtualMetadata,
+			"updated_at":          entity.UpdatedAt,
 		})
 
 	if result.Error != nil {
@@ -141,6 +146,17 @@ func (r *GormAgentRepository) FindActiveByTenant(ctx context.Context, tenantID s
 
 // Delete deleta um agente (soft delete)
 func (r *GormAgentRepository) Delete(ctx context.Context, id uuid.UUID) error {
+	// Check if agent is a system agent
+	agentToDelete, err := r.FindByID(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	// Prevent deletion of system agents
+	if agentToDelete.IsSystem() {
+		return agent.ErrSystemAgentCannotBeDeleted
+	}
+
 	return r.db.WithContext(ctx).Delete(&entities.AgentEntity{}, "id = ?", id).Error
 }
 

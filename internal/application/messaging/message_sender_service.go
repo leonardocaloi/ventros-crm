@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"time"
 
-	messageports "github.com/caloi/ventros-crm/internal/application/message"
 	"github.com/google/uuid"
+	messageports "github.com/ventros/crm/internal/application/message"
+	domainMessage "github.com/ventros/crm/internal/domain/crm/message"
 )
 
 // MessageSenderService implementa o serviço principal de envio de mensagens
@@ -44,7 +45,8 @@ type SendMessageRequest struct {
 	ChannelID    uuid.UUID                    `json:"channel_id" validate:"required"`
 	ContactID    uuid.UUID                    `json:"contact_id" validate:"required"`
 	SessionID    *uuid.UUID                   `json:"session_id,omitempty"`
-	AgentID      *uuid.UUID                   `json:"agent_id,omitempty"`
+	AgentID      uuid.UUID                    `json:"agent_id" validate:"required"` // OBRIGATÓRIO
+	Source       domainMessage.Source         `json:"source" validate:"required"`   // OBRIGATÓRIO: origem da mensagem
 	Type         messageports.MessageType     `json:"type" validate:"required"`
 	Content      string                       `json:"content" validate:"required"`
 	MediaURL     *string                      `json:"media_url,omitempty"`
@@ -76,6 +78,7 @@ func (s *MessageSenderService) SendMessage(ctx context.Context, req *SendMessage
 		ContactID:    req.ContactID,
 		SessionID:    req.SessionID,
 		AgentID:      req.AgentID,
+		Source:       req.Source,
 		Type:         req.Type,
 		Content:      req.Content,
 		MediaURL:     req.MediaURL,

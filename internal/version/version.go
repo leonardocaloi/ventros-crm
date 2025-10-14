@@ -5,12 +5,12 @@ const Version = "0.1.0"
 
 // BuildDate is the date when the binary was built
 // This can be overridden at build time using ldflags:
-// go build -ldflags "-X github.com/caloi/ventros-crm/internal/version.BuildDate=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+// go build -ldflags "-X github.com/ventros/crm/internal/version.BuildDate=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 var BuildDate = "2025-10-06"
 
 // GitCommit is the git commit hash
 // This can be overridden at build time using ldflags:
-// go build -ldflags "-X github.com/caloi/ventros-crm/internal/version.GitCommit=$(git rev-parse HEAD)"
+// go build -ldflags "-X github.com/ventros/crm/internal/version.GitCommit=$(git rev-parse HEAD)"
 var GitCommit = "unknown"
 
 // Info contains all version information

@@ -18,7 +18,7 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 
-	"github.com/caloi/ventros-crm/infrastructure/persistence/entities"
+	"github.com/ventros/crm/infrastructure/persistence/entities"
 )
 
 // IntegrationTestSuite holds all external dependencies for integration tests

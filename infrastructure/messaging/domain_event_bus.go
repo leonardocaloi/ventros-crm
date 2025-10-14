@@ -6,12 +6,12 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/caloi/ventros-crm/infrastructure/persistence"
-	"github.com/caloi/ventros-crm/infrastructure/webhooks"
-	"github.com/caloi/ventros-crm/internal/domain/core/outbox"
-	"github.com/caloi/ventros-crm/internal/domain/core/saga"
-	"github.com/caloi/ventros-crm/internal/domain/core/shared"
 	"github.com/google/uuid"
+	"github.com/ventros/crm/infrastructure/persistence"
+	"github.com/ventros/crm/infrastructure/webhooks"
+	"github.com/ventros/crm/internal/domain/core/outbox"
+	"github.com/ventros/crm/internal/domain/core/saga"
+	"github.com/ventros/crm/internal/domain/core/shared"
 	"gorm.io/gorm"
 )
 
@@ -265,6 +265,8 @@ func (bus *DomainEventBus) mapDomainToBusinessEvents(domainEvent string) []strin
 		return []string{"message.delivered"}
 	case "message.read":
 		return []string{"message.read"}
+	case "message.played":
+		return []string{"message.played"} // Voz/áudio reproduzido (SOMENTE voice messages)
 	case "message.failed":
 		return []string{"message.failed"}
 

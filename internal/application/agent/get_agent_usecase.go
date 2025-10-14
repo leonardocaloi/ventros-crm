@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/caloi/ventros-crm/internal/domain/crm/agent"
 	"github.com/google/uuid"
+	"github.com/ventros/crm/internal/domain/crm/agent"
 )
 
 // GetAgentUseCase handles agent retrieval

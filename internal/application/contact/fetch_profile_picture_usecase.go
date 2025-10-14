@@ -6,8 +6,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/caloi/ventros-crm/internal/domain/crm/contact"
 	"github.com/google/uuid"
+	"github.com/ventros/crm/internal/domain/crm/contact"
 	"go.uber.org/zap"
 )
 

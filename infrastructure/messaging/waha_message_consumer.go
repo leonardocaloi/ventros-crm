@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/caloi/ventros-crm/infrastructure/channels/waha"
-	"github.com/caloi/ventros-crm/internal/application/message"
 	"github.com/google/uuid"
 	amqp "github.com/rabbitmq/amqp091-go"
+	"github.com/ventros/crm/infrastructure/channels/waha"
+	"github.com/ventros/crm/internal/application/message"
 )
 
 // WAHAMessageConsumer consome eventos de mensagem do WAHA via RabbitMQ.

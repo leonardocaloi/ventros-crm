@@ -5,10 +5,10 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/caloi/ventros-crm/internal/application/shared"
-	"github.com/caloi/ventros-crm/internal/domain/crm/contact"
-	"github.com/caloi/ventros-crm/internal/domain/crm/pipeline"
 	"github.com/google/uuid"
+	"github.com/ventros/crm/internal/application/shared"
+	"github.com/ventros/crm/internal/domain/crm/contact"
+	"github.com/ventros/crm/internal/domain/crm/pipeline"
 )
 
 // ChangePipelineStatusUseCase gerencia a mudança de status de um contato em um pipeline.

@@ -6,8 +6,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 
-	"github.com/caloi/ventros-crm/infrastructure/ai"
-	"github.com/caloi/ventros-crm/internal/domain/crm/message_enrichment"
+	"github.com/ventros/crm/infrastructure/ai"
+	"github.com/ventros/crm/internal/domain/crm/message_enrichment"
 )
 
 // LlamaParseWebhookHandler handler para receber resultados do LlamaParse via webhook

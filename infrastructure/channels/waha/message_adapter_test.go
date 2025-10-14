@@ -5,8 +5,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/caloi/ventros-crm/infrastructure/channels/waha"
-	"github.com/caloi/ventros-crm/internal/domain/crm/message"
+	"github.com/ventros/crm/infrastructure/channels/waha"
+	"github.com/ventros/crm/internal/domain/crm/message"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

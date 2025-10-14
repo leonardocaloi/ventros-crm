@@ -4,10 +4,10 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/caloi/ventros-crm/internal/domain/crm/project_member"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
+	"github.com/ventros/crm/internal/domain/crm/project_member"
 )
 
 // ProjectMemberRepository interface para buscar project members

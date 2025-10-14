@@ -4,8 +4,8 @@ import (
 	"errors"
 	"time"
 
-	"github.com/caloi/ventros-crm/internal/domain/core/shared"
 	"github.com/google/uuid"
+	"github.com/ventros/crm/internal/domain/core/shared"
 )
 
 // MessageGroup representa um grupo de mensagens agrupadas pelo debouncer

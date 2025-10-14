@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	messageports "github.com/caloi/ventros-crm/internal/application/message"
+	messageports "github.com/ventros/crm/internal/application/message"
 )
 
 // MessageMetrics implementa coleta de métricas de mensagens

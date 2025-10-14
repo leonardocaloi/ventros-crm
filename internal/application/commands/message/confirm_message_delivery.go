@@ -5,8 +5,8 @@ import (
 	"errors"
 	"time"
 
-	domainMessage "github.com/caloi/ventros-crm/internal/domain/crm/message"
 	"github.com/google/uuid"
+	domainMessage "github.com/ventros/crm/internal/domain/crm/message"
 )
 
 // ConfirmMessageDeliveryCommand representa o comando para confirmar entrega de mensagem

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/caloi/ventros-crm/internal/domain/crm/message_group"
+	"github.com/ventros/crm/internal/domain/crm/message_group"
 	"go.uber.org/zap"
 )
 

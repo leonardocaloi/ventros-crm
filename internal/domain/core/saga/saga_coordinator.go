@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/caloi/ventros-crm/internal/domain/core/outbox"
 	"github.com/google/uuid"
+	"github.com/ventros/crm/internal/domain/core/outbox"
 )
 
 // SagaCoordinator coordena execuções de Saga usando Choreography Pattern.

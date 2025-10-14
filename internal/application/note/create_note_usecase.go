@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/caloi/ventros-crm/infrastructure/messaging"
-	"github.com/caloi/ventros-crm/internal/domain/crm/note"
 	"github.com/google/uuid"
+	"github.com/ventros/crm/infrastructure/messaging"
+	"github.com/ventros/crm/internal/domain/crm/note"
 	"go.uber.org/zap"
 )
 

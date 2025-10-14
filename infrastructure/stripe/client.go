@@ -39,10 +39,11 @@ func (c *Client) API() *client.API {
 }
 
 // SetLogLevel configura nível de log do Stripe SDK
+// TODO: Update when stripe-go v81 backend configuration API is available
 func (c *Client) SetLogLevel(level int) {
-	stripe.SetBackend("api", &stripe.BackendConfiguration{
-		LeveledLogger: &stripeLogger{logger: c.logger},
-	})
+	// stripe.SetBackend configuration has changed in v81
+	// Keeping method for API compatibility but not implementing for now
+	c.logger.Debug("SetLogLevel called but not implemented for stripe-go v81")
 }
 
 // stripeLogger adapta zap.Logger para stripe.LeveledLogger

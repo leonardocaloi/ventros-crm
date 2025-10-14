@@ -3,8 +3,8 @@ package persistence
 import (
 	"context"
 
-	"github.com/caloi/ventros-crm/internal/workflows/session"
 	"github.com/google/uuid"
+	"github.com/ventros/crm/internal/workflows/session"
 )
 
 // MessageRepositoryAdapter adapta GormMessageRepository para a interface do workflow

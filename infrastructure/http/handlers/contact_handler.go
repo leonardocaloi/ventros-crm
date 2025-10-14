@@ -5,14 +5,15 @@ import (
 	"strconv"
 	"strings"
 
-	apierrors "github.com/caloi/ventros-crm/infrastructure/http/errors"
-	"github.com/caloi/ventros-crm/infrastructure/http/middleware"
-	contactapp "github.com/caloi/ventros-crm/internal/application/contact"
-	"github.com/caloi/ventros-crm/internal/application/queries"
-	"github.com/caloi/ventros-crm/internal/domain/core/shared"
-	"github.com/caloi/ventros-crm/internal/domain/crm/contact"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	apierrors "github.com/ventros/crm/infrastructure/http/errors"
+	"github.com/ventros/crm/infrastructure/http/middleware"
+	contactcmd "github.com/ventros/crm/internal/application/commands/contact"
+	contactapp "github.com/ventros/crm/internal/application/contact"
+	"github.com/ventros/crm/internal/application/queries"
+	"github.com/ventros/crm/internal/domain/core/shared"
+	"github.com/ventros/crm/internal/domain/crm/contact"
 	"go.uber.org/zap"
 )
 
@@ -20,18 +21,30 @@ type ContactHandler struct {
 	logger                      *zap.Logger
 	contactRepo                 contact.Repository
 	changePipelineStatusUseCase *contactapp.ChangePipelineStatusUseCase
+	// Command handlers
+	createContactHandler *contactcmd.CreateContactHandler
+	updateContactHandler *contactcmd.UpdateContactHandler
+	deleteContactHandler *contactcmd.DeleteContactHandler
 	// Query handlers
 	listContactsQueryHandler   *queries.ListContactsQueryHandler
 	searchContactsQueryHandler *queries.SearchContactsQueryHandler
-	// TODO: Add use cases when needed
-	// createContactUseCase *contactapp.CreateContactUseCase
 }
 
-func NewContactHandler(logger *zap.Logger, contactRepo contact.Repository, changePipelineStatusUseCase *contactapp.ChangePipelineStatusUseCase) *ContactHandler {
+func NewContactHandler(
+	logger *zap.Logger,
+	contactRepo contact.Repository,
+	changePipelineStatusUseCase *contactapp.ChangePipelineStatusUseCase,
+	createContactHandler *contactcmd.CreateContactHandler,
+	updateContactHandler *contactcmd.UpdateContactHandler,
+	deleteContactHandler *contactcmd.DeleteContactHandler,
+) *ContactHandler {
 	return &ContactHandler{
 		logger:                      logger,
 		contactRepo:                 contactRepo,
 		changePipelineStatusUseCase: changePipelineStatusUseCase,
+		createContactHandler:        createContactHandler,
+		updateContactHandler:        updateContactHandler,
+		deleteContactHandler:        deleteContactHandler,
 		listContactsQueryHandler:    queries.NewListContactsQueryHandler(contactRepo, logger),
 		searchContactsQueryHandler:  queries.NewSearchContactsQueryHandler(contactRepo, logger),
 	}
@@ -182,65 +195,28 @@ func (h *ContactHandler) CreateContact(c *gin.Context) {
 	// TODO: Get tenant_id from context/auth
 	tenantID := "default" // Placeholder
 
-	// Create domain contact
-	domainContact, err := contact.NewContact(projectID, tenantID, req.Name)
+	// Build command from request
+	cmd := contactcmd.CreateContactCommand{
+		ProjectID:     projectID,
+		TenantID:      tenantID,
+		Name:          req.Name,
+		Email:         req.Email,
+		Phone:         req.Phone,
+		ExternalID:    req.ExternalID,
+		SourceChannel: req.SourceChannel,
+		Language:      req.Language,
+		Timezone:      req.Timezone,
+		Tags:          req.Tags,
+		CustomFields:  req.CustomFields,
+	}
+
+	// Delegate to command handler
+	domainContact, err := h.createContactHandler.Handle(c.Request.Context(), cmd)
 	if err != nil {
-		h.logger.Error("Failed to create domain contact", zap.Error(err))
+		h.logger.Error("Failed to create contact", zap.Error(err))
 		apierrors.RespondWithError(c, err)
 		return
 	}
-
-	// Set optional fields
-	if req.Email != "" {
-		if err := domainContact.SetEmail(req.Email); err != nil {
-			apierrors.ValidationError(c, "email", "Invalid email format")
-			return
-		}
-	}
-
-	if req.Phone != "" {
-		if err := domainContact.SetPhone(req.Phone); err != nil {
-			apierrors.ValidationError(c, "phone", "Invalid phone format")
-			return
-		}
-	}
-
-	if req.ExternalID != "" {
-		domainContact.SetExternalID(req.ExternalID)
-	}
-
-	if req.SourceChannel != "" {
-		domainContact.SetSourceChannel(req.SourceChannel)
-	}
-
-	if req.Language != "" {
-		domainContact.SetLanguage(req.Language)
-	}
-
-	if req.Timezone != "" {
-		domainContact.SetTimezone(req.Timezone)
-	}
-
-	// Add tags
-	for _, tag := range req.Tags {
-		domainContact.AddTag(tag)
-	}
-
-	// Save contact
-	if err := h.contactRepo.Save(c.Request.Context(), domainContact); err != nil {
-		h.logger.Error("Failed to save contact", zap.Error(err))
-		apierrors.InternalError(c, "Failed to save contact", err)
-		return
-	}
-
-	// TODO: Publish domain events (should be done by use case)
-	// For now, we'll skip event publishing until use case is properly integrated
-	// This means webhooks won't be triggered from direct API calls
-	h.logger.Info("Contact created successfully",
-		zap.String("contact_id", domainContact.ID().String()),
-		zap.String("name", domainContact.Name()),
-		zap.Int("domain_events", len(domainContact.DomainEvents())),
-	)
 
 	// Convert to response
 	response := h.contactToResponse(domainContact)
@@ -314,66 +290,29 @@ func (h *ContactHandler) UpdateContact(c *gin.Context) {
 		return
 	}
 
-	// Find existing contact
-	domainContact, err := h.contactRepo.FindByID(c.Request.Context(), contactID)
+	// TODO: Get tenant_id from context/auth
+	tenantID := "default" // Placeholder
+
+	// Build command from request
+	cmd := contactcmd.UpdateContactCommand{
+		ContactID:     contactID,
+		TenantID:      tenantID,
+		Name:          req.Name,
+		Email:         req.Email,
+		Phone:         req.Phone,
+		ExternalID:    req.ExternalID,
+		SourceChannel: req.SourceChannel,
+		Language:      req.Language,
+		Timezone:      req.Timezone,
+		Tags:          req.Tags,
+		CustomFields:  req.CustomFields,
+	}
+
+	// Delegate to command handler
+	domainContact, err := h.updateContactHandler.Handle(c.Request.Context(), cmd)
 	if err != nil {
+		h.logger.Error("Failed to update contact", zap.Error(err))
 		apierrors.RespondWithError(c, err)
-		return
-	}
-
-	if domainContact == nil {
-		apierrors.NotFound(c, "contact", contactID.String())
-		return
-	}
-
-	// Update fields
-	if req.Name != nil {
-		domainContact.UpdateName(*req.Name)
-	}
-
-	if req.Email != nil {
-		if err := domainContact.SetEmail(*req.Email); err != nil {
-			apierrors.ValidationError(c, "email", "Invalid email format")
-			return
-		}
-	}
-
-	if req.Phone != nil {
-		if err := domainContact.SetPhone(*req.Phone); err != nil {
-			apierrors.ValidationError(c, "phone", "Invalid phone format")
-			return
-		}
-	}
-
-	if req.ExternalID != nil {
-		domainContact.SetExternalID(*req.ExternalID)
-	}
-
-	if req.SourceChannel != nil {
-		domainContact.SetSourceChannel(*req.SourceChannel)
-	}
-
-	if req.Language != nil {
-		domainContact.SetLanguage(*req.Language)
-	}
-
-	if req.Timezone != nil {
-		domainContact.SetTimezone(*req.Timezone)
-	}
-
-	// Update tags if provided
-	if req.Tags != nil {
-		// Clear existing tags and add new ones
-		domainContact.ClearTags()
-		for _, tag := range req.Tags {
-			domainContact.AddTag(tag)
-		}
-	}
-
-	// Save updated contact
-	if err := h.contactRepo.Save(c.Request.Context(), domainContact); err != nil {
-		h.logger.Error("Failed to save contact", zap.Error(err))
-		apierrors.InternalError(c, "Failed to update contact", err)
 		return
 	}
 
@@ -402,25 +341,19 @@ func (h *ContactHandler) DeleteContact(c *gin.Context) {
 		return
 	}
 
-	// Find existing contact
-	domainContact, err := h.contactRepo.FindByID(c.Request.Context(), contactID)
-	if err != nil {
-		apierrors.RespondWithError(c, err)
-		return
+	// TODO: Get tenant_id from context/auth
+	tenantID := "default" // Placeholder
+
+	// Build command from request
+	cmd := contactcmd.DeleteContactCommand{
+		ContactID: contactID,
+		TenantID:  tenantID,
 	}
 
-	if domainContact == nil {
-		apierrors.NotFound(c, "contact", contactID.String())
-		return
-	}
-
-	// Soft delete
-	domainContact.Delete()
-
-	// Save updated contact
-	if err := h.contactRepo.Save(c.Request.Context(), domainContact); err != nil {
+	// Delegate to command handler
+	if err := h.deleteContactHandler.Handle(c.Request.Context(), cmd); err != nil {
 		h.logger.Error("Failed to delete contact", zap.Error(err))
-		apierrors.InternalError(c, "Failed to delete contact", err)
+		apierrors.RespondWithError(c, err)
 		return
 	}
 

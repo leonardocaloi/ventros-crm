@@ -9,13 +9,15 @@ import (
 
 // WAHAHistoryImportWorkflowInput representa a entrada do workflow
 type WAHAHistoryImportWorkflowInput struct {
-	ChannelID string `json:"channel_id"`
-	SessionID string `json:"session_id"`
-	Strategy  string `json:"strategy"` // "all", "recent", "custom"
-	Limit     int    `json:"limit"`    // Mensagens por chat (0 = todas)
-	ProjectID string `json:"project_id"`
-	TenantID  string `json:"tenant_id"`
-	UserID    string `json:"user_id"`
+	ChannelID             string `json:"channel_id"`
+	SessionID             string `json:"session_id"`
+	Strategy              string `json:"strategy"`                // "all", "recent", "custom"
+	Limit                 int    `json:"limit"`                   // Mensagens por chat (0 = todas)
+	TimeRangeDays         int    `json:"time_range_days"`         // Dias para filtrar mensagens (0 = sem filtro)
+	SessionTimeoutMinutes int    `json:"session_timeout_minutes"` // Timeout de inatividade para agrupar sessões (default: 30)
+	ProjectID             string `json:"project_id"`
+	TenantID              string `json:"tenant_id"`
+	UserID                string `json:"user_id"`
 }
 
 // WAHAHistoryImportWorkflowResult representa o resultado do workflow
@@ -35,10 +37,25 @@ type WAHAHistoryImportWorkflowResult struct {
 // Usa Temporal para garantir durabilidade, retry e observabilidade
 func WAHAHistoryImportWorkflow(ctx workflow.Context, input WAHAHistoryImportWorkflowInput) (*WAHAHistoryImportWorkflowResult, error) {
 	logger := workflow.GetLogger(ctx)
-	logger.Info("Starting WAHA history import workflow",
+
+	// Default session timeout se não especificado
+	if input.SessionTimeoutMinutes == 0 {
+		input.SessionTimeoutMinutes = 30 // Default: 30 minutos
+	}
+
+	logger.Info("========================================")
+	logger.Info("🚀 Starting WAHA History Import Workflow")
+	logger.Info("========================================")
+	logger.Info("Configuration:",
 		"channel_id", input.ChannelID,
 		"session_id", input.SessionID,
-		"strategy", input.Strategy)
+		"strategy", input.Strategy,
+		"limit", input.Limit,
+		"time_range_days", input.TimeRangeDays,
+		"session_timeout_minutes", input.SessionTimeoutMinutes,
+		"project_id", input.ProjectID,
+		"tenant_id", input.TenantID)
+	logger.Info("========================================")
 
 	result := &WAHAHistoryImportWorkflowResult{
 		ChannelID: input.ChannelID,
@@ -102,13 +119,15 @@ func WAHAHistoryImportWorkflow(ctx workflow.Context, input WAHAHistoryImportWork
 		futures := []workflow.Future{}
 		for _, chat := range batch {
 			importInput := ImportChatHistoryActivityInput{
-				ChannelID: input.ChannelID,
-				SessionID: input.SessionID,
-				ChatID:    chat.ID,
-				ChatName:  chat.Name,
-				Limit:     input.Limit,
-				ProjectID: input.ProjectID,
-				TenantID:  input.TenantID,
+				ChannelID:             input.ChannelID,
+				SessionID:             input.SessionID,
+				ChatID:                chat.ID,
+				ChatName:              chat.Name,
+				Limit:                 input.Limit,
+				TimeRangeDays:         input.TimeRangeDays,
+				SessionTimeoutMinutes: input.SessionTimeoutMinutes,
+				ProjectID:             input.ProjectID,
+				TenantID:              input.TenantID,
 			}
 
 			future := workflow.ExecuteActivity(ctx, "ImportChatHistoryActivity", importInput)
@@ -134,20 +153,29 @@ func WAHAHistoryImportWorkflow(ctx workflow.Context, input WAHAHistoryImportWork
 		}
 	}
 
-	// STEP 3: Marcar importação como concluída no canal
-	logger.Info("Step 3: Marking import as completed")
-	markCompleteInput := MarkImportCompletedActivityInput{
-		ChannelID: input.ChannelID,
+	// STEP 3: Processar webhooks buffered (SAGA Pattern compensation)
+	logger.Info("Step 3: Processing buffered webhooks")
+	importDuration := workflow.Now(ctx).Sub(result.StartedAt)
+	processBufferedInput := ProcessBufferedWebhooksActivityInput{
+		ChannelID:             input.ChannelID,
+		TotalMessagesImported: result.MessagesImported,
+		ImportDurationSeconds: int64(importDuration.Seconds()),
 	}
 
-	err = workflow.ExecuteActivity(ctx, "MarkImportCompletedActivity", markCompleteInput).Get(ctx, nil)
+	var processBufferedResult ProcessBufferedWebhooksActivityResult
+	err = workflow.ExecuteActivity(ctx, "ProcessBufferedWebhooksActivity", processBufferedInput).Get(ctx, &processBufferedResult)
 	if err != nil {
-		logger.Warn("Failed to mark import as completed", "error", err.Error())
-		result.Errors = append(result.Errors, "Failed to mark import as completed: "+err.Error())
+		logger.Warn("Failed to process buffered webhooks", "error", err.Error())
+		result.Errors = append(result.Errors, "Failed to process buffered webhooks: "+err.Error())
+	} else {
+		logger.Info("Buffered webhooks processed",
+			"webhooks_count", processBufferedResult.WebhooksProcessed,
+			"errors_count", len(processBufferedResult.Errors))
 	}
 
 	// Finalizar
 	result.CompletedAt = workflow.Now(ctx)
+	duration := result.CompletedAt.Sub(result.StartedAt)
 
 	if len(result.Errors) == 0 {
 		result.Status = "completed"
@@ -157,14 +185,48 @@ func WAHAHistoryImportWorkflow(ctx workflow.Context, input WAHAHistoryImportWork
 		result.Status = "failed"
 	}
 
-	logger.Info("WAHA history import completed",
-		"status", result.Status,
-		"chats_processed", result.ChatsProcessed,
-		"messages_imported", result.MessagesImported,
-		"sessions_created", result.SessionsCreated,
-		"contacts_created", result.ContactsCreated,
-		"errors_count", len(result.Errors),
-		"duration", result.CompletedAt.Sub(result.StartedAt))
+	// Calcular estatísticas
+	avgSessionsPerChat := float64(0)
+	if result.ChatsProcessed > 0 {
+		avgSessionsPerChat = float64(result.SessionsCreated) / float64(result.ChatsProcessed)
+	}
+
+	avgMessagesPerSession := float64(0)
+	if result.SessionsCreated > 0 {
+		avgMessagesPerSession = float64(result.MessagesImported) / float64(result.SessionsCreated)
+	}
+
+	// Log do relatório detalhado final
+	logger.Info("========================================")
+	logger.Info("✅ WAHA History Import COMPLETED")
+	logger.Info("========================================")
+	logger.Info("Status:", "value", result.Status)
+	logger.Info("Duration:", "value", duration.String())
+	logger.Info("----------------------------------------")
+	logger.Info("📊 Statistics:")
+	logger.Info("  • Chats Processed:", "count", result.ChatsProcessed)
+	logger.Info("  • Messages Imported:", "count", result.MessagesImported)
+	logger.Info("  • Sessions Created:", "count", result.SessionsCreated)
+	logger.Info("  • Contacts Created:", "count", result.ContactsCreated)
+	logger.Info("----------------------------------------")
+	logger.Info("📈 Averages:")
+	logger.Info("  • Sessions per Chat:", "avg", avgSessionsPerChat)
+	logger.Info("  • Messages per Session:", "avg", avgMessagesPerSession)
+	logger.Info("----------------------------------------")
+	logger.Info("⚙️  Configuration Used:")
+	logger.Info("  • Session Timeout:", "minutes", input.SessionTimeoutMinutes)
+	logger.Info("  • Limit per Chat:", "value", input.Limit)
+	logger.Info("  • Time Range Days:", "value", input.TimeRangeDays)
+
+	if len(result.Errors) > 0 {
+		logger.Info("----------------------------------------")
+		logger.Warn("⚠️  Errors Encountered:", "count", len(result.Errors))
+		for i, err := range result.Errors {
+			logger.Warn("  Error", "index", i+1, "message", err)
+		}
+	}
+
+	logger.Info("========================================")
 
 	return result, nil
 }
@@ -196,13 +258,15 @@ type FetchChatsActivityInput struct {
 
 // ImportChatHistoryActivityInput representa a entrada para importar chat
 type ImportChatHistoryActivityInput struct {
-	ChannelID string `json:"channel_id"`
-	SessionID string `json:"session_id"`
-	ChatID    string `json:"chat_id"`
-	ChatName  string `json:"chat_name"`
-	Limit     int    `json:"limit"`
-	ProjectID string `json:"project_id"`
-	TenantID  string `json:"tenant_id"`
+	ChannelID             string `json:"channel_id"`
+	SessionID             string `json:"session_id"`
+	ChatID                string `json:"chat_id"`
+	ChatName              string `json:"chat_name"`
+	Limit                 int    `json:"limit"`
+	TimeRangeDays         int    `json:"time_range_days"`         // Dias para filtrar mensagens (0 = sem filtro)
+	SessionTimeoutMinutes int    `json:"session_timeout_minutes"` // Timeout de inatividade para agrupar sessões
+	ProjectID             string `json:"project_id"`
+	TenantID              string `json:"tenant_id"`
 }
 
 // ImportChatHistoryActivityResult representa o resultado da importação de um chat
@@ -216,4 +280,18 @@ type ImportChatHistoryActivityResult struct {
 // MarkImportCompletedActivityInput representa a entrada para marcar importação completa
 type MarkImportCompletedActivityInput struct {
 	ChannelID string `json:"channel_id"`
+}
+
+// ProcessBufferedWebhooksActivityInput representa a entrada para processar webhooks buffered
+type ProcessBufferedWebhooksActivityInput struct {
+	ChannelID             string `json:"channel_id"`
+	TotalMessagesImported int    `json:"total_messages_imported"`
+	ImportDurationSeconds int64  `json:"import_duration_seconds"`
+}
+
+// ProcessBufferedWebhooksActivityResult representa o resultado do processamento de webhooks
+type ProcessBufferedWebhooksActivityResult struct {
+	ChannelID         string   `json:"channel_id"`
+	WebhooksProcessed int      `json:"webhooks_processed"`
+	Errors            []string `json:"errors"`
 }

@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/caloi/ventros-crm/internal/domain/crm/channel"
+	"github.com/ventros/crm/internal/domain/crm/channel"
 	"go.uber.org/zap"
 )
 

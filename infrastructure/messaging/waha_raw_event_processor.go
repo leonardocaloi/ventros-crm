@@ -6,14 +6,14 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/caloi/ventros-crm/infrastructure/channels/waha"
-	messageapp "github.com/caloi/ventros-crm/internal/application/message"
-	domainchannel "github.com/caloi/ventros-crm/internal/domain/crm/channel"
-	domainchat "github.com/caloi/ventros-crm/internal/domain/crm/chat"
-	domaincontact "github.com/caloi/ventros-crm/internal/domain/crm/contact"
-	domainmessage "github.com/caloi/ventros-crm/internal/domain/crm/message"
 	"github.com/google/uuid"
 	amqp "github.com/rabbitmq/amqp091-go"
+	"github.com/ventros/crm/infrastructure/channels/waha"
+	messageapp "github.com/ventros/crm/internal/application/message"
+	domainchannel "github.com/ventros/crm/internal/domain/crm/channel"
+	domainchat "github.com/ventros/crm/internal/domain/crm/chat"
+	domaincontact "github.com/ventros/crm/internal/domain/crm/contact"
+	domainmessage "github.com/ventros/crm/internal/domain/crm/message"
 	"go.uber.org/zap"
 )
 
@@ -234,7 +234,7 @@ func (p *WAHARawEventProcessor) convertToMessageEvent(rawEvent waha.WAHARawEvent
 // - ACK 1 (SERVER)  → Mensagem enviada ao servidor WhatsApp
 // - ACK 2 (DEVICE)  → Mensagem entregue ao dispositivo (✓✓)
 // - ACK 3 (READ)    → Mensagem lida pelo destinatário (✓✓ azul)
-// - ACK 4 (PLAYED)  → Mensagem de mídia reproduzida/visualizada
+// - ACK 4 (PLAYED)  → Mensagem de voz/áudio reproduzida (SOMENTE voice messages)
 func (p *WAHARawEventProcessor) processMessageAckEvent(ctx context.Context, rawEvent waha.WAHARawEvent, wahaEvent *waha.WAHAWebhookEvent) error {
 	// Converte payload para extrair informações do ACK
 	payloadBytes, err := json.Marshal(wahaEvent.Payload)
@@ -303,6 +303,8 @@ func (p *WAHARawEventProcessor) processMessageAckEvent(ctx context.Context, rawE
 		msg.MarkAsDelivered()
 	case domainmessage.StatusRead:
 		msg.MarkAsRead()
+	case domainmessage.StatusPlayed:
+		msg.MarkAsPlayed()
 	case domainmessage.StatusSent:
 		// Já está como sent por padrão, não precisa atualizar
 	case domainmessage.StatusFailed:

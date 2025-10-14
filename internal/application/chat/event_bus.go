@@ -3,7 +3,7 @@ package chat
 import (
 	"context"
 
-	"github.com/caloi/ventros-crm/internal/domain/core/shared"
+	"github.com/ventros/crm/internal/domain/core/shared"
 )
 
 type EventBus interface {

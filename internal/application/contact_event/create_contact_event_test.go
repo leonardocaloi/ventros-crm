@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/caloi/ventros-crm/internal/domain/crm/contact_event"
+	"github.com/ventros/crm/internal/domain/crm/contact_event"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"

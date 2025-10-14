@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/caloi/ventros-crm/infrastructure/health"
 	"github.com/gin-gonic/gin"
+	"github.com/ventros/crm/infrastructure/health"
 	"go.uber.org/zap"
 )
 

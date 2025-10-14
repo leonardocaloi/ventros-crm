@@ -5,11 +5,11 @@ import (
 	"errors"
 	"time"
 
-	"github.com/caloi/ventros-crm/infrastructure/persistence/entities"
-	"github.com/caloi/ventros-crm/internal/application/shared"
-	domainShared "github.com/caloi/ventros-crm/internal/domain/core/shared"
-	"github.com/caloi/ventros-crm/internal/domain/crm/contact"
 	"github.com/google/uuid"
+	"github.com/ventros/crm/infrastructure/persistence/entities"
+	"github.com/ventros/crm/internal/application/shared"
+	domainShared "github.com/ventros/crm/internal/domain/core/shared"
+	"github.com/ventros/crm/internal/domain/crm/contact"
 	"gorm.io/gorm"
 )
 
@@ -35,22 +35,22 @@ func (r *GormContactRepository) Save(ctx context.Context, c *contact.Contact) er
 		result := db.Model(&entities.ContactEntity{}).
 			Where("id = ? AND version = ?", entity.ID, existing.Version).
 			Updates(map[string]interface{}{
-				"version":                  existing.Version + 1, // Increment version
-				"project_id":               entity.ProjectID,
-				"tenant_id":                entity.TenantID,
-				"name":                     entity.Name,
-				"email":                    entity.Email,
-				"phone":                    entity.Phone,
-				"external_id":              entity.ExternalID,
-				"source_channel":           entity.SourceChannel,
-				"language":                 entity.Language,
-				"timezone":                 entity.Timezone,
-				"tags":                     entity.Tags,
-				"profile_picture_url":      entity.ProfilePictureURL,
+				"version":                    existing.Version + 1, // Increment version
+				"project_id":                 entity.ProjectID,
+				"tenant_id":                  entity.TenantID,
+				"name":                       entity.Name,
+				"email":                      entity.Email,
+				"phone":                      entity.Phone,
+				"external_id":                entity.ExternalID,
+				"source_channel":             entity.SourceChannel,
+				"language":                   entity.Language,
+				"timezone":                   entity.Timezone,
+				"tags":                       entity.Tags,
+				"profile_picture_url":        entity.ProfilePictureURL,
 				"profile_picture_fetched_at": entity.ProfilePictureFetchedAt,
-				"first_interaction_at":     entity.FirstInteractionAt,
-				"last_interaction_at":      entity.LastInteractionAt,
-				"updated_at":               entity.UpdatedAt,
+				"first_interaction_at":       entity.FirstInteractionAt,
+				"last_interaction_at":        entity.LastInteractionAt,
+				"updated_at":                 entity.UpdatedAt,
 			})
 
 		if result.Error != nil {

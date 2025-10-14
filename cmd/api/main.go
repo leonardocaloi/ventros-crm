@@ -11,41 +11,48 @@ import (
 	"syscall"
 	"time"
 
-	_ "github.com/caloi/ventros-crm/docs" // Import swagger docs
-	"github.com/caloi/ventros-crm/infrastructure/cache"
-	"github.com/caloi/ventros-crm/infrastructure/channels/waha"
-	"github.com/caloi/ventros-crm/infrastructure/config"
-	"github.com/caloi/ventros-crm/infrastructure/database"
-	"github.com/caloi/ventros-crm/infrastructure/health"
-	"github.com/caloi/ventros-crm/infrastructure/http/handlers"
-	"github.com/caloi/ventros-crm/infrastructure/http/middleware"
-	"github.com/caloi/ventros-crm/infrastructure/http/routes"
-	"github.com/caloi/ventros-crm/infrastructure/messaging"
-	"github.com/caloi/ventros-crm/infrastructure/persistence"
-	"github.com/caloi/ventros-crm/infrastructure/webhooks"
-	ws "github.com/caloi/ventros-crm/infrastructure/websocket"
-	"github.com/caloi/ventros-crm/infrastructure/workflow"
-	channelapp "github.com/caloi/ventros-crm/internal/application/channel"
-	chatapp "github.com/caloi/ventros-crm/internal/application/chat"
-	messagecommand "github.com/caloi/ventros-crm/internal/application/commands/message"
-	appconfig "github.com/caloi/ventros-crm/internal/application/config"
-	contactapp "github.com/caloi/ventros-crm/internal/application/contact"
-	contacteventapp "github.com/caloi/ventros-crm/internal/application/contact_event"
-	messageapp "github.com/caloi/ventros-crm/internal/application/message"
-	pipelineapp "github.com/caloi/ventros-crm/internal/application/pipeline"
-	sessionapp "github.com/caloi/ventros-crm/internal/application/session"
-	"github.com/caloi/ventros-crm/internal/application/shared"
-	trackingapp "github.com/caloi/ventros-crm/internal/application/tracking"
-	"github.com/caloi/ventros-crm/internal/application/user"
-	webhookapp "github.com/caloi/ventros-crm/internal/application/webhook"
-	wsapp "github.com/caloi/ventros-crm/internal/application/websocket"
+	_ "github.com/ventros/crm/docs" // Import swagger docs
+	"github.com/ventros/crm/infrastructure/cache"
+	"github.com/ventros/crm/infrastructure/channels/waha"
+	"github.com/ventros/crm/infrastructure/config"
+	"github.com/ventros/crm/infrastructure/database"
+	"github.com/ventros/crm/infrastructure/health"
+	"github.com/ventros/crm/infrastructure/http/handlers"
+	"github.com/ventros/crm/infrastructure/http/middleware"
+	"github.com/ventros/crm/infrastructure/http/routes"
+	"github.com/ventros/crm/infrastructure/messaging"
+	"github.com/ventros/crm/infrastructure/persistence"
+	"github.com/ventros/crm/infrastructure/webhooks"
+	ws "github.com/ventros/crm/infrastructure/websocket"
+	"github.com/ventros/crm/infrastructure/workflow"
+	channelapp "github.com/ventros/crm/internal/application/channel"
+	"github.com/ventros/crm/internal/application/channel/activation"
+	importpkg "github.com/ventros/crm/internal/application/channel/import"
+	chatapp "github.com/ventros/crm/internal/application/chat"
+	channelcmd "github.com/ventros/crm/internal/application/commands/channel"
+	contactcmd "github.com/ventros/crm/internal/application/commands/contact"
+	messagecommand "github.com/ventros/crm/internal/application/commands/message"
+	sequencecmd "github.com/ventros/crm/internal/application/commands/sequence"
+	sessioncmd "github.com/ventros/crm/internal/application/commands/session"
+	appconfig "github.com/ventros/crm/internal/application/config"
+	contactapp "github.com/ventros/crm/internal/application/contact"
+	contacteventapp "github.com/ventros/crm/internal/application/contact_event"
+	messageapp "github.com/ventros/crm/internal/application/message"
+	pipelineapp "github.com/ventros/crm/internal/application/pipeline"
+	sessionapp "github.com/ventros/crm/internal/application/session"
+	"github.com/ventros/crm/internal/application/shared"
+	trackingapp "github.com/ventros/crm/internal/application/tracking"
+	"github.com/ventros/crm/internal/application/user"
+	webhookapp "github.com/ventros/crm/internal/application/webhook"
+	wsapp "github.com/ventros/crm/internal/application/websocket"
 
-	// contact_event "github.com/caloi/ventros-crm/internal/domain/contact/events" // Temporariamente comentado
-	domainPipeline "github.com/caloi/ventros-crm/internal/domain/crm/pipeline"
-	channelworkflow "github.com/caloi/ventros-crm/internal/workflows/channel"
-	sagaworkflow "github.com/caloi/ventros-crm/internal/workflows/saga"
-	sessionworkflow "github.com/caloi/ventros-crm/internal/workflows/session"
+	// contact_event "github.com/ventros/crm/internal/domain/contact/events" // Temporariamente comentado
 	"github.com/gin-gonic/gin"
+	"github.com/sirupsen/logrus"
+	domainPipeline "github.com/ventros/crm/internal/domain/crm/pipeline"
+	channelworkflow "github.com/ventros/crm/internal/workflows/channel"
+	sagaworkflow "github.com/ventros/crm/internal/workflows/saga"
+	sessionworkflow "github.com/ventros/crm/internal/workflows/session"
 	"go.temporal.io/sdk/worker"
 	"go.uber.org/zap"
 )
@@ -177,6 +184,11 @@ func main() {
 	// Setup Row Level Security (RLS)
 	if err := persistence.SetupRLS(gormDB); err != nil {
 		logger.Warn("Failed to setup RLS, continuing without it", zap.Error(err))
+	}
+
+	// Setup Outbox NOTIFY trigger (critical for push-based event processing)
+	if err := persistence.SetupOutboxNotifyTrigger(gormDB); err != nil {
+		logger.Fatal("Failed to setup Outbox NOTIFY trigger (required for event processing)", zap.Error(err))
 	}
 
 	// Register RLS callbacks for GORM
@@ -593,7 +605,7 @@ func main() {
 	logger.Info("WAHA import worker started successfully")
 
 	// Create adapter for WAHA message sender
-	wahaMessageSender := persistence.NewWAHAMessageSenderAdapter(wahaClient, logger)
+	wahaMessageSender := persistence.NewWAHAMessageSenderAdapter(wahaClient, channelRepo, contactRepo, logger)
 
 	// Create adapter for session repository (adds GetActiveSessionByContact)
 	sessionRepoAdapter := persistence.NewSessionRepositoryAdapter(sessionRepo)
@@ -610,14 +622,98 @@ func main() {
 	// Initialize message delivery confirmation (CQRS Command)
 	confirmMessageDeliveryHandler := messagecommand.NewConfirmMessageDeliveryHandler(messageRepo)
 
+	// Convert zap.Logger to logrus.Logger for command handlers
+	logrusLogger := logrus.New()
+	logrusLogger.SetLevel(logrus.InfoLevel)
+
+	// Initialize contact command handlers (CQRS Command)
+	createContactHandler := contactcmd.NewCreateContactHandler(contactRepo, logrusLogger)
+	updateContactHandler := contactcmd.NewUpdateContactHandler(contactRepo, logrusLogger)
+	deleteContactHandler := contactcmd.NewDeleteContactHandler(contactRepo, logrusLogger)
+
+	// Initialize session command handlers (CQRS Command)
+	closeSessionHandler := sessioncmd.NewCloseSessionHandler(sessionRepo, logrusLogger)
+
+	// Initialize sequence repositories
+	sequenceRepo := persistence.NewGormSequenceRepository(gormDB)
+	sequenceEnrollmentRepo := persistence.NewGormSequenceEnrollmentRepository(gormDB)
+
+	// Initialize sequence command handlers (CQRS Command)
+	createSequenceHandler := sequencecmd.NewCreateSequenceHandler(sequenceRepo, logrusLogger)
+	updateSequenceHandler := sequencecmd.NewUpdateSequenceHandler(sequenceRepo, logrusLogger)
+	changeSequenceStatusHandler := sequencecmd.NewChangeSequenceStatusHandler(sequenceRepo, logrusLogger)
+	deleteSequenceHandler := sequencecmd.NewDeleteSequenceHandler(sequenceRepo, logrusLogger)
+	enrollContactHandler := sequencecmd.NewEnrollContactHandler(sequenceRepo, sequenceEnrollmentRepo, logrusLogger)
+
+	// Initialize channel activation components (Event-Driven + Strategy Pattern)
+	// Pattern: Command + Strategy + Event-Driven Architecture
+	// Flow: HTTP → Command Handler → Publish Event → Consumer → Strategy → Activate
+	strategyFactory := activation.NewStrategyFactory(logger)
+
+	activateChannelHandler := channelcmd.NewActivateChannelHandler(
+		channelRepo,
+		eventBus,
+		txManagerShared,
+		logrusLogger,
+	)
+
+	// Initialize and start Channel Activation Consumer
+	channelActivationConsumer := messaging.NewChannelActivationConsumer(
+		rabbitConn,
+		channelRepo,
+		strategyFactory,
+		eventBus, // Fixed: Use eventBus directly (not &eventBus - it's already a pointer)
+		txManagerShared,
+		logger,
+	)
+
+	// Start consuming channel activation events in background
+	go func() {
+		if err := channelActivationConsumer.Start(ctx); err != nil {
+			logger.Error("Failed to start channel activation consumer", zap.Error(err))
+		}
+	}()
+	logger.Info("✅ Channel Activation Consumer started (Event-Driven + Strategy Pattern)")
+
+	// Initialize channel history import components (Event-Driven + Strategy Pattern)
+	// Pattern: Command + Strategy + Event-Driven Architecture
+	// Flow: HTTP → Command Handler → Publish Event → Consumer → Strategy → Start Workflow
+	importStrategyFactory := importpkg.NewStrategyFactory(temporalClient, logger)
+
+	importHistoryHandler := channelcmd.NewImportHistoryHandler(
+		channelRepo,
+		eventBus,
+		txManagerShared,
+		importStrategyFactory,
+		logger,
+	)
+
+	// Initialize and start Channel History Import Consumer
+	channelImportConsumer := messaging.NewChannelHistoryImportConsumer(
+		rabbitConn,
+		channelRepo,
+		importStrategyFactory,
+		eventBus,
+		txManagerShared,
+		logger,
+	)
+
+	// Start consuming channel history import events in background
+	go func() {
+		if err := channelImportConsumer.Start(ctx); err != nil {
+			logger.Error("Failed to start channel history import consumer", zap.Error(err))
+		}
+	}()
+	logger.Info("✅ Channel History Import Consumer started (Event-Driven + Strategy Pattern)")
+
 	// Initialize handlers
 	authHandler := handlers.NewAuthHandler(logger, userService)
-	channelHandler := handlers.NewChannelHandler(logger, channelService, temporalClient)
+	channelHandler := handlers.NewChannelHandler(logger, channelService, activateChannelHandler, importHistoryHandler, temporalClient)
 	wahaHandler := handlers.NewWAHAWebhookHandler(logger, wahaIntegration.RawEventBus, channelRepo)
 	webhookHandler := handlers.NewWebhookSubscriptionHandler(logger, webhookUseCase)
 	queueHandler := handlers.NewQueueHandler(logger, rabbitConn)
-	sessionHandler := handlers.NewSessionHandler(logger, sessionRepo)
-	contactHandler := handlers.NewContactHandler(logger, contactRepo, changePipelineStatusUseCase)
+	sessionHandler := handlers.NewSessionHandler(logger, sessionRepo, closeSessionHandler)
+	contactHandler := handlers.NewContactHandler(logger, contactRepo, changePipelineStatusUseCase, createContactHandler, updateContactHandler, deleteContactHandler)
 	chatHandler := handlers.NewChatHandler(logger, createChatUseCase, findChatUseCase, manageParticipantsUseCase, archiveChatUseCase, updateChatUseCase)
 	messageHandler := handlers.NewMessageHandler(logger, messageRepo, sendMessageHandler, confirmMessageDeliveryHandler)
 	trackingHandler := handlers.NewTrackingHandler(createTrackingUseCase, getTrackingUseCase, getContactTrackingsUseCase, logger)
@@ -638,7 +734,7 @@ func main() {
 	_ = domainEventHandler // TODO: Add domain event routes
 
 	// Initialize pipeline handler
-	pipelineHandler := handlers.NewPipelineHandler(logger, pipelineRepo)
+	pipelineHandler := handlers.NewPipelineHandler(logger, pipelineRepo, logrusLogger)
 
 	// Initialize project handler (placeholder - using mock for now)
 	projectRepo := persistence.NewMockProjectRepository()
@@ -657,7 +753,15 @@ func main() {
 	broadcastHandler := handlers.NewBroadcastHandler(logger, gormDB)
 
 	// Initialize sequence handler (AUTOMATION product)
-	sequenceHandler := handlers.NewSequenceHandler(logger, gormDB)
+	sequenceHandler := handlers.NewSequenceHandler(
+		logger,
+		gormDB,
+		createSequenceHandler,
+		updateSequenceHandler,
+		changeSequenceStatusHandler,
+		deleteSequenceHandler,
+		enrollContactHandler,
+	)
 
 	// Initialize campaign handler (AUTOMATION product)
 	campaignHandler := handlers.NewCampaignHandler(logger, gormDB)

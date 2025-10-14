@@ -5,13 +5,13 @@ import (
 	"net/http"
 	"time"
 
-	campaigncommand "github.com/caloi/ventros-crm/internal/application/commands/campaign"
-	"github.com/caloi/ventros-crm/infrastructure/http/errors"
-	"github.com/caloi/ventros-crm/infrastructure/persistence"
-	"github.com/caloi/ventros-crm/internal/domain/automation/campaign"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
+	"github.com/ventros/crm/infrastructure/http/errors"
+	"github.com/ventros/crm/infrastructure/persistence"
+	campaigncommand "github.com/ventros/crm/internal/application/commands/campaign"
+	"github.com/ventros/crm/internal/domain/automation/campaign"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 )

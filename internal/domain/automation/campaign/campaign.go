@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/caloi/ventros-crm/internal/domain/core/shared"
+	"github.com/ventros/crm/internal/domain/core/shared"
 )
 
 // Campaign represents a complex multi-step marketing campaign
@@ -388,21 +388,21 @@ func (c *Campaign) UpdateGoal(goalType GoalType, goalValue int) error {
 
 // Getters
 
-func (c *Campaign) ID() uuid.UUID                    { return c.id }
-func (c *Campaign) Version() int                     { return c.version }
-func (c *Campaign) TenantID() string                 { return c.tenantID }
-func (c *Campaign) Name() string                     { return c.name }
-func (c *Campaign) Description() string              { return c.description }
-func (c *Campaign) Status() CampaignStatus           { return c.status }
-func (c *Campaign) Steps() []CampaignStep            { return c.steps }
-func (c *Campaign) GoalType() GoalType               { return c.goalType }
-func (c *Campaign) GoalValue() int                   { return c.goalValue }
-func (c *Campaign) ContactsReached() int             { return c.contactsReached }
-func (c *Campaign) ConversionsCount() int            { return c.conversionsCount }
-func (c *Campaign) StartDate() *time.Time            { return c.startDate }
-func (c *Campaign) EndDate() *time.Time              { return c.endDate }
-func (c *Campaign) CreatedAt() time.Time             { return c.createdAt }
-func (c *Campaign) UpdatedAt() time.Time             { return c.updatedAt }
+func (c *Campaign) ID() uuid.UUID                      { return c.id }
+func (c *Campaign) Version() int                       { return c.version }
+func (c *Campaign) TenantID() string                   { return c.tenantID }
+func (c *Campaign) Name() string                       { return c.name }
+func (c *Campaign) Description() string                { return c.description }
+func (c *Campaign) Status() CampaignStatus             { return c.status }
+func (c *Campaign) Steps() []CampaignStep              { return c.steps }
+func (c *Campaign) GoalType() GoalType                 { return c.goalType }
+func (c *Campaign) GoalValue() int                     { return c.goalValue }
+func (c *Campaign) ContactsReached() int               { return c.contactsReached }
+func (c *Campaign) ConversionsCount() int              { return c.conversionsCount }
+func (c *Campaign) StartDate() *time.Time              { return c.startDate }
+func (c *Campaign) EndDate() *time.Time                { return c.endDate }
+func (c *Campaign) CreatedAt() time.Time               { return c.createdAt }
+func (c *Campaign) UpdatedAt() time.Time               { return c.updatedAt }
 func (c *Campaign) DomainEvents() []shared.DomainEvent { return c.events }
 
 func (c *Campaign) ClearEvents() {

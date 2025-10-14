@@ -3,7 +3,7 @@ package session
 import (
 	"context"
 
-	domainsession "github.com/caloi/ventros-crm/internal/domain/crm/session"
+	domainsession "github.com/ventros/crm/internal/domain/crm/session"
 )
 
 // EventBus é a interface para publicar eventos de domínio.

@@ -5,9 +5,9 @@ import (
 	"errors"
 	"time"
 
-	"github.com/caloi/ventros-crm/infrastructure/persistence/entities"
-	contact_event "github.com/caloi/ventros-crm/internal/domain/crm/contact_event"
 	"github.com/google/uuid"
+	"github.com/ventros/crm/infrastructure/persistence/entities"
+	contact_event "github.com/ventros/crm/internal/domain/crm/contact_event"
 	"gorm.io/gorm"
 )
 

@@ -3,9 +3,9 @@ package handlers
 import (
 	"net/http"
 
-	"github.com/caloi/ventros-crm/infrastructure/http/dto"
-	"github.com/caloi/ventros-crm/internal/domain/crm/pipeline"
 	"github.com/gin-gonic/gin"
+	"github.com/ventros/crm/infrastructure/http/dto"
+	"github.com/ventros/crm/internal/domain/crm/pipeline"
 )
 
 // AutomationDiscoveryHandler lida com endpoints de discovery de automação

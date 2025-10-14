@@ -6,8 +6,8 @@ import (
 	"log"
 	"time"
 
-	"github.com/caloi/ventros-crm/internal/domain/crm/pipeline"
 	"github.com/google/uuid"
+	"github.com/ventros/crm/internal/domain/crm/pipeline"
 )
 
 // AutomationEngine é responsável por avaliar e executar regras de follow-up

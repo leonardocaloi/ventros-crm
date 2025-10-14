@@ -26,10 +26,12 @@ type Message struct {
 	status           Status
 	language         *string
 	agentID          *uuid.UUID
+	source           Source // Origem da mensagem (manual, broadcast, sequence, etc)
 	metadata         map[string]interface{}
 	deliveredAt      *time.Time
 	readAt           *time.Time
-	mentions         []string // IDs externos mencionados (formato WAHA: "phone@c.us")
+	playedAt         *time.Time // Timestamp quando mídia foi reproduzida/visualizada
+	mentions         []string   // IDs externos mencionados (formato WAHA: "phone@c.us")
 
 	events []DomainEvent
 }
@@ -90,9 +92,11 @@ func ReconstructMessage(
 	status Status,
 	language *string,
 	agentID *uuid.UUID,
+	source Source,
 	metadata map[string]interface{},
 	deliveredAt *time.Time,
 	readAt *time.Time,
+	playedAt *time.Time,
 	mentions []string,
 ) *Message {
 	if metadata == nil {
@@ -122,9 +126,11 @@ func ReconstructMessage(
 		status:           status,
 		language:         language,
 		agentID:          agentID,
+		source:           source,
 		metadata:         metadata,
 		deliveredAt:      deliveredAt,
 		readAt:           readAt,
+		playedAt:         playedAt,
 		mentions:         mentions,
 		events:           []DomainEvent{},
 	}
@@ -164,6 +170,23 @@ func (m *Message) SetChannelMessageID(channelMessageID string) {
 	m.channelMessageID = &channelMessageID
 }
 
+// SetChannelID permite definir o channel_id após criação da mensagem
+// Útil para casos de importação de histórico onde a mensagem é criada
+// antes de ter o contexto completo do canal
+func (m *Message) SetChannelID(channelID uuid.UUID) {
+	m.channelID = channelID
+}
+
+// SetSource permite definir a origem da mensagem
+// Útil para marcar mensagens importadas do histórico
+func (m *Message) SetSource(source Source) error {
+	if !source.IsValid() {
+		return errors.New("invalid message source")
+	}
+	m.source = source
+	return nil
+}
+
 func (m *Message) MarkAsDelivered() {
 	now := time.Now()
 	m.status = StatusDelivered
@@ -183,6 +206,20 @@ func (m *Message) MarkAsRead() {
 	m.addEvent(MessageReadEvent{
 		MessageID: m.id,
 		ReadAt:    now,
+	})
+}
+
+// MarkAsPlayed marca a mensagem de voz/áudio como reproduzida
+// IMPORTANTE: Este status é exclusivo para mensagens de voz/áudio (voice messages)
+// Outros tipos de mídia (imagem, vídeo, documento) não recebem ACK 4 (PLAYED)
+func (m *Message) MarkAsPlayed() {
+	now := time.Now()
+	m.status = StatusPlayed
+	m.playedAt = &now
+
+	m.addEvent(MessagePlayedEvent{
+		MessageID: m.id,
+		PlayedAt:  now,
 	})
 }
 
@@ -250,9 +287,11 @@ func (m *Message) Metadata() map[string]interface{} {
 }
 func (m *Message) DeliveredAt() *time.Time { return m.deliveredAt }
 func (m *Message) ReadAt() *time.Time      { return m.readAt }
+func (m *Message) PlayedAt() *time.Time    { return m.playedAt }
 func (m *Message) Mentions() []string {
 	return append([]string{}, m.mentions...) // Retornar cópia para evitar mutação
 }
+func (m *Message) Source() Source { return m.source }
 
 func (m *Message) DomainEvents() []DomainEvent {
 	return append([]DomainEvent{}, m.events...)

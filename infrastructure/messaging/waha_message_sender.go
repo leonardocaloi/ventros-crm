@@ -9,8 +9,8 @@ import (
 	"net/http"
 	"time"
 
-	messageports "github.com/caloi/ventros-crm/internal/application/message"
 	"github.com/google/uuid"
+	messageports "github.com/ventros/crm/internal/application/message"
 )
 
 // WAHAMessageSender implementa o envio de mensagens via WAHA
@@ -68,15 +68,23 @@ func NewWAHAMessageSender(baseURL, apiKey, sessionName string) *WAHAMessageSende
 
 // WAHATextMessage representa uma mensagem de texto para WAHA
 type WAHATextMessage struct {
-	ChatID string `json:"chatId"`
-	Text   string `json:"text"`
+	ChatID  string `json:"chatId"`
+	Text    string `json:"text"`
+	Session string `json:"session,omitempty"`
 }
 
 // WAHAMediaMessage representa uma mensagem de mídia para WAHA
 type WAHAMediaMessage struct {
-	ChatID   string `json:"chatId"`
-	File     string `json:"file"`
-	Caption  string `json:"caption,omitempty"`
+	ChatID  string          `json:"chatId"`
+	File    WAHAFilePayload `json:"file"`
+	Caption string          `json:"caption,omitempty"`
+	Session string          `json:"session,omitempty"`
+}
+
+// WAHAFilePayload representa o arquivo de mídia
+type WAHAFilePayload struct {
+	URL      string `json:"url"`
+	Mimetype string `json:"mimetype,omitempty"`
 	Filename string `json:"filename,omitempty"`
 }
 
@@ -86,12 +94,19 @@ type WAHALocationMessage struct {
 	Latitude  float64 `json:"latitude"`
 	Longitude float64 `json:"longitude"`
 	Title     string  `json:"title,omitempty"`
+	Session   string  `json:"session,omitempty"`
 }
 
 // WAHAContactMessage representa uma mensagem de contato para WAHA
 type WAHAContactMessage struct {
-	ChatID string `json:"chatId"`
-	VCard  string `json:"vcard"`
+	ChatID   string             `json:"chatId"`
+	Contacts []WAHAContactEntry `json:"contacts"`
+	Session  string             `json:"session,omitempty"`
+}
+
+// WAHAContactEntry representa um contato no vCard
+type WAHAContactEntry struct {
+	VCard string `json:"vcard,omitempty"`
 }
 
 // WAHAResponse representa a resposta da API WAHA
@@ -265,8 +280,9 @@ func (w *WAHAMessageSender) GetChannelCapabilities(channelID uuid.UUID) (*messag
 // sendTextMessage envia uma mensagem de texto
 func (w *WAHAMessageSender) sendTextMessage(ctx context.Context, chatID string, message *messageports.OutboundMessage) (*WAHAResponse, error) {
 	payload := WAHATextMessage{
-		ChatID: chatID,
-		Text:   message.Content,
+		ChatID:  chatID,
+		Text:    message.Content,
+		Session: w.sessionName,
 	}
 
 	return w.makeAPICall(ctx, "POST", "/api/sendText", payload)
@@ -278,26 +294,49 @@ func (w *WAHAMessageSender) sendMediaMessage(ctx context.Context, chatID string,
 		return nil, fmt.Errorf("media URL is required for media messages")
 	}
 
+	// Construir payload do arquivo
+	filePayload := WAHAFilePayload{
+		URL: *message.MediaURL,
+	}
+
+	// Adicionar mimetype se disponível
+	if message.Metadata != nil {
+		if mimetype, ok := message.Metadata["mimetype"].(string); ok && mimetype != "" {
+			filePayload.Mimetype = mimetype
+		}
+		if filename, ok := message.Metadata["filename"].(string); ok && filename != "" {
+			filePayload.Filename = filename
+		}
+	}
+
 	payload := WAHAMediaMessage{
 		ChatID:  chatID,
-		File:    *message.MediaURL,
+		File:    filePayload,
 		Caption: message.Content,
+		Session: w.sessionName,
 	}
 
 	var endpoint string
 	switch message.Type {
 	case messageports.MessageTypeImage:
 		endpoint = "/api/sendImage"
+		if filePayload.Mimetype == "" {
+			filePayload.Mimetype = "image/jpeg"
+		}
 	case messageports.MessageTypeAudio:
 		endpoint = "/api/sendVoice"
+		if filePayload.Mimetype == "" {
+			filePayload.Mimetype = "audio/ogg; codecs=opus"
+		}
 	case messageports.MessageTypeVideo:
 		endpoint = "/api/sendVideo"
+		if filePayload.Mimetype == "" {
+			filePayload.Mimetype = "video/mp4"
+		}
 	case messageports.MessageTypeDocument:
-		endpoint = "/api/sendDocument"
-		if message.Metadata != nil && message.Metadata["filename"] != nil {
-			if filename, ok := message.Metadata["filename"].(string); ok {
-				payload.Filename = filename
-			}
+		endpoint = "/api/sendFile" // ← CORRIGIDO: era /api/sendDocument
+		if filePayload.Mimetype == "" {
+			filePayload.Mimetype = "application/pdf"
 		}
 	default:
 		return nil, fmt.Errorf("unsupported media type: %s", message.Type)
@@ -308,21 +347,41 @@ func (w *WAHAMessageSender) sendMediaMessage(ctx context.Context, chatID string,
 
 // sendLocationMessage envia uma mensagem de localização
 func (w *WAHAMessageSender) sendLocationMessage(ctx context.Context, chatID string, message *messageports.OutboundMessage) (*WAHAResponse, error) {
-	lat, ok := message.Metadata["latitude"].(float64)
-	if !ok {
-		return nil, fmt.Errorf("invalid latitude in metadata")
+	// Tentar converter latitude/longitude de diferentes formatos
+	var lat, lng float64
+	var ok bool
+
+	// Tentar float64 direto
+	if lat, ok = message.Metadata["latitude"].(float64); !ok {
+		// Tentar int e converter para float64
+		if latInt, okInt := message.Metadata["latitude"].(int); okInt {
+			lat = float64(latInt)
+		} else {
+			return nil, fmt.Errorf("invalid latitude in metadata: expected float64 or int")
+		}
 	}
 
-	lng, ok := message.Metadata["longitude"].(float64)
-	if !ok {
-		return nil, fmt.Errorf("invalid longitude in metadata")
+	if lng, ok = message.Metadata["longitude"].(float64); !ok {
+		// Tentar int e converter para float64
+		if lngInt, okInt := message.Metadata["longitude"].(int); okInt {
+			lng = float64(lngInt)
+		} else {
+			return nil, fmt.Errorf("invalid longitude in metadata: expected float64 or int")
+		}
+	}
+
+	// Extrair título se disponível
+	title := message.Content
+	if titleMeta, ok := message.Metadata["title"].(string); ok && titleMeta != "" {
+		title = titleMeta
 	}
 
 	payload := WAHALocationMessage{
 		ChatID:    chatID,
 		Latitude:  lat,
 		Longitude: lng,
-		Title:     message.Content,
+		Title:     title,
+		Session:   w.sessionName,
 	}
 
 	return w.makeAPICall(ctx, "POST", "/api/sendLocation", payload)
@@ -330,14 +389,45 @@ func (w *WAHAMessageSender) sendLocationMessage(ctx context.Context, chatID stri
 
 // sendContactMessage envia uma mensagem de contato
 func (w *WAHAMessageSender) sendContactMessage(ctx context.Context, chatID string, message *messageports.OutboundMessage) (*WAHAResponse, error) {
-	vcard, ok := message.Metadata["vcard"].(string)
-	if !ok {
-		return nil, fmt.Errorf("invalid vcard in metadata")
+	// Se já tem vcard pronto, usar direto
+	if vcard, ok := message.Metadata["vcard"].(string); ok && vcard != "" {
+		payload := WAHAContactMessage{
+			ChatID: chatID,
+			Contacts: []WAHAContactEntry{
+				{VCard: vcard},
+			},
+			Session: w.sessionName,
+		}
+		return w.makeAPICall(ctx, "POST", "/api/sendContactVcard", payload)
 	}
+
+	// Se não tem vcard, construir a partir dos campos
+	name, _ := message.Metadata["name"].(string)
+	phone, _ := message.Metadata["phone"].(string)
+	email, _ := message.Metadata["email"].(string)
+	company, _ := message.Metadata["company"].(string)
+
+	if name == "" || phone == "" {
+		return nil, fmt.Errorf("contact message requires at least name and phone in metadata")
+	}
+
+	// Construir vCard
+	vcard := fmt.Sprintf("BEGIN:VCARD\nVERSION:3.0\nFN:%s\n", name)
+	if company != "" {
+		vcard += fmt.Sprintf("ORG:%s\n", company)
+	}
+	vcard += fmt.Sprintf("TEL:%s\n", phone)
+	if email != "" {
+		vcard += fmt.Sprintf("EMAIL:%s\n", email)
+	}
+	vcard += "END:VCARD"
 
 	payload := WAHAContactMessage{
 		ChatID: chatID,
-		VCard:  vcard,
+		Contacts: []WAHAContactEntry{
+			{VCard: vcard},
+		},
+		Session: w.sessionName,
 	}
 
 	return w.makeAPICall(ctx, "POST", "/api/sendContactVcard", payload)

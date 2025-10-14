@@ -4,8 +4,8 @@ import (
 	"errors"
 	"time"
 
-	"github.com/caloi/ventros-crm/internal/domain/core/shared"
 	"github.com/google/uuid"
+	"github.com/ventros/crm/internal/domain/core/shared"
 )
 
 // ProjectMemberRole representa os roles disponíveis em um projeto
@@ -213,15 +213,15 @@ func (pm *ProjectMember) CanInteractWithSessions() bool {
 }
 
 // Getters
-func (pm *ProjectMember) ID() uuid.UUID                 { return pm.id }
-func (pm *ProjectMember) Version() int                  { return pm.version }
-func (pm *ProjectMember) ProjectID() uuid.UUID          { return pm.projectID }
-func (pm *ProjectMember) AgentID() string               { return pm.agentID }
-func (pm *ProjectMember) Role() ProjectMemberRole       { return pm.role }
-func (pm *ProjectMember) InvitedBy() string             { return pm.invitedBy }
-func (pm *ProjectMember) InvitedAt() time.Time          { return pm.invitedAt }
-func (pm *ProjectMember) CreatedAt() time.Time          { return pm.createdAt }
-func (pm *ProjectMember) UpdatedAt() time.Time          { return pm.updatedAt }
+func (pm *ProjectMember) ID() uuid.UUID                      { return pm.id }
+func (pm *ProjectMember) Version() int                       { return pm.version }
+func (pm *ProjectMember) ProjectID() uuid.UUID               { return pm.projectID }
+func (pm *ProjectMember) AgentID() string                    { return pm.agentID }
+func (pm *ProjectMember) Role() ProjectMemberRole            { return pm.role }
+func (pm *ProjectMember) InvitedBy() string                  { return pm.invitedBy }
+func (pm *ProjectMember) InvitedAt() time.Time               { return pm.invitedAt }
+func (pm *ProjectMember) CreatedAt() time.Time               { return pm.createdAt }
+func (pm *ProjectMember) UpdatedAt() time.Time               { return pm.updatedAt }
 func (pm *ProjectMember) DomainEvents() []shared.DomainEvent { return pm.events }
 
 // ClearEvents limpa os eventos de domínio

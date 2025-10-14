@@ -5,10 +5,10 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/caloi/ventros-crm/infrastructure/persistence/entities"
-	"github.com/caloi/ventros-crm/internal/domain/automation/broadcast"
-	"github.com/caloi/ventros-crm/internal/domain/core/shared"
 	"github.com/google/uuid"
+	"github.com/ventros/crm/infrastructure/persistence/entities"
+	"github.com/ventros/crm/internal/domain/automation/broadcast"
+	"github.com/ventros/crm/internal/domain/core/shared"
 	"gorm.io/gorm"
 )
 
@@ -38,21 +38,21 @@ func (r *GormBroadcastRepository) Save(b *broadcast.Broadcast) error {
 		result := r.db.Model(&entities.BroadcastEntity{}).
 			Where("id = ? AND version = ?", entity.ID, existing.Version).
 			Updates(map[string]interface{}{
-				"version":           existing.Version + 1, // Increment version
-				"tenant_id":         entity.TenantID,
-				"name":              entity.Name,
-				"list_id":           entity.ListID,
-				"message_template":  entity.MessageTemplate,
-				"status":            entity.Status,
-				"scheduled_for":     entity.ScheduledFor,
-				"started_at":        entity.StartedAt,
-				"completed_at":      entity.CompletedAt,
-				"total_contacts":    entity.TotalContacts,
-				"sent_count":        entity.SentCount,
-				"failed_count":      entity.FailedCount,
-				"pending_count":     entity.PendingCount,
-				"rate_limit":        entity.RateLimit,
-				"updated_at":        entity.UpdatedAt,
+				"version":          existing.Version + 1, // Increment version
+				"tenant_id":        entity.TenantID,
+				"name":             entity.Name,
+				"list_id":          entity.ListID,
+				"message_template": entity.MessageTemplate,
+				"status":           entity.Status,
+				"scheduled_for":    entity.ScheduledFor,
+				"started_at":       entity.StartedAt,
+				"completed_at":     entity.CompletedAt,
+				"total_contacts":   entity.TotalContacts,
+				"sent_count":       entity.SentCount,
+				"failed_count":     entity.FailedCount,
+				"pending_count":    entity.PendingCount,
+				"rate_limit":       entity.RateLimit,
+				"updated_at":       entity.UpdatedAt,
 			})
 
 		if result.Error != nil {

@@ -22,8 +22,8 @@ type ProjectMemberEntity struct {
 	InvitedAt time.Time `gorm:"not null"`
 
 	// Timestamps
-	CreatedAt time.Time `gorm:"autoCreateTime"`
-	UpdatedAt time.Time `gorm:"autoUpdateTime"`
+	CreatedAt time.Time  `gorm:"autoCreateTime"`
+	UpdatedAt time.Time  `gorm:"autoUpdateTime"`
 	DeletedAt *time.Time `gorm:"index"` // Soft delete
 
 	// Índices compostos

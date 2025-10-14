@@ -4,9 +4,9 @@ import (
 	"context"
 	"time"
 
-	"github.com/caloi/ventros-crm/internal/domain/crm/channel"
-	"github.com/caloi/ventros-crm/internal/domain/crm/pipeline"
 	"github.com/google/uuid"
+	"github.com/ventros/crm/internal/domain/crm/channel"
+	"github.com/ventros/crm/internal/domain/crm/pipeline"
 )
 
 // SessionTimeoutResolver resolve o timeout correto baseado na hierarquia:

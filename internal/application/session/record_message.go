@@ -5,8 +5,8 @@ import (
 	"errors"
 	"time"
 
-	"github.com/caloi/ventros-crm/internal/domain/crm/session"
 	"github.com/google/uuid"
+	"github.com/ventros/crm/internal/domain/crm/session"
 )
 
 // RecordMessageCommand contém os dados para registrar uma mensagem.

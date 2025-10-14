@@ -7,10 +7,10 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/caloi/ventros-crm/infrastructure/persistence"
-	"github.com/caloi/ventros-crm/internal/domain/crm/contact_event"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/ventros/crm/infrastructure/persistence"
+	"github.com/ventros/crm/internal/domain/crm/contact_event"
 	"go.uber.org/zap"
 )
 

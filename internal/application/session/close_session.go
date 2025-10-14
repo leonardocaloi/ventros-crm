@@ -4,9 +4,9 @@ import (
 	"context"
 	"errors"
 
-	"github.com/caloi/ventros-crm/internal/application/shared"
-	"github.com/caloi/ventros-crm/internal/domain/crm/session"
 	"github.com/google/uuid"
+	"github.com/ventros/crm/internal/application/shared"
+	"github.com/ventros/crm/internal/domain/crm/session"
 )
 
 // CloseSessionCommand contém os dados para fechar uma sessão.

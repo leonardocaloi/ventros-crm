@@ -1,0 +1,48 @@
+---
+apiVersion: acid.zalan.do/v1
+kind: postgresql
+metadata:
+  name: ventros-crm-postgres
+  namespace: {{ k8s.namespace }}
+spec:
+  teamId: {{ postgresql.teamId }}
+  numberOfInstances: {{ postgresql.instances }}
+  
+  users:
+    {{ postgresql.teamId }}:
+      - superuser
+      - createdb
+  
+  databases:
+    ventros_crm: {{ postgresql.teamId }}
+    temporal: {{ postgresql.teamId }}
+    temporal_visibility: {{ postgresql.teamId }}
+  
+  postgresql:
+    version: "{{ postgresql.version }}"
+    parameters:
+      max_connections: "100"
+      shared_buffers: "128MB"
+      work_mem: "8MB"
+  
+  volume:
+    size: {{ postgresql.storage.size }}
+    storageClass: {{ postgresql.storage.storageClass }}
+  
+  resources:
+    requests:
+      cpu: {{ postgresql.resources.requests.cpu }}
+      memory: {{ postgresql.resources.requests.memory }}
+    limits:
+      cpu: {{ postgresql.resources.limits.cpu }}
+      memory: {{ postgresql.resources.limits.memory }}
+  
+  patroni:
+    initdb:
+      encoding: UTF8
+      locale: en_US.UTF-8
+      data-checksums: "true"
+    pg_hba:
+      - local all all trust
+      - host all all 0.0.0.0/0 md5
+      - hostssl all all 0.0.0.0/0 md5

@@ -1,6 +1,7 @@
 package stripe
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -270,7 +271,7 @@ func (s *Service) ReportUsage(ctx context.Context, params MeterEventParams) erro
 	}
 
 	// Faz request para V2 API
-	req, err := http.NewRequestWithContext(ctx, "POST", "https://api.stripe.com/v2/billing/meter_events", nil)
+	req, err := http.NewRequestWithContext(ctx, "POST", "https://api.stripe.com/v2/billing/meter_events", bytes.NewBuffer(body))
 	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)
 	}

@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/caloi/ventros-crm/internal/domain/crm/pipeline"
 	"github.com/google/uuid"
+	"github.com/ventros/crm/internal/domain/crm/pipeline"
 )
 
 // AutomationRuleManager gerencia CRUD e operações complexas de Follow-up Rules
