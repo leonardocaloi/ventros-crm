@@ -472,6 +472,7 @@ func main() {
 		contactRepo,
 		sessionRepo,
 		messageRepo,
+		agentRepo, // ✅ NOVO: Para atribuir system agents
 		contactEventRepo,
 		messageEventBus,
 		sessionManager,
@@ -590,6 +591,7 @@ func main() {
 	channelService := channelapp.NewChannelService(channelRepo, logger, wahaClient, historyImporter)
 
 	// Initialize and start WAHA import worker (Temporal)
+	// ✅ SOLID/DRY: Reuse ProcessInboundMessageUseCase + MessageAdapter for history import
 	wahaImportWorker := channelworkflow.NewWAHAImportWorker(
 		temporalClient,
 		wahaClient,
@@ -597,12 +599,14 @@ func main() {
 		contactRepo,
 		sessionRepo,
 		messageRepo,
+		processMessageUseCase, // ✅ Reuse webhook processing logic (tracking, events, agent)
+		messageAdapter,        // ✅ Extract tracking data from WAHA messages
 		logger,
 	)
 	if err := wahaImportWorker.Start(ctx); err != nil {
 		logger.Fatal("Failed to start WAHA import worker", zap.Error(err))
 	}
-	logger.Info("WAHA import worker started successfully")
+	logger.Info("✅ WAHA import worker started with ProcessInboundMessageUseCase integration (SOLID/DRY)")
 
 	// Create adapter for WAHA message sender
 	wahaMessageSender := persistence.NewWAHAMessageSenderAdapter(wahaClient, channelRepo, contactRepo, logger)

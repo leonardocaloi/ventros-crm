@@ -58,9 +58,9 @@ func TestFromJSON(t *testing.T) {
 
 func TestWSMessage_ParsePayload(t *testing.T) {
 	sendPayload := SendMessagePayload{
-		SessionID: uuid.New(),
-		ContactID: uuid.New(),
-		Text:      "Test message",
+		SessionID:   uuid.New(),
+		ContactID:   uuid.New(),
+		Text:        "Test message",
 		ContentType: "text",
 	}
 

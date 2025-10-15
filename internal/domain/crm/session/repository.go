@@ -54,4 +54,9 @@ type Repository interface {
 	FindByTenantWithFilters(ctx context.Context, filters SessionFilters) ([]*Session, int64, error)
 
 	SearchByText(ctx context.Context, tenantID string, searchText string, limit int, offset int) ([]*Session, int64, error)
+
+	// Consolidation methods (for history import post-processing)
+	FindByChannelPaginated(ctx context.Context, channelID uuid.UUID, limit int, offset int) ([]*Session, error)
+	CountByChannel(ctx context.Context, channelID uuid.UUID) (int64, error)
+	DeleteBatch(ctx context.Context, sessionIDs []uuid.UUID) error
 }

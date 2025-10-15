@@ -136,20 +136,24 @@ fresh: ## ✨ Fresh start (infra up → clean DB → AutoMigrate → API) - FAST
 	@echo "$(CYAN)✨ FRESH START - Clean slate in seconds$(RESET)"
 	@echo "$(CYAN)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(RESET)"
 	@echo ""
-	@echo "$(BLUE)Step 1/4: Ensuring infrastructure is up...$(RESET)"
+	@echo "$(BLUE)Step 1/5: Killing any process on port 8080...$(RESET)"
+	@lsof -ti:8080 | xargs -r kill -9 2>/dev/null || true
+	@echo "$(GREEN)✓ Port 8080 cleared$(RESET)"
+	@echo ""
+	@echo "$(BLUE)Step 2/5: Ensuring infrastructure is up...$(RESET)"
 	@$(COMPOSE) --env-file $(ENV_FILE) -f $(COMPOSE_FILE) up -d
 	@sleep 3
 	@echo "$(GREEN)✓ Infrastructure ready$(RESET)"
 	@echo ""
-	@echo "$(BLUE)Step 2/4: Dropping and recreating schema...$(RESET)"
+	@echo "$(BLUE)Step 3/5: Dropping and recreating schema...$(RESET)"
 	@PGPASSWORD=ventros123 psql -h localhost -U ventros -d ventros_crm -c "DROP SCHEMA IF EXISTS public CASCADE; CREATE SCHEMA public;" > /dev/null 2>&1
 	@echo "$(GREEN)✓ Database cleaned$(RESET)"
 	@echo ""
-	@echo "$(BLUE)Step 3/4: Running AutoMigrate...$(RESET)"
+	@echo "$(BLUE)Step 4/5: Running AutoMigrate...$(RESET)"
 	@go run cmd/automigrate/main.go
 	@echo "$(GREEN)✓ Schema created$(RESET)"
 	@echo ""
-	@echo "$(BLUE)Step 4/4: Starting API...$(RESET)"
+	@echo "$(BLUE)Step 5/5: Starting API...$(RESET)"
 	@echo ""
 	@echo "$(GREEN)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(RESET)"
 	@echo "$(GREEN)✅ FRESH START COMPLETE$(RESET)"
@@ -382,6 +386,67 @@ waha-import-e2e: ## 📥 E2E test: WAHA History Import (requires: make infra + A
 	@echo "  • WAHA instance accessible"
 	@echo ""
 	@go test -v -timeout 15m ./tests/e2e/waha_history_import_test.go
+
+test-import: ## 🧪 Full import test (FULL RESET + API + worker + import test) - ALL-IN-ONE
+	@echo "$(CYAN)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(RESET)"
+	@echo "$(CYAN)🧪 FULL IMPORT TEST - Complete Reset + Test$(RESET)"
+	@echo "$(CYAN)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(RESET)"
+	@echo ""
+	@echo "$(BLUE)Step 1/7: Stopping and removing all containers + volumes...$(RESET)"
+	@$(COMPOSE) --env-file $(ENV_FILE) -f $(COMPOSE_FILE) down -v
+	@echo "$(GREEN)✓ Infrastructure cleaned (volumes removed)$(RESET)"
+	@echo ""
+	@echo "$(BLUE)Step 2/7: Starting fresh infrastructure...$(RESET)"
+	@$(COMPOSE) --env-file $(ENV_FILE) -f $(COMPOSE_FILE) up -d
+	@echo ""
+	@echo "$(BLUE)Step 3/7: Waiting for services to be ready...$(RESET)"
+	@sleep 8
+	@echo "$(GREEN)✓ Services ready$(RESET)"
+	@echo ""
+	@echo "$(BLUE)Step 4/7: Running GORM AutoMigrate (creating fresh schema)...$(RESET)"
+	@go run cmd/automigrate/main.go
+	@echo "$(GREEN)✓ Database schema created$(RESET)"
+	@echo ""
+	@echo "$(BLUE)Step 5/7: Starting API in background (includes Temporal worker)...$(RESET)"
+	@$(MAKE) swagger > /dev/null 2>&1
+	@nohup go run $(MAIN_PATH) > /tmp/ventros-api.log 2>&1 & echo $$! > /tmp/ventros-api.pid
+	@echo "$(GREEN)✓ API started (PID: $$(cat /tmp/ventros-api.pid))$(RESET)"
+	@echo "$(CYAN)  • Logs: tail -f /tmp/ventros-api.log$(RESET)"
+	@echo ""
+	@echo "$(BLUE)Step 6/7: Waiting for API to be ready...$(RESET)"
+	@for i in $$(seq 1 30); do \
+		if curl -s http://localhost:8080/health > /dev/null 2>&1; then \
+			echo "$(GREEN)✓ API is ready$(RESET)"; \
+			break; \
+		fi; \
+		sleep 1; \
+	done
+	@echo ""
+	@echo "$(BLUE)Step 7/7: Running import test...$(RESET)"
+	@echo "$(CYAN)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(RESET)"
+	@echo ""
+	@echo "$(CYAN)Loading environment variables from .env...$(RESET)"
+	@if [ -f .env ]; then \
+		export $$(cat .env | grep -E '^WAHA_' | xargs) && \
+		go test -v -timeout 15m ./tests/e2e/waha_history_import_test.go || true; \
+	else \
+		echo "$(RED)✗ .env file not found!$(RESET)"; \
+		go test -v -timeout 15m ./tests/e2e/waha_history_import_test.go || true; \
+	fi
+	@echo ""
+	@echo "$(YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(RESET)"
+	@echo "$(YELLOW)🛑 Stopping API...$(RESET)"
+	@if [ -f /tmp/ventros-api.pid ]; then \
+		kill -TERM $$(cat /tmp/ventros-api.pid) 2>/dev/null || true; \
+		rm -f /tmp/ventros-api.pid; \
+		echo "$(GREEN)✓ API stopped$(RESET)"; \
+	fi
+	@echo ""
+	@echo "$(GREEN)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(RESET)"
+	@echo "$(GREEN)✅ IMPORT TEST COMPLETED$(RESET)"
+	@echo "$(GREEN)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(RESET)"
+	@echo ""
+	@echo "📄 Logs: /tmp/ventros-api.log"
 
 test-bench: ## Run benchmark tests
 	@echo "$(BLUE)Running benchmarks...$(RESET)"

@@ -5,9 +5,9 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/ventros/crm/internal/domain/crm/agent"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+	"github.com/ventros/crm/internal/domain/crm/agent"
 )
 
 func TestGetAgentUseCase_NewGetAgentUseCase(t *testing.T) {

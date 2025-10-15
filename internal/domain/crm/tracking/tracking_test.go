@@ -240,11 +240,11 @@ func TestTracking_SetMetadata(t *testing.T) {
 	tracking := createTestTracking(t)
 
 	metadata := map[string]interface{}{
-		"ad_set_id":    "adset_123",
-		"creative_id":  "creative_456",
-		"audience":     "lookalike_1",
-		"budget":       1000.50,
-		"is_retarget":  true,
+		"ad_set_id":   "adset_123",
+		"creative_id": "creative_456",
+		"audience":    "lookalike_1",
+		"budget":      1000.50,
+		"is_retarget": true,
 	}
 
 	tracking.SetMetadata(metadata)

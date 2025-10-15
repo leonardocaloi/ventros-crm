@@ -251,9 +251,9 @@ func TestBillingAccount_CanCreateProject(t *testing.T) {
 	userID := uuid.New()
 
 	tests := []struct {
-		name          string
-		setupFn       func(*BillingAccount)
-		canCreate     bool
+		name      string
+		setupFn   func(*BillingAccount)
+		canCreate bool
 	}{
 		{
 			name: "pending account cannot create project",

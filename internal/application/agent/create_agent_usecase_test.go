@@ -5,10 +5,10 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/ventros/crm/internal/domain/crm/agent"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/ventros/crm/internal/domain/crm/agent"
 )
 
 func TestCreateAgentUseCase_NewCreateAgentUseCase(t *testing.T) {
@@ -148,7 +148,7 @@ func TestCreateAgentUseCase_Execute_SuccessWithAIAgent(t *testing.T) {
 		Name:      name,
 		Email:     email,
 		AgentType: agentType,
-		UserID:    nil, // AI agents don't need UserID
+		UserID:    nil,   // AI agents don't need UserID
 		IsActive:  false, // Don't try to activate (already active by default)
 	}
 
@@ -169,7 +169,7 @@ func TestCreateAgentUseCase_Execute_SuccessWithAIAgent(t *testing.T) {
 	assert.NotNil(t, result)
 	assert.NotEqual(t, uuid.Nil, result.AgentID)
 	assert.Equal(t, name, result.Name)
-	assert.Empty(t, result.Email) // Email not stored in domain (TODO)
+	assert.Empty(t, result.Email)   // Email not stored in domain (TODO)
 	assert.True(t, result.IsActive) // Active by default
 
 	agentRepo.AssertExpectations(t)
@@ -726,7 +726,7 @@ func TestCreateAgentUseCase_Execute_BotAgentType(t *testing.T) {
 		Name:      name,
 		Email:     email,
 		AgentType: agentType,
-		UserID:    nil, // Bot agents don't need UserID
+		UserID:    nil,   // Bot agents don't need UserID
 		IsActive:  false, // Don't activate (already active by default)
 	}
 
@@ -747,7 +747,7 @@ func TestCreateAgentUseCase_Execute_BotAgentType(t *testing.T) {
 	assert.NotNil(t, result)
 	assert.NotEqual(t, uuid.Nil, result.AgentID)
 	assert.Equal(t, name, result.Name)
-	assert.Empty(t, result.Email) // Email not stored in domain (TODO)
+	assert.Empty(t, result.Email)   // Email not stored in domain (TODO)
 	assert.True(t, result.IsActive) // Active by default
 
 	agentRepo.AssertExpectations(t)
@@ -775,7 +775,7 @@ func TestCreateAgentUseCase_Execute_ChannelAgentType(t *testing.T) {
 		Name:      name,
 		Email:     email,
 		AgentType: agentType,
-		UserID:    nil, // Channel agents don't need UserID
+		UserID:    nil,   // Channel agents don't need UserID
 		IsActive:  false, // Don't activate (already active by default)
 	}
 
@@ -796,7 +796,7 @@ func TestCreateAgentUseCase_Execute_ChannelAgentType(t *testing.T) {
 	assert.NotNil(t, result)
 	assert.NotEqual(t, uuid.Nil, result.AgentID)
 	assert.Equal(t, name, result.Name)
-	assert.Empty(t, result.Email) // Email not stored in domain (TODO)
+	assert.Empty(t, result.Email)   // Email not stored in domain (TODO)
 	assert.True(t, result.IsActive) // Active by default
 
 	agentRepo.AssertExpectations(t)

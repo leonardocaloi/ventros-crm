@@ -85,11 +85,11 @@ type ErrorResponse struct {
 
 // SuccessResponse representa uma resposta de sucesso padrão
 type SuccessResponse struct {
-	Success   bool                   `json:"success" example:"true"`
-	Message   string                 `json:"message" example:"Operation completed successfully"`
-	Data      interface{}            `json:"data,omitempty"`
-	Timestamp string                 `json:"timestamp" example:"2024-01-01T12:00:00Z"`
-	RequestID string                 `json:"request_id,omitempty" example:"req_123456789"`
+	Success   bool        `json:"success" example:"true"`
+	Message   string      `json:"message" example:"Operation completed successfully"`
+	Data      interface{} `json:"data,omitempty"`
+	Timestamp string      `json:"timestamp" example:"2024-01-01T12:00:00Z"`
+	RequestID string      `json:"request_id,omitempty" example:"req_123456789"`
 }
 
 // PaginationResponse representa metadados de paginação
@@ -121,10 +121,10 @@ type HealthCheckResponse struct {
 
 // ServiceStatus representa o status de um serviço
 type ServiceStatus struct {
-	Status      string  `json:"status" example:"healthy"`
-	ResponseTime string `json:"response_time" example:"15ms"`
-	LastCheck   string  `json:"last_check" example:"2024-01-01T12:00:00Z"`
-	Uptime      float64 `json:"uptime" example:"99.9"`
+	Status       string  `json:"status" example:"healthy"`
+	ResponseTime string  `json:"response_time" example:"15ms"`
+	LastCheck    string  `json:"last_check" example:"2024-01-01T12:00:00Z"`
+	Uptime       float64 `json:"uptime" example:"99.9"`
 }
 
 // MessageTypeEnum define os tipos de mensagem suportados
@@ -170,12 +170,12 @@ const (
 type ChannelTypeEnum string
 
 const (
-	ChannelTypeWAHA     ChannelTypeEnum = "waha"
-	ChannelTypeTelegram ChannelTypeEnum = "telegram"
-	ChannelTypeEmail    ChannelTypeEnum = "email"
-	ChannelTypeSMS      ChannelTypeEnum = "sms"
-	ChannelTypeWebChat  ChannelTypeEnum = "webchat"
-	ChannelTypeFacebook ChannelTypeEnum = "facebook"
+	ChannelTypeWAHA      ChannelTypeEnum = "waha"
+	ChannelTypeTelegram  ChannelTypeEnum = "telegram"
+	ChannelTypeEmail     ChannelTypeEnum = "email"
+	ChannelTypeSMS       ChannelTypeEnum = "sms"
+	ChannelTypeWebChat   ChannelTypeEnum = "webchat"
+	ChannelTypeFacebook  ChannelTypeEnum = "facebook"
 	ChannelTypeInstagram ChannelTypeEnum = "instagram"
 )
 
@@ -183,21 +183,21 @@ const (
 type SessionStatusEnum string
 
 const (
-	SessionStatusActive    SessionStatusEnum = "active"
-	SessionStatusInactive  SessionStatusEnum = "inactive"
-	SessionStatusClosed    SessionStatusEnum = "closed"
-	SessionStatusTimeout   SessionStatusEnum = "timeout"
-	SessionStatusTransfer  SessionStatusEnum = "transfer"
+	SessionStatusActive   SessionStatusEnum = "active"
+	SessionStatusInactive SessionStatusEnum = "inactive"
+	SessionStatusClosed   SessionStatusEnum = "closed"
+	SessionStatusTimeout  SessionStatusEnum = "timeout"
+	SessionStatusTransfer SessionStatusEnum = "transfer"
 )
 
 // AgentStatusEnum define os status de agente
 type AgentStatusEnum string
 
 const (
-	AgentStatusOnline     AgentStatusEnum = "online"
-	AgentStatusOffline    AgentStatusEnum = "offline"
-	AgentStatusBusy       AgentStatusEnum = "busy"
-	AgentStatusAway       AgentStatusEnum = "away"
+	AgentStatusOnline      AgentStatusEnum = "online"
+	AgentStatusOffline     AgentStatusEnum = "offline"
+	AgentStatusBusy        AgentStatusEnum = "busy"
+	AgentStatusAway        AgentStatusEnum = "away"
 	AgentStatusUnavailable AgentStatusEnum = "unavailable"
 )
 
@@ -258,13 +258,13 @@ type RateLimitResponse struct {
 
 // BatchOperationResponse representa resultado de operação em lote
 type BatchOperationResponse struct {
-	Total     int                    `json:"total" example:"100"`
-	Success   int                    `json:"success" example:"95"`
-	Failed    int                    `json:"failed" example:"5"`
-	Errors    []BatchError           `json:"errors,omitempty"`
-	Results   []interface{}          `json:"results,omitempty"`
-	Duration  string                 `json:"duration" example:"1.5s"`
-	RequestID string                 `json:"request_id" example:"batch_123456789"`
+	Total     int           `json:"total" example:"100"`
+	Success   int           `json:"success" example:"95"`
+	Failed    int           `json:"failed" example:"5"`
+	Errors    []BatchError  `json:"errors,omitempty"`
+	Results   []interface{} `json:"results,omitempty"`
+	Duration  string        `json:"duration" example:"1.5s"`
+	RequestID string        `json:"request_id" example:"batch_123456789"`
 }
 
 // BatchError representa um erro em operação em lote
@@ -312,11 +312,11 @@ const (
 
 // AnalyticsResponse representa resposta de analytics
 type AnalyticsResponse struct {
-	Metric    string                   `json:"metric" example:"messages_sent"`
-	TimeRange string                   `json:"time_range" example:"7d"`
-	Data      []AnalyticsDataPoint     `json:"data"`
-	Summary   AnalyticsSummary         `json:"summary"`
-	Filters   map[string]interface{}   `json:"filters,omitempty"`
+	Metric    string                 `json:"metric" example:"messages_sent"`
+	TimeRange string                 `json:"time_range" example:"7d"`
+	Data      []AnalyticsDataPoint   `json:"data"`
+	Summary   AnalyticsSummary       `json:"summary"`
+	Filters   map[string]interface{} `json:"filters,omitempty"`
 }
 
 // AnalyticsDataPoint representa um ponto de dados
@@ -363,11 +363,11 @@ type DateRange struct {
 
 // ExportResponse representa resposta de exportação
 type ExportResponse struct {
-	ExportID   string `json:"export_id" example:"exp_123456789"`
-	Status     string `json:"status" example:"processing"`
-	Format     string `json:"format" example:"csv"`
-	FileSize   int64  `json:"file_size,omitempty" example:"1048576"`
-	RecordCount int   `json:"record_count,omitempty" example:"1000"`
+	ExportID    string `json:"export_id" example:"exp_123456789"`
+	Status      string `json:"status" example:"processing"`
+	Format      string `json:"format" example:"csv"`
+	FileSize    int64  `json:"file_size,omitempty" example:"1048576"`
+	RecordCount int    `json:"record_count,omitempty" example:"1000"`
 	DownloadURL string `json:"download_url,omitempty" example:"https://api.ventros.cloud/exports/exp_123456789/download"`
 	ExpiresAt   string `json:"expires_at,omitempty" example:"2024-01-02T12:00:00Z"`
 	CreatedAt   string `json:"created_at" example:"2024-01-01T12:00:00Z"`
@@ -383,10 +383,10 @@ type ValidationError struct {
 
 // BulkValidationResponse representa resposta de validação em lote
 type BulkValidationResponse struct {
-	Valid   int                `json:"valid" example:"95"`
-	Invalid int                `json:"invalid" example:"5"`
-	Errors  []ValidationError  `json:"errors,omitempty"`
-	Details []BulkItemResult   `json:"details,omitempty"`
+	Valid   int               `json:"valid" example:"95"`
+	Invalid int               `json:"invalid" example:"5"`
+	Errors  []ValidationError `json:"errors,omitempty"`
+	Details []BulkItemResult  `json:"details,omitempty"`
 }
 
 // BulkItemResult representa resultado de um item em operação em lote
@@ -399,13 +399,13 @@ type BulkItemResult struct {
 
 // SystemInfo representa informações do sistema
 type SystemInfo struct {
-	Version     string            `json:"version" example:"2.0.0"`
-	BuildDate   string            `json:"build_date" example:"2024-01-01T12:00:00Z"`
-	GitCommit   string            `json:"git_commit" example:"abc123def456"`
-	Environment string            `json:"environment" example:"production"`
-	Features    map[string]bool   `json:"features"`
-	Limits      map[string]int    `json:"limits"`
-	Endpoints   []EndpointInfo    `json:"endpoints,omitempty"`
+	Version     string          `json:"version" example:"2.0.0"`
+	BuildDate   string          `json:"build_date" example:"2024-01-01T12:00:00Z"`
+	GitCommit   string          `json:"git_commit" example:"abc123def456"`
+	Environment string          `json:"environment" example:"production"`
+	Features    map[string]bool `json:"features"`
+	Limits      map[string]int  `json:"limits"`
+	Endpoints   []EndpointInfo  `json:"endpoints,omitempty"`
 }
 
 // EndpointInfo representa informações de um endpoint
@@ -419,21 +419,21 @@ type EndpointInfo struct {
 
 // ConfigurationResponse representa configuração do sistema
 type ConfigurationResponse struct {
-	Features    map[string]bool        `json:"features"`
-	Limits      map[string]int         `json:"limits"`
-	Channels    []string               `json:"channels" example:"waha,telegram,email"`
-	Integrations []IntegrationInfo     `json:"integrations"`
-	Webhooks    WebhookConfiguration   `json:"webhooks"`
+	Features     map[string]bool      `json:"features"`
+	Limits       map[string]int       `json:"limits"`
+	Channels     []string             `json:"channels" example:"waha,telegram,email"`
+	Integrations []IntegrationInfo    `json:"integrations"`
+	Webhooks     WebhookConfiguration `json:"webhooks"`
 }
 
 // IntegrationInfo representa informações de integração
 type IntegrationInfo struct {
-	Name        string            `json:"name" example:"WAHA"`
-	Type        string            `json:"type" example:"messaging"`
-	Status      string            `json:"status" example:"active"`
-	Version     string            `json:"version" example:"1.0.0"`
-	Capabilities []string         `json:"capabilities" example:"send_message,receive_message"`
-	Config      map[string]string `json:"config,omitempty"`
+	Name         string            `json:"name" example:"WAHA"`
+	Type         string            `json:"type" example:"messaging"`
+	Status       string            `json:"status" example:"active"`
+	Version      string            `json:"version" example:"1.0.0"`
+	Capabilities []string          `json:"capabilities" example:"send_message,receive_message"`
+	Config       map[string]string `json:"config,omitempty"`
 }
 
 // WebhookConfiguration representa configuração de webhooks
@@ -462,13 +462,13 @@ type SortField struct {
 
 // SearchResponse representa resposta de busca
 type SearchResponse struct {
-	Query      string              `json:"query" example:"customer support"`
-	Results    []SearchResult      `json:"results"`
-	Total      int                 `json:"total" example:"150"`
-	Page       int                 `json:"page" example:"1"`
-	Limit      int                 `json:"limit" example:"20"`
-	Duration   string              `json:"duration" example:"15ms"`
-	Facets     map[string][]Facet  `json:"facets,omitempty"`
+	Query    string             `json:"query" example:"customer support"`
+	Results  []SearchResult     `json:"results"`
+	Total    int                `json:"total" example:"150"`
+	Page     int                `json:"page" example:"1"`
+	Limit    int                `json:"limit" example:"20"`
+	Duration string             `json:"duration" example:"15ms"`
+	Facets   map[string][]Facet `json:"facets,omitempty"`
 }
 
 // SearchResult representa resultado de busca

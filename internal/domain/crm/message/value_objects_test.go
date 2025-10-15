@@ -329,9 +329,9 @@ func TestMediaURL_String(t *testing.T) {
 
 func TestNewMessageText_Valid(t *testing.T) {
 	tests := []struct {
-		name  string
-		text  string
-		want  string
+		name string
+		text string
+		want string
 	}{
 		{
 			name: "simple text",

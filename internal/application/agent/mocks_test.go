@@ -3,10 +3,10 @@ package agent
 import (
 	"context"
 
-	"github.com/ventros/crm/internal/domain/core/shared"
-	"github.com/ventros/crm/internal/domain/crm/agent"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/mock"
+	"github.com/ventros/crm/internal/domain/core/shared"
+	"github.com/ventros/crm/internal/domain/crm/agent"
 )
 
 // ========== Shared Mocks for agent package tests ==========

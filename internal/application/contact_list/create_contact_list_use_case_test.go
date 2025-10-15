@@ -5,10 +5,10 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/ventros/crm/internal/domain/crm/contact_list"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/ventros/crm/internal/domain/crm/contact_list"
 )
 
 func TestCreateContactListUseCase_Execute_Success(t *testing.T) {

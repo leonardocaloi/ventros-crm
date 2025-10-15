@@ -377,6 +377,48 @@ func (s *Session) CheckTimeout() bool {
 	return false
 }
 
+// ShouldConsolidateWith determines if this session should be consolidated with another session.
+// Business Rule: Sessions from the same contact should be consolidated if the time gap
+// between the last activity of the earlier session and the first activity of the later
+// session is less than or equal to the timeout duration.
+//
+// This is critical for history imports where messages arrive out of chronological order
+// and sessions are created in parallel, resulting in fragmented sessions that need to be
+// consolidated based on actual message timestamps.
+//
+// Example:
+//   Session A: contact=123, lastActivityAt=10:00
+//   Session B: contact=123, startedAt=10:15, timeout=30min
+//   Result: Should consolidate (gap=15min < 30min timeout)
+func (s *Session) ShouldConsolidateWith(other *Session, timeout time.Duration) bool {
+	// Must be from same contact
+	if s.contactID != other.contactID {
+		return false
+	}
+
+	// Must be from same tenant (multi-tenancy)
+	if s.tenantID != other.tenantID {
+		return false
+	}
+
+	// Determine which session is earlier and which is later
+	var earlier, later *Session
+	if s.lastActivityAt.Before(other.lastActivityAt) {
+		earlier = s
+		later = other
+	} else {
+		earlier = other
+		later = s
+	}
+
+	// Calculate gap between sessions
+	// Gap = later session's first activity - earlier session's last activity
+	gap := later.startedAt.Sub(earlier.lastActivityAt)
+
+	// Consolidate if gap is within timeout
+	return gap <= timeout
+}
+
 func (s *Session) End(reason EndReason) error {
 	if s.status != StatusActive {
 		return errors.New("session is not active")

@@ -5,11 +5,11 @@ import (
 	"errors"
 	"testing"
 
-	domainchat "github.com/ventros/crm/internal/domain/crm/chat"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+	domainchat "github.com/ventros/crm/internal/domain/crm/chat"
 )
 
 func TestNewUpdateChatUseCase(t *testing.T) {

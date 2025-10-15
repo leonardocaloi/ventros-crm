@@ -166,6 +166,19 @@ func (m *Message) AssignToSession(sessionID uuid.UUID) {
 	m.sessionID = &sessionID
 }
 
+// AssignAgent atribui um agente à mensagem
+// OBRIGATÓRIO: Toda mensagem DEVE ter um agente atribuído
+// - Mensagens manuais: agente humano autenticado
+// - Mensagens automáticas: system agents (broadcast, sequence, webhook, etc)
+// - Mensagens de histórico: SystemAgentDefault
+func (m *Message) AssignAgent(agentID uuid.UUID) error {
+	if agentID == uuid.Nil {
+		return errors.New("agentID cannot be nil - all messages must have an agent")
+	}
+	m.agentID = &agentID
+	return nil
+}
+
 func (m *Message) SetChannelMessageID(channelMessageID string) {
 	m.channelMessageID = &channelMessageID
 }

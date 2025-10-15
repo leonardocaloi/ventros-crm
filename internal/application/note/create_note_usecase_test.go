@@ -5,16 +5,15 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/ventros/crm/infrastructure/messaging"
-	"github.com/ventros/crm/internal/domain/crm/note"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/ventros/crm/infrastructure/messaging"
+	"github.com/ventros/crm/internal/domain/crm/note"
 	"go.uber.org/zap"
 )
 
 // ========== Mocks ==========
-
 
 type MockNoteRepository struct {
 	mock.Mock

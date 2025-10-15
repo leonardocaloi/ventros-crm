@@ -176,7 +176,7 @@ func TestWebhookSubscription_SetHeaders(t *testing.T) {
 	webhook := createTestWebhook(t)
 
 	headers := map[string]string{
-		"Authorization": "Bearer token123",
+		"Authorization":   "Bearer token123",
 		"X-Custom-Header": "custom-value",
 		"Content-Type":    "application/json",
 	}

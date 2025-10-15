@@ -6,10 +6,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ventros/crm/internal/domain/crm/tracking"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/ventros/crm/internal/domain/crm/tracking"
 	"go.uber.org/zap/zaptest"
 )
 
@@ -130,16 +130,16 @@ func TestGetTrackingUseCase_Execute_Success_MinimalFields(t *testing.T) {
 		projectID,
 		tracking.SourceOrganic,
 		tracking.PlatformWhatsApp,
-		"", // no campaign
-		"", // no ad ID
-		"", // no ad URL
-		"", // no click ID
-		"", // no conversion data
-		"", // no UTM source
-		"", // no UTM medium
-		"", // no UTM campaign
-		"", // no UTM term
-		"", // no UTM content
+		"",                       // no campaign
+		"",                       // no ad ID
+		"",                       // no ad URL
+		"",                       // no click ID
+		"",                       // no conversion data
+		"",                       // no UTM source
+		"",                       // no UTM medium
+		"",                       // no UTM campaign
+		"",                       // no UTM term
+		"",                       // no UTM content
 		map[string]interface{}{}, // empty metadata
 		testTime(),
 		testTime(),

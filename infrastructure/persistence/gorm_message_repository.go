@@ -7,6 +7,8 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/ventros/crm/infrastructure/persistence/entities"
+	"github.com/ventros/crm/internal/application/shared"
+	"github.com/ventros/crm/internal/domain/core/saga"
 	"github.com/ventros/crm/internal/domain/crm/message"
 	"gorm.io/gorm"
 )
@@ -19,9 +21,20 @@ func NewGormMessageRepository(db *gorm.DB) message.Repository {
 	return &GormMessageRepository{db: db}
 }
 
+// getDB extracts transaction from context if present, otherwise returns default connection
+func (r *GormMessageRepository) getDB(ctx context.Context) *gorm.DB {
+	// Try to extract transaction from context
+	if tx := shared.TransactionFromContext(ctx); tx != nil {
+		return tx.WithContext(ctx)
+	}
+	// If no transaction, use default connection
+	return r.db.WithContext(ctx)
+}
+
 func (r *GormMessageRepository) Save(ctx context.Context, m *message.Message) error {
-	entity := r.domainToEntity(m)
-	return r.db.WithContext(ctx).Save(entity).Error
+	entity := r.domainToEntity(ctx, m)
+	db := r.getDB(ctx) // ✅ Use transaction context
+	return db.Save(entity).Error
 }
 
 func (r *GormMessageRepository) FindByID(ctx context.Context, id uuid.UUID) (*message.Message, error) {
@@ -85,6 +98,18 @@ func (r *GormMessageRepository) FindByContact(ctx context.Context, contactID uui
 func (r *GormMessageRepository) FindByChannelMessageID(ctx context.Context, channelMessageID string) (*message.Message, error) {
 	var entity entities.MessageEntity
 	err := r.db.WithContext(ctx).Where("channel_message_id = ?", channelMessageID).First(&entity).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, message.ErrMessageNotFound
+		}
+		return nil, err
+	}
+	return r.entityToDomain(&entity), nil
+}
+
+func (r *GormMessageRepository) FindByChannelAndMessageID(ctx context.Context, channelID uuid.UUID, channelMessageID string) (*message.Message, error) {
+	var entity entities.MessageEntity
+	err := r.db.WithContext(ctx).Where("channel_id = ? AND channel_message_id = ?", channelID, channelMessageID).First(&entity).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, message.ErrMessageNotFound
@@ -274,9 +299,30 @@ type MessageInfoForEnrichment struct {
 	Timestamp time.Time
 }
 
+// UpdateSessionIDForSession updates all messages from oldSessionID to newSessionID
+// Used for session consolidation during history import post-processing
+// Returns the number of messages updated
+func (r *GormMessageRepository) UpdateSessionIDForSession(ctx context.Context, oldSessionID, newSessionID uuid.UUID) (int64, error) {
+	db := r.getDB(ctx) // Use transaction context if present
+
+	result := db.Model(&entities.MessageEntity{}).
+		Where("session_id = ?", oldSessionID).
+		Update("session_id", newSessionID)
+
+	if result.Error != nil {
+		return 0, result.Error
+	}
+
+	return result.RowsAffected, nil
+}
+
 // Mappers: Domain → Entity
-func (r *GormMessageRepository) domainToEntity(m *message.Message) *entities.MessageEntity {
+func (r *GormMessageRepository) domainToEntity(ctx context.Context, m *message.Message) *entities.MessageEntity {
+	// ✅ Extract tenant_id from saga context
+	tenantID, _ := saga.GetTenantID(ctx)
+
 	entity := &entities.MessageEntity{
+		TenantID:         tenantID, // ✅ Extracted from saga context
 		Timestamp:        m.Timestamp(),
 		UserID:           m.CustomerID(),
 		ProjectID:        m.ProjectID(),

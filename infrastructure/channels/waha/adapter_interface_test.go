@@ -3,10 +3,10 @@ package waha_test
 import (
 	"testing"
 
-	"github.com/ventros/crm/infrastructure/channels/waha"
-	"github.com/ventros/crm/internal/domain/crm/message"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/ventros/crm/infrastructure/channels/waha"
+	"github.com/ventros/crm/internal/domain/crm/message"
 )
 
 // TestWhatsAppAck_ImplementsDeliveryStatusAdapter verifica que WhatsAppAck

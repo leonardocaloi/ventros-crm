@@ -6,10 +6,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ventros/crm/internal/domain/crm/contact_event"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/ventros/crm/internal/domain/crm/contact_event"
 )
 
 // MockContactEventRepository is a mock implementation of contact_event.Repository

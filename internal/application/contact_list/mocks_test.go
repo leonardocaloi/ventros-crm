@@ -3,9 +3,9 @@ package contact_list
 import (
 	"context"
 
-	"github.com/ventros/crm/internal/domain/crm/contact_list"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/mock"
+	"github.com/ventros/crm/internal/domain/crm/contact_list"
 )
 
 // MockContactListRepository is a mock implementation of contact_list.Repository

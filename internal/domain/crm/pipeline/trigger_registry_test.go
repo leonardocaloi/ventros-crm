@@ -288,9 +288,9 @@ func TestTriggerRegistry_ListTriggersByCategory(t *testing.T) {
 	registry := NewTriggerRegistry()
 
 	tests := []struct {
-		name         string
-		category     TriggerCategory
-		minExpected  int
+		name        string
+		category    TriggerCategory
+		minExpected int
 	}{
 		{"session triggers", CategorySession, 4},
 		{"message triggers", CategoryMessage, 2},
@@ -379,10 +379,10 @@ func TestTriggerRegistry_VerifyTriggerMetadata(t *testing.T) {
 
 	// Verify specific triggers have correct metadata
 	tests := []struct {
-		code        string
-		name        string
-		category    TriggerCategory
-		minParams   int
+		code      string
+		name      string
+		category  TriggerCategory
+		minParams int
 	}{
 		{string(TriggerSessionEnded), "Sessão Encerrada", CategorySession, 4},
 		{string(TriggerSessionTimeout), "Sessão Expirou", CategorySession, 3},

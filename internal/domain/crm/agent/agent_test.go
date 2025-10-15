@@ -340,8 +340,8 @@ func TestAgent_ConfigAndSettings(t *testing.T) {
 
 	t.Run("set config", func(t *testing.T) {
 		config := map[string]interface{}{
-			"provider": "openai",
-			"model":    "gpt-4",
+			"provider":    "openai",
+			"model":       "gpt-4",
 			"temperature": 0.7,
 		}
 

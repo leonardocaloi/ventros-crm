@@ -16,12 +16,12 @@ func intPtr(i int) *int {
 
 func TestNewPipeline(t *testing.T) {
 	tests := []struct {
-		name        string
-		projectID   uuid.UUID
-		tenantID    string
+		name         string
+		projectID    uuid.UUID
+		tenantID     string
 		pipelineName string
-		wantErr     bool
-		errMsg      string
+		wantErr      bool
+		errMsg       string
 	}{
 		{
 			name:         "valid pipeline creation",

@@ -17,13 +17,16 @@ import (
 // WAHAHistoryImportTestSuite testa o fluxo completo de importação de histórico WAHA
 type WAHAHistoryImportTestSuite struct {
 	suite.Suite
-	baseURL    string
-	client     *http.Client
-	userID     string
-	projectID  string
-	apiKey     string
-	channelID  string
-	workflowID string
+	baseURL        string
+	client         *http.Client
+	userID         string
+	projectID      string
+	apiKey         string
+	channelID      string
+	workflowID     string
+	wahaBaseURL    string
+	wahaAPIKey     string
+	wahaSessionID  string
 }
 
 // SetupSuite executa uma vez antes de todos os testes
@@ -32,6 +35,22 @@ func (s *WAHAHistoryImportTestSuite) SetupSuite() {
 	s.baseURL = os.Getenv("API_BASE_URL")
 	if s.baseURL == "" {
 		s.baseURL = "http://localhost:8080"
+	}
+
+	// Lê configurações WAHA do .env (igual ao msg_send_test.sh)
+	s.wahaBaseURL = os.Getenv("WAHA_BASE_URL")
+	if s.wahaBaseURL == "" {
+		s.wahaBaseURL = "https://waha.ventros.cloud"
+	}
+
+	s.wahaAPIKey = os.Getenv("WAHA_API_KEY")
+	if s.wahaAPIKey == "" {
+		s.T().Fatal("WAHA_API_KEY not set in .env")
+	}
+
+	s.wahaSessionID = os.Getenv("WAHA_DEFAULT_SESSION_ID_TEST")
+	if s.wahaSessionID == "" {
+		s.wahaSessionID = "guilherme-batilani-suporte" // Fallback para sessão de teste padrão
 	}
 
 	s.client = &http.Client{
@@ -118,19 +137,19 @@ func (s *WAHAHistoryImportTestSuite) createUser() {
 	fmt.Printf("   • API Key: %s...\n", s.apiKey[:20])
 }
 
-// createWAHAChannel cria um canal WAHA de teste (Freefaro B2B Comercial)
+// createWAHAChannel cria um canal WAHA de teste usando variáveis de ambiente
 func (s *WAHAHistoryImportTestSuite) createWAHAChannel() {
 	payload := map[string]interface{}{
-		"name":                    "Freefaro B2B Comercial - WAHA",
+		"name":                    fmt.Sprintf("E2E Test Import - %s", s.wahaSessionID),
 		"type":                    "waha",
-		"external_id":             "freefaro-b2b-comercial",
+		"external_id":             s.wahaSessionID,
 		"history_import_enabled":  true,
 		"history_import_max_days": 180,
 		"waha_config": map[string]interface{}{
-			"base_url":    "https://waha.ventros.cloud",
-			"token":       "4bffec302d5f4312b8b73700da3ff3cb",
-			"session_id":  "freefaro-b2b-comercial",
-			"webhook_url": "",
+			"base_url":    s.wahaBaseURL,
+			"api_key":     s.wahaAPIKey,
+			"session_id":  s.wahaSessionID,
+			"webhook_url": fmt.Sprintf("%s/api/v1/webhooks/waha", s.baseURL),
 		},
 	}
 
@@ -146,7 +165,8 @@ func (s *WAHAHistoryImportTestSuite) createWAHAChannel() {
 
 	fmt.Printf("2️⃣ Channel created: %s\n", result["name"])
 	fmt.Printf("   • Channel ID: %s\n", s.channelID)
-	fmt.Printf("   • Session ID: freefaro-b2b-comercial\n")
+	fmt.Printf("   • WAHA Base URL: %s\n", s.wahaBaseURL)
+	fmt.Printf("   • Session ID: %s\n", s.wahaSessionID)
 	fmt.Printf("   • History Import: 180 days\n")
 }
 

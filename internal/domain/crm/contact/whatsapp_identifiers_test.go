@@ -3,9 +3,9 @@ package contact_test
 import (
 	"testing"
 
-	"github.com/ventros/crm/internal/domain/crm/contact"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/ventros/crm/internal/domain/crm/contact"
 )
 
 func TestNormalizeWhatsAppID(t *testing.T) {

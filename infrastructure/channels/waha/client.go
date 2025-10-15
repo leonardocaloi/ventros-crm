@@ -646,6 +646,80 @@ func (c *WAHAClient) GetChatsOverview(ctx context.Context, sessionID string, lim
 	return chats, nil
 }
 
+// GetChatsWithSort busca chats com ordenação e filtros
+// sortBy: "conversationTimestamp", "id", "name"
+// sortOrder: "asc" (oldest first) ou "desc" (newest first)
+func (c *WAHAClient) GetChatsWithSort(ctx context.Context, sessionID string, limit, offset int, sortBy, sortOrder string) ([]ChatOverview, error) {
+	url := fmt.Sprintf("%s/api/%s/chats?limit=%d&offset=%d", c.baseURL, sessionID, limit, offset)
+
+	if sortBy != "" {
+		url += fmt.Sprintf("&sortBy=%s", sortBy)
+	}
+	if sortOrder != "" {
+		url += fmt.Sprintf("&sortOrder=%s", sortOrder)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	c.setAuthHeaders(req)
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to make request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("API error %d: %s", resp.StatusCode, string(body))
+	}
+
+	var chats []ChatOverview
+	if err := json.NewDecoder(resp.Body).Decode(&chats); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	return chats, nil
+}
+
+// GetOldestChatTimestamp busca o timestamp do chat mais antigo
+// Retorna o timestamp da última mensagem do chat mais antigo
+// Se não houver chats, retorna nil
+func (c *WAHAClient) GetOldestChatTimestamp(ctx context.Context, sessionID string) (*time.Time, error) {
+	// Buscar apenas 1 chat ordenado por conversationTimestamp ascendente (mais antigo primeiro)
+	chats, err := c.GetChatsWithSort(ctx, sessionID, 1, 0, "conversationTimestamp", "asc")
+	if err != nil {
+		return nil, fmt.Errorf("failed to get oldest chat: %w", err)
+	}
+
+	if len(chats) == 0 {
+		c.logger.Info("No chats found for session", zap.String("session_id", sessionID))
+		return nil, nil // Sem chats
+	}
+
+	oldestChat := chats[0]
+	if oldestChat.LastMessage == nil {
+		c.logger.Warn("Oldest chat has no last message",
+			zap.String("session_id", sessionID),
+			zap.String("chat_id", oldestChat.ID))
+		return nil, nil
+	}
+
+	timestamp := time.Unix(oldestChat.LastMessage.Timestamp, 0)
+
+	c.logger.Info("Found oldest chat timestamp",
+		zap.String("session_id", sessionID),
+		zap.String("chat_id", oldestChat.ID),
+		zap.String("chat_name", oldestChat.Name),
+		zap.Time("timestamp", timestamp),
+		zap.Int64("unix_timestamp", oldestChat.LastMessage.Timestamp))
+
+	return &timestamp, nil
+}
+
 // GetChatMessages retorna mensagens de um chat específico
 func (c *WAHAClient) GetChatMessages(ctx context.Context, sessionID, chatID string, limit int, downloadMedia bool) ([]MessagePayload, error) {
 	return c.GetChatMessagesWithFilter(ctx, sessionID, chatID, limit, downloadMedia, 0, 0)

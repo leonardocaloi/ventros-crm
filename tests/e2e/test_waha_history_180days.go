@@ -16,8 +16,8 @@ const (
 	baseURL       = "http://localhost:8080"
 	wahaBaseURL   = "https://waha.ventros.cloud"
 	wahaToken     = "4bffec302d5f4312b8b73700da3ff3cb"
-	wahaSessionID = "guilherme-batilani-suporte"
-	maxDays       = 180 // 180 dias de histórico
+	wahaSessionID = "freefaro-b2b-comercial"
+	maxDays       = 20 // 20 dias de histórico
 )
 
 type User struct {
@@ -51,7 +51,7 @@ type ImportStatus struct {
 }
 
 func main() {
-	log.Println("🚀 Teste de Importação de Histórico WAHA - 180 Dias")
+	log.Println("🚀 Teste de Importação de Histórico WAHA - 20 Dias")
 	log.Println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 
 	// 1. Criar usuário
@@ -60,8 +60,8 @@ func main() {
 	log.Printf("   ✓ Usuário criado: %s", user.ID)
 	log.Printf("   ✓ API Key: %s", user.APIKey)
 
-	// 2. Criar canal com histórico habilitado (180 dias)
-	log.Println("\n2️⃣ Criando canal WAHA com histórico de 180 dias...")
+	// 2. Criar canal com histórico habilitado (20 dias)
+	log.Println("\n2️⃣ Criando canal WAHA com histórico de 20 dias...")
 	channel := createChannel(user.APIKey)
 	log.Printf("   ✓ Canal criado: %s", channel.ID)
 	log.Printf("   ✓ Session: %s", wahaSessionID)
@@ -108,10 +108,12 @@ func main() {
 					log.Println("\n✅ SUCESSO! Mensagens foram importadas!")
 					log.Printf("   🎯 A filtragem nativa da API WAHA está funcionando corretamente!")
 					log.Printf("   🎯 %d mensagens encontradas nos últimos %d dias", status.MessagesImported, maxDays)
+					log.Printf("   🎯 %d contatos criados", status.ContactsCreated)
+					log.Printf("   🎯 %d sessões criadas", status.SessionsCreated)
 					os.Exit(0)
 				} else {
 					log.Println("\n⚠️  Nenhuma mensagem foi importada")
-					log.Println("   Isso indica que não há mensagens nos últimos 180 dias nesta sessão")
+					log.Printf("   Isso indica que não há mensagens nos últimos %d dias nesta sessão", maxDays)
 					log.Println("   A implementação está correta, mas a sessão WAHA não tem mensagens recentes")
 					os.Exit(0)
 				}
@@ -144,7 +146,7 @@ func createUser() User {
 
 func createChannel(apiKey string) Channel {
 	payload := map[string]interface{}{
-		"name": "Test WAHA History Import 180d",
+		"name": "Test WAHA History Import 20d",
 		"type": "waha",
 		"waha_config": map[string]string{
 			"base_url":   wahaBaseURL,
@@ -161,6 +163,45 @@ func createChannel(apiKey string) Channel {
 	// Atualiza canal para habilitar history import via psql
 	cmd := fmt.Sprintf(`PGPASSWORD=ventros123 psql -h localhost -U ventros -d ventros_crm -c "UPDATE channels SET history_import_enabled=true, history_import_max_days=%d WHERE id='%s'"`, maxDays, channel.ID)
 	exec.Command("bash", "-c", cmd).Run()
+
+	// Ativar canal (requer sessão WAHA funcionando)
+	log.Println("\n   🔌 Ativando canal...")
+	activateResp := makeRequest("POST", fmt.Sprintf("/api/v1/crm/channels/%s/activate", channel.ID), apiKey, nil)
+	log.Printf("   ✓ Canal ativação solicitada: %s", string(activateResp))
+
+	// Aguardar canal ficar ativo (polling) - até 2 minutos
+	log.Println("   ⏳ Aguardando canal ficar ativo...")
+	channelActive := false
+	for i := 0; i < 60; i++ { // 60 tentativas * 2s = 2 minutos
+		time.Sleep(2 * time.Second)
+		statusResp := makeRequest("GET", fmt.Sprintf("/api/v1/crm/channels/%s", channel.ID), apiKey, nil)
+
+		var responseData map[string]interface{}
+		json.Unmarshal(statusResp, &responseData)
+
+		// O status está dentro do objeto "channel"
+		if channelData, ok := responseData["channel"].(map[string]interface{}); ok {
+			if statusStr, ok := channelData["status"].(string); ok {
+				log.Printf("   [%d/60] Status: %s", i+1, statusStr)
+
+				if statusStr == "active" {
+					log.Printf("   ✓ Canal ativo após %d segundos", (i+1)*2)
+
+					// Re-fetch para obter dados completos
+					channelBytes, _ := json.Marshal(channelData)
+					var updatedChannel Channel
+					json.Unmarshal(channelBytes, &updatedChannel)
+					channel = updatedChannel
+					channelActive = true
+					break
+				}
+			}
+		}
+	}
+
+	if !channelActive {
+		log.Fatal("   ❌ ERRO: Canal não ficou ativo após 2 minutos. Abortando teste.")
+	}
 
 	return channel
 }

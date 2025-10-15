@@ -4,10 +4,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ventros/crm/internal/domain/crm/session"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/ventros/crm/internal/domain/crm/session"
 )
 
 func TestNewSession_Success(t *testing.T) {
@@ -545,14 +545,14 @@ func TestReconstructSession(t *testing.T) {
 		&endReason,
 		timeout,
 		lastActivity,
-		10,  // messageCount
-		6,   // messagesFromContact
-		4,   // messagesFromAgent
+		10,   // messageCount
+		6,    // messagesFromContact
+		4,    // messagesFromAgent
 		3600, // durationSeconds
-		nil, // firstContactMessageAt
-		nil, // firstAgentResponseAt
-		nil, // agentResponseTimeSeconds
-		nil, // contactWaitTimeSeconds
+		nil,  // firstContactMessageAt
+		nil,  // firstAgentResponseAt
+		nil,  // agentResponseTimeSeconds
+		nil,  // contactWaitTimeSeconds
 		[]uuid.UUID{agentID1, agentID2},
 		1, // agentTransfers
 		&summary,

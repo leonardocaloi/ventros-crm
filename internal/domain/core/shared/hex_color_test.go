@@ -385,12 +385,12 @@ func TestHexColor_Equals(t *testing.T) {
 
 func TestPredefinedColors(t *testing.T) {
 	tests := []struct {
-		name     string
-		colorFn  func() HexColor
-		wantHex  string
-		wantR    int
-		wantG    int
-		wantB    int
+		name    string
+		colorFn func() HexColor
+		wantHex string
+		wantR   int
+		wantG   int
+		wantB   int
 	}{
 		{
 			name:    "ColorRed",

@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/ventros/crm/infrastructure/channels/waha"
+	messageapp "github.com/ventros/crm/internal/application/message" // ✅ Import from message package
 	"github.com/ventros/crm/internal/domain/crm/channel"
 	"github.com/ventros/crm/internal/domain/crm/contact"
 	"github.com/ventros/crm/internal/domain/crm/message"
@@ -30,6 +31,8 @@ func NewWAHAImportWorker(
 	contactRepo contact.Repository,
 	sessionRepo session.Repository,
 	messageRepo message.Repository,
+	processMessageUC *messageapp.ProcessInboundMessageUseCase, // ✅ Added for SOLID/DRY
+	messageAdapter *waha.MessageAdapter, // ✅ Added for tracking extraction
 	logger *zap.Logger,
 ) *WAHAImportWorker {
 	// Criar activities
@@ -40,6 +43,8 @@ func NewWAHAImportWorker(
 		contactRepo,
 		sessionRepo,
 		messageRepo,
+		processMessageUC, // ✅ Pass use case
+		messageAdapter,   // ✅ Pass adapter
 	)
 
 	// Criar worker
@@ -51,8 +56,11 @@ func NewWAHAImportWorker(
 	w.RegisterWorkflow(WAHAHistoryImportWorkflow)
 
 	// Registrar activities com nomes explícitos (para corresponder aos nomes no workflow)
+	w.RegisterActivityWithOptions(activities.DetermineImportTimeRangeActivity, activity.RegisterOptions{Name: "DetermineImportTimeRangeActivity"})
 	w.RegisterActivityWithOptions(activities.FetchWAHAChatsActivity, activity.RegisterOptions{Name: "FetchWAHAChatsActivity"})
 	w.RegisterActivityWithOptions(activities.ImportChatHistoryActivity, activity.RegisterOptions{Name: "ImportChatHistoryActivity"})
+	w.RegisterActivityWithOptions(activities.ConsolidateHistorySessionsActivity, activity.RegisterOptions{Name: "ConsolidateHistorySessionsActivity"})
+	w.RegisterActivityWithOptions(activities.ProcessBufferedWebhooksActivity, activity.RegisterOptions{Name: "ProcessBufferedWebhooksActivity"})
 	w.RegisterActivityWithOptions(activities.MarkImportCompletedActivity, activity.RegisterOptions{Name: "MarkImportCompletedActivity"})
 
 	return &WAHAImportWorker{
@@ -65,16 +73,19 @@ func NewWAHAImportWorker(
 
 // Start inicia o worker
 func (w *WAHAImportWorker) Start(ctx context.Context) error {
-	w.logger.Info("Starting WAHA import worker")
+	w.logger.Info("🚀 Starting WAHA import worker on task queue 'waha-imports'")
 
 	// Start worker in background
 	go func() {
+		w.logger.Info("🔄 Running Temporal worker.Run()...")
 		if err := w.worker.Run(worker.InterruptCh()); err != nil {
-			w.logger.Error("WAHA import worker failed", zap.Error(err))
+			w.logger.Error("❌ WAHA import worker failed", zap.Error(err))
+		} else {
+			w.logger.Info("✅ WAHA import worker stopped gracefully")
 		}
 	}()
 
-	w.logger.Info("WAHA import worker started successfully")
+	w.logger.Info("✅ WAHA import worker goroutine started successfully")
 	return nil
 }
 

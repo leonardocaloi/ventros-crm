@@ -6,10 +6,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ventros/crm/internal/domain/crm/contact"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/ventros/crm/internal/domain/crm/contact"
 	"go.uber.org/zap"
 )
 

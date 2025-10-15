@@ -1,3 +1,6 @@
+
+plano para fazer em paralelo no gitop
+
 # PROMPT: Avaliação Arquitetural Completa + Análise de Modelo de Dados + AI/ML + API Security - Ventros CRM
 
 ## CONTEXTO

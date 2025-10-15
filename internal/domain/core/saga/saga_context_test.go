@@ -147,7 +147,7 @@ func TestSagaSteps(t *testing.T) {
 func TestCompensationEvents(t *testing.T) {
 	t.Run("GetCompensationEvent returns correct compensation", func(t *testing.T) {
 		testCases := []struct {
-			domainEvent     string
+			domainEvent          string
 			expectedCompensation CompensationEventType
 		}{
 			{"contact.created", CompensateContactCreated},

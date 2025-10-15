@@ -5,10 +5,10 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/ventros/crm/internal/domain/crm/contact"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/ventros/crm/internal/domain/crm/contact"
 )
 
 // Note: MockContactRepository and MockEventBus are defined in change_pipeline_status_usecase_test.go

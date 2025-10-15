@@ -8,7 +8,8 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/ventros/crm/infrastructure/persistence/entities"
-	"github.com/ventros/crm/internal/domain/core/shared"
+	"github.com/ventros/crm/internal/application/shared"
+	domainShared "github.com/ventros/crm/internal/domain/core/shared"
 	"github.com/ventros/crm/internal/domain/crm/session"
 	"gorm.io/datatypes"
 	"gorm.io/gorm"
@@ -22,16 +23,27 @@ func NewGormSessionRepository(db *gorm.DB) session.Repository {
 	return &GormSessionRepository{db: db}
 }
 
+// getDB extracts transaction from context if present, otherwise returns default connection
+func (r *GormSessionRepository) getDB(ctx context.Context) *gorm.DB {
+	// Try to extract transaction from context
+	if tx := shared.TransactionFromContext(ctx); tx != nil {
+		return tx.WithContext(ctx)
+	}
+	// If no transaction, use default connection
+	return r.db.WithContext(ctx)
+}
+
 func (r *GormSessionRepository) Save(ctx context.Context, s *session.Session) error {
 	entity := r.domainToEntity(s)
+	db := r.getDB(ctx) // ✅ Use transaction context
 
 	// Check if exists
 	var existing entities.SessionEntity
-	err := r.db.WithContext(ctx).Where("id = ?", entity.ID).First(&existing).Error
+	err := db.Where("id = ?", entity.ID).First(&existing).Error
 
 	if err == nil {
 		// Update with optimistic locking
-		result := r.db.WithContext(ctx).Model(&entities.SessionEntity{}).
+		result := db.Model(&entities.SessionEntity{}).
 			Where("id = ? AND version = ?", entity.ID, existing.Version).
 			Updates(map[string]interface{}{
 				"version":                     existing.Version + 1, // Increment version
@@ -74,7 +86,7 @@ func (r *GormSessionRepository) Save(ctx context.Context, s *session.Session) er
 
 		// Check optimistic locking - if 0 rows affected, version mismatch (concurrent update)
 		if result.RowsAffected == 0 {
-			return shared.NewOptimisticLockError(
+			return domainShared.NewOptimisticLockError(
 				"Session",
 				entity.ID.String(),
 				existing.Version,
@@ -84,8 +96,8 @@ func (r *GormSessionRepository) Save(ctx context.Context, s *session.Session) er
 
 		return nil
 	} else if errors.Is(err, gorm.ErrRecordNotFound) {
-		// Insert
-		return r.db.WithContext(ctx).Create(entity).Error
+		// Insert - use transaction context
+		return db.Create(entity).Error
 	}
 
 	return err
@@ -93,7 +105,8 @@ func (r *GormSessionRepository) Save(ctx context.Context, s *session.Session) er
 
 func (r *GormSessionRepository) FindByID(ctx context.Context, id uuid.UUID) (*session.Session, error) {
 	var entity entities.SessionEntity
-	err := r.db.First(&entity, "id = ?", id).Error
+	// ✅ READ COMMITTED: Use r.db to see committed sessions from other transactions
+	err := r.db.WithContext(ctx).First(&entity, "id = ?", id).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, session.ErrSessionNotFound
@@ -105,6 +118,8 @@ func (r *GormSessionRepository) FindByID(ctx context.Context, id uuid.UUID) (*se
 
 func (r *GormSessionRepository) FindActiveByContact(ctx context.Context, contactID uuid.UUID, channelTypeID *int) (*session.Session, error) {
 	var entity entities.SessionEntity
+	// ✅ READ COMMITTED: Use r.db to see committed sessions from other transactions
+	// This is CRITICAL for session reuse across multiple message imports
 	query := r.db.WithContext(ctx).Where("contact_id = ? AND status = 'active'", contactID)
 
 	if channelTypeID != nil {
@@ -310,6 +325,63 @@ func (r *GormSessionRepository) SearchByText(ctx context.Context, tenantID strin
 	}
 
 	return sessions, total, nil
+}
+
+// FindByChannelPaginated retrieves sessions associated with messages from a specific channel
+// Ordered by contact_id and started_at for efficient consolidation processing
+// Used for history import post-processing
+func (r *GormSessionRepository) FindByChannelPaginated(ctx context.Context, channelID uuid.UUID, limit int, offset int) ([]*session.Session, error) {
+	// Query sessions via messages table (sessions don't have direct channel_id reference)
+	// Order by contact_id, started_at for consolidation efficiency
+	query := `
+		SELECT DISTINCT s.*
+		FROM sessions s
+		INNER JOIN messages m ON m.session_id = s.id
+		WHERE m.channel_id = ?
+		ORDER BY s.contact_id, s.started_at
+		LIMIT ? OFFSET ?
+	`
+
+	var sessionEntities []entities.SessionEntity
+	if err := r.db.WithContext(ctx).Raw(query, channelID, limit, offset).Scan(&sessionEntities).Error; err != nil {
+		return nil, err
+	}
+
+	// Convert to domain
+	sessions := make([]*session.Session, len(sessionEntities))
+	for i, entity := range sessionEntities {
+		sessions[i] = r.entityToDomain(&entity)
+	}
+
+	return sessions, nil
+}
+
+// CountByChannel counts total sessions associated with a channel
+func (r *GormSessionRepository) CountByChannel(ctx context.Context, channelID uuid.UUID) (int64, error) {
+	var count int64
+	query := `
+		SELECT COUNT(DISTINCT s.id)
+		FROM sessions s
+		INNER JOIN messages m ON m.session_id = s.id
+		WHERE m.channel_id = ?
+	`
+
+	if err := r.db.WithContext(ctx).Raw(query, channelID).Scan(&count).Error; err != nil {
+		return 0, err
+	}
+
+	return count, nil
+}
+
+// DeleteBatch deletes multiple sessions by ID
+// Used to remove orphaned sessions after consolidation
+func (r *GormSessionRepository) DeleteBatch(ctx context.Context, sessionIDs []uuid.UUID) error {
+	if len(sessionIDs) == 0 {
+		return nil
+	}
+
+	db := r.getDB(ctx) // Use transaction context if present
+	return db.Where("id IN ?", sessionIDs).Delete(&entities.SessionEntity{}).Error
 }
 
 // Mappers: Domain → Entity

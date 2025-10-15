@@ -5,11 +5,11 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/ventros/crm/internal/domain/core/shared"
-	"github.com/ventros/crm/internal/domain/crm/tracking"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/ventros/crm/internal/domain/core/shared"
+	"github.com/ventros/crm/internal/domain/crm/tracking"
 	"go.uber.org/zap"
 )
 

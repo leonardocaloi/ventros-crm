@@ -3,10 +3,10 @@ package waha_test
 import (
 	"testing"
 
-	"github.com/ventros/crm/infrastructure/channels/waha"
-	"github.com/ventros/crm/internal/domain/crm/message"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/ventros/crm/infrastructure/channels/waha"
+	"github.com/ventros/crm/internal/domain/crm/message"
 )
 
 func TestNewWhatsAppAck(t *testing.T) {
@@ -339,10 +339,10 @@ func TestWhatsAppAck_LifecycleCoverage(t *testing.T) {
 		expectedStatus message.Status
 		shouldUpdate   bool
 	}{
-		{waha.AckPending, message.StatusQueued, false},   // Pendente
-		{waha.AckServer, message.StatusSent, true},       // Enviada ao servidor
-		{waha.AckDevice, message.StatusDelivered, true},  // Entregue no dispositivo
-		{waha.AckRead, message.StatusRead, true},         // Lida pelo destinatário
+		{waha.AckPending, message.StatusQueued, false},  // Pendente
+		{waha.AckServer, message.StatusSent, true},      // Enviada ao servidor
+		{waha.AckDevice, message.StatusDelivered, true}, // Entregue no dispositivo
+		{waha.AckRead, message.StatusRead, true},        // Lida pelo destinatário
 	}
 
 	for _, step := range lifecycle {

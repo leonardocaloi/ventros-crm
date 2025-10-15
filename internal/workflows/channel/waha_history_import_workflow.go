@@ -40,7 +40,7 @@ func WAHAHistoryImportWorkflow(ctx workflow.Context, input WAHAHistoryImportWork
 
 	// Default session timeout se não especificado
 	if input.SessionTimeoutMinutes == 0 {
-		input.SessionTimeoutMinutes = 30 // Default: 30 minutos
+		input.SessionTimeoutMinutes = 240 // Default: 4 horas (para máxima consolidação)
 	}
 
 	logger.Info("========================================")
@@ -86,24 +86,54 @@ func WAHAHistoryImportWorkflow(ctx workflow.Context, input WAHAHistoryImportWork
 	}
 	ctx = workflow.WithActivityOptions(ctx, activityOptions)
 
+	// STEP 0: Determinar melhor range de tempo baseado no chat mais antigo
+	logger.Info("Step 0: Determining optimal import time range")
+	var timeRangeResult DetermineTimeRangeActivityResult
+	timeRangeInput := DetermineTimeRangeActivityInput{
+		ChannelID:     input.ChannelID,
+		SessionID:     input.SessionID,
+		TimeRangeDays: input.TimeRangeDays,
+	}
+
+	err = workflow.ExecuteActivity(ctx, "DetermineImportTimeRangeActivity", timeRangeInput).Get(ctx, &timeRangeResult)
+	if err != nil {
+		logger.Error("Failed to determine time range, using requested range", "error", err.Error())
+		// Fallback: continua com o range solicitado
+	} else if timeRangeResult.OptimizedStartDate != nil {
+		// Usar data otimizada
+		actualDays := int(workflow.Now(ctx).Sub(*timeRangeResult.OptimizedStartDate).Hours() / 24)
+		logger.Info("✅ Using optimized time range",
+			"requested_days", input.TimeRangeDays,
+			"actual_days", actualDays,
+			"optimized_start", timeRangeResult.OptimizedStartDate.Format(time.RFC3339))
+
+		// Atualizar TimeRangeDays com o valor otimizado
+		input.TimeRangeDays = actualDays
+	}
+
 	// STEP 1: Buscar lista de chats do WAHA
-	logger.Info("Step 1: Fetching chats from WAHA")
+	logger.Info("📋 Step 1: Fetching chats from WAHA")
 	var chats []ChatInfo
 	fetchChatsInput := FetchChatsActivityInput{
+		ChannelID: input.ChannelID,
 		SessionID: input.SessionID,
 		Strategy:  input.Strategy,
 	}
 
+	logger.Info("🔄 Executing FetchWAHAChatsActivity...",
+		"channel_id", input.ChannelID,
+		"session_id", input.SessionID)
+
 	err = workflow.ExecuteActivity(ctx, "FetchWAHAChatsActivity", fetchChatsInput).Get(ctx, &chats)
 	if err != nil {
-		logger.Error("Failed to fetch chats", "error", err.Error())
+		logger.Error("❌ Failed to fetch chats", "error", err.Error())
 		result.Status = "failed"
 		result.Errors = append(result.Errors, "Failed to fetch chats: "+err.Error())
 		result.CompletedAt = workflow.Now(ctx)
 		return result, err
 	}
 
-	logger.Info("Chats fetched successfully", "count", len(chats))
+	logger.Info("✅ Chats fetched successfully", "count", len(chats))
 
 	// STEP 2: Processar cada chat em paralelo (com limite de concorrência)
 	logger.Info("Step 2: Processing chats")
@@ -151,6 +181,28 @@ func WAHAHistoryImportWorkflow(ctx workflow.Context, input WAHAHistoryImportWork
 			result.SessionsCreated += chatResult.SessionsCreated
 			result.ContactsCreated += chatResult.ContactsCreated
 		}
+	}
+
+	// STEP 2.5: Consolidar sessions criadas durante import (pós-processamento determinístico)
+	logger.Info("Step 2.5: Consolidating history sessions")
+	consolidateInput := ConsolidateHistorySessionsActivityInput{
+		ChannelID:             input.ChannelID,
+		SessionTimeoutMinutes: input.SessionTimeoutMinutes,
+	}
+
+	var consolidateResult ConsolidateHistorySessionsActivityResult
+	err = workflow.ExecuteActivity(ctx, "ConsolidateHistorySessionsActivity", consolidateInput).Get(ctx, &consolidateResult)
+	if err != nil {
+		logger.Warn("Failed to consolidate sessions", "error", err.Error())
+		result.Errors = append(result.Errors, "Failed to consolidate sessions: "+err.Error())
+	} else {
+		// Atualizar contagem de sessions (após consolidação)
+		result.SessionsCreated = consolidateResult.SessionsAfter
+		logger.Info("Sessions consolidated",
+			"sessions_before", consolidateResult.SessionsBefore,
+			"sessions_after", consolidateResult.SessionsAfter,
+			"sessions_deleted", consolidateResult.SessionsDeleted,
+			"messages_updated", consolidateResult.MessagesUpdated)
 	}
 
 	// STEP 3: Processar webhooks buffered (SAGA Pattern compensation)
@@ -250,8 +302,23 @@ type ChatInfo struct {
 	Name string `json:"name"`
 }
 
+// DetermineTimeRangeActivityInput representa entrada para determinar range de tempo
+type DetermineTimeRangeActivityInput struct {
+	ChannelID     string `json:"channel_id"` // ID do canal (para buscar config WAHA)
+	SessionID     string `json:"session_id"`
+	TimeRangeDays int    `json:"time_range_days"` // Dias solicitados pelo usuário
+}
+
+// DetermineTimeRangeActivityResult representa resultado da otimização de range
+type DetermineTimeRangeActivityResult struct {
+	TimeRangeDays      int        `json:"time_range_days"`       // Dias originalmente solicitados
+	OptimizedStartDate *time.Time `json:"optimized_start_date"`  // Data otimizada (chat mais antigo - 1 dia), ou nil se usar default
+	ActualDays         int        `json:"actual_days,omitempty"` // Dias reais que serão importados
+}
+
 // FetchChatsActivityInput representa a entrada para buscar chats
 type FetchChatsActivityInput struct {
+	ChannelID string `json:"channel_id"` // ID do canal (para buscar config WAHA)
 	SessionID string `json:"session_id"`
 	Strategy  string `json:"strategy"`
 }
@@ -294,4 +361,19 @@ type ProcessBufferedWebhooksActivityResult struct {
 	ChannelID         string   `json:"channel_id"`
 	WebhooksProcessed int      `json:"webhooks_processed"`
 	Errors            []string `json:"errors"`
+}
+
+// ConsolidateHistorySessionsActivityInput representa entrada para consolidação de sessions
+type ConsolidateHistorySessionsActivityInput struct {
+	ChannelID             string `json:"channel_id"`
+	SessionTimeoutMinutes int    `json:"session_timeout_minutes"`
+}
+
+// ConsolidateHistorySessionsActivityResult representa resultado da consolidação
+type ConsolidateHistorySessionsActivityResult struct {
+	ChannelID       string `json:"channel_id"`
+	SessionsBefore  int    `json:"sessions_before"`
+	SessionsAfter   int    `json:"sessions_after"`
+	SessionsDeleted int64  `json:"sessions_deleted"`
+	MessagesUpdated int64  `json:"messages_updated"`
 }

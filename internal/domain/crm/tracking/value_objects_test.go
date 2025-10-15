@@ -197,52 +197,52 @@ func TestValidatePlatformMediumCompatibility(t *testing.T) {
 
 func TestGetValidSourcesForPlatform(t *testing.T) {
 	tests := []struct {
-		name           string
-		platform       UTMSourcePlatform
+		name            string
+		platform        UTMSourcePlatform
 		expectedSources []string
-		minCount       int
+		minCount        int
 	}{
 		{
-			name:           "meta sources",
-			platform:       UTMPlatformMeta,
+			name:            "meta sources",
+			platform:        UTMPlatformMeta,
 			expectedSources: []string{"facebook", "instagram", "messenger", "audience-network"},
-			minCount:       4,
+			minCount:        4,
 		},
 		{
-			name:           "google sources",
-			platform:       UTMPlatformGoogle,
+			name:            "google sources",
+			platform:        UTMPlatformGoogle,
 			expectedSources: []string{"search", "display", "youtube", "gmail"},
-			minCount:       4,
+			minCount:        4,
 		},
 		{
-			name:           "mkt-direto sources",
-			platform:       PlatformMktDireto,
+			name:            "mkt-direto sources",
+			platform:        PlatformMktDireto,
 			expectedSources: []string{"influencer", "disparo", "affiliate"},
-			minCount:       3,
+			minCount:        3,
 		},
 		{
-			name:           "offline sources",
-			platform:       UTMPlatformOffline,
+			name:            "offline sources",
+			platform:        UTMPlatformOffline,
 			expectedSources: []string{"tv", "impresso", "outdoor", "evento"},
-			minCount:       4,
+			minCount:        4,
 		},
 		{
-			name:           "tiktok sources",
-			platform:       UTMPlatformTikTok,
+			name:            "tiktok sources",
+			platform:        UTMPlatformTikTok,
 			expectedSources: []string{"tiktok"},
-			minCount:       1,
+			minCount:        1,
 		},
 		{
-			name:           "linkedin sources",
-			platform:       UTMPlatformLinkedIn,
+			name:            "linkedin sources",
+			platform:        UTMPlatformLinkedIn,
 			expectedSources: []string{"linkedin"},
-			minCount:       1,
+			minCount:        1,
 		},
 		{
-			name:           "unknown platform",
-			platform:       "unknown",
+			name:            "unknown platform",
+			platform:        "unknown",
 			expectedSources: []string{},
-			minCount:       0,
+			minCount:        0,
 		},
 	}
 

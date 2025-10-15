@@ -8,9 +8,9 @@ import (
 
 func TestNewMoney_Valid(t *testing.T) {
 	tests := []struct {
-		name     string
-		amount   float64
-		currency Currency
+		name      string
+		amount    float64
+		currency  Currency
 		wantCents int64
 	}{
 		{

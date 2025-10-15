@@ -572,10 +572,10 @@ func TestToFloat64(t *testing.T) {
 
 func TestContainsString(t *testing.T) {
 	tests := []struct {
-		name      string
-		haystack  interface{}
-		needle    interface{}
-		expected  bool
+		name     string
+		haystack interface{}
+		needle   interface{}
+		expected bool
 	}{
 		{"contains - true", "hello world", "hello", true},
 		{"contains - false", "hello world", "goodbye", false},

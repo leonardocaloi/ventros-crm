@@ -89,7 +89,9 @@ func (r *GormContactRepository) getDB(ctx context.Context) *gorm.DB {
 
 func (r *GormContactRepository) FindByID(ctx context.Context, id uuid.UUID) (*contact.Contact, error) {
 	var entity entities.ContactEntity
-	err := r.db.WithContext(ctx).First(&entity, "id = ?", id).Error
+	// ✅ FIX: Use getDB to get transaction from context if exists
+	db := r.getDB(ctx)
+	err := db.First(&entity, "id = ?", id).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, contact.NewContactNotFoundError(id.String())
@@ -131,7 +133,9 @@ func (r *GormContactRepository) CountByProject(ctx context.Context, projectID uu
 
 func (r *GormContactRepository) FindByExternalID(ctx context.Context, projectID uuid.UUID, externalID string) (*contact.Contact, error) {
 	var entity entities.ContactEntity
-	err := r.db.WithContext(ctx).Where("project_id = ? AND external_id = ? AND deleted_at IS NULL", projectID, externalID).First(&entity).Error
+	// ✅ FIX: Use getDB to get transaction from context if exists
+	db := r.getDB(ctx)
+	err := db.Where("project_id = ? AND external_id = ? AND deleted_at IS NULL", projectID, externalID).First(&entity).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, contact.NewContactNotFoundError("external_id:" + externalID)
@@ -143,7 +147,9 @@ func (r *GormContactRepository) FindByExternalID(ctx context.Context, projectID 
 
 func (r *GormContactRepository) FindByPhone(ctx context.Context, projectID uuid.UUID, phone string) (*contact.Contact, error) {
 	var entity entities.ContactEntity
-	err := r.db.WithContext(ctx).Where("project_id = ? AND phone = ? AND deleted_at IS NULL", projectID, phone).First(&entity).Error
+	// ✅ FIX: Use getDB to get transaction from context if exists
+	db := r.getDB(ctx)
+	err := db.Where("project_id = ? AND phone = ? AND deleted_at IS NULL", projectID, phone).First(&entity).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, contact.NewContactNotFoundError("phone:" + phone)
@@ -155,7 +161,9 @@ func (r *GormContactRepository) FindByPhone(ctx context.Context, projectID uuid.
 
 func (r *GormContactRepository) FindByEmail(ctx context.Context, projectID uuid.UUID, email string) (*contact.Contact, error) {
 	var entity entities.ContactEntity
-	err := r.db.WithContext(ctx).Where("project_id = ? AND email = ? AND deleted_at IS NULL", projectID, email).First(&entity).Error
+	// ✅ FIX: Use getDB to get transaction from context if exists
+	db := r.getDB(ctx)
+	err := db.Where("project_id = ? AND email = ? AND deleted_at IS NULL", projectID, email).First(&entity).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, contact.NewContactNotFoundError("email:" + email)

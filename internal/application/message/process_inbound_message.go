@@ -2,12 +2,14 @@ package message
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/ventros/crm/internal/domain/core/saga"
 	"github.com/ventros/crm/internal/domain/core/shared"
+	domainagent "github.com/ventros/crm/internal/domain/crm/agent"
 	"github.com/ventros/crm/internal/domain/crm/contact"
 	domaincontact "github.com/ventros/crm/internal/domain/crm/contact"
 	contact_event "github.com/ventros/crm/internal/domain/crm/contact_event"
@@ -78,6 +80,7 @@ type ProcessInboundMessageUseCase struct {
 	contactRepo          contact.Repository
 	sessionRepo          domainsession.Repository
 	messageRepo          domainmessage.Repository
+	agentRepo            domainagent.Repository // ✅ NOVO: Para atribuir system agents
 	contactEventRepo     contact_event.Repository
 	eventBus             EventBus
 	sessionManager       *sessionworkflow.SessionManager
@@ -95,6 +98,7 @@ func NewProcessInboundMessageUseCase(
 	contactRepo contact.Repository,
 	sessionRepo domainsession.Repository,
 	messageRepo domainmessage.Repository,
+	agentRepo domainagent.Repository, // ✅ NOVO: Para atribuir system agents
 	contactEventRepo contact_event.Repository,
 	eventBus EventBus,
 	sessionManager *sessionworkflow.SessionManager,
@@ -109,6 +113,7 @@ func NewProcessInboundMessageUseCase(
 		contactRepo:          contactRepo,
 		sessionRepo:          sessionRepo,
 		messageRepo:          messageRepo,
+		agentRepo:            agentRepo, // ✅ NOVO
 		contactEventRepo:     contactEventRepo,
 		eventBus:             eventBus,
 		sessionManager:       sessionManager,
@@ -233,7 +238,8 @@ func (uc *ProcessInboundMessageUseCase) executeViaTransaction(ctx context.Contex
 		}
 
 		// Step 4: Record message in session (updates metrics)
-		if err := s.RecordMessage(true, cmd.Timestamp); err != nil {
+		// ✅ FIX: Use cmd.ReceivedAt (timestamp histórico correto) ao invés de cmd.Timestamp (legado, sempre zero)
+		if err := s.RecordMessage(true, cmd.ReceivedAt); err != nil {
 			return fmt.Errorf("saga step failed [session_updated]: %w", err)
 		}
 
@@ -291,19 +297,37 @@ func (uc *ProcessInboundMessageUseCase) executeViaTransaction(ctx context.Contex
 
 // findOrCreateContact busca contato por telefone ou cria novo
 func (uc *ProcessInboundMessageUseCase) findOrCreateContact(ctx context.Context, cmd ProcessInboundMessageCommand) (*domaincontact.Contact, error) {
+	fmt.Printf("🔍 [findOrCreateContact] Starting - phone: %s, projectID: %s\n", cmd.ContactPhone, cmd.ProjectID)
+
 	// Busca por telefone
 	existing, err := uc.contactRepo.FindByPhone(ctx, cmd.ProjectID, cmd.ContactPhone)
-	if err != nil && err != domaincontact.ErrContactNotFound {
-		return nil, err
+
+	fmt.Printf("🔍 [findOrCreateContact] FindByPhone result - existing: %v, err: %v\n", existing != nil, err)
+	if err != nil {
+		fmt.Printf("🔍 [findOrCreateContact] Error details - type: %T, value: %+v\n", err, err)
+		// ✅ FIX: Use errors.Is() para funcionar com wrapped errors (*shared.DomainError)
+		isNotFound := errors.Is(err, domaincontact.ErrContactNotFound)
+		fmt.Printf("🔍 [findOrCreateContact] Is ErrContactNotFound (using errors.Is)? %v\n", isNotFound)
+
+		// Se é um erro que NÃO é "not found", retornar o erro
+		if !isNotFound {
+			fmt.Printf("❌ [findOrCreateContact] Returning error because it's not ErrContactNotFound\n")
+			return nil, err
+		}
+		// Se é "not found", continua para criar o contato (existing será nil)
+		fmt.Printf("✅ [findOrCreateContact] Contact not found, will create new one\n")
 	}
 
 	if existing != nil {
+		fmt.Printf("✅ [findOrCreateContact] Found existing contact: %s\n", existing.ID())
 		// Atualiza nome se necessário
 		if cmd.ContactName != "" && existing.Name() != cmd.ContactName {
 			existing.UpdateName(cmd.ContactName)
 		}
 		return existing, nil
 	}
+
+	fmt.Printf("🆕 [findOrCreateContact] Creating new contact - name: %s, phone: %s\n", cmd.ContactName, cmd.ContactPhone)
 
 	// Cria novo contato
 	name := cmd.ContactName
@@ -313,21 +337,29 @@ func (uc *ProcessInboundMessageUseCase) findOrCreateContact(ctx context.Context,
 
 	c, err := domaincontact.NewContact(cmd.ProjectID, cmd.TenantID, name)
 	if err != nil {
+		fmt.Printf("❌ [findOrCreateContact] Failed to create contact: %v\n", err)
 		return nil, err
 	}
+	fmt.Printf("✅ [findOrCreateContact] Contact created: %s\n", c.ID())
 
 	// Define telefone
 	if err := c.SetPhone(cmd.ContactPhone); err != nil {
+		fmt.Printf("❌ [findOrCreateContact] Failed to set phone: %v\n", err)
 		return nil, fmt.Errorf("invalid phone number: %w", err)
 	}
+	fmt.Printf("✅ [findOrCreateContact] Phone set: %s\n", cmd.ContactPhone)
 
 	// Adiciona tag do canal
 	c.AddTag("whatsapp")
+	fmt.Printf("✅ [findOrCreateContact] Tag added: whatsapp\n")
 
 	// Persiste
+	fmt.Printf("💾 [findOrCreateContact] Saving contact to repository...\n")
 	if err := uc.contactRepo.Save(ctx, c); err != nil {
+		fmt.Printf("❌ [findOrCreateContact] Failed to save contact: %v (type: %T)\n", err, err)
 		return nil, err
 	}
+	fmt.Printf("✅ [findOrCreateContact] Contact saved successfully: %s\n", c.ID())
 
 	return c, nil
 }
@@ -368,8 +400,8 @@ func (uc *ProcessInboundMessageUseCase) findOrCreateSession(ctx context.Context,
 	// Usa SessionTimeoutResolver para seguir a hierarquia de forma elegante
 	timeoutDuration, pipelineID, err := uc.timeoutResolver.ResolveForChannel(ctx, cmd.ChannelID)
 	if err != nil {
-		fmt.Printf("Warning: failed to resolve timeout, using default 30 min: %v\n", err)
-		timeoutDuration = 30 * time.Minute
+		fmt.Printf("Warning: failed to resolve timeout, using default 4h: %v\n", err)
+		timeoutDuration = 4 * time.Hour // 240 minutos para máxima consolidação
 		pipelineID = nil
 	}
 
@@ -407,10 +439,12 @@ func (uc *ProcessInboundMessageUseCase) findOrCreateSession(ctx context.Context,
 		}
 	}
 
-	// Persiste
+	// ✅ Persiste IMEDIATAMENTE (ANTES de createMessage usar s.ID())
 	if err := uc.sessionRepo.Save(ctx, s); err != nil {
 		return nil, err
 	}
+
+	fmt.Printf("✅ Session persisted with ID: %s, tenant_id context will be used\n", s.ID())
 
 	// Inicia workflow Temporal para gerenciar o ciclo de vida da sessão
 	if uc.sessionManager != nil {
@@ -459,8 +493,10 @@ func (uc *ProcessInboundMessageUseCase) createMessage(ctx context.Context, c *do
 	// Associa ao canal (OBRIGATÓRIO)
 	m.AssignToChannel(cmd.ChannelID, &cmd.ChannelTypeID)
 
-	// Associa à sessão
-	m.AssignToSession(s.ID())
+	// ✅ Associa à sessão (session JÁ foi persistida em findOrCreateSession linha 442)
+	sessionID := s.ID()
+	fmt.Printf("🔗 Assigning message to session: %s\n", sessionID)
+	m.AssignToSession(sessionID)
 
 	// Define channel_message_id (ID externo do WhatsApp)
 	if cmd.ChannelMessageID != "" {
@@ -487,10 +523,21 @@ func (uc *ProcessInboundMessageUseCase) createMessage(ctx context.Context, c *do
 		fmt.Printf("✅ Message mentions set: %d mentions\n", len(cmd.Mentions))
 	}
 
-	// Persiste
+	// ✅ OBRIGATÓRIO: Atribui system agent baseado na source da mensagem
+	// Toda mensagem DEVE ter um agente atribuído (invariante de domínio)
+	systemAgentID := uc.getSystemAgentForSource(m.Source())
+	if err := m.AssignAgent(systemAgentID); err != nil {
+		return nil, fmt.Errorf("failed to assign agent: %w", err)
+	}
+	fmt.Printf("✅ System agent assigned: %s (source: %s)\n", systemAgentID, m.Source())
+
+	// ✅ Persiste (session JÁ está no banco, FK deve funcionar)
+	fmt.Printf("💾 Saving message with session_id=%s to repository...\n", m.SessionID())
 	if err := uc.messageRepo.Save(ctx, m); err != nil {
+		fmt.Printf("❌ Failed to save message: %v (session_id=%s)\n", err, m.SessionID())
 		return nil, err
 	}
+	fmt.Printf("✅ Message saved successfully: %s (session_id=%s)\n", m.ID(), m.SessionID())
 
 	return m, nil
 }
@@ -628,4 +675,62 @@ func (uc *ProcessInboundMessageUseCase) detectInvisibleTracking(ctx context.Cont
 		trackingID, c.ID(), s.ID())
 
 	return nil
+}
+
+// getSystemAgentForSource retorna o system agent apropriado baseado na source da mensagem
+// Implementa a estratégia de atribuição automática de agentes:
+// - Cada source tem um system agent correspondente
+// - Garante que TODA mensagem tenha um agente (invariante de domínio)
+// - Fallback: SystemAgentDefault para sources não mapeadas
+func (uc *ProcessInboundMessageUseCase) getSystemAgentForSource(source domainmessage.Source) uuid.UUID {
+	switch source {
+	case domainmessage.SourceHistoryImport:
+		// Mensagens importadas do histórico (WAHA history import, etc)
+		return domainagent.SystemAgentDefault
+
+	case domainmessage.SourceWebhook:
+		// Respostas automáticas via webhook
+		return domainagent.SystemAgentWebhook
+
+	case domainmessage.SourceBroadcast:
+		// Campanhas broadcast
+		return domainagent.SystemAgentBroadcast
+
+	case domainmessage.SourceSequence:
+		// Sequências de automação
+		return domainagent.SystemAgentSequence
+
+	case domainmessage.SourceTrigger:
+		// Triggers/regras de pipeline
+		return domainagent.SystemAgentTrigger
+
+	case domainmessage.SourceScheduled:
+		// Mensagens agendadas
+		return domainagent.SystemAgentScheduled
+
+	case domainmessage.SourceTest:
+		// Testes E2E e envios de teste
+		return domainagent.SystemAgentTest
+
+	case domainmessage.SourceManual:
+		// Mensagens manuais enviadas por agentes humanos
+		// NOTA: ProcessInboundMessageUseCase processa mensagens INBOUND (recebidas)
+		// Mensagens manuais OUTBOUND (enviadas) são processadas por SendMessageCommand
+		// e já têm agente autenticado. Se chegou aqui, é uma mensagem recebida
+		// sem source definida, então usamos Default como fallback.
+		return domainagent.SystemAgentDefault
+
+	case domainmessage.SourceBot:
+		// Bot/AI responses
+		return domainagent.SystemAgentDefault
+
+	case domainmessage.SourceSystem:
+		// Sistema interno
+		return domainagent.SystemAgentDefault
+
+	default:
+		// Fallback para sources desconhecidas ou não mapeadas
+		fmt.Printf("⚠️  Unknown message source '%s', using SystemAgentDefault\n", source)
+		return domainagent.SystemAgentDefault
+	}
 }

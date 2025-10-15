@@ -72,11 +72,11 @@ func TestNewChannel_Invalid(t *testing.T) {
 	tenantID := "tenant-123"
 
 	tests := []struct {
-		name         string
-		channelName  string
-		channelType  ChannelType
-		expectErr    bool
-		errContains  string
+		name        string
+		channelName string
+		channelType ChannelType
+		expectErr   bool
+		errContains string
 	}{
 		{
 			name:        "empty name",
@@ -277,9 +277,9 @@ func TestChannel_WAHASessionStatus(t *testing.T) {
 	ch := createWAHATestChannel(t)
 
 	tests := []struct {
-		name           string
-		status         WAHASessionStatus
-		expectActive   bool
+		name         string
+		status       WAHASessionStatus
+		expectActive bool
 	}{
 		{
 			name:         "STARTING status",

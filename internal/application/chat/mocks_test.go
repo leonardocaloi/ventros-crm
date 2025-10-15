@@ -3,9 +3,9 @@ package chat
 import (
 	"context"
 
-	domainchat "github.com/ventros/crm/internal/domain/crm/chat"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/mock"
+	domainchat "github.com/ventros/crm/internal/domain/crm/chat"
 )
 
 // MockChatRepository is a mock implementation of domainchat.Repository

@@ -39,10 +39,14 @@ type Repository interface {
 	FindBySession(ctx context.Context, sessionID uuid.UUID, limit, offset int) ([]*Message, error)
 	FindByContact(ctx context.Context, contactID uuid.UUID, limit, offset int) ([]*Message, error)
 	FindByChannelMessageID(ctx context.Context, channelMessageID string) (*Message, error)
+	FindByChannelAndMessageID(ctx context.Context, channelID uuid.UUID, channelMessageID string) (*Message, error)
 	CountBySession(ctx context.Context, sessionID uuid.UUID) (int, error)
 
 	// Advanced query methods
 	FindByTenantWithFilters(ctx context.Context, filters MessageFilters) ([]*Message, int64, error)
 
 	SearchByText(ctx context.Context, tenantID string, searchText string, limit int, offset int) ([]*Message, int64, error)
+
+	// Consolidation methods (for history import post-processing)
+	UpdateSessionIDForSession(ctx context.Context, oldSessionID, newSessionID uuid.UUID) (int64, error)
 }

@@ -377,3 +377,96 @@ func (c *HistoryClient) FetchAllChats(ctx context.Context, sessionID string) ([]
 
 	return allChats, nil
 }
+
+// GetOldestAvailableDate busca a data da mensagem mais antiga disponível em um chat
+// Isso é usado para otimizar importações: se o usuário pedir 180 dias mas o chat
+// só tem mensagens dos últimos 30 dias, retornamos 30 dias atrás
+// Retorna nil se o chat não tiver mensagens
+func (c *HistoryClient) GetOldestAvailableDate(ctx context.Context, sessionID, chatID string) (*time.Time, error) {
+	// Busca as últimas 100 mensagens ordenadas DESC (mais recentes primeiro)
+	// A API WAHA sempre retorna mensagens ordenadas por timestamp DESC
+	resp, err := c.FetchMessages(ctx, FetchMessagesRequest{
+		SessionID:     sessionID,
+		ChatID:        chatID,
+		Limit:         100,
+		Offset:        0,
+		DownloadMedia: false,
+	})
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch messages: %w", err)
+	}
+
+	if len(resp.Messages) == 0 {
+		// Chat sem mensagens
+		return nil, nil
+	}
+
+	// Se temos menos de 100 mensagens, a última mensagem é a mais antiga
+	if len(resp.Messages) < 100 {
+		oldestMsg := resp.Messages[len(resp.Messages)-1]
+		oldestDate := time.Unix(oldestMsg.Timestamp, 0)
+
+		c.logger.Info("Found oldest message date (all messages fit in one page)",
+			zap.String("session_id", sessionID),
+			zap.String("chat_id", chatID),
+			zap.Time("oldest_date", oldestDate),
+			zap.Int("total_messages", len(resp.Messages)))
+
+		return &oldestDate, nil
+	}
+
+	// Se temos exatamente 100 mensagens, precisamos buscar mais páginas
+	// até encontrar a última mensagem
+	offset := 100
+	var oldestMsg *HistoryMessage
+
+	for {
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		default:
+		}
+
+		resp, err := c.FetchMessages(ctx, FetchMessagesRequest{
+			SessionID:     sessionID,
+			ChatID:        chatID,
+			Limit:         100,
+			Offset:        offset,
+			DownloadMedia: false,
+		})
+
+		if err != nil {
+			return nil, fmt.Errorf("failed to fetch messages at offset %d: %w", offset, err)
+		}
+
+		if len(resp.Messages) == 0 {
+			// Não há mais mensagens, usamos a última da página anterior
+			break
+		}
+
+		oldestMsg = &resp.Messages[len(resp.Messages)-1]
+
+		if !resp.HasMore {
+			// Esta é a última página
+			break
+		}
+
+		offset += 100
+		time.Sleep(200 * time.Millisecond) // Rate limiting
+	}
+
+	if oldestMsg != nil {
+		oldestDate := time.Unix(oldestMsg.Timestamp, 0)
+
+		c.logger.Info("Found oldest message date (multiple pages)",
+			zap.String("session_id", sessionID),
+			zap.String("chat_id", chatID),
+			zap.Time("oldest_date", oldestDate),
+			zap.Int("total_pages", offset/100))
+
+		return &oldestDate, nil
+	}
+
+	return nil, nil
+}

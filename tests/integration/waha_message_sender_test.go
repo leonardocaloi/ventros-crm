@@ -4,12 +4,12 @@ import (
 	"context"
 	"testing"
 
-	"github.com/ventros/crm/infrastructure/channels/waha"
-	"github.com/ventros/crm/infrastructure/persistence"
-	"github.com/ventros/crm/internal/application/message"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/ventros/crm/infrastructure/channels/waha"
+	"github.com/ventros/crm/infrastructure/persistence"
+	"github.com/ventros/crm/internal/application/message"
 	"go.uber.org/zap"
 )
 

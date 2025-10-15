@@ -6,13 +6,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	"github.com/ventros/crm/internal/application/message"
 	"github.com/ventros/crm/internal/domain/crm/contact"
 	domainMessage "github.com/ventros/crm/internal/domain/crm/message"
 	"github.com/ventros/crm/internal/domain/crm/session"
-	"github.com/google/uuid"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 )
 
 // Mocks

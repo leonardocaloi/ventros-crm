@@ -66,8 +66,13 @@ func (h *WebSocketMessageHandler) SendMessage(ctx context.Context, userID uuid.U
 
 	msg.AssignToSession(payload.SessionID)
 
+	// ✅ OBRIGATÓRIO: Atribuir agente autenticado do WebSocket
+	// WebSocket sempre tem userID autenticado (agente humano)
+	if err := msg.AssignAgent(userID); err != nil {
+		return nil, fmt.Errorf("failed to assign agent: %w", err)
+	}
+
 	// TODO: AssignToChannel - buscar channelID da sessão
-	// TODO: Implementar método AssignToAgent no domain Message se necessário
 
 	// Persistir mensagem
 	if err := h.messageRepo.Save(ctx, msg); err != nil {

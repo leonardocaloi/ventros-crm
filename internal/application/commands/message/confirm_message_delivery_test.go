@@ -6,10 +6,10 @@ import (
 	"testing"
 	"time"
 
-	domainMessage "github.com/ventros/crm/internal/domain/crm/message"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	domainMessage "github.com/ventros/crm/internal/domain/crm/message"
 )
 
 // MockMessageFinder is a mock implementation of MessageFinder interface
