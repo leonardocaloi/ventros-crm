@@ -23,63 +23,212 @@
 
 ### Responsabilidades do Python ADK Service
 
+**IMPORTANTE**: Python ADK é uma **biblioteca de agentes** (não orquestrador principal).
+O **Go CRM** é quem orquestra tudo e decide quando usar agentes Python.
+
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                  PYTHON ADK ORCHESTRATOR                     │
+│              PYTHON ADK - AGENT LIBRARY SERVICE             │
 ├─────────────────────────────────────────────────────────────┤
 │                                                               │
-│  ✅ Agent Orchestration (Coordinator + Specialists)         │
+│  ✅ Agent Catalog (fornece lista de agentes disponíveis)   │
+│  ✅ Agent Execution (executa quando chamado pelo Go CRM)    │
 │  ✅ Semantic Routing (Intent Classification)                │
-│  ✅ Memory Service (BaseMemoryService implementation)       │
 │  ✅ Tool Registry & Execution                                │
 │  ✅ LLM Interaction (Gemini 2.0 Flash)                      │
-│  ✅ Event Consumer/Publisher (RabbitMQ)                     │
-│  ✅ gRPC Client (chama Go Memory Service)                   │
+│  ✅ gRPC Server (recebe chamadas do Go CRM)                 │
+│  ✅ gRPC Client (chama Go Memory Service para contexto)     │
 │  ✅ Callbacks & Observability (OpenTelemetry)               │
-│  ✅ Session Management & State                               │
+│  ✅ Session Management (estado temporário durante execução) │
+│                                                               │
+│  ❌ NÃO gerencia canais (responsabilidade do Go CRM)        │
+│  ❌ NÃO persiste dados (responsabilidade do Go CRM)         │
+│  ❌ NÃO envia mensagens (retorna para Go CRM enviar)        │
 │                                                               │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-### Arquitetura de Comunicação
+### Arquitetura de Comunicação (CORRIGIDA)
 
 ```
-┌──────────────┐         ┌──────────────┐         ┌──────────────┐
-│   RabbitMQ   │◄────────┤  Python ADK  ├────────►│  Go Memory   │
-│  Event Bus   │ async   │ Orchestrator │  gRPC  │   Service    │
-└──────────────┘         └──────┬───────┘         └──────────────┘
-                                │
-                                │ REST/gRPC
-                                ▼
-                         ┌──────────────┐
-                         │   Frontend   │
-                         │  (WebSocket) │
-                         └──────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│                    GO CRM - ORQUESTRADOR                     │
+│                                                               │
+│  ┌────────────┐  ┌────────────┐  ┌──────────────────┐       │
+│  │  REST API  │  │  WebSocket │  │  Channel Adapters│       │
+│  │  (Gin)     │  │  (realtime)│  │  (WhatsApp, etc) │       │
+│  └─────┬──────┘  └─────┬──────┘  └────────┬─────────┘       │
+│        │               │                  │                  │
+│        └───────────────┴──────────────────┘                  │
+│                        │                                     │
+│  ┌─────────────────────┴────────────────────────┐           │
+│  │         Go Memory Service (embedded)         │           │
+│  │  - Vector Search (pgvector)                  │           │
+│  │  - Keyword Search (FTS)                      │           │
+│  │  - Graph Search                              │           │
+│  └─────────────────────┬────────────────────────┘           │
+│                        │                                     │
+└────────────────────────┼─────────────────────────────────────┘
+                         │
+                         │ gRPC (bidirectional)
+                         │
+                    ┌────┴──────────────┐
+                    │                   │
+                    ▼                   ▼
+┌────────────────────────────┐  ┌──────────────┐
+│  Python ADK (Agent Library)│  │  Frontend    │
+│  - ListAvailableAgents()   │  │  (React)     │
+│  - ExecuteAgent()          │  │              │
+│  - Semantic Routing        │  │  Connects to:│
+│  - LLM Processing          │  │  Go CRM only │
+│                            │  └──────────────┘
+│  Calls:                    │
+│  - SearchMemories() → Go   │
+│  - GetContactContext() →Go │
+└────────────────────────────┘
+
+Note: Frontend conecta APENAS ao Go CRM, NUNCA ao Python ADK
 ```
 
-### Fluxo Completo (Event-Driven)
+### Fluxo Completo (CORRIGIDO - gRPC-Driven)
 
 ```
-1. WAHA Webhook → Go API
+1. 📱 WhatsApp Message → WAHA Webhook → Go CRM API
      ↓
-2. Go creates Message + publishes MessageReceived event → RabbitMQ
+2. 🟢 Go CRM receives message:
+     - Creates/updates Contact aggregate
+     - Creates/updates Session aggregate
+     - Creates Message aggregate (inbound)
+     - Publishes message.received event → RabbitMQ Outbox
      ↓
-3. Python ADK consumes event
+3. 🟢 Go CRM decides: "Need intelligent response"
+     - Calls: gRPC ListAvailableAgents() → Python ADK
+     - Python returns: ["CustomerServiceAgent", "LeadQualifierAgent", ...]
      ↓
-4. Semantic Router → Intent Classification
+4. 🟢 Go CRM selects agent and calls:
+     - gRPC ExecuteAgent(type="CustomerServiceAgent", context={...}) → Python ADK
      ↓
-5. Coordinator Agent selects Specialist Agent
+5. 🐍 Python ADK executes agent:
+     - Semantic Router → Intent Classification
+     - Coordinator Agent selects Specialist Agent
      ↓
-6. Specialist Agent calls Memory Service (gRPC → Go)
+6. 🐍 Specialist Agent needs context:
+     - Calls: gRPC SearchMemories(contactID, query) → Go Memory Service
+     - Go returns: memories, embeddings, graph
      ↓
-7. Agent processes with LLM + Tools
+7. 🐍 Agent processes:
+     - LLM reasoning (Gemini 2.0 Flash)
+     - Tool calling (if needed)
+     - Response generation
      ↓
-8. Agent publishes OutboundMessage event → RabbitMQ
+8. 🐍 Python ADK returns to Go CRM:
+     - response: "Olá! Vi que você já comprou..."
+     - intent: "purchase_intent"
+     - confidence: 0.95
+     - suggested_actions: ["create_lead", "update_pipeline"]
      ↓
-9. Go consumes event → sends via WAHA
+9. 🟢 Go CRM processes response:
+     - Creates Message aggregate (outbound)
+     - Publishes message.sent event → RabbitMQ Outbox
+     - Calls WAHA API to send message
+     - Executes suggested_actions
      ↓
-10. Background: Go updates embeddings + graph
+10. 📱 Message delivered to WhatsApp
+     ↓
+11. 🟢 Background: Go CRM updates:
+      - Message status (delivered/read)
+      - Session last_activity
+      - Memory embeddings (async)
+      - Knowledge graph (async)
 ```
+
+**Key Differences from Wrong Architecture:**
+- ❌ Python does NOT consume RabbitMQ events directly
+- ❌ Python does NOT publish events to RabbitMQ
+- ✅ Go CRM calls Python via gRPC (request/response)
+- ✅ Python calls Go Memory Service via gRPC
+- ✅ Go CRM manages all state and events
+
+---
+
+### Fluxo Multi-Agente (6 Agentes em Cadeia)
+
+**Cenário**: CustomerServiceAgent → LeadQualifierAgent → PricingAgent → ProposalAgent → ApprovalAgent → ResponseGeneratorAgent
+
+```
+1. 🟢 Go CRM calls: ExecuteAgent(type="CustomerServiceAgent")
+     ↓
+2. 🐍 Python ADK - CustomerServiceAgent:
+     - Classifica intent: "purchase_intent"
+     - Decide: "Preciso qualificar o lead primeiro"
+     - Chama INTERNAMENTE: LeadQualifierAgent (sub-agent)
+     ↓
+3. 🐍 Python ADK - LeadQualifierAgent (AINDA NO PYTHON):
+     - Calls Go Memory Service: GetContactContext()
+     - Analisa histórico: "Cliente premium, LTV alto"
+     - Score: 95/100 (high quality lead)
+     - Decide: "Preciso calcular pricing"
+     - Chama INTERNAMENTE: PricingAgent (sub-agent)
+     ↓
+4. 🐍 Python ADK - PricingAgent (AINDA NO PYTHON):
+     - Calls Go Memory Service: SearchMemories(query="previous purchases")
+     - Calcula desconto baseado em LTV
+     - Pricing: R$10.000 com 15% desconto
+     - Decide: "Preciso gerar proposta"
+     - Chama INTERNAMENTE: ProposalAgent (sub-agent)
+     ↓
+5. 🐍 Python ADK - ProposalAgent (AINDA NO PYTHON):
+     - Gera proposta detalhada (PDF em /tmp)
+     - Decide: "Preciso aprovação de manager"
+     - Chama INTERNAMENTE: ApprovalAgent (sub-agent)
+     ↓
+6. 🐍 Python ADK - ApprovalAgent (AINDA NO PYTHON):
+     - Verifica regras: "Desconto > 10% precisa aprovação"
+     - Cria workflow: "Pending manager approval"
+     - Decide: "Vou gerar resposta provisória"
+     - Chama INTERNAMENTE: ResponseGeneratorAgent (sub-agent)
+     ↓
+7. 🐍 Python ADK - ResponseGeneratorAgent (AINDA NO PYTHON):
+     - Gera resposta final personalizada
+     - Inclui proposta anexada
+     - Retorna para CustomerServiceAgent (parent)
+     ↓
+8. 🐍 Python ADK - CustomerServiceAgent (FINAL):
+     - Recebe resposta do ResponseGeneratorAgent
+     - Consolida tudo
+     - RETORNA PARA GO CRM (FINALMENTE!)
+     ↓
+9. 🟢 Go CRM receives response (após ~5-10s):
+     - response: "Olá! Preparei uma proposta personalizada..."
+     - intent: "purchase_intent"
+     - confidence: 0.95
+     - suggested_actions: ["create_lead", "attach_proposal", "notify_manager"]
+     - attachments: ["/tmp/proposal_uuid.pdf"]
+     ↓
+10. 🟢 Go CRM processes:
+      - Envia mensagem via WAHA
+      - Cria Lead
+      - Faz upload da proposta (S3)
+      - Notifica manager via Slack
+      - Move arquivo /tmp/proposal_uuid.pdf → S3
+```
+
+**IMPORTANTE - Estado em Memória**:
+- ✅ Durante execução (passos 2-8): Python ADK mantém TUDO em **memória RAM**
+- ✅ Sessão ADK, contexto de agentes, PDFs temporários → **NÃO persiste no banco**
+- ✅ Apenas no final (passo 9): Go CRM persiste resultados no PostgreSQL
+- ✅ Arquivos temporários: Gerados em `/tmp/` do container Python
+- ✅ Go CRM move arquivos de `/tmp/` para S3 após conclusão
+
+**Latência Total**:
+- 1 agente: ~850ms
+- 3 agentes: ~2.5s
+- 6 agentes: ~5-10s (dependendo de LLM calls)
+
+**Timeout**:
+- Default: 30s
+- Max: 60s
+- Stream mode: Sem timeout (Go CRM controla)
 
 ---
 
@@ -2011,7 +2160,7 @@ services:
 └─────────────────────────────────────────────────────┘
 ```
 
-**Princípio:** Go é o **source of truth** para entidades, Python é **behavior orchestrator**
+**Princípio:** Go é o **source of truth** para entidades E orquestração, Python é **agent executor** (biblioteca)
 
 ### **Agent Templates (Python → Go)**
 

@@ -1,7 +1,83 @@
 # 🔌 MCP SERVER - VENTROS CRM (PRODUCTION)
 
-> **Generic MCP Server para CRM operations, multimodal context e document vectorization**
+> **MCP Server INTEGRADO ao Ventros CRM (Go)**
+>
+> **IMPORTANTE**: MCP Server NÃO é um serviço separado. É uma **feature do Ventros CRM** (código Go dentro do projeto).
+>
 > Stack: Go + Chi Router + SSE + JWT + pgvector + Redis
+
+---
+
+## 🎯 O QUE É O MCP SERVER?
+
+**MCP Server** é uma camada de API adicional DENTRO do Ventros CRM que expõe ferramentas (tools) para o **Python ADK** (Ventros AI) e potencialmente para **Claude Desktop**.
+
+### Arquitetura CORRETA:
+
+```
+┌─────────────────────────────────────────────────────────┐
+│              VENTROS CRM (Go) - MONÓLITO                │
+│                                                           │
+│  ┌─────────────────────────────────────────────────┐   │
+│  │  API PRINCIPAL (Port 8080)                       │   │
+│  │  - REST API (Gin)                                │   │
+│  │  - WebSocket (real-time)                         │   │
+│  │  - Channel Adapters (WAHA, etc)                  │   │
+│  └─────────────────────────────────────────────────┘   │
+│                                                           │
+│  ┌─────────────────────────────────────────────────┐   │
+│  │  MCP SERVER (Port 8081) ← FEATURE INTEGRADA!    │   │
+│  │  - 30+ tools para Python ADK                     │   │
+│  │  - 30+ tools para Claude Desktop (futuro)        │   │
+│  │  - Mesma base de código Go                       │   │
+│  │  - Mesma conexão PostgreSQL                      │   │
+│  │  - Mesmos repositórios e use cases               │   │
+│  └─────────────────────────────────────────────────┘   │
+│                                                           │
+│  ┌─────────────────────────────────────────────────┐   │
+│  │  MEMORY SERVICE (Embedded)                       │   │
+│  │  - pgvector search                               │   │
+│  │  - Hybrid search                                 │   │
+│  │  - Knowledge graph                               │   │
+│  └─────────────────────────────────────────────────┘   │
+│                                                           │
+│  ┌─────────────────────────────────────────────────┐   │
+│  │  SHARED INFRASTRUCTURE                           │   │
+│  │  - PostgreSQL connection pool                    │   │
+│  │  - Redis cache                                   │   │
+│  │  - RabbitMQ client                               │   │
+│  │  - Domain aggregates                             │   │
+│  │  - Repositories                                  │   │
+│  └─────────────────────────────────────────────────┘   │
+│                                                           │
+└───────────────────────┬───────────────────────────────────┘
+                        │
+                   SAME PROCESS
+                   SAME CODEBASE
+                   SAME DATABASE
+
+DEPLOYMENT:
+- docker run ventros-crm:latest
+  → Starts port 8080 (main API)
+  → Starts port 8081 (MCP Server)
+  → Single container, single deployment
+
+CONFIG:
+- MCP_ENABLED=true           (enable MCP server on port 8081)
+- MCP_PORT=8081               (default)
+- MAIN_API_PORT=8080          (default)
+```
+
+**NÃO É**:
+- ❌ Microserviço separado
+- ❌ Container separado
+- ❌ Banco de dados separado
+
+**É**:
+- ✅ Feature dentro do Ventros CRM
+- ✅ Router adicional (Chi) na mesma aplicação Go
+- ✅ Mesma base de código, mesma conexão DB
+- ✅ Deploy junto com o CRM (single binary)
 
 ---
 
@@ -17,14 +93,15 @@
 
 ---
 
-## 🏗️ ARQUITETURA
+## 🏗️ ARQUITETURA DETALHADA
 
 ```
 ┌────────────────────────────────────────────────────────────────┐
-│                     PYTHON ADK CLIENT                           │
+│                     PYTHON ADK (Ventros AI)                     │
+│                     Python microservice separado                │
 │                                                                  │
 │  from mcp_client import MCPClient                               │
-│  client = MCPClient("https://mcp.ventros.io", token)           │
+│  client = MCPClient("http://ventros-crm:8081", token)          │
 │                                                                  │
 │  # CRM Operations                                               │
 │  contacts = client.call_tool("get_contacts", {...})            │
@@ -40,23 +117,35 @@
 │  })                                                             │
 └──────────────────────┬─────────────────────────────────────────┘
                        │
-                       │ HTTPS + JWT Header
+                       │ HTTP/gRPC (Port 8081)
+                       │ JWT Authentication
                        │
                        ▼
 ┌────────────────────────────────────────────────────────────────┐
-│              GO MCP SERVER (Port 8081)                          │
+│       VENTROS CRM (Go) - SINGLE APPLICATION, TWO PORTS         │
 │                                                                  │
-│  HTTP ENDPOINTS (Chi Router):                                   │
-│  ┌──────────────────────────────────────────────────────┐     │
-│  │  PUBLIC:                                              │     │
-│  │    GET  /health                                       │     │
-│  │    GET  /metrics (Prometheus)                         │     │
-│  │                                                        │     │
-│  │  PROTECTED (JWT):                                     │     │
-│  │    GET  /v1/mcp/tools              → List tools      │     │
-│  │    POST /v1/mcp/execute            → Execute tool    │     │
-│  │    GET  /v1/mcp/stream/:tool       → SSE streaming   │     │
-│  └──────────────────────────────────────────────────────┘     │
+│  ┌───────────────────────────────────────────────────────┐    │
+│  │  MAIN API (Port 8080)                                  │    │
+│  │  - REST API (Gin)                                      │    │
+│  │  - WebSocket                                           │    │
+│  │  - WAHA webhooks                                       │    │
+│  └───────────────────────────────────────────────────────┘    │
+│                                                                  │
+│  ┌───────────────────────────────────────────────────────┐    │
+│  │  MCP SERVER (Port 8081) ← EMBEDDED FEATURE             │    │
+│  │                                                         │    │
+│  │  HTTP ENDPOINTS (Chi Router):                          │    │
+│  │  ┌────────────────────────────────────────────────┐   │    │
+│  │  │  PUBLIC:                                        │   │    │
+│  │  │    GET  /health                                 │   │    │
+│  │  │    GET  /metrics (Prometheus)                   │   │    │
+│  │  │                                                  │   │    │
+│  │  │  PROTECTED (JWT):                               │   │    │
+│  │  │    GET  /v1/mcp/tools        → List tools      │   │    │
+│  │  │    POST /v1/mcp/execute      → Execute tool    │   │    │
+│  │  │    GET  /v1/mcp/stream/:tool → SSE streaming   │   │    │
+│  │  └────────────────────────────────────────────────┘   │    │
+│  └───────────────────────────────────────────────────────┘    │
 │                                                                  │
 │  MCP TOOLS (30+ tools):                                         │
 │  ┌──────────────────────────────────────────────────────┐     │
@@ -1248,7 +1337,7 @@ func (b *MetadataBuilder) Build() VectorMetadata {
 
 ## 📦 IMPLEMENTAÇÃO COMPLETA
 
-Arquivo já pronto em: `/Users/leonardocaloisantos/projetos/ventros-crm/infrastructure/mcp/`
+**Localização**: `infrastructure/mcp/` (dentro do projeto Ventros CRM)
 
 ### **Structure:**
 
@@ -1277,18 +1366,33 @@ cmd/mcp-server/
 
 ### **Deployment:**
 
+**IMPORTANTE**: MCP Server inicia automaticamente com o Ventros CRM (mesma aplicação).
+
 ```bash
-# Build
-make build-mcp-server
+# Build Ventros CRM (inclui MCP Server)
+make build
 
-# Run locally
-make run-mcp-server
+# Run localmente (API principal + MCP Server)
+make api
+# → Starts port 8080 (main API)
+# → Starts port 8081 (MCP Server) - if MCP_ENABLED=true
 
-# Docker
-docker-compose -f docker-compose.mcp.yml up -d
+# Docker (single container)
+docker-compose up -d
+# → Same container runs both ports
 
-# Test
+# Environment variables
+MCP_ENABLED=true          # Enable MCP server (default: false)
+MCP_PORT=8081             # MCP server port (default: 8081)
+MAIN_API_PORT=8080        # Main API port (default: 8080)
+
+# Test MCP Server
 curl http://localhost:8081/health
+# Expected: {"status": "ok", "service": "ventros-crm-mcp"}
+
+# Test main API
+curl http://localhost:8080/health
+# Expected: {"status": "ok", "service": "ventros-crm"}
 ```
 
 ---

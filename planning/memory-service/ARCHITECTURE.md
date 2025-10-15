@@ -572,31 +572,104 @@ var StrategyConfigs = map[string]StrategyConfig{
     },
 }
 
-// StrategyWeights - Pesos de cada método
-type StrategyWeights struct {
-    Vector  float64 `json:"vector"`
-    Keyword float64 `json:"keyword"`
-    Graph   float64 `json:"graph"`
-    Recent  float64 `json:"recent"`
+// ========== DEPRECATED: StrategyWeights (OLD - 2024) ==========
+// PROBLEMA: Pesos fixos não se adaptam ao contexto
+// SOLUÇÃO: Usar RRF + Reranker (abaixo)
+// ===============================================================
+//
+// type StrategyWeights struct {
+//     Vector  float64 `json:"vector"`
+//     Keyword float64 `json:"keyword"`
+//     Graph   float64 `json:"graph"`
+//     Recent  float64 `json:"recent"`
+// }
+//
+// StrategyWeights será REMOVIDO em Sprint 6
+// Migrar para ReciprocalRankFusion + CrossEncoderReranker
+//
+// ===============================================================
+
+// ========== MODERNO (2024-2025): Reciprocal Rank Fusion ==========
+
+// RRFConfig - Reciprocal Rank Fusion (estado da arte 2024)
+// Combina rankings de diferentes métodos SEM pesos fixos
+// Paper: "Reciprocal Rank Fusion outperforms condorcet and individual rank learning methods"
+type RRFConfig struct {
+    K          float64                `json:"k"`           // Constante RRF (default: 60)
+    Methods    []RetrievalMethod      `json:"methods"`     // Métodos ativos
+    Reranker   *RerankerConfig        `json:"reranker"`    // Cross-encoder reranking (opcional)
+    LLMJudge   *LLMJudgeConfig        `json:"llm_judge"`   // LLM-as-Judge (casos complexos)
 }
 
-// Validate garante que pesos somam 1.0
-func (w StrategyWeights) Validate() error {
-    sum := w.Vector + w.Keyword + w.Graph + w.Recent
-    if math.Abs(sum-1.0) > 0.01 { // Tolerance de 0.01
-        return fmt.Errorf("weights must sum to 1.0, got: %.2f", sum)
-    }
-    return nil
+// RetrievalMethod - Método de busca individual
+type RetrievalMethod string
+
+const (
+    MethodVector        RetrievalMethod = "vector"         // Semantic search (pgvector)
+    MethodKeyword       RetrievalMethod = "keyword"        // Full-text search (PostgreSQL FTS)
+    MethodGraph         RetrievalMethod = "graph"          // Knowledge graph traversal
+    MethodRecent        RetrievalMethod = "recent"         // Time-based (últimas N mensagens)
+    MethodBM25          RetrievalMethod = "bm25"           // BM25 ranking (keyword + TF-IDF)
+    MethodColBERT       RetrievalMethod = "colbert"        // ColBERT v2 (late interaction)
+    MethodHybridSparse  RetrievalMethod = "hybrid_sparse"  // SPLADE (sparse + dense)
+)
+
+// RerankerConfig - Cross-Encoder Reranking (mais preciso que pesos)
+type RerankerConfig struct {
+    Enabled   bool   `json:"enabled"`
+    Model     string `json:"model"`      // "BAAI/bge-reranker-v2-m3" (default)
+    TopK      int    `json:"top_k"`      // Top-K antes de rerank (default: 100)
+    FinalK    int    `json:"final_k"`    // Top-K após rerank (default: 20)
+    Threshold float64 `json:"threshold"` // Score mínimo (default: 0.3)
 }
 
-// StrategyConfig - Configuração completa de uma estratégia
+// LLMJudgeConfig - LLM-as-Judge para casos complexos
+// Usa LLM para decidir relevância final (mais lento, mais preciso)
+type LLMJudgeConfig struct {
+    Enabled      bool     `json:"enabled"`
+    Model        string   `json:"model"`           // "gemini-1.5-flash" (rápido)
+    MaxCandidates int     `json:"max_candidates"`  // Max resultados para julgar (default: 10)
+    Prompt       string   `json:"prompt"`          // Template do prompt
+    Temperature  float64  `json:"temperature"`     // Default: 0.0 (determinístico)
+}
+
+// StrategyConfig - Configuração completa de uma estratégia (MODERNIZADA)
 type StrategyConfig struct {
-    Name        string          `json:"name"`
-    Description string          `json:"description"`
-    Weights     StrategyWeights `json:"weights"`
-    UseCase     string          `json:"use_case"`
-    Reranking   bool            `json:"reranking"`
-    CacheTTL    int             `json:"cache_ttl"`
+    Name        string       `json:"name"`
+    Description string       `json:"description"`
+    UseCase     string       `json:"use_case"`
+    RRF         RRFConfig    `json:"rrf"`           // Reciprocal Rank Fusion
+    CacheTTL    int          `json:"cache_ttl"`
+}
+
+// Exemplo de configuração moderna:
+var ModernHybridStrategy = StrategyConfig{
+    Name:        "modern_hybrid",
+    Description: "RRF + Reranker + LLM Judge (state-of-the-art 2025)",
+    UseCase:     "production",
+    RRF: RRFConfig{
+        K: 60,
+        Methods: []RetrievalMethod{
+            MethodVector,    // Semantic
+            MethodBM25,      // Keyword avançado
+            MethodGraph,     // Knowledge graph
+            MethodRecent,    // Baseline temporal
+        },
+        Reranker: &RerankerConfig{
+            Enabled:   true,
+            Model:     "BAAI/bge-reranker-v2-m3",  // SOTA 2024
+            TopK:      100,
+            FinalK:    20,
+            Threshold: 0.3,
+        },
+        LLMJudge: &LLMJudgeConfig{
+            Enabled:      false,  // Apenas para casos críticos (billing, legal)
+            Model:        "gemini-1.5-flash",
+            MaxCandidates: 10,
+            Temperature:  0.0,
+        },
+    },
+    CacheTTL: 300,
 }
 ```
 
