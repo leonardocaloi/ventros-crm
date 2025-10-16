@@ -62,6 +62,7 @@ func NewWAHAImportWorker(
 	w.RegisterActivityWithOptions(activities.DetermineImportTimeRangeActivity, activity.RegisterOptions{Name: "DetermineImportTimeRangeActivity"})
 	w.RegisterActivityWithOptions(activities.FetchWAHAChatsActivity, activity.RegisterOptions{Name: "FetchWAHAChatsActivity"})
 	w.RegisterActivityWithOptions(activities.ImportChatHistoryActivity, activity.RegisterOptions{Name: "ImportChatHistoryActivity"})
+	w.RegisterActivityWithOptions(activities.ImportChatsBulkActivity, activity.RegisterOptions{Name: "ImportChatsBulkActivity"}) // 🚀 V3: Bulk import activity
 	w.RegisterActivityWithOptions(activities.ConsolidateHistorySessionsActivity, activity.RegisterOptions{Name: "ConsolidateHistorySessionsActivity"})
 	w.RegisterActivityWithOptions(activities.ProcessBufferedWebhooksActivity, activity.RegisterOptions{Name: "ProcessBufferedWebhooksActivity"})
 	w.RegisterActivityWithOptions(activities.MarkImportCompletedActivity, activity.RegisterOptions{Name: "MarkImportCompletedActivity"})

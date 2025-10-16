@@ -1,6 +1,7 @@
 package channel
 
 import (
+	"fmt"
 	"time"
 
 	"go.temporal.io/sdk/temporal"
@@ -179,53 +180,67 @@ func WAHAHistoryImportWorkflow(ctx workflow.Context, input WAHAHistoryImportWork
 
 	logger.Info("✅ Chats fetched successfully", "count", len(chats))
 
-	// STEP 2: Processar cada chat em paralelo (com limite de concorrência)
-	logger.Info("Step 2: Processing chats")
+	// STEP 2: Processar chats em bulk chunks (V3 OPTIMIZATION)
+	logger.Info("Step 2: Processing chats with V3 Chunked Batching")
 
-	// 🚀 BATCH OPTIMIZATION: Increased parallelism from 5 → 20 chats
-	// Safe to increase because batch processing eliminates race conditions
-	maxConcurrentChats := 20
-	chatBatches := batchChats(chats, maxConcurrentChats)
+	// 🚀 V3 OPTIMIZATION: Process chats in chunks of 50
+	// Each chunk is processed in a SINGLE database transaction
+	// Reduces transactions from N → N/50 (98% reduction)
+	// Example: 1,172 chats → 24 transactions (instead of 1,172)
+	const chunkSize = 50
+	chatChunks := batchChats(chats, chunkSize)
 
-	for batchIndex, batch := range chatBatches {
-		logger.Info("Processing chat batch", "batch", batchIndex+1, "total_batches", len(chatBatches), "chats_in_batch", len(batch))
+	logger.Info("🚀 V3 Chunked Batching Configuration",
+		"total_chats", len(chats),
+		"chunk_size", chunkSize,
+		"total_chunks", len(chatChunks),
+		"transactions_v1", len(chats),
+		"transactions_v3", len(chatChunks),
+		"reduction", fmt.Sprintf("%.1f%%", 100.0*(1.0-float64(len(chatChunks))/float64(len(chats)))))
 
-		// Processar batch em paralelo
-		futures := []workflow.Future{}
-		for _, chat := range batch {
-			importInput := ImportChatHistoryActivityInput{
-				ChannelID:             input.ChannelID,
-				SessionID:             input.SessionID,
-				ChatID:                chat.ID,
-				ChatName:              chat.Name,
-				Limit:                 input.Limit,
-				TimeRangeDays:         input.TimeRangeDays,
-				SessionTimeoutMinutes: input.SessionTimeoutMinutes,
-				ProjectID:             input.ProjectID,
-				TenantID:              input.TenantID,
-			}
+	for chunkIndex, chunk := range chatChunks {
+		logger.Info("Processing chat chunk (V3 Bulk Import)",
+			"chunk", chunkIndex+1,
+			"total_chunks", len(chatChunks),
+			"chats_in_chunk", len(chunk))
 
-			future := workflow.ExecuteActivity(ctx, "ImportChatHistoryActivity", importInput)
-			futures = append(futures, future)
+		// 🚀 V3: Process entire chunk in 1 activity = 1 transaction
+		bulkInput := ImportChatsBulkActivityInput{
+			ChannelID:             input.ChannelID,
+			SessionID:             input.SessionID,
+			Chats:                 chunk,
+			Limit:                 input.Limit,
+			TimeRangeDays:         input.TimeRangeDays,
+			SessionTimeoutMinutes: input.SessionTimeoutMinutes,
+			ProjectID:             input.ProjectID,
+			TenantID:              input.TenantID,
 		}
 
-		// Aguardar todas as activities do batch
-		for i, future := range futures {
-			var chatResult ImportChatHistoryActivityResult
-			err := future.Get(ctx, &chatResult)
-			if err != nil {
-				errMsg := "Failed to import chat " + batch[i].ID + ": " + err.Error()
-				logger.Warn(errMsg)
-				result.Errors = append(result.Errors, errMsg)
-				continue
-			}
-
-			// Acumular resultados
-			result.ChatsProcessed++
-			result.MessagesImported += chatResult.MessagesImported
-			result.SessionsCreated += chatResult.SessionsCreated
-			result.ContactsCreated += chatResult.ContactsCreated
+		var bulkResult ImportChatsBulkActivityResult
+		err := workflow.ExecuteActivity(ctx, "ImportChatsBulkActivity", bulkInput).Get(ctx, &bulkResult)
+		if err != nil {
+			errMsg := fmt.Sprintf("Failed to import chunk %d: %v", chunkIndex+1, err)
+			logger.Warn(errMsg)
+			result.Errors = append(result.Errors, errMsg)
+			continue
 		}
+
+		// Acumular resultados
+		result.ChatsProcessed += bulkResult.ChatsProcessed
+		result.MessagesImported += bulkResult.MessagesImported
+		result.SessionsCreated += bulkResult.SessionsCreated
+		result.ContactsCreated += bulkResult.ContactsCreated
+
+		if len(bulkResult.Errors) > 0 {
+			result.Errors = append(result.Errors, bulkResult.Errors...)
+		}
+
+		logger.Info("✅ Chunk completed",
+			"chunk", chunkIndex+1,
+			"chats_processed", bulkResult.ChatsProcessed,
+			"messages_imported", bulkResult.MessagesImported,
+			"sessions_created", bulkResult.SessionsCreated,
+			"contacts_created", bulkResult.ContactsCreated)
 	}
 
 	// 🚀 BATCH OPTIMIZATION: Consolidation step removed!
@@ -415,4 +430,24 @@ type GetChannelConfigActivityInput struct {
 type GetChannelConfigActivityResult struct {
 	ChannelID                    string `json:"channel_id"`
 	DefaultSessionTimeoutMinutes int    `json:"default_session_timeout_minutes"`
+}
+
+// 🚀 V3 OPTIMIZATION: Bulk chat import activity types for chunked batching
+type ImportChatsBulkActivityInput struct {
+	ChannelID             string     `json:"channel_id"`
+	SessionID             string     `json:"session_id"`
+	Chats                 []ChatInfo `json:"chats"` // List of chats to process in this chunk
+	Limit                 int        `json:"limit"`
+	TimeRangeDays         int        `json:"time_range_days"`
+	SessionTimeoutMinutes int        `json:"session_timeout_minutes"`
+	ProjectID             string     `json:"project_id"`
+	TenantID              string     `json:"tenant_id"`
+}
+
+type ImportChatsBulkActivityResult struct {
+	ChatsProcessed   int      `json:"chats_processed"`
+	MessagesImported int      `json:"messages_imported"`
+	SessionsCreated  int      `json:"sessions_created"`
+	ContactsCreated  int      `json:"contacts_created"`
+	Errors           []string `json:"errors"`
 }
