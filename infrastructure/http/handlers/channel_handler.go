@@ -40,12 +40,18 @@ func NewChannelHandler(
 
 // CreateChannelRequest represents the request to create a channel.
 type CreateChannelRequest struct {
-	Name                  string                   `json:"name" binding:"required" example:"WhatsApp Principal"`
-	Type                  string                   `json:"type" binding:"required" example:"waha"`
-	SessionTimeoutMinutes *int                     `json:"session_timeout_minutes,omitempty" example:"30"`
-	AllowGroups           *bool                    `json:"allow_groups,omitempty" example:"false"`
-	TrackingEnabled       *bool                    `json:"tracking_enabled,omitempty" example:"true"`
-	WAHAConfig            *CreateWAHAConfigRequest `json:"waha_config,omitempty"`
+	Name                  string `json:"name" binding:"required" example:"WhatsApp Principal"`
+	Type                  string `json:"type" binding:"required" example:"waha"`
+	SessionTimeoutMinutes *int   `json:"session_timeout_minutes,omitempty" example:"30"`
+	AllowGroups           *bool  `json:"allow_groups,omitempty" example:"false"`
+	TrackingEnabled       *bool  `json:"tracking_enabled,omitempty" example:"true"`
+
+	// AI Configuration
+	AIEnabled         *bool `json:"ai_enabled,omitempty" example:"false"`
+	AIAgentsEnabled   *bool `json:"ai_agents_enabled,omitempty" example:"false"`
+	DebounceTimeoutMs *int  `json:"debounce_timeout_ms,omitempty" example:"15000"`
+
+	WAHAConfig *CreateWAHAConfigRequest `json:"waha_config,omitempty"`
 }
 
 // CreateWAHAConfigRequest represents WAHA configuration.
@@ -95,6 +101,9 @@ func (h *ChannelHandler) CreateChannel(c *gin.Context) {
 		SessionTimeoutMinutes: req.SessionTimeoutMinutes,
 		AllowGroups:           req.AllowGroups,
 		TrackingEnabled:       req.TrackingEnabled,
+		AIEnabled:             req.AIEnabled,
+		AIAgentsEnabled:       req.AIAgentsEnabled,
+		DebounceTimeoutMs:     req.DebounceTimeoutMs,
 	}
 
 	if req.WAHAConfig != nil {
@@ -118,6 +127,61 @@ func (h *ChannelHandler) CreateChannel(c *gin.Context) {
 		"message": "Channel created successfully",
 		"id":      response.ID,
 		"channel": response,
+	})
+}
+
+// UpdateChannelRequest represents the request to update a channel
+type UpdateChannelRequest struct {
+	SessionTimeoutMinutes *int `json:"session_timeout_minutes,omitempty" example:"120"`
+}
+
+// UpdateChannel updates an existing channel
+//
+//	@Summary		Update channel
+//	@Description	Update channel configuration (e.g., session timeout)
+//	@Tags			CRM - Channels
+//	@Accept			json
+//	@Produce		json
+//	@Security		ApiKeyAuth
+//	@Param			id		path		string					true	"Channel ID"
+//	@Param			channel	body		UpdateChannelRequest	true	"Channel update data"
+//	@Success		200		{object}	map[string]interface{}	"Channel updated successfully"
+//	@Failure		400		{object}	map[string]interface{}	"Invalid request"
+//	@Failure		401		{object}	map[string]interface{}	"Authentication required"
+//	@Failure		404		{object}	map[string]interface{}	"Channel not found"
+//	@Failure		500		{object}	map[string]interface{}	"Internal server error"
+//	@Router			/api/v1/channels/{id} [patch]
+func (h *ChannelHandler) UpdateChannel(c *gin.Context) {
+	authCtx, exists := middleware.GetAuthContext(c)
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Authentication required"})
+		return
+	}
+
+	channelID := c.Param("id")
+
+	var req UpdateChannelRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		h.logger.Error("Failed to parse update request", zap.Error(err))
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request: " + err.Error()})
+		return
+	}
+
+	serviceReq := channelapp.UpdateChannelRequest{
+		ChannelID:             channelID,
+		UserID:                authCtx.UserID,
+		SessionTimeoutMinutes: req.SessionTimeoutMinutes,
+	}
+
+	err := h.channelService.UpdateChannel(c.Request.Context(), serviceReq)
+	if err != nil {
+		h.logger.Error("Failed to update channel", zap.Error(err))
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Channel updated successfully",
 	})
 }
 
@@ -763,14 +827,17 @@ func (h *ChannelHandler) ImportWAHAHistory(c *gin.Context) {
 		timeRangeDays = *channel.HistoryImportMaxDays
 	}
 
+	// 🔥 FIX Bug 2: Session timeout is now loaded by workflow from channel config
+	// No need to pass it here - workflow will fetch it via GetChannelConfigActivity
 	// Create command (follows ActivateChannel pattern)
 	cmd := channelcmd.ImportHistoryCommand{
-		ChannelID:     channelID,
-		TenantID:      authCtx.TenantID,
-		Strategy:      req.Strategy,
-		TimeRangeDays: timeRangeDays,
-		Limit:         req.Limit,
-		UserID:        authCtx.UserID,
+		ChannelID:             channelID,
+		TenantID:              authCtx.TenantID,
+		Strategy:              req.Strategy,
+		TimeRangeDays:         timeRangeDays,
+		Limit:                 req.Limit,
+		SessionTimeoutMinutes: 0, // Workflow will fetch from channel config
+		UserID:                authCtx.UserID,
 	}
 
 	// Execute command (async processing via events)

@@ -345,6 +345,7 @@ func TestPipeline_ReconstructPipeline(t *testing.T) {
 	t.Run("reconstruct with valid data", func(t *testing.T) {
 		pipeline := ReconstructPipeline(
 			id, projectID,
+			1, // version
 			"tenant-123", "Reconstructed Pipeline", "Test description", "#FF0000",
 			2, true, intPtr(45), nil, // nil leadQualificationConfig
 			createdAt, updatedAt,
@@ -368,6 +369,7 @@ func TestPipeline_ReconstructPipeline(t *testing.T) {
 	t.Run("reconstruct with zero timeout preserves value", func(t *testing.T) {
 		pipeline := ReconstructPipeline(
 			id, projectID,
+			1, // version
 			"tenant-123", "Pipeline", "", "",
 			0, true, intPtr(0), nil, // zero timeout, nil leadQualificationConfig
 			createdAt, updatedAt,
@@ -380,6 +382,7 @@ func TestPipeline_ReconstructPipeline(t *testing.T) {
 	t.Run("reconstruct with negative timeout preserves value", func(t *testing.T) {
 		pipeline := ReconstructPipeline(
 			id, projectID,
+			1, // version
 			"tenant-123", "Pipeline", "", "",
 			0, true, intPtr(-10), nil, // negative timeout, nil leadQualificationConfig
 			createdAt, updatedAt,

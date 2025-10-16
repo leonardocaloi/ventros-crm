@@ -155,7 +155,7 @@ func (s *WAHAHistoryImportTestSuite) createWAHAChannel() {
 		"type":                    "waha",
 		"external_id":             s.wahaSessionID,
 		"history_import_enabled":  true,
-		"history_import_max_days": 30,
+		"history_import_max_days": 180, // 🚀 V3: 180 dias para teste completo
 		"waha_config": map[string]interface{}{
 			"base_url":    s.wahaBaseURL,
 			"api_key":     s.wahaAPIKey,
@@ -178,7 +178,7 @@ func (s *WAHAHistoryImportTestSuite) createWAHAChannel() {
 	fmt.Printf("   • Channel ID: %s\n", s.channelID)
 	fmt.Printf("   • WAHA Base URL: %s\n", s.wahaBaseURL)
 	fmt.Printf("   • Session ID: %s\n", s.wahaSessionID)
-	fmt.Printf("   • History Import: 30 days\n")
+	fmt.Printf("   • History Import: 180 days\n")
 }
 
 // activateChannel ativa o canal e aguarda ficar ativo
@@ -241,11 +241,11 @@ func (s *WAHAHistoryImportTestSuite) TestImportHistory() {
 		fmt.Println("   ⚠️  Using default 30-minute session timeout")
 	}
 
-	// 1. Inicia importação de histórico (30 dias, sem limite de mensagens)
+	// 1. Inicia importação de histórico (180 dias, sem limite de mensagens)
 	payload := map[string]interface{}{
 		"strategy":        "time_range",
-		"time_range_days": 30,
-		"limit":           0, // 0 = SEM LIMITE (importar todas as mensagens disponíveis)
+		"time_range_days": 180, // 🚀 V3: 180 dias para teste completo
+		"limit":           0,   // 0 = SEM LIMITE (importar todas as mensagens disponíveis)
 	}
 
 	endpoint := fmt.Sprintf("/api/v1/crm/channels/%s/import-history", s.channelID)
@@ -281,7 +281,7 @@ func (s *WAHAHistoryImportTestSuite) TestImportHistory() {
 	fmt.Printf("   ✓ Import requested (event-driven pattern)\n")
 	fmt.Printf("   • Correlation ID: %s\n", correlationID)
 	fmt.Printf("   • Expected Workflow ID: %s\n", s.workflowID)
-	fmt.Printf("   • Strategy: time_range (30 days)\n")
+	fmt.Printf("   • Strategy: time_range (180 days)\n")
 
 	limitVal := result["limit"].(float64)
 	if limitVal == 0 {
@@ -426,7 +426,7 @@ func (s *WAHAHistoryImportTestSuite) TestImportWithMessageLimit() {
 
 // pollImportStatus aguarda importação completar (polling)
 func (s *WAHAHistoryImportTestSuite) pollImportStatus() {
-	maxRetries := 180               // 180 tentativas (10 minutos total)
+	maxRetries := 600               // 🚀 V3: 600 tentativas (30 minutos total - increased from 180 for bulk imports)
 	pollInterval := 3 * time.Second // 3 segundos entre cada poll
 	importCompleted := false
 

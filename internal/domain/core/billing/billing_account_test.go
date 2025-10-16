@@ -340,8 +340,11 @@ func TestReconstructBillingAccount(t *testing.T) {
 
 	t.Run("reconstruct active account", func(t *testing.T) {
 		account := ReconstructBillingAccount(
-			id, userID,
+			id,
+			1, // version
+			userID,
 			"Reconstructed Account",
+			"", // stripeCustomerID
 			PaymentStatusActive,
 			methods,
 			"billing@example.com",
@@ -363,8 +366,11 @@ func TestReconstructBillingAccount(t *testing.T) {
 
 	t.Run("reconstruct suspended account", func(t *testing.T) {
 		account := ReconstructBillingAccount(
-			id, userID,
+			id,
+			1, // version
+			userID,
 			"Suspended Account",
+			"", // stripeCustomerID
 			PaymentStatusSuspended,
 			methods,
 			"billing@example.com",
@@ -382,8 +388,11 @@ func TestReconstructBillingAccount(t *testing.T) {
 
 	t.Run("reconstruct with nil payment methods", func(t *testing.T) {
 		account := ReconstructBillingAccount(
-			id, userID,
+			id,
+			1, // version
+			userID,
 			"Account",
+			"", // stripeCustomerID
 			PaymentStatusPending,
 			nil, // nil methods
 			"billing@example.com",

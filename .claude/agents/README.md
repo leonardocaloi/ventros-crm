@@ -1,675 +1,393 @@
 # Claude Code Agents - Ventros CRM
 
-**Total Agents**: 24 agentes (18 análise + 4 meta + 2 gerenciamento)
+**Total Agents**: 32 agentes (15 CRM + 4 Global + 7 Meta + 6 Management)
 **Purpose**: Análise completa de codebase + gerenciamento de documentação
 **Coverage**: 100% (todas as 30 tabelas de análise cobertas)
 **Output Structure**: `code-analysis/` (organizado por categoria)
+**Naming Pattern**: `{scope}_{category}_{name}.md`
 
 ---
 
-## 📊 Visão Geral
+## 📊 Nova Estrutura de Categorização
 
-### Sistema Multi-Agente
+### Prefixos por Escopo
 
-Este projeto usa **24 agentes especializados** que trabalham em conjunto:
+- **`crm_*`** - Específico do Ventros CRM (15 agentes)
+- **`global_*`** - Aplicável a qualquer projeto Go (4 agentes)
+- **`meta_*`** - Orquestração e desenvolvimento (7 agentes)
+- **`mgmt_*`** - Gerenciamento de documentação e estado (6 agentes)
 
-1. **18 Agentes de Análise**: Analisam diferentes aspectos do código (domínio, infraestrutura, segurança, testes, etc.)
-2. **4 Agentes Meta**: Orquestração e pós-processamento (orchestrator, adr_generator, docs_cleanup, docs_consolidator)
-3. **2 Agentes de Gerenciamento**: Mantêm documentação atualizada (todo_manager, docs_index_manager)
+### Benefícios
 
-### Estrutura de Output
-
-Todos os agentes geram outputs em `code-analysis/` organizado por categoria:
-
-```
-code-analysis/
-├── architecture/          # Métricas arquiteturais e AI_REPORT consolidado
-├── domain-analysis/       # Análises DDD (aggregates, eventos, value objects)
-├── infrastructure/        # Persistence, API, integrações, deploy
-├── quality/              # Testes, segurança, code style, SOLID
-├── ai-ml/                # Features AI/ML, providers, custos
-├── comprehensive/        # Reports completos (orchestrator output)
-└── archive/              # Análises antigas com timestamp
-```
+1. **Clara distinção de escopo** - Fácil identificar agentes reutilizáveis
+2. **Melhor organização** - Filtrar por prefixo (`ls crm_*.md`)
+3. **Manutenção simplificada** - Atualizar apenas agentes relevantes
+4. **Portabilidade** - Agentes `global_*` funcionam em qualquer projeto Go
 
 ---
 
-## 🔴 CRITICAL Priority (6 agentes)
+## 🏗️ CRM-Specific Agents (15 agentes)
 
-Devem rodar primeiro, fornecem baseline essencial:
+Análise específica do Ventros CRM (domínio, infraestrutura, AI/ML).
 
-### 1. **deterministic_analyzer** ⭐ BASELINE
-**Propósito**: Gera baseline 100% factual (contagens determinísticas)
-- **Runtime**: 5-10 min
-- **Output**: `code-analysis/architecture/deterministic_metrics.md`
-- **Dependencies**: None ← **RODAR PRIMEIRO**
-- **Tools**: Bash (grep, find, wc, cloc)
-- **Tables**: Baseline factual para validar análises AI
+### Domain Analysis (5 agentes)
 
-**O que faz**:
-- Conta arquivos, linhas, funções (grep/find/wc)
-- Valida análises AI (determinístico vs AI score)
-- Gera métricas atemporais (sem números hardcoded)
-
----
-
-### 2. **domain_model_analyzer**
-**Propósito**: Analisa agregados DDD, eventos, repositórios
-- **Runtime**: 60-70 min
+#### 1. **crm_domain_model_analyzer** 🔴 CRITICAL
 - **Output**: `code-analysis/domain-analysis/domain_model_analysis.md`
-- **Tables**: 1 (Aggregates), 2 (Events), 5 (Children Entities)
-- **Tools**: Read, Grep, Glob, Bash
-
-**O que faz**:
-- Identifica todos os agregados (internal/domain/**/aggregate.go)
-- Valida padrões DDD (version field, eventos, repositórios)
-- Score de qualidade 1-10 com evidências
-
----
-
-### 3. **testing_analyzer**
-**Propósito**: Analisa pirâmide de testes, cobertura, qualidade
-- **Runtime**: 40-50 min
-- **Output**: `code-analysis/quality/testing_analysis.md`
-- **Tables**: 22 (Test Pyramid)
-- **Tools**: Read, Grep, Glob, Bash
-
-**O que faz**:
-- Executa `make test-coverage`
-- Analisa unit/integration/e2e (proporções)
-- Identifica use cases sem testes
-- Score de cobertura por camada
-
----
-
-### 4. **ai_ml_analyzer**
-**Propósito**: Analisa features AI/ML, providers, custos
-- **Runtime**: 50-60 min
-- **Output**: `code-analysis/ai-ml/ai_ml_analysis.md`
-- **Tables**: 28 (AI/ML Features)
-- **Tools**: Read, Grep, Glob, Bash
-
-**O que faz**:
-- Mapeia 12 AI providers (Groq, Vertex, OpenAI, LlamaParse)
-- Analisa message enrichment (100% implementado)
-- Identifica gaps (Memory Service 80% missing)
-- Cost tracking readiness
-
----
-
-### 5. **security_analyzer** 🔒
-**Propósito**: Auditoria de segurança OWASP Top 10
-- **Runtime**: 70-80 min
-- **Output**: `code-analysis/quality/security_analysis.md`
-- **Tables**: 18 (OWASP), 21 (AI Security), 24-27 (Integration Security)
-- **Tools**: Read, Grep, Glob, Bash
-
-**O que faz**:
-- Identifica P0 vulnerabilidades (SSRF, BOLA, Auth Bypass)
-- OWASP Top 10 coverage
-- Security headers, RBAC, rate limiting
-- **IMPORTANTE**: Atualiza TODO.md via todo_manager (P0 encontrados)
-
----
-
-### 6. **integration_analyzer**
-**Propósito**: Analisa integrações com APIs externas
-- **Runtime**: 35-45 min
-- **Output**: `code-analysis/infrastructure/integration_analysis.md`
-- **Tables**: 8 (Integrations), 12 (Event Bus)
-- **Tools**: Read, Grep, Glob, Bash
-
-**O que faz**:
-- Mapeia WAHA, Stripe, Vertex AI, LlamaParse
-- Circuit breaker, retry logic, timeouts
-- Event bus (RabbitMQ + Outbox Pattern)
-
----
-
-## 🟠 HIGH Priority (3 agentes)
-
-Importantes para production readiness:
-
-### 7. **infrastructure_analyzer**
-**Propósito**: Deploy, CI/CD, infraestrutura
-- **Runtime**: 50-60 min
-- **Output**: `code-analysis/infrastructure/infrastructure_analysis.md`
-- **Tables**: 29 (Deployment), 30 (Roadmap)
-- **Tools**: Read, Grep, Glob, Bash
-
----
-
-### 8. **resilience_analyzer**
-**Propósito**: Rate limiting, error handling, resilience patterns
-- **Runtime**: 55-65 min
-- **Output**: `code-analysis/quality/resilience_analysis.md`
-- **Tables**: 19 (Rate Limiting), 20 (Error Handling), 23 (Patterns)
-- **Tools**: Read, Grep, Glob, Bash
-
----
-
-### 9. **api_analyzer**
-**Propósito**: REST endpoints, DTOs, Swagger
-- **Runtime**: 45-55 min
-- **Output**: `code-analysis/infrastructure/api_analysis.md`
-- **Tables**: 16 (DTOs), 17 (REST Endpoints)
-- **Tools**: Read, Grep, Glob, Bash
-
----
-
-## 🟡 MEDIUM Priority (2 agentes)
-
-Database e data quality:
-
-### 10. **persistence_analyzer**
-**Propósito**: Database schema, migrations, repositories
 - **Runtime**: 60-70 min
-- **Output**: `code-analysis/infrastructure/persistence_analysis.md`
-- **Tables**: 3 (Entities), 7 (Normalization), 9 (Migrations)
-- **Tools**: Read, Grep, Glob, Bash
+- **Tabelas**: 1 (Aggregates), 2 (Events), 5 (Children Entities)
+- **O que faz**: Analisa 30 agregados DDD, eventos, repositórios, optimistic locking
 
----
-
-### 11. **data_quality_analyzer**
-**Propósito**: Query performance, consistency, validations
-- **Runtime**: 60-70 min
-- **Output**: `code-analysis/quality/data_quality_analysis.md`
-- **Tables**: 13 (Query Perf), 14 (Consistency), 15 (Validations)
-- **Tools**: Read, Grep, Glob, Bash
-
----
-
-## 🔵 USER-REQUESTED (3 agentes)
-
-Code quality (solicitados pelo usuário):
-
-### 12. **code_style_analyzer**
-**Propósito**: Go idioms, naming conventions, organização
-- **Runtime**: 40-50 min
-- **Output**: `code-analysis/quality/code_style_analysis.md`
-- **Tables**: 6 tabelas (Idioms, Naming, Organization, Errors, Interfaces, Consistency)
-- **Tools**: Read, Grep, Glob, Bash
-
----
-
-### 13. **documentation_analyzer**
-**Propósito**: Swagger, godoc, guias de API
-- **Runtime**: 45-55 min
-- **Output**: `code-analysis/quality/documentation_analysis.md`
-- **Tables**: 6 tabelas (Swagger, Errors, Comments, Guides, Examples, Consistency)
-- **Tools**: Read, Grep, Glob, Bash
-
----
-
-### 14. **solid_principles_analyzer**
-**Propósito**: S.O.L.I.D. principles audit
-- **Runtime**: 55-65 min
-- **Output**: `code-analysis/quality/solid_principles_analysis.md`
-- **Tables**: 6 tabelas (SRP, OCP, LSP, ISP, DIP, Overall Score)
-- **Tools**: Read, Grep, Glob, Bash
-
----
-
-## ⚪ STANDARD Priority (4 agentes)
-
-Detalhes do modelo de domínio:
-
-### 15. **value_objects_analyzer**
-**Propósito**: Value objects, primitive obsession
-- **Runtime**: 30-40 min
+#### 2. **crm_value_objects_analyzer** ⚪ STANDARD
 - **Output**: `code-analysis/domain-analysis/value_objects_analysis.md`
-- **Table**: 6 (Value Objects)
-- **Tools**: Read, Grep, Glob
+- **Runtime**: 30-40 min
+- **Tabela**: 6 (Value Objects)
+- **O que faz**: Value objects, primitive obsession, immutability
 
----
-
-### 16. **entity_relationships_analyzer**
-**Propósito**: Foreign keys, cardinality, relacionamentos
-- **Runtime**: 35-45 min
+#### 3. **crm_entity_relationships_analyzer** ⚪ STANDARD
 - **Output**: `code-analysis/domain-analysis/entity_relationships_analysis.md`
-- **Table**: 4 (Entity Relationships)
-- **Tools**: Read, Grep, Glob
+- **Runtime**: 35-45 min
+- **Tabela**: 4 (Entity Relationships)
+- **O que faz**: Foreign keys, cardinality, relacionamentos entre agregados
 
----
-
-### 17. **use_cases_analyzer**
-**Propósito**: CQRS commands/queries, use cases
-- **Runtime**: 40-50 min
+#### 4. **crm_use_cases_analyzer** ⚪ STANDARD
 - **Output**: `code-analysis/domain-analysis/use_cases_analysis.md`
-- **Table**: 10 (Use Cases)
-- **Tools**: Read, Grep, Glob
-
----
-
-### 18. **events_analyzer**
-**Propósito**: Domain events, Temporal workflows
 - **Runtime**: 40-50 min
+- **Tabela**: 10 (Use Cases)
+- **O que faz**: CQRS commands/queries, 80+ use cases
+
+#### 5. **crm_events_analyzer** ⚪ STANDARD
 - **Output**: `code-analysis/domain-analysis/events_analysis.md`
-- **Tables**: 11 (Domain Events)
-- **Tools**: Read, Grep, Glob, Bash
+- **Runtime**: 40-50 min
+- **Tabela**: 11 (Domain Events)
+- **O que faz**: 182+ domain events, Temporal workflows, Outbox Pattern
 
 ---
 
-## 🟣 META Agents (4 agentes)
+### Infrastructure (4 agentes)
 
-Orquestração e pós-processamento:
+#### 6. **crm_persistence_analyzer** 🟡 MEDIUM
+- **Output**: `code-analysis/infrastructure/persistence_analysis.md`
+- **Runtime**: 60-70 min
+- **Tabelas**: 3 (Entities), 7 (Normalization), 9 (Migrations)
+- **O que faz**: Database schema, GORM entities, migrations, RLS policies
 
-### 19. **orchestrator** 🎯
-**Propósito**: Coordena todos os 18 agentes de análise
-- **Runtime**: 8-12 horas (parallelized to 2-3 hours)
-- **Output**: `code-analysis/comprehensive/MASTER_ANALYSIS.md` (todas as 30 tabelas)
-- **Dependencies**: Todos os 18 agentes acima
-- **Priority**: CRITICAL
-- **Tools**: Task (lança sub-agentes em paralelo)
+#### 7. **crm_integration_analyzer** 🔴 CRITICAL
+- **Output**: `code-analysis/infrastructure/integration_analysis.md`
+- **Runtime**: 35-45 min
+- **Tabelas**: 8 (Integrations), 12 (Event Bus)
+- **O que faz**: WAHA, Stripe, Vertex AI, LlamaParse, circuit breaker
 
-**O que faz**:
-1. Lança deterministic_analyzer (baseline)
-2. Lança 18 agentes especializados em paralelo (batches de 10)
-3. Aguarda todas as análises
-4. Consolida em MASTER_ANALYSIS.md
-5. Dispara todo_manager (atualiza TODO.md)
-6. Dispara docs_index_manager (atualiza índices)
+#### 8. **crm_workflows_analyzer** 🟡 MEDIUM
+- **Output**: `code-analysis/infrastructure/workflows_analysis.md`
+- **Runtime**: 40-50 min
+- **O que faz**: Temporal workflows, sagas, long-running processes
 
----
-
-### 20. **adr_generator**
-**Propósito**: Gera Architecture Decision Records (ADRs)
-- **Runtime**: 30-40 min
-- **Output**: `docs/adr/*.md` (17+ ADR files)
-- **Dependencies**: Todas as análises completas
-- **Priority**: MEDIUM
-- **Tools**: Read, Write, Bash
-
-**O que faz**:
-- Lê análises consolidadas
-- Gera ADRs para decisões arquiteturais (DDD, Hexagonal, Event-Driven, etc.)
-- Formato: `0001-adopt-ddd.md`, `0002-hexagonal-architecture.md`
+#### 9. **crm_infrastructure_analyzer** 🟠 HIGH
+- **Output**: `code-analysis/infrastructure/infrastructure_analysis.md`
+- **Runtime**: 50-60 min
+- **Tabelas**: 29 (Deployment), 30 (Roadmap)
+- **O que faz**: Docker, Kubernetes, CI/CD (GitHub Actions + AWX + Helm)
 
 ---
 
-### 21. **docs_cleanup**
-**Propósito**: Organiza documentação pós-análise
-- **Runtime**: 20-30 min
-- **Output**: Estrutura de docs limpa
-- **Dependencies**: Todas as análises completas
-- **Priority**: LOW
-- **Tools**: Bash, Read, Write
+### AI/ML (1 agente)
 
-**O que faz**:
-- Move análises antigas para `code-analysis/archive/YYYY-MM-DD/`
-- Limpa arquivos temporários
-- Organiza estrutura de pastas
+#### 10. **crm_ai_ml_analyzer** 🔴 CRITICAL
+- **Output**: `code-analysis/ai-ml/ai_ml_analysis.md`
+- **Runtime**: 50-60 min
+- **Tabela**: 28 (AI/ML Features)
+- **O que faz**: 12 AI providers, message enrichment (100%), memory service (20%)
 
 ---
 
-### 22. **docs_consolidator**
-**Propósito**: Consolida documentação fragmentada
-- **Runtime**: 30-40 min
-- **Output**: AI_REPORT.md consolidado, TODO.md consolidado
-- **Dependencies**: None (pode rodar a qualquer momento)
-- **Priority**: HIGH
-- **Tools**: Read, Edit, Write, Bash
+### Quality (5 agentes)
 
-**O que faz**:
-- Merge AI_REPORT_PART1-6 → AI_REPORT.md consolidado
-- Merge TODO.md (consolidated), todo_*.md → TODO.md consolidado
-- Consolida docs fragmentadas (Python ADK, AI Memory, MCP Server)
-- Arquiva fragmentos antigos
+#### 11. **crm_testing_analyzer** 🔴 CRITICAL
+- **Output**: `code-analysis/quality/testing_analysis.md`
+- **Runtime**: 40-50 min
+- **Tabela**: 22 (Test Pyramid)
+- **O que faz**: 82% coverage, pirâmide de testes, gaps
 
----
+#### 12. **crm_security_analyzer** 🔴 CRITICAL 🔒
+- **Output**: `code-analysis/quality/security_analysis.md`
+- **Runtime**: 70-80 min
+- **Tabelas**: 18 (OWASP), 21 (AI Security), 24-27 (Integration Security)
+- **O que faz**: 5 P0 vulnerabilities, OWASP Top 10, RBAC
 
-## 🆕 MANAGEMENT Agents (2 agentes)
+#### 13. **crm_resilience_analyzer** 🟠 HIGH
+- **Output**: `code-analysis/quality/resilience_analysis.md`
+- **Runtime**: 55-65 min
+- **Tabelas**: 19 (Rate Limiting), 20 (Error Handling), 23 (Patterns)
+- **O que faz**: Circuit breaker, retry logic, timeouts, rate limiting
 
-Mantêm documentação atualizada automaticamente:
+#### 14. **crm_data_quality_analyzer** 🟡 MEDIUM
+- **Output**: `code-analysis/quality/data_quality_analysis.md`
+- **Runtime**: 60-70 min
+- **Tabelas**: 13 (Query Perf), 14 (Consistency), 15 (Validations)
+- **O que faz**: Query performance, N+1, validations, consistency
 
-### 23. **todo_manager** ⭐ NOVO
-**Propósito**: Mantém TODO.md consolidado e sincronizado com codebase
-- **Runtime**: 10-15 min
-- **Output**: `TODO.md` (raiz, sempre atualizado)
-- **Dependencies**: Análises completas (security_analyzer, testing_analyzer)
-- **Priority**: HIGH
-- **Tools**: Read, Edit, Grep, Glob, Bash
-- **Triggers**: `/update-todo`, pós-análise (automático), semanal (review)
-
-**O que faz**:
-1. **Consolida TODOs**: Merge de TODO.md, TODO.md (consolidated), todo_*.md
-2. **Atualiza status**: Marca tarefas como completas baseado no código
-   - Ex: P0-1 Security Fix → Verifica se middleware/auth.go foi corrigido
-   - Ex: Optimistic Locking → Conta aggregates com `version int` field
-3. **Re-prioriza**: Baseado em análises
-   - security_analyzer encontra P0 → Adiciona ao Sprint 1-2
-   - testing_analyzer identifica gaps → Adiciona tarefas de testes
-4. **Sincroniza**: Cross-reference com análises
-   - code-analysis/quality/security_analysis.md (P0 vulns)
-   - code-analysis/quality/testing_analysis.md (coverage gaps)
-
-**Exemplo de uso**:
-```bash
-# Manual
-/update-todo
-
-# Automático (dispara após orchestrator)
-# Detecta: security_analyzer encontrou nova P0 SSRF
-# Ação: Adiciona "Fix SSRF in webhooks" ao TODO.md Sprint 1-2
-```
+#### 15. **crm_api_analyzer** 🟠 HIGH
+- **Output**: `code-analysis/infrastructure/api_analysis.md`
+- **Runtime**: 45-55 min
+- **Tabelas**: 16 (DTOs), 17 (REST Endpoints)
+- **O que faz**: 158 endpoints, DTOs, Swagger, HTTP handlers
 
 ---
 
-### 24. **docs_index_manager** 📚 NOVO
-**Propósito**: Mantém índices de documentação atualizados
+## 🌐 Global Agents (4 agentes)
+
+Reutilizáveis em qualquer projeto Go.
+
+#### 16. **global_deterministic_analyzer** 🔴 CRITICAL ⭐ BASELINE
+- **Output**: `code-analysis/architecture/deterministic_metrics.md`
 - **Runtime**: 5-10 min
-- **Output**: README.md files (raiz, code-analysis/, docs/, docs/future/)
-- **Dependencies**: None
-- **Priority**: MEDIUM
-- **Tools**: Read, Edit, Glob, Bash
-- **Triggers**: `/update-indexes`, pós-consolidação, pós-análise
+- **Dependencies**: None ← **RODAR PRIMEIRO**
+- **O que faz**: Baseline 100% factual (grep/wc/find), valida análises AI
 
-**O que faz**:
-1. **Escaneia diretórios**: Detecta novos arquivos .md
-2. **Atualiza índices**:
-   - `README.md` (raiz) → Quick links para docs principais
-   - `code-analysis/README.md` → Índice de todas as análises
-   - `docs/README.md` → Hub de documentação
-   - `docs/future/README.md` → Roadmap de features
-3. **Detecta mudanças**: Adiciona novos arquivos automaticamente
-4. **Mantém consistência**: Links corretos, sem broken references
+#### 17. **global_code_style_analyzer** 🔵 USER-REQUESTED
+- **Output**: `code-analysis/quality/code_style_analysis.md`
+- **Runtime**: 40-50 min
+- **O que faz**: Go idioms, naming conventions, code organization
 
-**Exemplo de uso**:
-```bash
-# Manual
-/update-indexes
+#### 18. **global_documentation_analyzer** 🔵 USER-REQUESTED
+- **Output**: `code-analysis/quality/documentation_analysis.md`
+- **Runtime**: 45-55 min
+- **O que faz**: Swagger, godoc, comentários, guias de API
 
-# Automático (dispara após docs_consolidator)
-# Detecta: Nova análise em code-analysis/ai-ml/ai_cost_tracking.md
-# Ação: Adiciona ao code-analysis/README.md automaticamente
-```
+#### 19. **global_solid_principles_analyzer** 🔵 USER-REQUESTED
+- **Output**: `code-analysis/quality/solid_principles_analysis.md`
+- **Runtime**: 55-65 min
+- **O que faz**: S.O.L.I.D. principles audit completo
 
 ---
 
-## 📋 Ordem de Execução
+## 🎭 Meta Agents (7 agentes)
+
+Orquestração, desenvolvimento de features, e pós-processamento.
+
+### Analysis Orchestration (1 agente)
+
+#### 20. **meta_orchestrator** 🔴 CRITICAL 🎯
+- **Output**: `code-analysis/comprehensive/MASTER_ANALYSIS.md`
+- **Runtime**: 2-3 horas (parallelizado)
+- **Dependencies**: Todos os 18 agentes de análise
+- **O que faz**: Coordena todos os agentes, consolida 30 tabelas
+
+### Development Orchestration (3 agentes) 🆕
+
+#### 21. **meta_dev_orchestrator** 🔴 CRITICAL 🚀 🆕
+- **Output**: Feature completa (código + testes + PR)
+- **Runtime**: 5 min (verify) to 2 hours (full feature)
+- **Triggers**: `/add-feature <description>`
+- **O que faz**: Orquestra desenvolvimento completo de features com DDD + Clean Architecture
+  - Cria GitHub issue
+  - Valida arquitetura (chama meta_feature_architect)
+  - Implementa domain + application + infrastructure
+  - Escreve testes (82%+ coverage)
+  - Code review (chama meta_code_reviewer)
+  - Commit + Push + PR
+- **Intelligence**: Máxima - 3 modos (full/enhancement/verification)
+- **Token Usage**: 5k-100k (otimizado conforme complexidade)
+
+#### 22. **meta_feature_architect** 🔴 CRITICAL 🏗️ 🆕
+- **Output**: `/tmp/architecture_plan.md`
+- **Runtime**: 5-10 min
+- **Called by**: meta_dev_orchestrator
+- **O que faz**: Valida arquitetura e cria plano de implementação
+  - Valida DDD + Clean Architecture + CQRS + SOLID
+  - Gera checklist completo (53 items para full feature)
+  - Estima esforço (tempo + tokens + arquivos)
+  - Identifica riscos e dependências
+  - Define bounded context correto
+  - Security analysis (RBAC, BOLA, validação)
+
+#### 23. **meta_code_reviewer** 🟠 HIGH 👁️ 🆕
+- **Output**: `/tmp/code_review.md` com score
+- **Runtime**: 5-10 min
+- **Called by**: meta_dev_orchestrator
+- **O que faz**: Review automático de código
+  - Domain layer: 25 pontos (business logic, events, version field)
+  - Application layer: 20 pontos (command pattern, validation)
+  - Infrastructure: 15 pontos (repository, HTTP handler, migration)
+  - SOLID: 15 pontos (S.O.L.I.D. principles)
+  - Security: 15 pontos (RBAC, BOLA, SQL injection)
+  - Testing: 10 pontos (coverage, mocks, e2e)
+  - **Pass/Fail**: ≥80% = PASS, 70-79% = WARNING, <70% = FAIL
+
+### Post-Processing (3 agentes)
+
+#### 24. **meta_adr_generator** 🟡 MEDIUM
+- **Output**: `docs/adr/*.md`
+- **Runtime**: 30-40 min
+- **O que faz**: Gera Architecture Decision Records (ADRs)
+
+#### 25. **meta_docs_cleaner** ⚪ LOW
+- **Output**: Estrutura limpa
+- **Runtime**: 20-30 min
+- **O que faz**: Move para archive, limpa temporários
+
+#### 26. **meta_docs_consolidator** 🟠 HIGH
+- **Output**: AI_REPORT.md consolidado, TODO.md consolidado
+- **Runtime**: 30-40 min
+- **O que faz**: Merge de fragmentos (AI_REPORT_PART1-6, etc.)
+
+---
+
+## 🛠️ Management Agents (6 agentes)
+
+Mantêm documentação e estado atualizados.
+
+#### 27. **mgmt_todo_manager** 🟠 HIGH ⭐
+- **Output**: `planning/TODO.md`
+- **Runtime**: 10-15 min
+- **Triggers**: `/update-todo`, pós-análise
+- **O que faz**: Consolida TODOs, atualiza status baseado no código, re-prioriza
+
+#### 28. **mgmt_docs_index_manager** 🟡 MEDIUM 📚
+- **Output**: README.md files (vários diretórios)
+- **Runtime**: 5-10 min
+- **Triggers**: `/update-indexes`, pós-consolidação
+- **O que faz**: Atualiza índices, detecta novos arquivos, mantém links
+
+#### 29. **mgmt_docs_reorganizer** 🟠 HIGH
+- **Output**: Estrutura organizada
+- **Runtime**: 15-20 min
+- **O que faz**: Segue ORGANIZATION_RULES.md, move arquivos, atualiza referências
+
+#### 30. **mgmt_makefile_updater** 🟡 MEDIUM 🆕
+- **Output**: `MAKEFILE.md`
+- **Runtime**: 5-10 min
+- **Triggers**: `/update-makefile`, após Makefile changes
+- **O que faz**: Sincroniza MAKEFILE.md com Makefile, extrai comandos, adiciona exemplos
+
+#### 31. **mgmt_readme_updater** 🟡 MEDIUM 🆕
+- **Output**: `README.md`
+- **Runtime**: 5-10 min
+- **Triggers**: `/update-readme`, após features completas
+- **O que faz**: Atualiza badges, métricas, feature status, tech stack
+
+#### 32. **mgmt_dev_guide_updater** 🟡 MEDIUM 🆕
+- **Output**: `DEV_GUIDE.md`
+- **Runtime**: 10-15 min
+- **Triggers**: `/update-dev-guide`, após architecture changes
+- **O que faz**: Atualiza exemplos de código (do código real), padrões, workflows
+
+---
+
+## 📋 Ordem de Execução Recomendada
 
 ### ⚡ Análise Completa (30 Tabelas)
 
-#### **Fase 0: Baseline** (5-10 min) ⭐
 ```bash
-# SEMPRE rodar primeiro - baseline determinístico
-claude-code --agent deterministic_analyzer
-```
+# Fase 0: Baseline (5-10 min)
+claude-code --agent global_deterministic_analyzer
 
-#### **Fase 1: Análise Core** (Parallel) - 70-80 min
-```bash
-# CRITICAL + HIGH priority (9 agentes em paralelo)
-claude-code --agent domain_model_analyzer &
-claude-code --agent testing_analyzer &
-claude-code --agent ai_ml_analyzer &
-claude-code --agent security_analyzer &
-claude-code --agent integration_analyzer &
-claude-code --agent infrastructure_analyzer &
-claude-code --agent resilience_analyzer &
-claude-code --agent api_analyzer &
+# Fase 1: Core Analysis (70-80 min, parallel)
+claude-code --agent crm_domain_model_analyzer &
+claude-code --agent crm_testing_analyzer &
+claude-code --agent crm_ai_ml_analyzer &
+claude-code --agent crm_security_analyzer &
+claude-code --agent crm_integration_analyzer &
+claude-code --agent crm_infrastructure_analyzer &
+claude-code --agent crm_resilience_analyzer &
+claude-code --agent crm_api_analyzer &
 wait
-```
 
-#### **Fase 2: Análise Especializada** (Parallel) - 50-70 min
-```bash
-# MEDIUM + USER-REQUESTED + STANDARD priority (9 agentes em paralelo)
-claude-code --agent persistence_analyzer &
-claude-code --agent data_quality_analyzer &
-claude-code --agent code_style_analyzer &
-claude-code --agent documentation_analyzer &
-claude-code --agent solid_principles_analyzer &
-claude-code --agent value_objects_analyzer &
-claude-code --agent entity_relationships_analyzer &
-claude-code --agent use_cases_analyzer &
-claude-code --agent events_analyzer &
+# Fase 2: Specialized Analysis (50-70 min, parallel)
+claude-code --agent crm_persistence_analyzer &
+claude-code --agent crm_data_quality_analyzer &
+claude-code --agent global_code_style_analyzer &
+claude-code --agent global_documentation_analyzer &
+claude-code --agent global_solid_principles_analyzer &
+claude-code --agent crm_value_objects_analyzer &
+claude-code --agent crm_entity_relationships_analyzer &
+claude-code --agent crm_use_cases_analyzer &
+claude-code --agent crm_events_analyzer &
 wait
+
+# Fase 3: Orchestration (10-15 min)
+claude-code --agent meta_orchestrator
+
+# Fase 4: Management (15-20 min)
+claude-code --agent mgmt_todo_manager
+claude-code --agent mgmt_docs_index_manager
+
+# Fase 5: Post-Processing (50-70 min, optional)
+claude-code --agent meta_adr_generator
+claude-code --agent meta_docs_consolidator
+claude-code --agent meta_docs_cleaner
 ```
 
-#### **Fase 3: Orquestração** (10-15 min)
-```bash
-# Orchestrator agrega todos os resultados
-claude-code --agent orchestrator
-
-# Output: code-analysis/comprehensive/MASTER_ANALYSIS.md
-```
-
-#### **Fase 4: Gerenciamento** (15-20 min)
-```bash
-# Atualiza TODO.md baseado nas análises
-claude-code --agent todo_manager
-
-# Atualiza todos os índices
-claude-code --agent docs_index_manager
-```
-
-#### **Fase 5: Pós-Processamento** (Opcional) - 50-70 min
-```bash
-# Gera ADRs
-claude-code --agent adr_generator
-
-# Consolida documentação fragmentada
-claude-code --agent docs_consolidator
-
-# Limpa e arquiva
-claude-code --agent docs_cleanup
-```
-
----
-
-## ⏱️ Runtime Total
-
-- **Fase 0**: 5-10 min (baseline)
-- **Fase 1**: 70-80 min (parallelized - core analysis)
-- **Fase 2**: 50-70 min (parallelized - specialized analysis)
-- **Fase 3**: 10-15 min (orchestration)
-- **Fase 4**: 15-20 min (management)
-- **Fase 5**: 50-70 min (post-processing, opcional)
-
-**Total Mínimo** (Fase 0-4): ~2.5-3 horas (parallelizado)
-**Total Completo** (Fase 0-5): ~3.5-5 horas (parallelizado)
-
-**Sem paralelização**: ~15-20 horas
-
----
-
-## 📁 Estrutura de Output Completa
-
-```
-code-analysis/
-├── README.md                             # Índice de análises (mantido por docs_index_manager)
-│
-├── architecture/                         # Métricas arquiteturais
-│   ├── AI_REPORT.md                     # Report consolidado (7 partes → 1)
-│   ├── deterministic_metrics.md         # Baseline factual
-│   └── architecture_scores.md           # Scores por camada
-│
-├── domain-analysis/                      # Análises DDD
-│   ├── domain_model_analysis.md         # Aggregates, eventos, repos
-│   ├── value_objects_analysis.md        # Value objects
-│   ├── entity_relationships_analysis.md # Relacionamentos
-│   ├── use_cases_analysis.md            # CQRS commands/queries
-│   └── events_analysis.md               # Domain events
-│
-├── infrastructure/                       # Infraestrutura
-│   ├── persistence_analysis.md          # Database, migrations
-│   ├── api_analysis.md                  # REST endpoints, DTOs
-│   ├── integration_analysis.md          # APIs externas
-│   └── infrastructure_analysis.md       # Deploy, CI/CD
-│
-├── quality/                              # Qualidade de código
-│   ├── testing_analysis.md              # Cobertura de testes
-│   ├── security_analysis.md             # OWASP, vulnerabilidades
-│   ├── code_style_analysis.md           # Go idioms, naming
-│   ├── documentation_analysis.md        # Swagger, godoc
-│   ├── solid_principles_analysis.md     # S.O.L.I.D.
-│   ├── resilience_analysis.md           # Rate limiting, circuit breaker
-│   └── data_quality_analysis.md         # Query performance
-│
-├── ai-ml/                                # AI/ML
-│   ├── ai_ml_analysis.md                # Features, providers
-│   └── ai_cost_tracking.md              # Custos por provider
-│
-├── comprehensive/                        # Reports completos
-│   └── MASTER_ANALYSIS.md               # Output do orchestrator (30 tabelas)
-│
-└── archive/                              # Análises antigas
-    └── 2025-10-15/
-        ├── ai_reports/                   # AI_REPORT_PART1-6
-        ├── todos/                        # TODO variants
-        └── analysis_reports/             # Old reports
-```
-
----
-
-## 🎯 Princípios de Design dos Agentes
-
-Todos os 24 agentes seguem metodologia consistente:
-
-### 1. **Deterministic Baseline First** 🔢
-- Rodar grep/find/wc para contagens factuais
-- Validar análises AI com números determinísticos
-- Exemplo: "AI detectou 30 aggregates" ✅ vs "grep encontrou 30 arquivos" ✅
-
-### 2. **AI Analysis** 🤖
-- Analisar padrões, qualidade, compliance
-- Score de 1-10 com justificativa
-- Identificar violations, gaps, best practices
-
-### 3. **Comparison** ⚖️
-- Mostrar "Deterministic vs AI" side-by-side
-- Validar consistência
-- Explicar discrepâncias
-
-### 4. **Evidence Required** 📍
-- Toda finding precisa de file:line citation
-- Exemplos de código (✅ Good vs ❌ Bad)
-- Links para documentação relevante
-
-### 5. **Atemporal Design** ⏳
-- **NUNCA** hardcode números no prompt
-- Uso: "All aggregates" ✅ ao invés de "30 aggregates" ❌
-- Números descobertos dinamicamente via grep/glob
-
-### 6. **Code Examples** 💻
-- Sempre mostrar exemplos práticos
-- Formato: ✅ Correct vs ❌ Incorrect
-- Com explicação do "why"
-
-### 7. **Scoring with Reasoning** 📊
-- Todo score 1-10 precisa de justificativa
-- Critérios claros e consistentes
-- Comparar com industry best practices
-
----
-
-## 🔄 Diagrama de Interação dos Agentes
-
-```
-                    ┌─────────────────────────┐
-                    │ deterministic_analyzer  │ ⭐ BASELINE
-                    │   (SEMPRE PRIMEIRO)     │
-                    └───────────┬─────────────┘
-                                │
-                                ▼
-                ┌───────────────────────────────────────┐
-                │   18 Agentes de Análise               │
-                │   (executam em paralelo)              │
-                │                                       │
-                │   🔴 CRITICAL (6 agentes)             │
-                │   - domain_model_analyzer             │
-                │   - testing_analyzer                  │
-                │   - ai_ml_analyzer                    │
-                │   - security_analyzer                 │
-                │   - integration_analyzer              │
-                │   - persistence_analyzer              │
-                │                                       │
-                │   🟠 HIGH (3 agentes)                 │
-                │   🟡 MEDIUM (2 agentes)               │
-                │   🔵 USER-REQUESTED (3 agentes)       │
-                │   ⚪ STANDARD (4 agentes)             │
-                └───────────┬───────────────────────────┘
-                            │
-                            ▼
-                    ┌───────────────┐
-                    │ orchestrator  │ 🎯 Agrega todos os resultados
-                    └───────┬───────┘
-                            │
-                ┌───────────┴───────────┐
-                │                       │
-                ▼                       ▼
-        ┌──────────────┐        ┌──────────────────┐
-        │ todo_manager │ 🆕     │ docs_index_      │ 🆕
-        │              │        │ manager          │
-        │ - Atualiza   │        │ - Atualiza       │
-        │   TODO.md    │        │   índices        │
-        └──────────────┘        └──────────────────┘
-                │                       │
-                └───────────┬───────────┘
-                            │
-                            ▼
-                ┌─────────────────────────────┐
-                │  Pós-Processamento          │
-                │  (Opcional)                 │
-                │                             │
-                │  - adr_generator            │
-                │  - docs_consolidator        │
-                │  - docs_cleanup             │
-                └─────────────────────────────┘
-```
+**Total**: 2.5-3 horas (parallelizado) / 15-20 horas (sequencial)
 
 ---
 
 ## 🛠️ Comandos Úteis
 
-### Listar Agentes
+### Listar Agentes por Categoria
+
 ```bash
 # Todos os agentes
-ls -1 .claude/agents/*.md | grep -v README
+ls .claude/agents/*.md | grep -v README
+# Output: 32 agentes
 
-# Contar agentes
-ls -1 .claude/agents/*.md | grep -v README | wc -l
-# Output: 24
+# CRM-specific
+ls .claude/agents/crm_*.md
+# Output: 15 agentes
 
-# Ver detalhes de um agente
-cat .claude/agents/domain_model_analyzer.md
+# Global (reutilizáveis)
+ls .claude/agents/global_*.md
+# Output: 4 agentes
+
+# Meta (orchestration + development)
+ls .claude/agents/meta_*.md
+# Output: 7 agentes
+
+# Management
+ls .claude/agents/mgmt_*.md
+# Output: 6 agentes
 ```
 
 ### Executar Agentes
+
 ```bash
-# Análise completa (30 tabelas) via orchestrator
-claude-code --agent orchestrator
+# Análise completa via orchestrator
+claude-code --agent meta_orchestrator
 
-# Análise específica
-claude-code --agent security_analyzer
+# Análise específica (novos nomes!)
+claude-code --agent crm_security_analyzer
+claude-code --agent global_deterministic_analyzer
 
-# Baseline (sempre primeiro)
-claude-code --agent deterministic_analyzer
-
-# Atualizar TODO.md
-claude-code --agent todo_manager
-
-# Atualizar índices
-claude-code --agent docs_index_manager
-
-# Consolidar docs fragmentadas
-claude-code --agent docs_consolidator
+# Atualizar documentação
+claude-code --agent mgmt_todo_manager
+claude-code --agent mgmt_makefile_updater
+claude-code --agent mgmt_readme_updater
+claude-code --agent mgmt_dev_guide_updater
 ```
 
 ### Slash Commands
+
 ```bash
+# 🚀 Desenvolvimento de Features (NOVO!)
+/add-feature Add a Custom Field aggregate to allow users to create custom fields on contacts
+/add-feature Add rate limiting to campaign endpoints
+/add-feature Verify the Contact aggregate follows DDD best practices
+
 # Análise completa
 /analyze-all
 
-# Atualizar TODO
+# Atualizar documentação
 /update-todo
-
-# Atualizar índices
+/update-makefile
+/update-readme
+/update-dev-guide
 /update-indexes
 
-# Consolidar documentação
+# Consolidar
 /consolidate-docs
 
-# Check de segurança P0
+# Security
 /security:p0-check
 ```
 
@@ -677,199 +395,161 @@ claude-code --agent docs_consolidator
 
 ## 📊 Cobertura das 30 Tabelas
 
-### Especialização por Agente
+| Agente (novo nome) | Tabelas | Categoria |
+|--------------------|---------|-----------|
+| global_deterministic_analyzer | Baseline | Métricas factuais |
+| crm_domain_model_analyzer | 1, 2, 5 | Aggregates, Events, Children |
+| crm_entity_relationships_analyzer | 4 | Foreign Keys, Cardinality |
+| crm_value_objects_analyzer | 6 | Value Objects |
+| crm_persistence_analyzer | 3, 7, 9 | Entities, Normalization, Migrations |
+| crm_integration_analyzer | 8, 12 | Integrations, Event Bus |
+| crm_use_cases_analyzer | 10 | CQRS Commands/Queries |
+| crm_events_analyzer | 11 | Domain Events |
+| crm_data_quality_analyzer | 13, 14, 15 | Query Perf, Consistency, Validations |
+| crm_api_analyzer | 16, 17 | DTOs, REST Endpoints |
+| crm_security_analyzer | 18, 21, 24-27 | OWASP, AI Security, Integration Tests |
+| crm_resilience_analyzer | 19, 20, 23 | Rate Limiting, Error Handling, Patterns |
+| crm_testing_analyzer | 22, 24, 25 | Test Pyramid, Integration Tests, Mocks |
+| crm_ai_ml_analyzer | 28 | AI/ML Features, Providers |
+| crm_infrastructure_analyzer | 29, 30 | Deployment, CI/CD, Roadmap |
 
-| Agente | Tabelas | Categoria |
-|--------|---------|-----------|
-| deterministic_analyzer | Baseline | Métricas factuais |
-| domain_model_analyzer | 1, 2, 5 | Aggregates, Events, Children |
-| entity_relationships_analyzer | 4 | Foreign Keys, Cardinality |
-| value_objects_analyzer | 6 | Value Objects |
-| persistence_analyzer | 3, 7, 9 | Entities, Normalization, Migrations |
-| integration_analyzer | 8, 12 | Integrations, Event Bus |
-| use_cases_analyzer | 10 | CQRS Commands/Queries |
-| events_analyzer | 11 | Domain Events |
-| data_quality_analyzer | 13, 14, 15 | Query Perf, Consistency, Validations |
-| api_analyzer | 16, 17 | DTOs, REST Endpoints |
-| security_analyzer | 18, 21, 24-27 | OWASP, AI Security, Integration Tests |
-| resilience_analyzer | 19, 20, 23 | Rate Limiting, Error Handling, Patterns |
-| testing_analyzer | 22, 24, 25 | Test Pyramid, Integration Tests, Mocks |
-| ai_ml_analyzer | 28 | AI/ML Features, Providers |
-| infrastructure_analyzer | 29, 30 | Deployment, CI/CD, Roadmap |
+**Análises Extras** (não nas 30 tabelas):
+- global_code_style_analyzer
+- global_documentation_analyzer
+- global_solid_principles_analyzer
 
-### Análises Adicionais de Qualidade
-
-| Agente | Foco |
-|--------|------|
-| code_style_analyzer | Go idioms, naming, organization |
-| documentation_analyzer | Swagger, godoc, guides |
-| solid_principles_analyzer | S.O.L.I.D. principles |
-
-**Resultado**: 100% das 30 tabelas cobertas + análises extras de qualidade ✅
+**Resultado**: ✅ 100% das 30 tabelas cobertas + 3 análises extras de qualidade
 
 ---
 
-## 🔧 Manutenção
+## 🔄 Diagrama de Interação
 
-### Adicionar Novo Agente
-
-1. **Criar arquivo**: `.claude/agents/{category}_{name}_analyzer.md`
-2. **Seguir template**:
-```markdown
----
-name: {category}_{name}_analyzer
-description: |
-  {quando usar este agente}
-tools: Read, Grep, Glob, Bash
-model: sonnet
-priority: {high|medium|low}
----
-
-# {Name} Analyzer Agent
-
-## Output Location
-`code-analysis/{category}/{name}_analysis.md`
-
-[... resto do prompt seguindo padrão ouro]
 ```
-
-3. **Atualizar este README**: Adicionar na seção de prioridade correta
-4. **Atualizar orchestrator.md**: Incluir novo agente na lista
-5. **Testar**: Rodar agente standalone
-6. **Validar output**: Verificar se gera em code-analysis/
-
-### Atualizar Agente Existente
-
-1. **Ler agente**: `cat .claude/agents/{agent}.md`
-2. **Editar**: Atualizar prompt/tools/output path
-3. **Testar**: Rodar agente
-4. **Validar**: Comparar output antes/depois
-
-### Deletar Agente (Raro)
-
-1. **Remover arquivo**: `rm .claude/agents/{agent}.md`
-2. **Atualizar README**: Remover da lista
-3. **Atualizar orchestrator.md**: Remover das dependências
-4. **Update docs_index_manager**: Para não incluir mais
+┌─────────────────────────────────┐
+│ global_deterministic_analyzer   │ ⭐ BASELINE (SEMPRE PRIMEIRO)
+└────────────┬────────────────────┘
+             │
+             ▼
+┌────────────────────────────────────────┐
+│  18 Agentes de Análise (parallel)     │
+│  ├─ 15 CRM-specific (crm_*)           │
+│  └─ 3 Global quality (global_*)       │
+└────────────┬───────────────────────────┘
+             │
+             ▼
+┌────────────────────────┐
+│  meta_orchestrator     │ 🎯 Consolida 30 tabelas
+└────────────┬───────────┘
+             │
+     ┌───────┴───────┐
+     │               │
+     ▼               ▼
+┌──────────┐   ┌──────────────┐
+│ mgmt_    │   │ mgmt_docs_   │
+│ todo_    │   │ index_       │
+│ manager  │   │ manager      │
+└──────────┘   └──────────────┘
+     │               │
+     └───────┬───────┘
+             │
+             ▼
+┌─────────────────────────┐
+│  Pós-Processamento      │
+│  - meta_adr_generator   │
+│  - meta_docs_consolidator│
+│  - meta_docs_cleaner    │
+└─────────────────────────┘
+```
 
 ---
 
 ## 🎯 Casos de Uso
 
-### 1. Análise Completa de Codebase (Primeira Vez)
+### 1. Análise Completa (Primeira Vez)
 ```bash
-# Tempo: ~3 horas (parallelized)
-claude-code --agent orchestrator
-
-# Output:
-# - code-analysis/comprehensive/MASTER_ANALYSIS.md (30 tabelas)
-# - TODO.md atualizado com P0s encontrados
-# - Índices atualizados
+claude-code --agent meta_orchestrator
+# Tempo: ~3 horas
+# Output: 30 tabelas + TODO.md atualizado
 ```
 
-### 2. Re-análise Após Mudanças (Sprint Review)
+### 2. Re-análise Após Sprint
 ```bash
-# Re-rodar análises críticas (30 min)
-claude-code --agent security_analyzer
-claude-code --agent testing_analyzer
-
-# Atualizar TODO baseado em novas findings
-claude-code --agent todo_manager
-
-# Output: TODO.md sincronizado com estado atual
+claude-code --agent crm_security_analyzer
+claude-code --agent crm_testing_analyzer
+claude-code --agent mgmt_todo_manager
+# Tempo: ~1 hora
 ```
 
-### 3. Consolidar Documentação Fragmentada
+### 3. Atualizar Documentação
 ```bash
-# Merge AI_REPORT_PART1-6, TODO.md (consolidated), etc.
-claude-code --agent docs_consolidator
-
-# Atualizar índices
-claude-code --agent docs_index_manager
-
-# Output:
-# - code-analysis/architecture/AI_REPORT.md (consolidado)
-# - TODO.md (consolidado)
-# - Índices atualizados
+claude-code --agent mgmt_makefile_updater
+claude-code --agent mgmt_readme_updater
+claude-code --agent mgmt_dev_guide_updater
+# Tempo: ~30 min
 ```
 
-### 4. Auditoria de Segurança P0
+### 4. Security Audit P0
 ```bash
-# Análise de segurança focada
-claude-code --agent security_analyzer
-
-# Se P0 encontrado, atualizar TODO automaticamente
-claude-code --agent todo_manager
-
-# Output:
-# - code-analysis/quality/security_analysis.md
-# - TODO.md com nova P0 no Sprint 1-2
+claude-code --agent crm_security_analyzer
+claude-code --agent mgmt_todo_manager
+# Tempo: ~90 min
 ```
 
-### 5. Validar Coverage de Testes
+### 5. Adicionar Nova Feature (NOVO!) 🚀
 ```bash
-# Análise de testes
-claude-code --agent testing_analyzer
-
-# Output:
-# - code-analysis/quality/testing_analysis.md
-# - Identificar use cases sem testes
-# - TODO.md atualizado com tarefas de testes
+/add-feature Add a Broadcast feature for sending messages to multiple contacts
+# Tempo: 60-90 min (full feature) ou 15-30 min (enhancement)
+# Output: Feature completa com:
+#   - Domain layer (aggregate, events, repository)
+#   - Application layer (commands, handlers, DTOs)
+#   - Infrastructure layer (entity, repo impl, HTTP handler, migration)
+#   - Tests (unit + integration + e2e)
+#   - PR criada e pronta para review
 ```
-
----
-
-## 📚 Referências
-
-### Documentação Interna
-- `ai-guides/claude-code-guide.md` - Sistema multi-agente completo
-- `ai-guides/prompt-engineering-guide.md` - 15+ técnicas de prompting
-- `TODO.md` - Roadmap consolidado (mantido por todo_manager)
-- `CLAUDE.md` - Instruções para Claude Code
-
-### Agentes Relacionados
-- Todos os 24 agentes em `.claude/agents/`
-- Slash commands em `.claude/commands/`
-
-### Outputs Gerados
-- `code-analysis/` - Todas as análises
-- `docs/adr/` - Architecture Decision Records
-- `docs/future/` - Documentação de features planejadas
 
 ---
 
 ## 📝 Changelog
 
-### v4.0 (2025-10-15) - CURRENT
-- ✅ Adicionado `todo_manager` (agente 23)
-- ✅ Adicionado `docs_index_manager` (agente 24)
-- ✅ Atualizada estrutura de output para `code-analysis/`
-- ✅ Reorganizada categorização de agentes
-- ✅ Total: 24 agentes (18 análise + 4 meta + 2 gerenciamento)
+### v6.0 (2025-10-15) - CURRENT ✨ 🚀
+- ✅ **Added 3 development orchestrators** (feature development workflow)
+  - `meta_dev_orchestrator` - Full feature development (analysis → code → tests → PR)
+  - `meta_feature_architect` - Architecture validation & planning
+  - `meta_code_reviewer` - Automated code review (100-point checklist)
+- ✅ **New slash command**: `/add-feature` - AI implements complete features
+- ✅ **Intelligence modes**: Full (100k tokens), Enhancement (30k), Verification (10k)
+- ✅ **Total: 32 agentes**
+  - 15 CRM-specific (`crm_*`)
+  - 4 Global reusable (`global_*`)
+  - **7 Meta orchestration** (`meta_*`) ← Aumentou de 4 para 7
+  - 6 Management (`mgmt_*`)
+
+### v5.0 (2025-10-15)
+- ✅ **Renamed all 26 agents** with scope prefixes
+- ✅ Added 3 new updater agents (makefile, readme, dev_guide)
+- ✅ **Total: 29 agentes**
+- ✅ New naming pattern: `{scope}_{category}_{name}.md`
+- ✅ Updated YAML `name:` fields in all agents
+
+### v4.0 (2025-10-15)
+- 24 agentes (18 análise + 4 meta + 2 gerenciamento)
 
 ### v3.0 (2025-10-14)
-- ✅ 22 agentes (18 análise + 4 meta)
-- ✅ Cobertura 100% das 30 tabelas
-- ✅ Padrão ouro completo implementado
-- ✅ Outputs em `code-analysis/`
-
-### v2.0 (2025-10-13)
-- ✅ 18 agentes de análise especializados
-- ✅ 4 agentes meta (orchestrator, adr_generator, docs_cleanup, docs_consolidator)
-
-### v1.0 (2025-10-12)
-- ✅ Sistema inicial de agentes
+- 22 agentes (18 análise + 4 meta)
 
 ---
 
-**Version**: 4.0
+**Version**: 6.0 🚀
 **Last Updated**: 2025-10-15
-**Total Agents**: 24 (18 análise + 4 meta + 2 gerenciamento)
-**Coverage**: 100% das 30 tabelas de análise
+**Total Agents**: 32 (15 CRM + 4 Global + 7 Meta + 6 Management)
+**Coverage**: 100% das 30 tabelas de análise + desenvolvimento de features
 **Output Structure**: `code-analysis/` (organizado por categoria)
-**Estimated Runtime**: 2.5-3 horas (parallelized) / 15-20 horas (sequential)
+**Naming Pattern**: `{scope}_{category}_{name}.md`
+**Estimated Runtime**:
+- Analysis: 2.5-3 horas (parallelized) / 15-20 horas (sequential)
+- Development: 5 min (verify) to 2 hours (full feature)
 
 ---
 
 **Maintainer**: Ventros CRM Team
-**Status**: ✅ Sistema completo de análise + gerenciamento de documentação
+**Status**: ✅ Sistema completo com categorização por escopo

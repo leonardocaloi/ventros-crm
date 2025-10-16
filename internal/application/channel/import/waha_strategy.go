@@ -87,6 +87,8 @@ func (s *WAHAImportStrategy) CanImport(ctx context.Context, ch *channel.Channel,
 		"time_range": true,
 		"full":       true,
 		"recent":     true,
+		"all":        true, // Alias for "full" (import all available history)
+		"maximum":    true, // Alias for "full" (import maximum available)
 	}
 	if !validStrategies[strategy] {
 		return fmt.Errorf("invalid import strategy: %s", strategy)

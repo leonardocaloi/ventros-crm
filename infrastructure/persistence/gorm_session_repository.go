@@ -384,6 +384,53 @@ func (r *GormSessionRepository) DeleteBatch(ctx context.Context, sessionIDs []uu
 	return db.Where("id IN ?", sessionIDs).Delete(&entities.SessionEntity{}).Error
 }
 
+// 🔥 FIX Bug 1: Get unique contact IDs for a channel
+func (r *GormSessionRepository) GetContactIDsByChannel(ctx context.Context, channelID uuid.UUID) ([]uuid.UUID, error) {
+	var contactIDs []uuid.UUID
+	query := `
+		SELECT DISTINCT s.contact_id
+		FROM sessions s
+		INNER JOIN messages m ON m.session_id = s.id
+		WHERE m.channel_id = ?
+		ORDER BY s.contact_id
+	`
+
+	if err := r.db.WithContext(ctx).Raw(query, channelID).Scan(&contactIDs).Error; err != nil {
+		return nil, err
+	}
+
+	return contactIDs, nil
+}
+
+// 🔥 FIX Bug 1: Get ALL sessions for specific contacts in a channel
+func (r *GormSessionRepository) FindByChannelAndContacts(ctx context.Context, channelID uuid.UUID, contactIDs []uuid.UUID) ([]*session.Session, error) {
+	if len(contactIDs) == 0 {
+		return []*session.Session{}, nil
+	}
+
+	// Query ALL sessions for these specific contacts (ordered by contact_id, started_at)
+	query := `
+		SELECT DISTINCT s.*
+		FROM sessions s
+		INNER JOIN messages m ON m.session_id = s.id
+		WHERE m.channel_id = ? AND s.contact_id IN ?
+		ORDER BY s.contact_id, s.started_at
+	`
+
+	var sessionEntities []entities.SessionEntity
+	if err := r.db.WithContext(ctx).Raw(query, channelID, contactIDs).Scan(&sessionEntities).Error; err != nil {
+		return nil, err
+	}
+
+	// Convert to domain
+	sessions := make([]*session.Session, len(sessionEntities))
+	for i, entity := range sessionEntities {
+		sessions[i] = r.entityToDomain(&entity)
+	}
+
+	return sessions, nil
+}
+
 // Mappers: Domain → Entity
 func (r *GormSessionRepository) domainToEntity(s *session.Session) *entities.SessionEntity {
 	entity := &entities.SessionEntity{

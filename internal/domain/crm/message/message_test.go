@@ -490,11 +490,14 @@ func TestReconstructMessage(t *testing.T) {
 		nil, // channelMessageID
 		nil, // replyToID
 		message.StatusRead,
-		nil, // language
-		nil, // agentID
+		nil,                  // language
+		nil,                  // agentID
+		message.SourceManual, // source
 		metadata,
 		&deliveredAt,
 		&readAt,
+		nil,        // playedAt
+		[]string{}, // mentions
 	)
 
 	// Assert

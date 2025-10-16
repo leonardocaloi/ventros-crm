@@ -20,6 +20,13 @@ type ChannelService struct {
 	historyImporter *WAHAHistoryImporter
 }
 
+// UpdateChannelRequest representa os dados para atualizar um canal
+type UpdateChannelRequest struct {
+	ChannelID             string    `json:"channel_id"`
+	UserID                uuid.UUID `json:"user_id"`
+	SessionTimeoutMinutes *int      `json:"session_timeout_minutes,omitempty"`
+}
+
 // NewChannelService cria um novo serviço de canais
 func NewChannelService(
 	repo channel.Repository,
@@ -44,10 +51,14 @@ type CreateChannelRequest struct {
 	Type                  string             `json:"type" binding:"required"`
 	SessionTimeoutMinutes *int               `json:"session_timeout_minutes,omitempty"` // Timeout das sessões em minutos (sobrescreve pipeline se ambos existirem)
 	WAHAConfig            *WAHAConfigRequest `json:"waha_config,omitempty"`
-	AIEnabled             bool               `json:"ai_enabled"`                 // Canal Inteligente
-	AIAgentsEnabled       bool               `json:"ai_agents_enabled"`          // Agentes IA
-	AllowGroups           *bool              `json:"allow_groups,omitempty"`     // Se aceita mensagens de grupos WhatsApp
-	TrackingEnabled       *bool              `json:"tracking_enabled,omitempty"` // Se rastreia origem das mensagens
+
+	// AI Configuration
+	AIEnabled         *bool `json:"ai_enabled,omitempty"`          // Canal Inteligente
+	AIAgentsEnabled   *bool `json:"ai_agents_enabled,omitempty"`   // Agentes IA
+	DebounceTimeoutMs *int  `json:"debounce_timeout_ms,omitempty"` // Debouncer timeout em ms
+
+	AllowGroups     *bool `json:"allow_groups,omitempty"`     // Se aceita mensagens de grupos WhatsApp
+	TrackingEnabled *bool `json:"tracking_enabled,omitempty"` // Se rastreia origem das mensagens
 }
 
 // WAHAConfigRequest represents a WAHA configuration
@@ -153,12 +164,26 @@ func (s *ChannelService) CreateChannel(ctx context.Context, req CreateChannelReq
 	}
 
 	// Configurar AI Features
-	ch.AIEnabled = req.AIEnabled
-	ch.AIAgentsEnabled = req.AIAgentsEnabled
+	if req.AIEnabled != nil {
+		ch.AIEnabled = *req.AIEnabled
+	}
+	if req.AIAgentsEnabled != nil {
+		ch.AIAgentsEnabled = *req.AIAgentsEnabled
+	}
+	if req.DebounceTimeoutMs != nil {
+		if err := ch.SetDebounceTimeout(*req.DebounceTimeoutMs); err != nil {
+			return nil, fmt.Errorf("invalid debounce timeout: %w", err)
+		}
+	}
 
 	// Validar: Agentes IA requer Canal Inteligente
 	if ch.AIAgentsEnabled && !ch.AIEnabled {
-		return nil, fmt.Errorf("AI agents require AI-enabled channel")
+		return nil, fmt.Errorf("AI agents require AI-enabled channel (ai_enabled must be true)")
+	}
+
+	// Validar: Debouncer só ativo com AI Agents
+	if ch.DebounceTimeoutMs > 0 && !ch.AIAgentsEnabled {
+		return nil, fmt.Errorf("debounce_timeout_ms only active when ai_agents_enabled=true")
 	}
 
 	// Configurar suporte a grupos WhatsApp
@@ -259,6 +284,44 @@ func (s *ChannelService) GetChannel(ctx context.Context, channelID uuid.UUID) (*
 	}
 
 	return s.toResponse(ch), nil
+}
+
+// UpdateChannel atualiza um canal existente
+func (s *ChannelService) UpdateChannel(ctx context.Context, req UpdateChannelRequest) error {
+	// Parse channel ID
+	channelID, err := uuid.Parse(req.ChannelID)
+	if err != nil {
+		return fmt.Errorf("invalid channel_id: %w", err)
+	}
+
+	// Get channel
+	ch, err := s.repo.GetByID(channelID)
+	if err != nil {
+		return fmt.Errorf("failed to get channel: %w", err)
+	}
+
+	// Verify ownership
+	if ch.UserID != req.UserID {
+		return fmt.Errorf("unauthorized: channel belongs to different user")
+	}
+
+	// Update session timeout if provided
+	if req.SessionTimeoutMinutes != nil {
+		if err := ch.SetDefaultTimeout(*req.SessionTimeoutMinutes); err != nil {
+			return fmt.Errorf("failed to set session timeout: %w", err)
+		}
+	}
+
+	// Save changes
+	if err := s.repo.Update(ch); err != nil {
+		return fmt.Errorf("failed to update channel: %w", err)
+	}
+
+	s.logger.Info("Channel updated",
+		zap.String("channel_id", channelID.String()),
+		zap.String("user_id", req.UserID.String()))
+
+	return nil
 }
 
 // ActivateChannel ativa um canal

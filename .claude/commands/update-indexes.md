@@ -5,7 +5,7 @@ description: Update all documentation indexes (README.md files)
 
 # Update Indexes Command
 
-Run the `docs_index_manager` agent to automatically update all README.md indexes across the project.
+Run the `mgmt_docs_index_manager` agent to automatically update all README.md indexes across the project.
 
 ## What This Does
 
@@ -71,13 +71,13 @@ Updates these files:
 | CLAUDE.md | Claude Code instructions | 15K | 478 |
 ...
 
-**Last Updated**: 2025-10-15 by docs_index_manager
+**Last Updated**: 2025-10-15 by mgmt_docs_index_manager
 **Next Review**: 2025-11-15 (monthly)
 ```
 
 ## Agent Invoked
 
-Triggers: `/home/caloi/ventros-crm/.claude/agents/docs_index_manager.md`
+Triggers: `/home/caloi/ventros-crm/.claude/agents/mgmt_docs_index_manager.md`
 
 **Runtime**: ~5-8 minutes
 

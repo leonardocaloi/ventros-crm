@@ -7,6 +7,9 @@ import (
 	"github.com/ventros/crm/internal/domain/core/shared"
 )
 
+// DomainEvent is an alias for shared.DomainEvent
+type DomainEvent = shared.DomainEvent
+
 type PipelineCreatedEvent struct {
 	shared.BaseEvent
 	PipelineID uuid.UUID

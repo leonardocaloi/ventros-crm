@@ -456,6 +456,7 @@ func TestReconstructCredential(t *testing.T) {
 
 	cred := ReconstructCredential(
 		id,
+		1, // version
 		tenantID,
 		&projectID,
 		credType,

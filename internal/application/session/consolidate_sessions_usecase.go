@@ -35,9 +35,9 @@ func NewConsolidateSessionsUseCase(
 
 // ConsolidateInput represents the consolidation request
 type ConsolidateInput struct {
-	ChannelID             uuid.UUID     // Channel to consolidate sessions for
-	SessionTimeoutMinutes int           // Timeout duration to determine session boundaries
-	BatchSize             int           // Number of sessions to process per batch (default: 5000)
+	ChannelID             uuid.UUID // Channel to consolidate sessions for
+	SessionTimeoutMinutes int       // Timeout duration to determine session boundaries
+	BatchSize             int       // Number of sessions to process per batch (default: 5000)
 }
 
 // ConsolidateResult represents the consolidation outcome
@@ -87,25 +87,47 @@ func (uc *ConsolidateSessionsUseCase) Execute(ctx context.Context, input Consoli
 	uc.logger.Info("📊 Sessions before consolidation",
 		zap.Int64("count", sessionsBefore))
 
-	// Process in batches to control memory usage
-	offset := 0
+	// 🔥 FIX: Process by CONTACT instead of by arbitrary session batches
+	// Problem: BatchSize of 5000 sessions splits contacts across batches
+	// Solution: Load ALL sessions for a limited number of contacts at a time
 	totalMessagesUpdated := int64(0)
 	orphanedSessionIDs := []uuid.UUID{}
 
-	for {
-		// Load batch of sessions ordered by contact_id, started_at
-		sessions, err := uc.sessionRepo.FindByChannelPaginated(ctx, input.ChannelID, input.BatchSize, offset)
+	// Get unique contact IDs that have sessions in this channel
+	contactIDs, err := uc.sessionRepo.GetContactIDsByChannel(ctx, input.ChannelID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get contact IDs: %w", err)
+	}
+
+	uc.logger.Info("📊 Unique contacts with sessions",
+		zap.Int("contact_count", len(contactIDs)))
+
+	// Process contacts in batches (e.g., 100 contacts at a time)
+	contactBatchSize := 100
+	if input.BatchSize > 0 && input.BatchSize < 1000 {
+		// If user specified small batch, use even smaller contact batches
+		contactBatchSize = 50
+	}
+
+	for i := 0; i < len(contactIDs); i += contactBatchSize {
+		end := i + contactBatchSize
+		if end > len(contactIDs) {
+			end = len(contactIDs)
+		}
+		contactBatch := contactIDs[i:end]
+
+		uc.logger.Debug("Processing contact batch",
+			zap.Int("batch_number", i/contactBatchSize+1),
+			zap.Int("contacts_in_batch", len(contactBatch)))
+
+		// Load ALL sessions for these contacts (ordered by contact_id, started_at)
+		sessions, err := uc.sessionRepo.FindByChannelAndContacts(ctx, input.ChannelID, contactBatch)
 		if err != nil {
-			return nil, fmt.Errorf("failed to load sessions batch (offset=%d): %w", offset, err)
+			return nil, fmt.Errorf("failed to load sessions for contact batch: %w", err)
 		}
 
-		if len(sessions) == 0 {
-			break // No more sessions to process
-		}
-
-		uc.logger.Debug("Processing batch",
-			zap.Int("offset", offset),
-			zap.Int("batch_size", len(sessions)))
+		uc.logger.Debug("Sessions loaded for contact batch",
+			zap.Int("session_count", len(sessions)))
 
 		// Group sessions by contact_id
 		sessionsByContact := make(map[uuid.UUID][]*session.Session)
@@ -164,8 +186,6 @@ func (uc *ConsolidateSessionsUseCase) Execute(ctx context.Context, input Consoli
 				}
 			}
 		}
-
-		offset += input.BatchSize
 	}
 
 	// Delete orphaned sessions

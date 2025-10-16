@@ -2,39 +2,87 @@
 
 ## 📋 CONSOLIDATED TODO - Based on Complete Architectural Report
 
-**Last Update**: 2025-10-13 (After complete 200k+ lines architectural audit)
-**Report Reference**: `AI_REPORT_PART*.md` (6 parts, 30 evaluation tables)
-**Build Status**: ✅ SUCCESS (0 errors, 0 warnings)
-**Test Status**: ✅ 100% tests passing
+**Last Update**: 2025-10-16 (Complete analysis with 18 agents)
+**Report Reference**: `code-analysis/comprehensive/MASTER_ANALYSIS.md` (18 specialized agents + master report)
+**Build Status**: ❌ FAILED (6 packages failing)
+**Test Status**: ❌ 16.9% coverage (build failures prevent full measurement)
 
 ---
 
 ## 🎯 EXECUTIVE SUMMARY
 
-**Overall Scores**:
-- Backend Go: **8.0/10** (B+) - Production-Ready
-- Database: **9.2/10** (A) - Excellent
-- API Security: **6.0/10** (C+) - **5 P0 Critical Vulnerabilities**
-- AI/ML: **2.5/10** (F) - Only enrichment working, 80% missing
-- Overall System: **5.3/10** (C) - Backend solid, AI critical gaps
+**Overall Scores** (Updated 2025-10-16):
+- **Overall Architecture**: **7.4/10** (B) - Production-Ready with security fixes needed
+- **Domain Model**: **7.2/10** (B) - 29 aggregates, 188 events, good DDD
+- **Persistence**: **7.5/10** (B+) - Excellent with RLS gap
+- **API Design**: **7.5/10** (B+) - 178 endpoints, 97.8% Swagger coverage
+- **Infrastructure**: **8.5/10** (A) - Production-grade K8s, CI/CD
+- **Testing**: **3.5/10** (F) - **6 build failures, 16.9% coverage**
+- **Security**: **3.2/10** (F) - **5 P0 Critical Vulnerabilities**
+- **AI/ML**: **6.5/10** (C+) - Enrichment 100%, Vector DB 0%
+- **Events**: **9.5/10** (A+) - Production-ready Outbox Pattern
+- **Code Quality**: **8.2/10** (A-) - Excellent style, good SOLID
 
 **Critical Findings**:
-1. ✅ **Chat aggregate 100% implemented** (contradicts previous docs)
-2. ✅ **30 aggregates identified** (not 23 as documented)
-3. ✅ **158 endpoints catalogued** (not "50+")
-4. ✅ **182 domain events** (100% consistent pattern)
-5. ❌ **5 security vulnerabilities P0** (SSRF CVSS 9.1, Dev Bypass CVSS 9.1, BOLA CVSS 8.2)
-6. ❌ **Memory Service 80% missing** (vector DB, hybrid search, facts)
-7. ❌ **0% cache integration** (Redis configured but not used)
-8. ❌ **Python ADK 0%** (multi-agent not started)
+1. ❌ **6 build failures** - infrastructure/storage, tests/e2e, domain packages (BLOCKER)
+2. ❌ **5 P0 security vulnerabilities** (Dev Bypass CVSS 9.1, SSRF CVSS 9.1, BOLA CVSS 8.2, Resource Exhaustion CVSS 7.5, Missing RBAC CVSS 7.1)
+3. ❌ **Test coverage 16.9%** (not 82% as documented, build failures prevent measurement)
+4. ❌ **2 RLS policies vs 27 needed** (only 7% coverage) - CRITICAL security gap
+5. ✅ **29 aggregates total** (corrected from 20/30 in docs)
+6. ✅ **178 HTTP endpoints** (grew from documented 158)
+7. ✅ **188 domain events** (updated from 182-183)
+8. ✅ **Events system production-ready** (9.5/10) - Outbox Pattern <100ms latency
+9. ⚠️ **Optimistic locking 45%** (13/29 not 53% as docs claimed)
+10. ⚠️ **Memory Service 80% missing** (vector DB, hybrid search, facts)
+11. ⚠️ **0% cache integration** (Redis configured but not used)
+12. ⚠️ **Python ADK 0%** (multi-agent not started)
 
 ---
 
 ## 🔴 PRIORITY 0: CRITICAL & URGENT (0-4 weeks)
 
+### **SPRINT 0: Build Failures** (4 hours) - IMMEDIATE BLOCKER
+
+**Reference**: `code-analysis/quality/testing_analysis.md`
+
+**Status**: ❌ **6 packages failing to build** - prevents test coverage measurement and QA
+
+#### 0.1. 🚨 **Fix Build Failures** (4 hours) - P0 BLOCKER
+
+**Failing Packages**:
+1. `infrastructure/storage` - Missing GCS dependencies
+   ```bash
+   # Fix: Install dependencies
+   go get cloud.google.com/go/storage google.golang.org/api/option
+   ```
+2. `tests/e2e` - Package conflict (e2e vs main)
+   ```bash
+   # Fix: Separate files into different packages or rename
+   ```
+3. `internal/workflows/channel` - Linter error (fmt.Errorf non-constant)
+   ```bash
+   # Fix: Use constant error messages
+   ```
+4. `internal/domain/crm/message` - Build failed (import cycle or missing deps)
+5. `internal/domain/crm/pipeline` - Build failed
+6. `internal/domain/crm/session` - Build failed
+
+**Tasks**:
+- [ ] Install GCS dependencies (5 min)
+- [ ] Fix e2e package conflict (30 min)
+- [ ] Fix channel workflow linter error (10 min)
+- [ ] Investigate and fix message/pipeline/session build errors (2h)
+- [ ] Verify all tests pass: `go test ./...` (30 min)
+
+**Effort**: 4 hours
+
+**Impact**: After fixing, can measure actual test coverage (currently unknown due to failures)
+
+---
+
 ### **SPRINT 1-2: Security Fixes** (3-4 weeks) - BLOCKER FOR PRODUCTION
 
-**Reference**: `AI_REPORT_PART4.md` - Table 18 (OWASP Top 10)
+**Reference**: `code-analysis/quality/security_analysis.md` + `code-analysis/comprehensive/MASTER_ANALYSIS.md`
 
 #### 1.1. 🚨 **Dev Mode Bypass** (1 day) - CVSS 9.1 CRITICAL
 **Location**: `infrastructure/http/middleware/auth.go:41`
@@ -690,33 +738,37 @@ contacts := db.Joins("JOIN contact_list_memberships ON ...").
 ---
 
 #### 9. **Optimistic Locking** (1 week)
-**Reference**: `AI_REPORT_PART1.md` - Table 5
+**Reference**: `code-analysis/domain-analysis/domain_model_analysis.md`
 
-**Current**: Only 16/30 aggregates (53%)
+**Current**: Only 13/29 aggregates (45%)
+**Note**: Previous docs claimed 53% (16/30) but was inaccurate due to false positives in text search
 
-**Missing (14 aggregates)**:
-- [ ] MessageGroup
-- [ ] Note
-- [ ] Tracking
-- [ ] UsageMeter (billing critical!)
-- [ ] WebhookSubscription
-- [ ] SagaTracker
-- [ ] MessageEnrichment
-- [ ] ChannelType
-- [ ] DomainEventLog
-- [ ] OutboxEvent
-- [ ] ContactEvent
-- [ ] CustomField
-- [ ] (2 more)
+**Missing (16 aggregates)**:
+- [ ] Message (P0 - high concurrency!)
+- [ ] Channel (P0 - high concurrency!)
+- [ ] Note (P1)
+- [ ] MessageGroup (P1)
+- [ ] MessageEnrichment (P1)
+- [ ] UsageMeter (P0 - billing critical!)
+- [ ] WebhookSubscription (P1)
+- [ ] Saga (P1)
+- [ ] Tracking (P1)
+- [ ] Chat (P1)
+- [ ] Broadcast (P1)
+- [ ] ChannelType (P2)
+- [ ] ContactEvent (P2)
+- [ ] Event (P2)
+- [ ] Outbox (P2 - handled by Temporal)
+- [ ] User (P2)
 
 **Tasks**:
-- [ ] Add `version int` field to 14 aggregates
+- [ ] Add `version int` field to 16 aggregates (priority order above)
 - [ ] Migration for each
-- [ ] Update repository Update() methods
-- [ ] Retry logic on optimistic lock failure
-- [ ] Tests
+- [ ] Update repository Update() methods to check version
+- [ ] Retry logic on optimistic lock failure (exponential backoff)
+- [ ] Tests with concurrent updates
 
-**Effort**: 1 semana
+**Effort**: 1 semana (P0: 3 aggregates = 2 days, P1: 8 aggregates = 3 days)
 
 ---
 
@@ -933,18 +985,41 @@ contacts := db.Joins("JOIN contact_list_memberships ON ...").
 
 ## 📚 REFERENCES
 
-### **Architecture Report**
-- `AI_REPORT_PART1.md` - Backend Go, Domain, Persistence (Tables 1-5)
-- `AI_REPORT_PART2.md` - Value Objects, Normalization, Migrations (Tables 6-10)
-- `AI_REPORT_PART3.md` - Events, Workflows, Consistency (Tables 11-15)
-- `AI_REPORT_PART4.md` - API, Security OWASP, DTOs (Tables 16-20)
-- `AI_REPORT_PART5.md` - AI/ML, Testing, Python ADK, gRPC (Tables 21-25)
-- `AI_REPORT_PART6.md` - MCP Server, Roadmap, Scores (Tables 26-30)
+### **Architecture Analysis (2025-10-16)**
+**Master Report**: `code-analysis/comprehensive/MASTER_ANALYSIS.md` - Overall score: 7.4/10
 
-### **Technical Docs**
+**Individual Reports** (18 agents):
+
+#### Phase 0: Baseline
+- `code-analysis/architecture/deterministic_metrics.md` - 100% factual metrics
+
+#### Phase 1: Core Analysis (9 agents)
+- `code-analysis/domain-analysis/domain_model_analysis.md` - 29 aggregates (7.2/10)
+- `code-analysis/quality/testing_analysis.md` - 6 build failures, 16.9% coverage (3.5/10)
+- `code-analysis/ai-ml/ai_ml_analysis.md` - 12 AI providers (6.5/10)
+- `code-analysis/quality/security_analysis.md` - 5 P0 vulnerabilities (3.2/10)
+- `code-analysis/infrastructure/integration_analysis.md` - 11 integrations (5.2/10)
+- `code-analysis/infrastructure/infrastructure_analysis.md` - Production-ready (8.5/10)
+- `code-analysis/quality/resilience_analysis.md` - Good patterns (7.2/10)
+- `code-analysis/infrastructure/api_analysis.md` - 178 endpoints (7.5/10)
+- `code-analysis/infrastructure/persistence_analysis.md` - 2 RLS policies vs 27 needed (7.5/10)
+
+#### Phase 2: Specialized Analysis (8 agents)
+- `code-analysis/quality/data_quality_analysis.md` - N+1 queries, no max page size (5.3/10)
+- `code-analysis/quality/code_style_analysis.md` - Excellent Go style (8.5/10)
+- `code-analysis/quality/documentation_analysis.md` - 97.8% Swagger (8.2/10)
+- `code-analysis/quality/solid_principles_analysis.md` - Good SOLID, perfect DIP (7.8/10)
+- `code-analysis/domain-analysis/value_objects_analysis.md` - 8 VOs, 25+ primitive obsession (6.5/10)
+- `code-analysis/domain-analysis/entity_relationships_analysis.md` - 71 FKs, 443 indexes (8.5/10)
+- `code-analysis/domain-analysis/use_cases_analysis.md` - 18 commands, 20 queries (7.5/10)
+- `code-analysis/domain-analysis/events_analysis.md` - 188 events, production Outbox (9.5/10)
+- `code-analysis/infrastructure/workflows_analysis.md` - 6 workflows, 26 activities (7.5/10)
+
+### **Technical Docs (Legacy)**
 - `TODO_PYTHON.md` - Python ADK detailed roadmap
 - `docs/MCP_SERVER_COMPLETE.md` - MCP Server architecture (1,175 lines)
 - `docs/PYTHON_ADK_ARCHITECTURE.md` - Multi-agent system (3 parts, 3,000+ lines)
+- `docs/archive/AI_REPORT_PART*.md` - Archived reports from 2025-10-13
 
 ### **External References**
 - OWASP API Security: https://owasp.org/API-Security/
@@ -974,9 +1049,17 @@ Based on detailed analysis in architectural report:
 - **QA Engineer**: 1 FTE (testing, E2E, integration)
 - **Total**: 5.5 FTEs
 
+### **Analysis Methodology**
+- **18 specialized AI agents** + 1 deterministic baseline
+- **100% code coverage** analyzed (109K LOC production + 41K LOC tests)
+- **Deterministic validation** for all metrics (grep/find/wc)
+- **Duration**: ~2 hours of analysis
+- **Confidence**: High (comprehensive with factual validation)
+
 ---
 
-**Last Update**: 2025-10-13 (Post-architectural audit)
-**Next Review**: After Sprint 4 (M1: Production-safe API)
+**Last Update**: 2025-10-16 (Complete analysis with 18 specialized agents)
+**Previous Update**: 2025-10-13 (Archived in code-analysis/archive/)
+**Next Review**: After Sprint 0 (Build failures fixed) + Sprint 1-2 (Security P0 fixed)
 **Maintainer**: Ventros CRM Team
-**Status**: ✅ Consolidated TODO based on complete codebase analysis
+**Status**: ✅ Fully updated with comprehensive 18-agent analysis

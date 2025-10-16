@@ -405,15 +405,27 @@ func TestReconstructAgent(t *testing.T) {
 	}
 
 	t.Run("reconstruct agent", func(t *testing.T) {
+		projectID := uuid.New()
+		userID := uuid.New()
 		agent := ReconstructAgent(
 			id,
+			1, // version
+			projectID,
+			&userID,
 			"tenant-123",
 			"Reconstructed Agent",
 			"agent@example.com",
+			AgentTypeHuman,
+			AgentStatusAvailable,
 			RoleHumanAgent,
 			true,
+			map[string]interface{}{}, // config
 			permissions,
 			settings,
+			0,   // sessionsHandled
+			0,   // averageResponseMs
+			nil, // lastActivityAt
+			nil, // virtualMetadata
 			createdAt,
 			updatedAt,
 			&lastLogin,

@@ -187,21 +187,69 @@ See [guides/TESTING.md](guides/TESTING.md) for complete strategy & guidelines.
 
 ## 📚 Documentation
 
+### 📖 Start Here
+
+**New to the project?** Read these in order:
+1. **[README.md](README.md)** - Project overview (you are here)
+2. **[DEV_GUIDE.md](DEV_GUIDE.md)** - Complete developer guide
+3. **[MAKEFILE.md](MAKEFILE.md)** - Make commands reference
+4. **[docs/AI_AGENTS_COMPLETE_GUIDE.md](docs/AI_AGENTS_COMPLETE_GUIDE.md)** - AI development system 🆕
+
+### 🤖 AI-Powered Development (v2.0) 🆕
+
+Ventros CRM has an intelligent AI system with **32 specialized agents**:
+
+```bash
+# Implement complete features with DDD + Clean Architecture
+/add-feature Add Custom Fields aggregate
+
+# Run analysis before implementing (cache results)
+/pre-analyze --quick
+
+# Real-time test execution
+/test-feature Contact --coverage
+
+# Automated code review
+/review Contact --strict
+```
+
+**See**: [docs/AI_AGENTS_COMPLETE_GUIDE.md](docs/AI_AGENTS_COMPLETE_GUIDE.md) for complete guide
+
+### 📄 Main Documentation
+
 | Document | Description |
 |----------|-------------|
-| [DEV_GUIDE.md](DEV_GUIDE.md) | **⭐ Complete developer guide** (START HERE!) |
-| [PROMPT_TEMPLATE.md](PROMPT_TEMPLATE.md) | **⭐ Template for requesting features** (USE THIS!) |
-| [.deploy/CI-CD-BUILD-PLAN.md](.deploy/CI-CD-BUILD-PLAN.md) | **⭐ CI/CD build & deployment strategy** (GitHub Actions + AWX) |
-| [AI_REPORT.md](AI_REPORT.md) | Complete architectural audit (8.2/10) |
-| [P0.md](P0.md) | Handler refactoring project (100% complete) |
+| [CLAUDE.md](CLAUDE.md) | Instructions for Claude Code (AI) |
+| [DEV_GUIDE.md](DEV_GUIDE.md) | **⭐ Complete developer guide** |
+| [MAKEFILE.md](MAKEFILE.md) | Make commands reference |
+| [docs/AI_AGENTS_COMPLETE_GUIDE.md](docs/AI_AGENTS_COMPLETE_GUIDE.md) | **🆕 AI system guide** |
+| [docs/CHANGELOG.md](docs/CHANGELOG.md) | **🆕 Version history** |
+
+### 📊 Architecture & Quality
+
+| Document | Description |
+|----------|-------------|
+| [AI_REPORT.md](AI_REPORT.md) | Architectural audit (8.0/10) |
+| [P0.md](P0.md) | Handler refactoring (100% complete) |
 | [TODO.md](TODO.md) | Roadmap and priorities |
-| [MAKEFILE.md](MAKEFILE.md) | Development commands reference |
+
+### 📘 Guides
+
+| Document | Description |
+|----------|-------------|
+| [guides/TESTING.md](guides/TESTING.md) | Testing strategy & guidelines |
 | [guides/MAKEFILE.md](guides/MAKEFILE.md) | Complete Makefile guide |
 | [guides/ACTORS.md](guides/ACTORS.md) | System actors & capabilities |
-| [guides/TESTING.md](guides/TESTING.md) | Testing strategy & guidelines |
-| [guides/domain_mapping/](guides/domain_mapping/) | 23 Domain aggregates (DDD) |
+| [guides/domain_mapping/](guides/domain_mapping/) | 30 Domain aggregates (DDD) |
+| [.deploy/CI-CD-BUILD-PLAN.md](.deploy/CI-CD-BUILD-PLAN.md) | CI/CD strategy (GitHub Actions + AWX) |
 
-**API Docs**: [http://localhost:8080/swagger/index.html](http://localhost:8080/swagger/index.html)
+### 📁 Archive
+
+Historical implementation summaries: [docs/archive/](docs/archive/)
+
+### 🌐 API Documentation
+
+**Swagger UI**: [http://localhost:8080/swagger/index.html](http://localhost:8080/swagger/index.html)
 
 ---
 

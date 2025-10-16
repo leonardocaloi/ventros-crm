@@ -105,7 +105,7 @@ func (a WhatsAppAck) ToMessageStatus() (message.Status, error) {
 	case AckRead:
 		return message.StatusRead, nil
 	case AckPlayed:
-		return message.StatusPlayed, nil // Voz/áudio reproduzido (SOMENTE voice)
+		return message.StatusRead, nil // Voz/áudio reproduzido é mapeado para "read"
 	default:
 		return "", ErrInvalidAck
 	}

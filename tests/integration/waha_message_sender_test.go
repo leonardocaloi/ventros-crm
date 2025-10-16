@@ -17,7 +17,7 @@ import (
 func TestWAHAMessageSenderAdapter_GetSupportedTypes(t *testing.T) {
 	logger, _ := zap.NewDevelopment()
 	client := &waha.WAHAClient{} // Mock client
-	adapter := persistence.NewWAHAMessageSenderAdapter(client, logger)
+	adapter := persistence.NewWAHAMessageSenderAdapter(client, nil, nil, logger)
 
 	supportedTypes := adapter.GetSupportedTypes()
 
@@ -35,7 +35,7 @@ func TestWAHAMessageSenderAdapter_GetSupportedTypes(t *testing.T) {
 func TestWAHAMessageSenderAdapter_ValidateMessage(t *testing.T) {
 	logger, _ := zap.NewDevelopment()
 	client := &waha.WAHAClient{}
-	adapter := persistence.NewWAHAMessageSenderAdapter(client, logger)
+	adapter := persistence.NewWAHAMessageSenderAdapter(client, nil, nil, logger)
 
 	tests := []struct {
 		name    string
@@ -123,7 +123,7 @@ func TestWAHAMessageSenderAdapter_ValidateMessage(t *testing.T) {
 func TestWAHAMessageSenderAdapter_SendMessage_NotImplemented(t *testing.T) {
 	logger, _ := zap.NewDevelopment()
 	client := &waha.WAHAClient{}
-	adapter := persistence.NewWAHAMessageSenderAdapter(client, logger)
+	adapter := persistence.NewWAHAMessageSenderAdapter(client, nil, nil, logger)
 
 	ctx := context.Background()
 	msg := &message.OutboundMessage{
@@ -146,7 +146,7 @@ func TestWAHAMessageSenderAdapter_SendMessage_NotImplemented(t *testing.T) {
 func TestWAHAMessageSenderAdapter_SendBulkMessages(t *testing.T) {
 	logger, _ := zap.NewDevelopment()
 	client := &waha.WAHAClient{}
-	adapter := persistence.NewWAHAMessageSenderAdapter(client, logger)
+	adapter := persistence.NewWAHAMessageSenderAdapter(client, nil, nil, logger)
 
 	ctx := context.Background()
 	messages := []*message.OutboundMessage{
@@ -182,7 +182,7 @@ func TestWAHAMessageSenderAdapter_Integration_AllTypes(t *testing.T) {
 
 	logger, _ := zap.NewDevelopment()
 	client := &waha.WAHAClient{}
-	adapter := persistence.NewWAHAMessageSenderAdapter(client, logger)
+	adapter := persistence.NewWAHAMessageSenderAdapter(client, nil, nil, logger)
 
 	messageTypes := []struct {
 		name string
@@ -225,7 +225,7 @@ func TestWAHAMessageSenderAdapter_Integration_AllTypes(t *testing.T) {
 func TestWAHAMessageSenderAdapter_Validation_EdgeCases(t *testing.T) {
 	logger, _ := zap.NewDevelopment()
 	client := &waha.WAHAClient{}
-	adapter := persistence.NewWAHAMessageSenderAdapter(client, logger)
+	adapter := persistence.NewWAHAMessageSenderAdapter(client, nil, nil, logger)
 
 	t.Run("nil message", func(t *testing.T) {
 		// This would panic in current implementation, but testing the concept
@@ -279,7 +279,7 @@ func TestWAHAMessageSenderAdapter_Concurrency(t *testing.T) {
 
 	logger, _ := zap.NewDevelopment()
 	client := &waha.WAHAClient{}
-	adapter := persistence.NewWAHAMessageSenderAdapter(client, logger)
+	adapter := persistence.NewWAHAMessageSenderAdapter(client, nil, nil, logger)
 
 	ctx := context.Background()
 	numMessages := 10
@@ -310,7 +310,7 @@ func TestWAHAMessageSenderAdapter_ContextCancellation(t *testing.T) {
 
 	logger, _ := zap.NewDevelopment()
 	client := &waha.WAHAClient{}
-	adapter := persistence.NewWAHAMessageSenderAdapter(client, logger)
+	adapter := persistence.NewWAHAMessageSenderAdapter(client, nil, nil, logger)
 
 	// Create a context that's already cancelled
 	ctx, cancel := context.WithCancel(context.Background())

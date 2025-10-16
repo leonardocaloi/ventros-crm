@@ -12,9 +12,9 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	_ "github.com/lib/pq"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
-	_ "github.com/lib/pq"
 )
 
 // ScheduledAutomationTestSuite testa o fluxo completo de scheduled automations
@@ -221,9 +221,9 @@ func (s *ScheduledAutomationTestSuite) createContact() {
 		INSERT INTO contacts (id, tenant_id, channel_id, pipeline_id, name, phone, whatsapp_id, created_at, updated_at)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
 	`, contactID, s.projectID, s.channelID, s.pipelineID,
-	   fmt.Sprintf("Test Contact %d", timestamp),
-	   fmt.Sprintf("55449704447%d", timestamp%1000),
-	   fmt.Sprintf("55449704447%d@c.us", timestamp%1000))
+		fmt.Sprintf("Test Contact %d", timestamp),
+		fmt.Sprintf("55449704447%d", timestamp%1000),
+		fmt.Sprintf("55449704447%d@c.us", timestamp%1000))
 
 	assert.NoError(s.T(), err, "Failed to create contact")
 	s.contactID = contactID
@@ -390,14 +390,14 @@ func (s *ScheduledAutomationTestSuite) createScheduledAutomation(name string, sc
 			schedule, next_execution, created_at, updated_at
 		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, NOW(), NOW())
 	`, ruleID, s.projectID, s.pipelineID,
-	   fmt.Sprintf("Test %s Automation", name),
-	   "E2E test automation rule",
-	   "scheduled", // automation_type
-	   "scheduled", // trigger
-	   conditionsJSON, actionsJSON,
-	   1,    // priority
-	   true, // enabled
-	   scheduleJSON, nextExecution)
+		fmt.Sprintf("Test %s Automation", name),
+		"E2E test automation rule",
+		"scheduled", // automation_type
+		"scheduled", // trigger
+		conditionsJSON, actionsJSON,
+		1,    // priority
+		true, // enabled
+		scheduleJSON, nextExecution)
 
 	assert.NoError(s.T(), err, "Failed to create automation rule")
 

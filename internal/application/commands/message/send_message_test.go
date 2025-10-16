@@ -108,6 +108,7 @@ func TestSendMessageCommand_Validate(t *testing.T) {
 				TenantID:    "tenant-1",
 				ProjectID:   uuid.New(),
 				CustomerID:  uuid.New(),
+				AgentID:     uuid.New(),
 			},
 			wantErr: false,
 		},
@@ -215,6 +216,7 @@ func TestSendMessageHandler_Handle_ContactNotFound(t *testing.T) {
 		TenantID:    "tenant-1",
 		ProjectID:   uuid.New(),
 		CustomerID:  uuid.New(),
+		AgentID:     uuid.New(),
 	}
 
 	contactRepo.On("FindByID", ctx, contactID).Return(nil, assert.AnError)
@@ -253,6 +255,7 @@ func TestSendMessageHandler_Handle_Success(t *testing.T) {
 		TenantID:    "tenant-1",
 		ProjectID:   projectID,
 		CustomerID:  customerID,
+		AgentID:     uuid.New(),
 	}
 
 	// Mock contact
@@ -362,6 +365,7 @@ func TestSendMessageHandler_Handle_NoActiveSession_CreatesNewSession(t *testing.
 		TenantID:    "tenant-1",
 		ProjectID:   projectID,
 		CustomerID:  customerID,
+		AgentID:     uuid.New(),
 	}
 
 	// Mock contact
@@ -424,6 +428,7 @@ func TestSendMessageHandler_Handle_MediaMessage_Image(t *testing.T) {
 		TenantID:    "tenant-1",
 		ProjectID:   projectID,
 		CustomerID:  customerID,
+		AgentID:     uuid.New(),
 	}
 
 	// Mock contact
@@ -482,6 +487,7 @@ func TestSendMessageHandler_Handle_SendMessageFails(t *testing.T) {
 		TenantID:    "tenant-1",
 		ProjectID:   projectID,
 		CustomerID:  customerID,
+		AgentID:     uuid.New(),
 	}
 
 	// Mock contact
@@ -581,6 +587,7 @@ func TestSendMessageHandler_Handle_AllContentTypes(t *testing.T) {
 				TenantID:    "tenant-1",
 				ProjectID:   projectID,
 				CustomerID:  customerID,
+				AgentID:     uuid.New(),
 			}
 
 			// Mock contact
@@ -633,6 +640,7 @@ func TestSendMessageHandler_ConvertToOutboundMessage_DefaultPriority(t *testing.
 		TenantID:    "tenant-1",
 		ProjectID:   projectID,
 		CustomerID:  customerID,
+		AgentID:     uuid.New(),
 		Priority:    "", // Empty priority should default to Normal
 	}
 
@@ -664,6 +672,7 @@ func TestSendMessageHandler_Handle_MessageSaveError_FirstTransaction(t *testing.
 		TenantID:    "tenant-1",
 		ProjectID:   uuid.New(),
 		CustomerID:  uuid.New(),
+		AgentID:     uuid.New(),
 	}
 
 	// Mock contact
@@ -707,6 +716,7 @@ func TestSendMessageHandler_Handle_SessionSaveError(t *testing.T) {
 		TenantID:    "tenant-1",
 		ProjectID:   uuid.New(),
 		CustomerID:  uuid.New(),
+		AgentID:     uuid.New(),
 	}
 
 	// Mock contact

@@ -101,6 +101,309 @@ make run-binary
 
 ---
 
+## AI-Powered Development System 🆕
+
+**Ventros CRM has an intelligent AI development system** that automates feature implementation, testing, and code review.
+
+**📖 COMPLETE GUIDE**: See `docs/AI_AGENTS_COMPLETE_GUIDE.md` for:
+- System architecture with visible agent coordination chain
+- Analysis-first workflow (2 modes: quick & deep)
+- All 32 agents explained with examples
+- State management (P0 file + Agent State + Analysis cache)
+- Complete end-to-end examples
+
+### Slash Commands (AI-Powered)
+
+#### `/add-feature` - Intelligent Feature Implementation
+Implements complete features with DDD + Clean Architecture + Testing.
+
+```bash
+# Simple usage
+/add-feature Allow users to create custom fields on contacts
+
+# With parameters (fine-grained control)
+/add-feature Add Custom Fields aggregate --mode=full --analyze-first --run-tests-realtime
+
+# Quick enhancement
+/add-feature Add duplicate check to Contact --mode=enhancement --skip-pr
+```
+
+**Parameters**:
+- `--mode=full|enhancement|verification` - Complexity mode
+- `--analyze-first` - Run complete analysis before implementing
+- `--run-tests-realtime` - Execute `go test` after each layer
+- `--update-p0` - Track progress in P0 file (default: true)
+- `--skip-pr` - Don't create PR, just commit
+- `--parallel` - Run analyzers in parallel
+- See `.claude/commands/add-feature.md` for all 30+ parameters
+
+**What it does**:
+1. Parses parameters and detects complexity mode
+2. Updates P0 file with progress tracking
+3. Validates architecture (DDD, Clean Architecture, SOLID)
+4. Implements 3 layers: Domain → Application → Infrastructure
+5. Runs real `go test` commands with streaming output
+6. Reviews code (100-point scoring system)
+7. Creates PR with detailed checklist
+
+**Output**: Complete feature with code + tests + PR (ready for human review)
+
+---
+
+#### `/analyze` - Codebase Analysis
+Runs comprehensive analysis without modifying code.
+
+```bash
+# Full analysis
+/analyze --parallel
+
+# Security audit only
+/analyze --security-only --strict
+
+# Pre-implementation analysis
+/analyze --before-implement --update-p0
+```
+
+**Analyzers**: Domain, Persistence, API, Testing, Security, Code Quality
+**Output**: `/tmp/analysis_report.md` with findings and recommendations
+
+---
+
+#### `/test-feature` - Real-Time Test Execution
+Actually RUNS `go test` commands (not pseudocode).
+
+```bash
+# Test specific aggregate
+/test-feature Contact --coverage --realtime
+
+# Test domain layer only
+/test-feature --layer=domain --verbose
+
+# CI integration
+/test-feature --all --coverage-target=82 --fail-fast
+```
+
+**Execution**: Real `go test` with streaming output
+**Output**: Test results + coverage reports + P0 updates
+
+---
+
+####`/review` - Automated Code Review
+100-point scoring system for architecture, security, and quality.
+
+```bash
+# Review aggregate
+/review Contact --strict
+
+# Review changes only
+/review --changed-only --fail-below=80
+
+# Security-focused review
+/review Campaign --security-focus --update-p0
+```
+
+**Scoring**: Domain (25) + Application (20) + Infrastructure (15) + SOLID (15) + Security (15) + Testing (10) = 100 points
+**Pass threshold**: 80% (configurable)
+**Output**: `/tmp/code_review.md` with score and actionable recommendations
+
+---
+
+### AI Agent System
+
+**32 Specialized Agents** across 4 categories:
+
+#### CRM-Specific (15 agents)
+- `crm_domain_model_analyzer` - Analyzes 30 aggregates
+- `crm_persistence_analyzer` - Database schema analysis
+- `crm_api_analyzer` - HTTP endpoints analysis
+- `crm_testing_analyzer` - Test coverage analysis
+- `crm_security_analyzer` - OWASP vulnerability detection
+- ... and 10 more
+
+#### Global (4 agents)
+- `global_deterministic_analyzer` - Deterministic behavior analysis
+- `global_code_style_analyzer` - Go code style validation
+- ... and 2 more
+
+#### Meta (7 agents)
+- `meta_dev_orchestrator` - Main feature development orchestrator 🆕
+- `meta_feature_architect` - Architecture validation 🆕
+- `meta_code_reviewer` - Automated code review 🆕
+- `meta_orchestrator` - Analysis coordination
+- ... and 3 more
+
+#### Management (6 agents)
+- `mgmt_todo_manager` - Updates TODO.md
+- `mgmt_readme_updater` - Updates README.md
+- `mgmt_dev_guide_updater` - Updates DEV_GUIDE.md
+- ... and 3 more
+
+**Agent Communication**: All agents share state via `.claude/AGENT_STATE.json`
+
+---
+
+### P0 File - Active Work Tracker
+
+`.claude/P0_ACTIVE_WORK.md` tracks all active development work per branch.
+
+**Purpose**: Real-time visibility into what's being implemented
+**Rule**: Should always be mostly empty (only active work)
+
+**Example**:
+```markdown
+### Branch: `feature/custom-fields`
+**Status**: 🟡 In Progress
+
+#### Current Request:
+Add Custom Field aggregate
+
+#### What's Being Done:
+- [x] Domain layer (100% coverage)
+- [x] Application layer (85% coverage)
+- [ ] Infrastructure layer (60% done)
+- [ ] Tests (integration pending)
+
+#### Test Results:
+✅ Domain: 15/15 tests passed (100%)
+✅ Application: 10/10 tests passed (85.4%)
+⏳ Infrastructure: Not yet run
+
+#### Next Steps:
+1. Complete infrastructure layer
+2. Write integration tests
+3. Run code review
+```
+
+**Updates**: Automatically updated by all agents during execution
+**Cleanup**: Branches removed after completion or merge
+
+---
+
+### Agent State Sharing
+
+`.claude/AGENT_STATE.json` enables agents to share context and findings.
+
+**What's shared**:
+- Active branches and their status
+- Test results (latest run)
+- Build status
+- Code quality metrics
+- Analysis findings
+- Current development phase
+
+**Why important**: Ensures all agents have full context when making decisions
+
+---
+
+### Development Workflow (AI-Powered)
+
+```bash
+# Step 1: Analyze codebase (optional but recommended)
+/analyze --parallel --update-p0
+
+# Step 2: Implement feature
+/add-feature Add Notification System with WebSocket --mode=full --run-tests-realtime
+
+# AI will:
+# 1. Update P0 file: "In Progress - Notification System"
+# 2. Validate architecture (meta_feature_architect)
+# 3. Ask for confirmation (shows detailed plan)
+# 4. Create branch: feature/notification-system
+# 5. Analyze existing code (4 analyzers in parallel)
+# 6. Implement domain layer
+# 7. Run: go test ./internal/domain/.../notification/...
+# 8. Show results in real-time
+# 9. Implement application layer
+# 10. Run: go test ./internal/application/.../notification/...
+# 11. Implement infrastructure layer
+# 12. Run: go test ./infrastructure/...
+# 13. Code review (meta_code_reviewer) → Score: 85/100 ✅
+# 14. Update P0 file with results
+# 15. Commit + Push
+# 16. Create PR
+# 17. Clean up P0 file
+
+# Step 3: Review PR manually (human review)
+# Check PR at: https://github.com/ventros/crm/pull/456
+```
+
+**Tokens used**: 50k-100k (full feature), 10k-30k (enhancement), 5k-10k (verification)
+**Duration**: 1-2 hours (full), 15-30 min (enhancement), 5-10 min (verification)
+**Quality guarantee**: 57-item architectural checklist + 100-point code review
+
+---
+
+### Intelligence Modes (Auto-Detected)
+
+1. **Full Feature Mode** (50k-100k tokens)
+   - New aggregate or bounded context
+   - Complex workflows
+   - Calls 8-10 agents
+   - Output: Complete feature + tests + docs + PR
+
+2. **Enhancement Mode** (10k-30k tokens)
+   - Add method to existing aggregate
+   - Small feature additions
+   - Calls 3-5 agents
+   - Output: Code + tests + commit
+
+3. **Verification Mode** (5k-10k tokens)
+   - Review existing code
+   - Add tests only
+   - Calls 1-3 agents
+   - Output: Report or tests (no feature code)
+
+**Mode detection**: Automatic based on keywords, or use `--mode=` parameter
+
+---
+
+### 57-Item Architectural Checklist
+
+Every feature is validated against this checklist:
+
+- **Domain Layer** (10 items): Aggregate, version field, events, repository interface, value objects, factory methods, invariants, no external deps
+- **Application Layer** (9 items): Commands, handlers, DTOs, event publishing, validation, no business logic
+- **Infrastructure Layer** (10 items): GORM entity, repository, HTTP handler, Swagger, migrations, RLS, indexes, soft delete
+- **Testing** (10 items): Domain (100%), application (80%+), integration, E2E, coverage ≥ 82%
+- **Security** (8 items): RBAC, BOLA, input validation, rate limiting, tenant isolation, data masking, HTTPS, audit logging
+- **SOLID Principles** (5 items): SRP, OCP, LSP, ISP, DIP
+- **Documentation** (5 items): Swagger, Godoc, README, migrations, ADR
+
+**Pass threshold**: 80% (45/57 items)
+
+---
+
+### How to Use the AI System
+
+#### For New Features
+```bash
+/add-feature <description> --mode=full --analyze-first --run-tests-realtime
+```
+
+#### For Enhancements
+```bash
+/add-feature <description> --mode=enhancement --no-branch
+```
+
+#### For Analysis
+```bash
+/analyze --parallel
+```
+
+#### For Testing
+```bash
+/test-feature <Aggregate> --coverage
+```
+
+#### For Code Review
+```bash
+/review <Aggregate> --strict
+```
+
+**See**: `DEV_ORCHESTRATION_SUMMARY.md` for complete system documentation
+
+---
+
 ## Architecture Overview
 
 ### Design Patterns
@@ -500,13 +803,16 @@ func (h *CreateContactHandler) Handle(...) {
 | Document | Purpose | When to Use |
 |----------|---------|-------------|
 | `README.md` | Project overview | First time setup |
+| `docs/AI_AGENTS_COMPLETE_GUIDE.md` 🆕 | Complete AI system guide | Understanding agents + coordination |
+| `docs/CHANGELOG.md` 🆕 | Version history | See what changed |
 | `DEV_GUIDE.md` | Complete developer guide | Implementing features |
+| `MAKEFILE.md` | Command reference | Quick lookup |
 | `TODO.md` | Roadmap and priorities | Planning work |
 | `AI_REPORT.md` | Architectural audit | Understanding quality |
-| `MAKEFILE.md` | Command reference | Quick lookup |
 | `P0.md` | Handler refactoring (done) | Reference for patterns |
-| `guides/domain_mapping/` | 23 aggregate docs | Understanding domain |
+| `guides/domain_mapping/` | 30 aggregate docs | Understanding domain |
 | `guides/TESTING.md` | Testing strategy | Writing tests |
+| `docs/archive/` 🆕 | Historical summaries | Project evolution |
 
 ---
 

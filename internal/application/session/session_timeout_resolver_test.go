@@ -190,6 +190,45 @@ func (m *MockPipelineRepository) SearchByText(ctx context.Context, tenantID stri
 	return args.Get(0).([]*pipeline.Pipeline), args.Get(1).(int64), args.Error(2)
 }
 
+func (m *MockPipelineRepository) SaveCustomField(ctx context.Context, field *pipeline.PipelineCustomField) error {
+	args := m.Called(ctx, field)
+	return args.Error(0)
+}
+
+func (m *MockPipelineRepository) FindCustomFieldByID(ctx context.Context, id uuid.UUID) (*pipeline.PipelineCustomField, error) {
+	args := m.Called(ctx, id)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*pipeline.PipelineCustomField), args.Error(1)
+}
+
+func (m *MockPipelineRepository) FindCustomFieldByKey(ctx context.Context, pipelineID uuid.UUID, key string) (*pipeline.PipelineCustomField, error) {
+	args := m.Called(ctx, pipelineID, key)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*pipeline.PipelineCustomField), args.Error(1)
+}
+
+func (m *MockPipelineRepository) FindCustomFieldsByPipeline(ctx context.Context, pipelineID uuid.UUID) ([]*pipeline.PipelineCustomField, error) {
+	args := m.Called(ctx, pipelineID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]*pipeline.PipelineCustomField), args.Error(1)
+}
+
+func (m *MockPipelineRepository) DeleteCustomField(ctx context.Context, id uuid.UUID) error {
+	args := m.Called(ctx, id)
+	return args.Error(0)
+}
+
+func (m *MockPipelineRepository) DeleteCustomFieldByKey(ctx context.Context, pipelineID uuid.UUID, key string) error {
+	args := m.Called(ctx, pipelineID, key)
+	return args.Error(0)
+}
+
 // Test Helpers
 
 func createTestChannel(t *testing.T, pipelineID *uuid.UUID, defaultTimeout int) *channel.Channel {

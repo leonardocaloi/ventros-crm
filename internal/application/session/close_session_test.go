@@ -85,6 +85,24 @@ func (m *MockSessionRepository) SearchByText(ctx context.Context, tenantID strin
 	return args.Get(0).([]*session.Session), args.Get(1).(int64), args.Error(2)
 }
 
+func (m *MockSessionRepository) FindByChannelPaginated(ctx context.Context, channelID uuid.UUID, limit int, offset int) ([]*session.Session, error) {
+	args := m.Called(ctx, channelID, limit, offset)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]*session.Session), args.Error(1)
+}
+
+func (m *MockSessionRepository) CountByChannel(ctx context.Context, channelID uuid.UUID) (int64, error) {
+	args := m.Called(ctx, channelID)
+	return args.Get(0).(int64), args.Error(1)
+}
+
+func (m *MockSessionRepository) DeleteBatch(ctx context.Context, sessionIDs []uuid.UUID) error {
+	args := m.Called(ctx, sessionIDs)
+	return args.Error(0)
+}
+
 type MockEventBus struct {
 	mock.Mock
 }

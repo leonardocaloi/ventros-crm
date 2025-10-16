@@ -7,6 +7,8 @@ import (
 	"github.com/ventros/crm/internal/domain/core/shared"
 )
 
+type DomainEvent = shared.DomainEvent
+
 // ChatCreatedEvent is emitted when a new chat is created
 type ChatCreatedEvent struct {
 	shared.BaseEvent

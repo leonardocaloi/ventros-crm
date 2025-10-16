@@ -14,9 +14,9 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	_ "github.com/lib/pq"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
-	_ "github.com/lib/pq"
 )
 
 // ScheduledAutomationWebhookTestSuite testa automações agendadas COM verificação de webhooks
@@ -306,7 +306,7 @@ func (s *ScheduledAutomationWebhookTestSuite) TestScheduledAutomationWithWebhook
 
 	// 2. Cria automation rule agendada para executar AGORA
 	ruleID := s.createScheduledAutomation("webhook-test", map[string]interface{}{
-		"type":   "once",
+		"type":       "once",
 		"execute_at": time.Now().Add(-1 * time.Minute).Format(time.RFC3339),
 	})
 	s.ruleID = ruleID

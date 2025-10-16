@@ -292,6 +292,7 @@ func TestReconstructStatus(t *testing.T) {
 	t.Run("reconstruct with full data", func(t *testing.T) {
 		status := ReconstructStatus(
 			id, pipelineID,
+			1, // version
 			"Reconstructed Status",
 			"Test description",
 			"#FF0000",
@@ -317,6 +318,7 @@ func TestReconstructStatus(t *testing.T) {
 	t.Run("reconstruct inactive status", func(t *testing.T) {
 		status := ReconstructStatus(
 			id, pipelineID,
+			1, // version
 			"Inactive Status",
 			"",
 			"",

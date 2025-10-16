@@ -1,0 +1,38 @@
+{
+  "generated_at": "2025-10-16T04:46:18Z",
+  "scan_duration_seconds": 0,
+  "domain": {
+    "aggregates": {
+      "total": 30,
+      "by_bounded_context": {
+        "crm": 20,
+        "automation": 3,
+        "core": 7
+      }
+    }
+  },
+  "api": {
+    "endpoints": {
+      "total": 12
+    }
+  },
+  "cqrs": {
+    "commands": 13,
+    "queries": 20
+  },
+  "testing": {
+    "total_tests": 1058
+  },
+  "agents": {
+    "total": 33,
+    "by_category": {
+      "crm": 15,
+      "global": 4,
+      "meta": 8,
+      "mgmt": 6
+    }
+  },
+  "infrastructure": {
+    "migrations": 52
+  }
+}

@@ -535,6 +535,7 @@ func TestReconstructSession(t *testing.T) {
 	// Act
 	sess := session.ReconstructSession(
 		id,
+		1, // version
 		contactID,
 		tenantID,
 		&channelTypeID,

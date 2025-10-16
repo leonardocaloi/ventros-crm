@@ -1,0 +1,105 @@
+{
+  "version": "1.0",
+  "last_updated": "2025-10-16T00:00:00Z",
+  "active_branches": [],
+  "current_context": {
+    "working_branch": "main",
+    "last_request": null,
+    "mode": null,
+    "phase": null
+  },
+  "agents": {
+    "meta_dev_orchestrator": {
+      "last_run": null,
+      "status": "idle",
+      "current_task": null,
+      "findings": []
+    },
+    "meta_feature_architect": {
+      "last_run": null,
+      "status": "idle",
+      "last_validation": null,
+      "architecture_score": null
+    },
+    "meta_code_reviewer": {
+      "last_run": null,
+      "status": "idle",
+      "last_review_score": null,
+      "pass_fail": null
+    },
+    "crm_domain_model_analyzer": {
+      "last_run": null,
+      "status": "idle",
+      "aggregates_found": [],
+      "bounded_contexts": []
+    },
+    "crm_persistence_analyzer": {
+      "last_run": null,
+      "status": "idle",
+      "repositories_found": [],
+      "entities_found": []
+    },
+    "crm_testing_analyzer": {
+      "last_run": null,
+      "status": "idle",
+      "coverage_percentage": null,
+      "test_count": null
+    },
+    "crm_api_analyzer": {
+      "last_run": null,
+      "status": "idle",
+      "endpoints_found": [],
+      "missing_swagger": []
+    }
+  },
+  "test_results": {
+    "last_run": null,
+    "unit_tests": {
+      "status": null,
+      "passed": 0,
+      "failed": 0,
+      "coverage": null
+    },
+    "integration_tests": {
+      "status": null,
+      "passed": 0,
+      "failed": 0
+    },
+    "e2e_tests": {
+      "status": null,
+      "passed": 0,
+      "failed": 0
+    }
+  },
+  "build_status": {
+    "last_build": null,
+    "status": null,
+    "errors": []
+  },
+  "code_quality": {
+    "last_check": null,
+    "fmt_status": "unknown",
+    "vet_status": "unknown",
+    "lint_status": "unknown"
+  },
+  "shared_knowledge": {
+    "current_aggregates": 30,
+    "bounded_contexts": ["crm", "automation", "core"],
+    "total_endpoints": 158,
+    "test_coverage_target": 82,
+    "architecture_patterns": [
+      "DDD",
+      "Clean Architecture",
+      "CQRS",
+      "Event-Driven",
+      "Outbox Pattern",
+      "Multi-Tenancy (RLS)",
+      "Optimistic Locking"
+    ]
+  },
+  "p0_file_status": {
+    "active_branches_count": 0,
+    "blocked_branches_count": 0,
+    "last_cleanup": null
+  }
+}

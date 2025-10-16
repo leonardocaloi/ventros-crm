@@ -5,7 +5,7 @@ description: Synchronize TODO.md with codebase state and analysis results
 
 # Update TODO Command
 
-Run the `todo_manager` agent to consolidate and synchronize TODO.md with current codebase state.
+Run the `mgmt_todo_manager` agent to consolidate and synchronize TODO.md with current codebase state.
 
 ## What This Does
 
@@ -58,7 +58,7 @@ Updates `/home/caloi/ventros-crm/TODO.md` with:
 ```markdown
 ## 📋 CONSOLIDATED TODO
 
-**Last Update**: 2025-10-15 (Auto-updated by todo_manager)
+**Last Update**: 2025-10-15 (Auto-updated by mgmt_todo_manager)
 **Status**: ✅ Synced with codebase (P0-1 COMPLETE, P0-2 IN PROGRESS)
 **Next Review**: 2025-10-22 (7 days)
 
@@ -80,7 +80,7 @@ Updates `/home/caloi/ventros-crm/TODO.md` with:
 
 ## Agent Invoked
 
-Triggers: `/home/caloi/ventros-crm/.claude/agents/todo_manager.md`
+Triggers: `/home/caloi/ventros-crm/.claude/agents/mgmt_todo_manager.md`
 
 **Runtime**: ~10-15 minutes
 

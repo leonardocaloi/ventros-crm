@@ -8,12 +8,13 @@ import (
 
 // ImportHistoryCommand comando para iniciar importação de histórico de mensagens
 type ImportHistoryCommand struct {
-	ChannelID     uuid.UUID
-	TenantID      string
-	Strategy      string // "time_range", "full", "recent"
-	TimeRangeDays int    // Para strategy="time_range"
-	Limit         int    // Limite de mensagens por chat
-	UserID        uuid.UUID
+	ChannelID             uuid.UUID
+	TenantID              string
+	Strategy              string // "time_range", "full", "recent"
+	TimeRangeDays         int    // para strategy "time_range"
+	Limit                 int    // limite de mensagens por chat (0 = todas)
+	SessionTimeoutMinutes int    // timeout para agrupar sessões (0 = usar default do canal)
+	UserID                uuid.UUID
 }
 
 // Validate valida o comando
@@ -34,10 +35,12 @@ func (cmd ImportHistoryCommand) Validate() error {
 		"time_range": true,
 		"full":       true,
 		"recent":     true,
+		"all":        true, // Alias for "full" (import all available history)
+		"maximum":    true, // Alias for "full" (import maximum available)
 	}
 
 	if !validStrategies[cmd.Strategy] {
-		return fmt.Errorf("invalid strategy: %s (must be time_range, full, or recent)", cmd.Strategy)
+		return fmt.Errorf("invalid strategy: %s (must be time_range, full, recent, all, or maximum)", cmd.Strategy)
 	}
 
 	if cmd.Strategy == "time_range" && cmd.TimeRangeDays <= 0 {

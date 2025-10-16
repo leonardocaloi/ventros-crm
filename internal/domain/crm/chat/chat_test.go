@@ -42,7 +42,7 @@ func TestNewIndividualChat(t *testing.T) {
 		// Check event
 		events := chat.DomainEvents()
 		assert.Len(t, events, 1)
-		assert.Equal(t, "chat.created", events[0].EventType())
+		assert.Equal(t, "chat.created", events[0].EventName())
 
 		// Check timestamps
 		assert.False(t, chat.CreatedAt().IsZero())
@@ -104,7 +104,7 @@ func TestNewGroupChat(t *testing.T) {
 		// Check event
 		events := chat.DomainEvents()
 		assert.Len(t, events, 1)
-		assert.Equal(t, "chat.created", events[0].EventType())
+		assert.Equal(t, "chat.created", events[0].EventName())
 	})
 
 	t.Run("returns error when projectID is nil", func(t *testing.T) {
@@ -165,7 +165,7 @@ func TestNewChannelChat(t *testing.T) {
 		// Check event
 		events := chat.DomainEvents()
 		assert.Len(t, events, 1)
-		assert.Equal(t, "chat.created", events[0].EventType())
+		assert.Equal(t, "chat.created", events[0].EventName())
 	})
 
 	t.Run("returns error when projectID is nil", func(t *testing.T) {
@@ -215,6 +215,7 @@ func TestReconstructChat(t *testing.T) {
 	externalID := "test-external-id"
 	chat := ReconstructChat(
 		id,
+		1, // version
 		projectID,
 		tenantID,
 		chatType,
@@ -248,6 +249,7 @@ func TestReconstructChat(t *testing.T) {
 func TestReconstructChat_InitializesEmptyMetadata(t *testing.T) {
 	chat := ReconstructChat(
 		uuid.New(),
+		1, // version
 		uuid.New(),
 		"tenant-123",
 		ChatTypeIndividual,
@@ -286,7 +288,7 @@ func TestChat_AddParticipant(t *testing.T) {
 		// Check event
 		events := chat.DomainEvents()
 		assert.Len(t, events, 2) // created + participant_added
-		assert.Equal(t, "chat.participant_added", events[1].EventType())
+		assert.Equal(t, "chat.participant_added", events[1].EventName())
 	})
 
 	t.Run("adds multiple participants to group chat", func(t *testing.T) {
@@ -355,7 +357,7 @@ func TestChat_RemoveParticipant(t *testing.T) {
 
 		// Check event
 		events := chat.DomainEvents()
-		assert.Equal(t, "chat.participant_removed", events[len(events)-1].EventType())
+		assert.Equal(t, "chat.participant_removed", events[len(events)-1].EventName())
 	})
 
 	t.Run("returns error when removing from individual chat", func(t *testing.T) {
@@ -394,7 +396,7 @@ func TestChat_Archive(t *testing.T) {
 
 	// Check event
 	events := chat.DomainEvents()
-	assert.Equal(t, "chat.archived", events[len(events)-1].EventType())
+	assert.Equal(t, "chat.archived", events[len(events)-1].EventName())
 }
 
 func TestChat_Unarchive(t *testing.T) {
@@ -408,7 +410,7 @@ func TestChat_Unarchive(t *testing.T) {
 
 	// Check event
 	events := chat.DomainEvents()
-	assert.Equal(t, "chat.unarchived", events[len(events)-1].EventType())
+	assert.Equal(t, "chat.unarchived", events[len(events)-1].EventName())
 }
 
 func TestChat_Close(t *testing.T) {
@@ -423,7 +425,7 @@ func TestChat_Close(t *testing.T) {
 
 	// Check event
 	events := chat.DomainEvents()
-	assert.Equal(t, "chat.closed", events[len(events)-1].EventType())
+	assert.Equal(t, "chat.closed", events[len(events)-1].EventName())
 }
 
 // Test UpdateLastMessageAt
@@ -457,7 +459,7 @@ func TestChat_UpdateSubject(t *testing.T) {
 
 		// Check event
 		events := chat.DomainEvents()
-		assert.Equal(t, "chat.subject_updated", events[len(events)-1].EventType())
+		assert.Equal(t, "chat.subject_updated", events[len(events)-1].EventName())
 	})
 
 	t.Run("updates subject for channel chat", func(t *testing.T) {
@@ -501,7 +503,7 @@ func TestChat_UpdateDescription(t *testing.T) {
 
 		// Check event
 		events := chat.DomainEvents()
-		assert.Equal(t, "chat.description_updated", events[len(events)-1].EventType())
+		assert.Equal(t, "chat.description_updated", events[len(events)-1].EventName())
 	})
 
 	t.Run("returns error for individual chat", func(t *testing.T) {
@@ -627,11 +629,11 @@ func TestChat_DomainEvents(t *testing.T) {
 		events := chat.DomainEvents()
 		assert.Len(t, events, 5) // created + participant_added + archived + unarchived + closed
 
-		assert.Equal(t, "chat.created", events[0].EventType())
-		assert.Equal(t, "chat.participant_added", events[1].EventType())
-		assert.Equal(t, "chat.archived", events[2].EventType())
-		assert.Equal(t, "chat.unarchived", events[3].EventType())
-		assert.Equal(t, "chat.closed", events[4].EventType())
+		assert.Equal(t, "chat.created", events[0].EventName())
+		assert.Equal(t, "chat.participant_added", events[1].EventName())
+		assert.Equal(t, "chat.archived", events[2].EventName())
+		assert.Equal(t, "chat.unarchived", events[3].EventName())
+		assert.Equal(t, "chat.closed", events[4].EventName())
 	})
 
 	t.Run("clears events", func(t *testing.T) {

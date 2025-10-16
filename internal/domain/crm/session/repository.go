@@ -59,4 +59,8 @@ type Repository interface {
 	FindByChannelPaginated(ctx context.Context, channelID uuid.UUID, limit int, offset int) ([]*Session, error)
 	CountByChannel(ctx context.Context, channelID uuid.UUID) (int64, error)
 	DeleteBatch(ctx context.Context, sessionIDs []uuid.UUID) error
+
+	// 🔥 FIX Bug 1: Contact-based batching for consolidation
+	GetContactIDsByChannel(ctx context.Context, channelID uuid.UUID) ([]uuid.UUID, error)
+	FindByChannelAndContacts(ctx context.Context, channelID uuid.UUID, contactIDs []uuid.UUID) ([]*Session, error)
 }

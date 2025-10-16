@@ -387,9 +387,10 @@ func (s *Session) CheckTimeout() bool {
 // consolidated based on actual message timestamps.
 //
 // Example:
-//   Session A: contact=123, lastActivityAt=10:00
-//   Session B: contact=123, startedAt=10:15, timeout=30min
-//   Result: Should consolidate (gap=15min < 30min timeout)
+//
+//	Session A: contact=123, lastActivityAt=10:00
+//	Session B: contact=123, startedAt=10:15, timeout=30min
+//	Result: Should consolidate (gap=15min < 30min timeout)
 func (s *Session) ShouldConsolidateWith(other *Session, timeout time.Duration) bool {
 	// Must be from same contact
 	if s.contactID != other.contactID {
