@@ -3,7 +3,7 @@ entries:
   ventros-crm:
   - apiVersion: v2
     appVersion: 0.1.0
-    created: "2025-10-14T07:22:26.355320897Z"
+    created: "2025-10-16T18:15:57.526354082Z"
     dependencies:
     - condition: postgresOperator.installOperator
       name: postgres-operator
@@ -52,4 +52,4 @@ entries:
     urls:
     - https://leonardocaloi.github.io/ventros-crm/charts/ventros-crm-0.1.0.tgz
     version: 0.1.0
-generated: "2025-10-14T07:22:26.327755149Z"
+generated: "2025-10-16T18:15:57.499944272Z"
