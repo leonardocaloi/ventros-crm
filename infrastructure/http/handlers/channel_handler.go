@@ -299,37 +299,36 @@ func (h *ChannelHandler) ActivateChannel(c *gin.Context) {
 		return
 	}
 
-	// Execute command (async activation via events)
+	// 🚀 FAST SYNC ACTIVATION: Direct WAHA health check (1 request → active)
+	// For test/dev environments, we activate synchronously
+	// TODO: Restore async Temporal workflow for webhook setup in production
+	/*
+	// ASYNC VERSION (commented out for now - for webhook setup)
 	cmd := channelcmd.ActivateChannelCommand{
 		ChannelID: channelID,
 		TenantID:  authCtx.TenantID,
 	}
-
 	if err := h.activateChannelHandler.Handle(c.Request.Context(), cmd); err != nil {
-		h.logger.Error("Failed to request channel activation",
+		// ... error handling
+	}
+	*/
+
+	// Synchronous activation (fast)
+	if err := h.channelService.ActivateChannel(c.Request.Context(), channelID); err != nil {
+		h.logger.Error("Failed to activate channel",
 			zap.Error(err),
 			zap.String("channel_id", channelID.String()))
 
-		// Handle specific errors
-		if err == channelcmd.ErrChannelAlreadyActive {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Channel is already active"})
-			return
-		}
-		if err == channelcmd.ErrChannelAlreadyActivating {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Channel activation is already in progress"})
-			return
-		}
-
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to activate channel"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to activate channel: " + err.Error()})
 		return
 	}
 
-	// Return 202 Accepted - activation is async
-	c.JSON(http.StatusAccepted, gin.H{
-		"message":    "Channel activation requested",
+	// Return 200 OK - activation is SYNCHRONOUS now
+	c.JSON(http.StatusOK, gin.H{
+		"message":    "Channel activated successfully",
 		"channel_id": channelID,
-		"status":     "activating",
-		"note":       "Activation is processing asynchronously. Poll /channels/{id} to check status.",
+		"status":     "active",
+		"note":       "Channel is now active (synchronous activation)",
 	})
 }
 

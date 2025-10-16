@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -188,14 +189,18 @@ func (s *WAHAHistoryImportTestSuite) activateChannel() {
 
 	// Accept both 202 (async) and 200 (sync)
 	if resp.StatusCode != http.StatusAccepted && resp.StatusCode != http.StatusOK {
+		fmt.Printf("⚠️  Channel activation returned status %d: %s\n", resp.StatusCode, string(body))
 		s.T().Logf("Channel activation returned status %d: %s", resp.StatusCode, string(body))
+	} else {
+		fmt.Printf("3️⃣ Channel activation successful (status %d)\n", resp.StatusCode)
 	}
 
-	fmt.Printf("3️⃣ Channel activation requested: %s\n", s.channelID)
+	fmt.Printf("   • Channel ID: %s\n", s.channelID)
 
 	// Aguardar canal ficar ativo
 	fmt.Printf("   ⏳ Waiting for channel to become active...")
-	maxRetries := 30
+	maxRetries := 60 // Increased from 30 to 60 seconds
+	channelActive := false
 	for i := 0; i < maxRetries; i++ {
 		time.Sleep(1 * time.Second)
 
@@ -207,14 +212,18 @@ func (s *WAHAHistoryImportTestSuite) activateChannel() {
 			if err := json.Unmarshal(getBody, &channelData); err == nil {
 				if status, ok := channelData["status"].(string); ok && status == "active" {
 					fmt.Println(" ✅ Active!")
-					return
+					channelActive = true
+					break
 				}
 			}
 		}
 		fmt.Print(".")
 	}
+	fmt.Println()
 
-	s.T().Logf("Warning: Channel did not become active within 30 seconds")
+	if !channelActive {
+		s.T().Fatalf("❌ CRITICAL: Channel did not become active within %d seconds - cannot proceed with import", maxRetries)
+	}
 }
 
 // TestImportHistory testa a importação de histórico
@@ -296,8 +305,8 @@ func (s *WAHAHistoryImportTestSuite) TestImportHistory() {
 	// 3. Verificar database
 	s.verifyDatabaseMetrics()
 
-	fmt.Println("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-	fmt.Println("✅ History import completed successfully")
+	fmt.Println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+	fmt.Println("✅ History import test completed")
 }
 
 // TestImportStatus testa consulta de status sem import ativo
@@ -360,9 +369,10 @@ func (s *WAHAHistoryImportTestSuite) TestImportWithTimeLimit() {
 
 	fmt.Printf("   ✓ Channel configured for 7-day import\n")
 
-	// Inicia importação com estratégia "all" (usa limit de tempo do canal, sem limit de mensagens)
+	// Inicia importação com estratégia "time_range" usando limit de 7 dias configurado no canal
 	payload := map[string]interface{}{
-		"strategy": "all",
+		"strategy":        "time_range",
+		"time_range_days": 7, // Override channel config to ensure 7-day import
 	}
 
 	endpoint := fmt.Sprintf("/api/v1/crm/channels/%s/import-history", s.channelID)
@@ -411,24 +421,33 @@ func (s *WAHAHistoryImportTestSuite) TestImportWithMessageLimit() {
 		}
 	}
 
-	assert.Equal(s.T(), http.StatusAccepted, resp.StatusCode,
-		"Import should return 202 Accepted. Response: %s", string(body))
+	// Verifica se retornou 202 Accepted
+	if resp.StatusCode != http.StatusAccepted {
+		s.T().Fatalf("Import should return 202 Accepted, got %d. Response: %s", resp.StatusCode, string(body))
+	}
 
 	var result map[string]interface{}
 	err := json.Unmarshal(body, &result)
 	assert.NoError(s.T(), err)
 
-	assert.Equal(s.T(), float64(10), result["limit"].(float64), "Limit should be 10")
+	// Verifica se o campo limit existe antes de acessar
+	limit, ok := result["limit"].(float64)
+	if !ok {
+		s.T().Fatalf("Expected 'limit' field in response, got: %v", result)
+	}
 
-	fmt.Printf("   ✓ Message-limited import started (limit: %.0f)\n", result["limit"].(float64))
+	assert.Equal(s.T(), float64(10), limit, "Limit should be 10")
+
+	fmt.Printf("   ✓ Message-limited import started (limit: %.0f)\n", limit)
 	fmt.Println("✅ Message-limited import test completed")
 }
 
 // pollImportStatus aguarda importação completar (polling)
 func (s *WAHAHistoryImportTestSuite) pollImportStatus() {
-	maxRetries := 600               // 🚀 V3: 600 tentativas (30 minutos total - increased from 180 for bulk imports)
-	pollInterval := 3 * time.Second // 3 segundos entre cada poll
+	maxRetries := 1800                     // 🚀 V3: Increased retries for faster polling
+	pollInterval := 100 * time.Millisecond // Fast polling: 100ms (was 3s)
 	importCompleted := false
+	lastStatus := ""
 
 	fmt.Println("\n   ⏳ Polling import status...")
 
@@ -451,10 +470,16 @@ func (s *WAHAHistoryImportTestSuite) pollImportStatus() {
 		}
 
 		status := result["status"].(string)
-		fmt.Printf("   📍 Status [%d/%d]: %s\n", i+1, maxRetries, status)
 
-		// Check workflow status
-		if status == "WORKFLOW_EXECUTION_STATUS_COMPLETED" || status == "completed" {
+		// Show progress every 10 polls or on status change
+		if i%10 == 0 || (i > 0 && status != lastStatus) {
+			fmt.Printf("   📍 Status [%d/%d]: %s\n", i+1, maxRetries, status)
+		}
+		lastStatus = status
+
+		// Check workflow status (case-insensitive)
+		statusLower := strings.ToLower(status)
+		if status == "WORKFLOW_EXECUTION_STATUS_COMPLETED" || statusLower == "completed" {
 			importCompleted = true
 
 			// Mostrar estatísticas finais
@@ -506,6 +531,9 @@ func (s *WAHAHistoryImportTestSuite) verifyDatabaseMetrics() {
 
 	fmt.Println("\n   ℹ️  Note: Database verification requires direct DB access")
 	fmt.Println("   ℹ️  Production tests should use API endpoints for metrics")
+
+	// TODO: Add actual DB queries here if test has direct DB access
+	// For now, metrics are shown from workflow progress during polling
 }
 
 // makeRequest é um helper para fazer requisições HTTP

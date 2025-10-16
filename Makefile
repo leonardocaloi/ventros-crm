@@ -316,7 +316,7 @@ test.e2e.reset.import: ## Reset infra + run E2E import test
 	@echo "$(GREEN)✓ Cache cleaned$(RESET)"
 	@echo ""
 	@echo "$(BLUE)Running E2E Import Test...$(RESET)"
-	@go test -v -timeout 10m -run TestWAHAHistoryImportTestSuite ./tests/e2e/ || (echo "$(RED)Test failed. API logs:$(RESET)"; tail -50 /tmp/crm-api.log; exit 1)
+	@go test -v -count=1 -timeout 10m -run TestWAHAHistoryImportTestSuite ./tests/e2e/ || (echo "$(RED)Test failed. API logs:$(RESET)"; tail -50 /tmp/crm-api.log; exit 1)
 	@echo ""
 	@echo "$(GREEN)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(RESET)"
 	@echo "$(GREEN)✅ E2E Import Test completed!$(RESET)"

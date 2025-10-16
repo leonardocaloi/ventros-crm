@@ -385,32 +385,52 @@ if ch.DebounceTimeoutMs > 0 && !ch.AIAgentsEnabled {
 - ✅ Adicionado **PUT** + **PATCH** (ambos apontam para UpdateChannel)
 - ✅ Compilação: SUCESSO
 
-**Rodada 3 - RESULTADO**:
+**Rodada 4 - V3 REFATORAÇÃO SOLID (Content Types)**:
 
-**✅ Sucessos**:
-1. ✅ Contatos: 1172 criados (antes 0)
-2. ✅ Canal correto: freefaro-b2b-comercial
-3. ✅ PUT endpoint funcionando
-4. ✅ Import: 5683 mensagens, 1176 chats
+**🔍 Problema Identificado**:
+- ❌ Apenas mensagens `text` sendo salvas (5564/5564)
+- ❌ Tipos de mídia (image, video, audio) não detectados
+- ❌ WAHA API não preenche campo `Type` (vem vazio)
 
-**❌ Bugs Críticos Encontrados**:
+**🛠️ Correção Aplicada - SOLID Principles**:
 
-### **Bug 1: Consolidação 0% Efetiva**
-- Sessions Before: 5683
-- Sessions After: 5683 (ZERO consolidação!)
-- Messages/Session: 1 (cada msg = 1 sessão)
+### **Antes (❌ Violava DRY + SOLID)**:
+```go
+// waha_history_import_activities.go
+func inferContentTypeFromMessage() { ... } // Código duplicado
 
-**Causa Raiz**: 
-- Batch de 5000 **divide sessões do mesmo contato**
-- Contato com 4683 sessões é dividido em 2 batches
-- Consolidação só vê parte das sessões por contato
+// message_adapter.go  
+func ToContentType() { ... } // Mesma lógica, estrutura diferente
+```
 
-### **Bug 2: Timeout Ignorado**
-- Teste configurou: 5 minutos (via PUT)
-- Workflow usou: 30 minutos (default)
-- Log: `"timeout_minutes": 30`
+### **Depois (✅ SOLID + DRY)**:
+```go
+// message_adapter.go - ÚNICA fonte de verdade
+func InferContentTypeFromPayload(payload MessagePayload) ContentType {
+    return a.inferFromMimeType(payload.MimeType) // Reutiliza lógica
+}
 
-**Causa**: Workflow não está lendo timeout atualizado do canal
+func inferFromMimeType(mimeType string) ContentType {
+    // Lógica compartilhada entre webhook e API
+    if strings.HasPrefix(mimeType, "image/") { return Image }
+    if strings.HasPrefix(mimeType, "video/") { return Video }
+    if strings.HasPrefix(mimeType, "audio/") { return Audio }
+    // ...
+}
+```
+
+**📊 Tipos Suportados**:
+- ✅ text (sem mídia)
+- ✅ image (image/*)
+- ✅ video (video/*)
+- ✅ audio (audio/*)
+- ✅ document (application/*)
+- ✅ sticker (image/webp)
+- ✅ contact (vcard)
+
+**🧪 Teste em Andamento**:
+- 🔄 Rodada 4: Import com detecção de tipos por MimeType
+- 📌 Expectativa: Distribuição de tipos (não apenas text)
 
 **BUG CORRIGIDO**: ✅ `ContactsCreated` contagem implementada!
 

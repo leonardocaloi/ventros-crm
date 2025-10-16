@@ -2,6 +2,7 @@ package waha
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/ventros/crm/internal/domain/crm/message"
 )
@@ -474,4 +475,55 @@ func (a *MessageAdapter) ExtractGroupID(event WAHAMessageEvent) string {
 		return ""
 	}
 	return event.Payload.From
+}
+
+// InferContentTypeFromPayload infere o tipo de conteúdo baseado em MimeType e HasMedia
+// ✅ SOLID: MessageAdapter é a ÚNICA fonte de verdade para conversão de tipos
+// Usado por: Import History (MessagePayload) - estrutura simples da API WAHA
+// Similar a: ToContentType() - mas para estrutura diferente (webhook vs API)
+func (a *MessageAdapter) InferContentTypeFromPayload(payload MessagePayload) message.ContentType {
+	// 1. Se não tem mídia, é texto
+	if !payload.HasMedia || payload.MimeType == "" {
+		return message.ContentTypeText
+	}
+
+	// 2. Reaproveitar lógica de inferência por MimeType
+	return a.inferFromMimeType(payload.MimeType)
+}
+
+// inferFromMimeType infere o ContentType baseado no MimeType
+// ✅ DRY: Lógica compartilhada entre ToContentType (webhook) e InferContentTypeFromPayload (API)
+func (a *MessageAdapter) inferFromMimeType(mimeType string) message.ContentType {
+	// Images
+	if strings.HasPrefix(mimeType, "image/") {
+		if strings.Contains(mimeType, "webp") {
+			return message.ContentTypeSticker // WhatsApp stickers são webp
+		}
+		return message.ContentTypeImage
+	}
+
+	// Videos
+	if strings.HasPrefix(mimeType, "video/") {
+		return message.ContentTypeVideo
+	}
+
+	// Audios
+	if strings.HasPrefix(mimeType, "audio/") {
+		// PTT (Push-to-Talk) detectado por outras fontes (Info.MediaType)
+		// Aqui tratamos como audio genérico
+		return message.ContentTypeAudio
+	}
+
+	// Documents
+	if strings.HasPrefix(mimeType, "application/") {
+		return message.ContentTypeDocument
+	}
+
+	// VCard (contatos)
+	if strings.Contains(mimeType, "vcard") || strings.Contains(mimeType, "contact") {
+		return message.ContentTypeContact
+	}
+
+	// Fallback: documento para qualquer outro tipo com mídia
+	return message.ContentTypeDocument
 }

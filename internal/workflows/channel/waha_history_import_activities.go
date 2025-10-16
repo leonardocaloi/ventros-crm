@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"sort"
-	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -523,9 +522,8 @@ func (a *WAHAHistoryImportActivities) ImportChatHistoryActivity(ctx context.Cont
 	// Transform WAHA messages to ImportMessage format
 	importMessages := make([]messageapp.ImportMessage, 0, len(messages))
 	for _, wahaMsg := range messages {
-		// Determine content type
-		// WAHA API doesn't populate 'Type' field reliably, so we infer from MimeType
-		contentType := inferContentTypeFromMessage(wahaMsg)
+		// ✅ SOLID: MessageAdapter é a única fonte de verdade para conversão de tipos
+		contentType := a.messageAdapter.InferContentTypeFromPayload(wahaMsg)
 
 		// Build metadata (mark as history import)
 		metadata := map[string]interface{}{
@@ -902,9 +900,8 @@ func (a *WAHAHistoryImportActivities) ImportChatsBulkActivity(ctx context.Contex
 		// Transform WAHA messages to ImportMessage format
 		phoneNumber := extractPhoneNumber(chatResult.chatID)
 		for _, wahaMsg := range chatResult.messages {
-			// Determine content type
-			// WAHA API doesn't populate 'Type' field reliably, so we infer from MimeType
-			contentType := inferContentTypeFromMessage(wahaMsg)
+			// ✅ SOLID: MessageAdapter é a única fonte de verdade para conversão de tipos
+			contentType := a.messageAdapter.InferContentTypeFromPayload(wahaMsg)
 
 			metadata := map[string]interface{}{
 				"source":             "history_import",
@@ -967,57 +964,6 @@ func (a *WAHAHistoryImportActivities) ImportChatsBulkActivity(ctx context.Contex
 	}
 
 	return result, nil
-}
-
-// inferContentTypeFromMessage infere o tipo de conteúdo baseado em MimeType e HasMedia
-// WAHA API não preenche o campo 'Type' consistentemente, então inferimos
-func inferContentTypeFromMessage(msg waha.MessagePayload) message.ContentType {
-	// 1. Se não tem mídia, é texto
-	if !msg.HasMedia || msg.MimeType == "" {
-		return message.ContentTypeText
-	}
-
-	// 2. Inferir pelo MimeType
-	mimeType := msg.MimeType
-
-	// Images
-	if strings.HasPrefix(mimeType, "image/") {
-		if strings.Contains(mimeType, "webp") {
-			return message.ContentTypeSticker // WhatsApp stickers são webp
-		}
-		return message.ContentTypeImage
-	}
-
-	// Videos
-	if strings.HasPrefix(mimeType, "video/") {
-		return message.ContentTypeVideo
-	}
-
-	// Audios
-	if strings.HasPrefix(mimeType, "audio/") {
-		// PTT (Push-to-Talk) geralmente vem como audio/ogg
-		// Mas não temos como diferenciar audio normal de PTT apenas pelo mime
-		// Por enquanto, tratar todos como audio genérico
-		// TODO: Verificar se WAHA adiciona algum campo específico para PTT
-		return message.ContentTypeAudio
-	}
-
-	// Documents
-	if strings.HasPrefix(mimeType, "application/") {
-		return message.ContentTypeDocument
-	}
-
-	// VCard (contatos)
-	if strings.Contains(mimeType, "vcard") || strings.Contains(mimeType, "contact") {
-		return message.ContentTypeContact
-	}
-
-	// Fallback: documento para qualquer outro tipo com mídia
-	if msg.HasMedia {
-		return message.ContentTypeDocument
-	}
-
-	return message.ContentTypeText
 }
 
 // extractPhoneNumber extrai número de telefone do chat ID

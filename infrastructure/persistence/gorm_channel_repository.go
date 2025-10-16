@@ -101,9 +101,19 @@ func (r *GormChannelRepository) GetActiveWAHAChannels() ([]*channel.Channel, err
 
 func (r *GormChannelRepository) Update(ch *channel.Channel) error {
 	entity := r.toEntity(ch)
-	if err := r.db.Save(entity).Error; err != nil {
-		return fmt.Errorf("failed to update channel: %w", err)
+	// Use Updates() with WHERE clause to ensure UPDATE (not INSERT)
+	result := r.db.Model(&entities.ChannelEntity{}).
+		Where("id = ?", entity.ID).
+		Updates(entity)
+
+	if result.Error != nil {
+		return fmt.Errorf("failed to update channel: %w", result.Error)
 	}
+
+	if result.RowsAffected == 0 {
+		return fmt.Errorf("channel not found: %s", entity.ID)
+	}
+
 	return nil
 }
 
