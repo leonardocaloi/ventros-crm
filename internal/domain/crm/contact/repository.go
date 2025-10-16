@@ -35,4 +35,7 @@ type Repository interface {
 	SaveCustomFields(ctx context.Context, contactID uuid.UUID, fields map[string]string) error
 	FindByCustomField(ctx context.Context, tenantID, key, value string) (*Contact, error)
 	GetCustomFields(ctx context.Context, contactID uuid.UUID) (map[string]string, error)
+
+	// Batch operations (for history import optimization)
+	FindByPhones(ctx context.Context, projectID uuid.UUID, phones []string) (map[string]*Contact, error)
 }

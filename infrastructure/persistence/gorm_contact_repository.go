@@ -51,6 +51,7 @@ func (r *GormContactRepository) Save(ctx context.Context, c *contact.Contact) er
 				"first_interaction_at":       entity.FirstInteractionAt,
 				"last_interaction_at":        entity.LastInteractionAt,
 				"updated_at":                 entity.UpdatedAt,
+				"deleted_at":                 entity.DeletedAt,
 			})
 
 		if result.Error != nil {
@@ -490,6 +491,37 @@ func (r *GormContactRepository) GetCustomFields(ctx context.Context, contactID u
 		// Extract string value from jsonb
 		if strVal, ok := field.FieldValue.(string); ok {
 			result[field.FieldKey] = strVal
+		}
+	}
+
+	return result, nil
+}
+
+// FindByPhones performs batch lookup of contacts by phone numbers
+// Returns a map[phone]Contact for fast lookups during import
+// This is optimized for history import where we need to check 100s of phones at once
+func (r *GormContactRepository) FindByPhones(ctx context.Context, projectID uuid.UUID, phones []string) (map[string]*contact.Contact, error) {
+	if len(phones) == 0 {
+		return make(map[string]*contact.Contact), nil
+	}
+
+	var entities []entities.ContactEntity
+	db := r.getDB(ctx)
+
+	// Batch query with IN clause (PostgreSQL optimizes this efficiently)
+	err := db.Where("project_id = ? AND phone IN ? AND deleted_at IS NULL", projectID, phones).
+		Find(&entities).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	// Convert to map for O(1) lookup
+	result := make(map[string]*contact.Contact, len(entities))
+	for i := range entities {
+		domainContact := r.entityToDomain(&entities[i])
+		if phone := domainContact.Phone(); phone != nil {
+			result[phone.String()] = domainContact
 		}
 	}
 

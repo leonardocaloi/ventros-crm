@@ -31,8 +31,9 @@ func NewWAHAImportWorker(
 	contactRepo contact.Repository,
 	sessionRepo session.Repository,
 	messageRepo message.Repository,
-	processMessageUC *messageapp.ProcessInboundMessageUseCase, // ✅ Added for SOLID/DRY
-	messageAdapter *waha.MessageAdapter, // ✅ Added for tracking extraction
+	processMessageUC *messageapp.ProcessInboundMessageUseCase,  // ✅ DEPRECATED: Kept for backward compatibility
+	importBatchUC *messageapp.ImportMessagesBatchUseCase,       // 🚀 NEW: Batch processing for history import
+	messageAdapter *waha.MessageAdapter,                        // ✅ Added for tracking extraction
 	logger *zap.Logger,
 ) *WAHAImportWorker {
 	// Criar activities
@@ -43,7 +44,8 @@ func NewWAHAImportWorker(
 		contactRepo,
 		sessionRepo,
 		messageRepo,
-		processMessageUC, // ✅ Pass use case
+		processMessageUC, // ✅ DEPRECATED: Kept for backward compatibility
+		importBatchUC,    // 🚀 NEW: Batch processing use case
 		messageAdapter,   // ✅ Pass adapter
 	)
 
@@ -56,6 +58,7 @@ func NewWAHAImportWorker(
 	w.RegisterWorkflow(WAHAHistoryImportWorkflow)
 
 	// Registrar activities com nomes explícitos (para corresponder aos nomes no workflow)
+	w.RegisterActivityWithOptions(activities.GetChannelConfigActivity, activity.RegisterOptions{Name: "GetChannelConfigActivity"})
 	w.RegisterActivityWithOptions(activities.DetermineImportTimeRangeActivity, activity.RegisterOptions{Name: "DetermineImportTimeRangeActivity"})
 	w.RegisterActivityWithOptions(activities.FetchWAHAChatsActivity, activity.RegisterOptions{Name: "FetchWAHAChatsActivity"})
 	w.RegisterActivityWithOptions(activities.ImportChatHistoryActivity, activity.RegisterOptions{Name: "ImportChatHistoryActivity"})

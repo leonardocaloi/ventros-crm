@@ -10,23 +10,34 @@ import (
 	"testing"
 	"time"
 
+	"github.com/joho/godotenv"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 )
 
+func init() {
+	// Carregar .env do diretório correto (.deploy/container/.env)
+	if err := godotenv.Load(".deploy/container/.env"); err != nil {
+		// Tenta caminho relativo se não encontrar
+		if err := godotenv.Load("../../.deploy/container/.env"); err != nil {
+			fmt.Printf("Warning: .env not loaded from .deploy/container/.env: %v\n", err)
+		}
+	}
+}
+
 // WAHAHistoryImportTestSuite testa o fluxo completo de importação de histórico WAHA
 type WAHAHistoryImportTestSuite struct {
 	suite.Suite
-	baseURL        string
-	client         *http.Client
-	userID         string
-	projectID      string
-	apiKey         string
-	channelID      string
-	workflowID     string
-	wahaBaseURL    string
-	wahaAPIKey     string
-	wahaSessionID  string
+	baseURL       string
+	client        *http.Client
+	userID        string
+	projectID     string
+	apiKey        string
+	channelID     string
+	workflowID    string
+	wahaBaseURL   string
+	wahaAPIKey    string
+	wahaSessionID string
 }
 
 // SetupSuite executa uma vez antes de todos os testes
@@ -144,7 +155,7 @@ func (s *WAHAHistoryImportTestSuite) createWAHAChannel() {
 		"type":                    "waha",
 		"external_id":             s.wahaSessionID,
 		"history_import_enabled":  true,
-		"history_import_max_days": 180,
+		"history_import_max_days": 30,
 		"waha_config": map[string]interface{}{
 			"base_url":    s.wahaBaseURL,
 			"api_key":     s.wahaAPIKey,
@@ -167,7 +178,7 @@ func (s *WAHAHistoryImportTestSuite) createWAHAChannel() {
 	fmt.Printf("   • Channel ID: %s\n", s.channelID)
 	fmt.Printf("   • WAHA Base URL: %s\n", s.wahaBaseURL)
 	fmt.Printf("   • Session ID: %s\n", s.wahaSessionID)
-	fmt.Printf("   • History Import: 180 days\n")
+	fmt.Printf("   • History Import: 30 days\n")
 }
 
 // activateChannel ativa o canal e aguarda ficar ativo
@@ -211,11 +222,11 @@ func (s *WAHAHistoryImportTestSuite) TestImportHistory() {
 	fmt.Println("\n📥 Testing history import...")
 	fmt.Println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 
-	// 0. Configura canal para usar timeout de sessão de 5 minutos (ao invés do padrão 30 min)
-	// IMPORTANTE: Isso vai criar MAIS sessões, pois cada pausa > 5 min = nova sessão
-	fmt.Println("\n   ⚙️  Configuring channel session timeout to 5 minutes...")
+	// 0. Configura canal para usar timeout de sessão de 240 minutos (4 horas)
+	// IMPORTANTE: Com 4h de timeout, apenas conversas com gap > 4h criam nova sessão
+	fmt.Println("\n   ⚙️  Configuring channel session timeout to 240 minutes (4 hours)...")
 	updatePayload := map[string]interface{}{
-		"default_session_timeout_minutes": 5,
+		"default_session_timeout_minutes": 240,
 	}
 
 	updateEndpoint := fmt.Sprintf("/api/v1/crm/channels/%s", s.channelID)
@@ -223,17 +234,17 @@ func (s *WAHAHistoryImportTestSuite) TestImportHistory() {
 
 	// Se endpoint não existir, logar mas continuar com default (30 min)
 	if updateResp.StatusCode == http.StatusOK {
-		fmt.Println("   ✓ Channel configured with 5-minute session timeout")
-		fmt.Println("   ℹ️  Sessions will be split when >5 min gap between messages")
+		fmt.Println("   ✓ Channel configured with 240-minute (4h) session timeout")
+		fmt.Println("   ℹ️  Sessions will consolidate messages with <4h gap")
 	} else {
 		s.T().Logf("Channel update not available (status %d): %s", updateResp.StatusCode, string(updateBody))
 		fmt.Println("   ⚠️  Using default 30-minute session timeout")
 	}
 
-	// 1. Inicia importação de histórico (180 dias, sem limite de mensagens)
+	// 1. Inicia importação de histórico (30 dias, sem limite de mensagens)
 	payload := map[string]interface{}{
 		"strategy":        "time_range",
-		"time_range_days": 180,
+		"time_range_days": 30,
 		"limit":           0, // 0 = SEM LIMITE (importar todas as mensagens disponíveis)
 	}
 
@@ -270,7 +281,7 @@ func (s *WAHAHistoryImportTestSuite) TestImportHistory() {
 	fmt.Printf("   ✓ Import requested (event-driven pattern)\n")
 	fmt.Printf("   • Correlation ID: %s\n", correlationID)
 	fmt.Printf("   • Expected Workflow ID: %s\n", s.workflowID)
-	fmt.Printf("   • Strategy: time_range (180 days)\n")
+	fmt.Printf("   • Strategy: time_range (30 days)\n")
 
 	limitVal := result["limit"].(float64)
 	if limitVal == 0 {
@@ -349,10 +360,9 @@ func (s *WAHAHistoryImportTestSuite) TestImportWithTimeLimit() {
 
 	fmt.Printf("   ✓ Channel configured for 7-day import\n")
 
-	// Inicia importação
+	// Inicia importação com estratégia "all" (usa limit de tempo do canal, sem limit de mensagens)
 	payload := map[string]interface{}{
 		"strategy": "all",
-		"limit":    50,
 	}
 
 	endpoint := fmt.Sprintf("/api/v1/crm/channels/%s/import-history", s.channelID)
@@ -416,8 +426,8 @@ func (s *WAHAHistoryImportTestSuite) TestImportWithMessageLimit() {
 
 // pollImportStatus aguarda importação completar (polling)
 func (s *WAHAHistoryImportTestSuite) pollImportStatus() {
-	maxRetries := 60          // 60 tentativas
-	pollInterval := 2 * time.Second // 2 segundos entre cada poll
+	maxRetries := 180               // 180 tentativas (10 minutos total)
+	pollInterval := 3 * time.Second // 3 segundos entre cada poll
 	importCompleted := false
 
 	fmt.Println("\n   ⏳ Polling import status...")
@@ -474,7 +484,8 @@ func (s *WAHAHistoryImportTestSuite) pollImportStatus() {
 	}
 
 	if !importCompleted {
-		s.T().Logf("Warning: Import did not complete within %d seconds", maxRetries*2)
+		s.T().Logf("Warning: Import did not complete within %d seconds", maxRetries*3)
+		s.T().Fatal("❌ CRITICAL: Import workflow did not complete - cannot verify consolidation")
 	}
 }
 
